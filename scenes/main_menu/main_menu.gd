@@ -37,6 +37,7 @@ func _ready() -> void:
 
 func _on_host_pressed() -> void:
 	_save_settings()
+	GameState.reset()  # step 9: load the save here instead
 	var err: Error = Net.host_game(name_edit.text)
 	if err != OK:
 		_set_status("Could not host on port %d (%s). Is another instance already hosting?" % [Net.DEFAULT_PORT, error_string(err)])

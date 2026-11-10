@@ -20,6 +20,16 @@ func reset() -> void:
 	world_changed.emit()
 
 
+## Host only: fresh world for a new game. "host" = owned by whoever hosts.
+func init_new_world() -> void:
+	world = {
+		"properties": {
+			"starter_room": {"owner": "host"},
+		},
+	}
+	world_changed.emit()
+
+
 ## Host only: returns the persistent record for a player, creating it if new.
 func get_or_create_player_data(player_name: String) -> Dictionary:
 	if not player_data.has(player_name):
