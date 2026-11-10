@@ -23,3 +23,6 @@ Godot console exe:
 `C:\Users\alexc\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.6.3-stable_win64_console.exe`
 - Import / script check: `--headless --path . --import`
 - Auto host/join for tests: `--headless --path . -- --host --name=A` / `-- --join=127.0.0.1 --name=B`
+- Visual check (needs a window, not headless): `--path . -- --screenshot` hosts, takes PNGs from fixed
+  camera spots (`scripts/debug/screenshot_tour.gd`, list SHOTS) into `screenshots/` (git-ignored) and quits.
+  Look at them with the Read tool after map/visual changes.

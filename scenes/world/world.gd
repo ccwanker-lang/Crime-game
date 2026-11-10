@@ -23,6 +23,17 @@ func _ready() -> void:
 	info_label.text = "You are the %s" % role
 	_refresh_players()
 
+	if "--screenshot" in OS.get_cmdline_user_args():
+		_start_screenshot_tour()
+
+
+## Debug: take screenshots from fixed spots and quit (scripts/debug/screenshot_tour.gd).
+func _start_screenshot_tour() -> void:
+	var tour: Node = preload("res://scripts/debug/screenshot_tour.gd").new()
+	tour.camera = $DebugFlyCamera
+	tour.hide_nodes = [$HUD/Panel]
+	add_child(tour)
+
 
 ## Returns a spawn position near the hospital (index wraps around).
 func get_spawn_point(index: int) -> Vector3:

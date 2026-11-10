@@ -115,7 +115,7 @@ func _apply_cmdline_args() -> void:
 		elif arg.begins_with("--join="):
 			ip_edit.text = arg.trim_prefix("--join=")
 			auto_join = true
-		elif arg == "--host":
+		elif arg == "--host" or arg == "--screenshot":
 			auto_host = true
 	# Deferred so the menu is fully ready before switching scenes.
 	if auto_host:
