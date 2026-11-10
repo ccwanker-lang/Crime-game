@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://assets/polyhaven/exterior_aircon_unit/exterior_aircon_unit.gltf" id="2_r"]
+
+[node name="Aircon" type="Node3D"]
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("1_r")
+model = ExtResource("2_r")
+parts = PackedStringArray("exterior_aircon_unit")
+visibility_end = 70

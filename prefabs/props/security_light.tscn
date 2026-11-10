@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://assets/polyhaven/security_light/security_light.gltf" id="2_r"]
+
+[node name="SecurityLight" type="Node3D"]
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("1_r")
+model = ExtResource("2_r")
+visibility_end = 70
+
+[node name="Light" type="SpotLight3D" parent="." groups=["street_lights"]]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, -0.2, 0.2)
+visible = false
+light_energy = 3.0
+spot_range = 14.0
+spot_angle = 50.0

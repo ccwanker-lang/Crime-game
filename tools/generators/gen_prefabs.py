@@ -1,0 +1,374 @@
+"""Generates the reusable prefab scenes in res://prefabs/ (nature, props, interiors, buildings).
+Usage: python gen_prefabs.py <project root>"""
+import sys
+from tscn import Scene, v3, col, xform, strarr
+
+ROOT = sys.argv[1].rstrip("/\\") + "/"
+PH = "res://assets/polyhaven/%s/%s.gltf"
+S = {
+    "model_part": "res://scripts/procgen/model_part.gd",
+    "tree": "res://scripts/procgen/proc_tree.gd",
+    "hedge": "res://scripts/procgen/hedge.gd",
+    "grass": "res://scripts/procgen/grass_field.gd",
+    "flower_bed": "res://scripts/procgen/flower_bed.gd",
+    "street_prop": "res://scripts/procgen/street_prop.gd",
+    "container": "res://scripts/procgen/shipping_container.gd",
+    "fence": "res://scripts/procgen/garden_fence.gd",
+    "proc_box": "res://scripts/procgen/proc_box.gd",
+    "building": "res://scripts/procgen/building.gd",
+    "property": "res://scenes/world/property.gd",
+}
+
+
+def save(scene, rel):
+    scene.save(ROOT + rel)
+    print("wrote", rel)
+
+
+def box_shape(sc, size):
+    return sc.subres("BoxShape3D", {"size": v3(*size)})
+
+
+def cyl_shape(sc, r, h):
+    return sc.subres("CylinderShape3D", {"radius": f"{r:g}", "height": f"{h:g}"})
+
+
+def model_prefab(rel, model, parts=None, collision=None, scale=1.0, vis_end=0.0, shadows=True,
+                 extra=None, root_type="StaticBody3D", layer2=False):
+    """StaticBody3D root + ModelPart + optional collision.
+    collision: ("box", (sx,sy,sz), (cx,cy,cz)) or ("cyl", r, h)"""
+    sc = Scene()
+    name = rel.split("/")[-1].replace(".tscn", "").title().replace("_", "")
+    sc.node(name, root_type if collision else "Node3D")
+    props = {"script": sc.script(S["model_part"]), "model": sc.scene(PH % (model, model))}
+    if parts:
+        props["parts"] = strarr(parts)
+    if vis_end:
+        props["visibility_end"] = f"{vis_end:g}"
+    if not shadows:
+        props["cast_shadows"] = "false"
+    if scale != 1.0:
+        props["transform"] = xform(scale=scale)
+    sc.node("Model", "Node3D", ".", props=props)
+    if collision:
+        if collision[0] == "box":
+            size, center = collision[1], collision[2]
+            sc.node("Collision", "CollisionShape3D", ".",
+                    props={"transform": xform(center), "shape": box_shape(sc, size)})
+        else:
+            r, h = collision[1], collision[2]
+            sc.node("Collision", "CollisionShape3D", ".",
+                    props={"transform": xform((0, h / 2, 0)), "shape": cyl_shape(sc, r, h)})
+    if extra:
+        extra(sc)
+    save(sc, rel)
+
+
+def script_prefab(rel, ntype, script, props=None):
+    sc = Scene()
+    name = rel.split("/")[-1].replace(".tscn", "").title().replace("_", "")
+    p = {"script": sc.script(S[script])}
+    p.update(props or {})
+    sc.node(name, ntype, props=p)
+    save(sc, rel)
+
+
+# --------------------------------------------------------------------------- nature
+N = "prefabs/nature/"
+script_prefab(N + "tree_large.tscn", "StaticBody3D", "tree",
+              {"tree_seed": "7", "height": "10.5", "crown_radius": "3.6", "trunk_radius": "0.24", "leaf_cards": "300"})
+script_prefab(N + "tree_medium.tscn", "StaticBody3D", "tree",
+              {"tree_seed": "1", "height": "8.0", "crown_radius": "2.8", "trunk_radius": "0.18", "leaf_cards": "240"})
+script_prefab(N + "tree_street.tscn", "StaticBody3D", "tree",
+              {"tree_seed": "3", "height": "6.5", "crown_radius": "2.0", "trunk_radius": "0.13", "leaf_cards": "170",
+               "leaf_tint": col(1.05, 1.08, 0.9)})
+for i, part in enumerate(["shrub_02_a", "shrub_02_b", "shrub_02_c", "shrub_02_d"]):
+    model_prefab(N + f"shrub_{'abcd'[i]}.tscn", "shrub_02", [part], ("cyl", 0.55, 1.4), scale=0.75,
+                 vis_end=70, shadows=True)
+model_prefab(N + "fern.tscn", "fern_02", ["fern_02_b"], vis_end=35, shadows=False)
+script_prefab(N + "hedge.tscn", "StaticBody3D", "hedge")
+script_prefab(N + "flower_bed.tscn", "Node3D", "flower_bed")
+script_prefab(N + "grass_field.tscn", "MultiMeshInstance3D", "grass")
+
+# --------------------------------------------------------------------------- props
+P = "prefabs/props/"
+
+
+def lamp_light(sc):
+    sc.node("Light", "OmniLight3D", ".", groups=["street_lights"],
+            props={"transform": xform((0.0, 4.55, 0.0)), "visible": "false", "light_energy": "2.5",
+                   "light_color": col(1, 0.82, 0.6), "omni_range": "13.0", "shadow_enabled": "false"})
+
+
+model_prefab(P + "street_lamp.tscn", "street_lamp_01", None, ("cyl", 0.12, 4.8), scale=1.25, extra=lamp_light)
+model_prefab(P + "wall_lantern.tscn", "street_lamp_02", None, vis_end=60)
+model_prefab(P + "bench.tscn", "modular_street_seating",
+             ["seat", "seat_back", "crossbar", "legs_single", "legs_double", "back_support_r", "back_support_l",
+              "suspended_support_01", "arm_rest_01", "arm_rest_02"],
+             ("box", (2.3, 0.85, 0.7), (0, 0.425, 0)), vis_end=80)
+model_prefab(P + "trash_can.tscn", "metal_trash_can",
+             ["metal_trash_can", "metal_trash_can_handle_left", "metal_trash_can_handle_right"],
+             ("cyl", 0.3, 0.9), vis_end=70)
+model_prefab(P + "trash_can_rusty.tscn", "metal_trash_can",
+             ["metal_trash_can_rust", "metal_trash_can_rust_handle_left", "metal_trash_can_rust_handle_right"],
+             ("cyl", 0.3, 0.9), vis_end=70)
+model_prefab(P + "trashbag.tscn", "trashbag", None, vis_end=50, shadows=False)
+model_prefab(P + "utility_box.tscn", "utility_box_01", None, ("box", (0.52, 1.12, 0.43), (0, 0.56, 0)), vis_end=80)
+model_prefab(P + "planter_box.tscn", "planter_box_01", None, ("box", (0.91, 0.42, 0.41), (0, 0.21, 0)), vis_end=60)
+model_prefab(P + "crate_long.tscn", "wooden_crate_02", None, ("box", (0.53, 0.46, 1.17), (0, 0.23, 0)), vis_end=80)
+model_prefab(P + "crate_flat.tscn", "wooden_crate_01", None, ("box", (0.83, 0.35, 0.41), (0, 0.175, 0)), vis_end=60)
+model_prefab(P + "barrel.tscn", "barrel_03", None, ("cyl", 0.32, 0.93), vis_end=80)
+model_prefab(P + "road_barrier.tscn", "concrete_road_barrier", None, ("box", (1.55, 0.83, 0.64), (0, 0.415, 0)))
+model_prefab(P + "covered_car.tscn", "covered_car", None, ("box", (1.79, 1.4, 4.38), (0, 0.7, 0)))
+model_prefab(P + "aircon.tscn", "exterior_aircon_unit", ["exterior_aircon_unit"], vis_end=70)
+
+
+def security_spot(sc):
+    sc.node("Light", "SpotLight3D", ".", groups=["street_lights"],
+            props={"transform": "Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, -0.2, 0.2)",
+                   "visible": "false", "light_energy": "3.0", "spot_range": "14.0", "spot_angle": "50.0"})
+
+
+model_prefab(P + "security_light.tscn", "security_light", None, vis_end=70, extra=security_spot)
+
+
+def fence_extra(sc):
+    sc.node("Panel", "Node3D", ".", props={
+        "transform": xform((1.0, 0, 0)), "script": sc.script(S["model_part"]),
+        "model": sc.scene(PH % ("modular_chainlink_fence", "modular_chainlink_fence")),
+        "parts": strarr(["modular_chainlink_fence_double"]), "visibility_end": "90"})
+
+
+# Chainlink segment: 2 m along +X, post at the origin.
+model_prefab(P + "chainlink_fence.tscn", "modular_chainlink_fence", ["modular_chainlink_fence_post"],
+             ("box", (2.0, 2.5, 0.1), (1.0, 1.25, 0)), vis_end=90, extra=fence_extra)
+# Gate frame: 2 m opening frame along +X (no gate leaf, so the yard stays open).
+model_prefab(P + "chainlink_gate_frame.tscn", "modular_chainlink_fence", ["modular_chainlink_fence_door_frame"],
+             None, vis_end=90)
+
+for kind, name in [(0, "bollard"), (1, "post_box"), (2, "bike_rack"), (3, "sign_post"), (4, "manhole")]:
+    script_prefab(P + f"{name}.tscn", "StaticBody3D", "street_prop", {"kind": str(kind)})
+script_prefab(P + "container_6m.tscn", "StaticBody3D", "container", {"length_type": '"6m"'})
+script_prefab(P + "container_12m.tscn", "StaticBody3D", "container", {"length_type": '"12m"'})
+script_prefab(P + "garden_fence.tscn", "StaticBody3D", "fence")
+script_prefab(P + "picket_fence.tscn", "StaticBody3D", "fence",
+              {"style": '"picket"', "height": "0.9", "tint": col(0.95, 0.95, 0.93)})
+
+# --------------------------------------------------------------------------- interiors
+I = "prefabs/interiors/"
+
+
+def furn(name, model, size, center_y=None, parts=None, scale=1.0):
+    cy = size[1] / 2 if center_y is None else center_y
+    model_prefab(I + name + ".tscn", model, parts, ("box", size, (0, cy, 0)), scale=scale, vis_end=40)
+
+
+furn("sofa", "Sofa_01", (1.57, 0.8, 0.66))
+furn("armchair", "ArmChair_01", (0.85, 1.0, 0.77))
+furn("coffee_table", "WoodenTable_01", (1.8, 0.55, 0.66))
+furn("bookshelf", "wooden_bookshelf_worn", (1.37, 2.06, 0.58))
+furn("television", "Television_01", (0.6, 0.46, 0.47))
+furn("cardboard_box", "cardboard_box_01", (0.39, 0.34, 0.52))
+furn("steel_shelves", "steel_frame_shelves_01", (1.1, 2.14, 0.5), scale=0.1)
+furn("cash_register", "CashRegister_01", (0.6, 0.62, 0.44))
+furn("bed", "old_bed_frame", (0.9, 1.2, 2.0), center_y=0.3)
+furn("wheelchair", "wheelchair_01", (0.82, 1.1, 1.09))
+furn("office_desk", "metal_office_desk", (2.0, 0.79, 0.95))
+model_prefab(I + "potted_plant.tscn", "potted_plant_01", None, ("cyl", 0.25, 0.55), vis_end=30)
+
+
+def hanging_light(sc):
+    sc.node("Light", "OmniLight3D", ".", props={
+        "transform": xform((0, -1.5, 0)), "light_color": col(1, 0.85, 0.65), "light_energy": "1.6",
+        "omni_range": "9.0", "shadow_enabled": "true"})
+
+
+model_prefab(I + "hanging_lamp.tscn", "hanging_industrial_lamp", None, extra=hanging_light)
+
+# Ceiling lamp: small glowing dome + light (origin at the ceiling).
+sc = Scene()
+sc.node("CeilingLamp", "Node3D")
+dome = sc.subres("SphereMesh", {"radius": "0.22", "height": "0.2", "is_hemisphere": "true",
+                                "material": sc.res("Material", "res://prefabs/materials/lamp_glow.tres")})
+sc.node("Dome", "MeshInstance3D", ".", props={"transform": "Transform3D(1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0)",
+                                               "mesh": dome, "cast_shadow": "0"})
+sc.node("Light", "OmniLight3D", ".", props={"transform": xform((0, -0.35, 0)), "light_color": col(1, 0.9, 0.75),
+                                            "light_energy": "1.4", "omni_range": "8.0", "shadow_enabled": "true"})
+save(sc, I + "ceiling_lamp.tscn")
+
+# --------------------------------------------------------------------------- buildings
+B = "prefabs/buildings/"
+
+
+def building(rel, props, extra=None):
+    sc = Scene()
+    name = rel.split("/")[-1].replace(".tscn", "").title().replace("_", "")
+    p = {"script": sc.script(S["building"])}
+    p.update(props)
+    sc.node(name, "StaticBody3D", props=p)
+    if extra:
+        extra(sc)
+    save(sc, rel)
+
+
+def q(s):
+    return f'"{s}"'
+
+
+HOUSES = {
+    "row_house_a": {"width": "6.0", "depth": "9.0", "floors": "2", "wall_material": q("brick_old"),
+                    "roof_material": q("roof_dark"), "door_bay": "0", "bay_window_bay": "1", "chimney": q("left"),
+                    "door_color": col(0.12, 0.22, 0.18), "variation_seed": "11"},
+    "row_house_b": {"width": "5.2", "depth": "9.5", "floors": "3", "floor_height": "2.9", "wall_material": q("plaster"),
+                    "wall_tint": col(0.93, 0.89, 0.8), "roof_material": q("roof_dark"), "door_bay": "1",
+                    "balcony_bay": "0", "dormer": "true", "chimney": q("right"),
+                    "door_color": col(0.45, 0.1, 0.1), "variation_seed": "22"},
+    "row_house_c": {"width": "7.2", "depth": "10.0", "floors": "2", "floor_height": "3.2",
+                    "wall_material": q("brick_mixed"), "roof_material": q("roof_red"), "roof_pitch": "38.0",
+                    "door_bay": "0", "bay_window_bay": "2", "dormer": "true", "chimney": q("left"),
+                    "door_color": col(0.1, 0.12, 0.2), "variation_seed": "33"},
+    "row_house_d": {"width": "5.6", "depth": "9.0", "floors": "2", "wall_material": q("brick_yellow"),
+                    "roof_material": q("roof_dark"), "roof_pitch": "48.0", "door_bay": "1", "chimney": q("right"),
+                    "trim_color": col(0.18, 0.18, 0.19), "door_color": col(0.2, 0.2, 0.21), "variation_seed": "44"},
+    "row_house_e": {"width": "6.6", "depth": "11.0", "floors": "3", "floor_height": "3.1",
+                    "wall_material": q("brick_white"), "wall_tint": col(0.95, 0.95, 0.93),
+                    "roof_material": q("roof_dark"), "roof_type": q("hip"), "roof_pitch": "35.0", "door_bay": "0",
+                    "balcony_bay": "1", "corner_quoins": "true", "chimney": q("none"),
+                    "door_color": col(0.05, 0.25, 0.3), "variation_seed": "55"},
+    "row_house_f": {"width": "4.8", "depth": "8.5", "floors": "2", "floor_height": "2.8",
+                    "wall_material": q("plaster"), "wall_tint": col(0.78, 0.84, 0.82), "roof_material": q("roof_red"),
+                    "roof_pitch": "45.0", "door_bay": "1", "string_courses": "false", "chimney": q("left"),
+                    "door_color": col(0.35, 0.22, 0.12), "variation_seed": "66"},
+    "corner_house": {"width": "7.5", "depth": "9.0", "floors": "3", "floor_height": "3.0",
+                     "wall_material": q("brick_old"), "roof_material": q("roof_dark"), "roof_type": q("hip"),
+                     "door_bay": "1", "side_windows": "true", "corner_quoins": "true", "bay_window_bay": "2",
+                     "chimney": q("none"), "door_color": col(0.1, 0.15, 0.12), "variation_seed": "77"},
+    "shop": {"width": "7.0", "depth": "10.0", "floors": "3", "wall_material": q("brick_mixed"),
+             "roof_material": q("roof_dark"), "ground_floor": q("shop"), "door_bay": "0", "shop_sign": q("SHOP"),
+             "awning": "true", "awning_color": col(0.12, 0.3, 0.2), "balcony_bay": "1", "chimney": q("right"),
+             "variation_seed": "88"},
+}
+for name, props in HOUSES.items():
+    building(B + name + ".tscn", props)
+
+building(B + "warehouse.tscn", {
+    "width": "16.0", "depth": "12.0", "floors": "1", "floor_height": "5.5", "bays": "4",
+    "wall_material": q("corrugated"), "wall_tint": col(0.55, 0.6, 0.62), "roof_material": q("roof_dark"),
+    "roof_type": q("gable"), "roof_pitch": "15.0", "string_courses": "false", "chimney": q("none"),
+    "door_bay": "1", "lit_windows": "0.0", "variation_seed": "99"})
+
+
+def marker(sc, name, pos, rot=0.0):
+    sc.node(name, "Marker3D", ".", props={"transform": xform(pos, rot)})
+
+
+def inst(sc, name, rel, pos, rot=0.0, props=None):
+    p = {"transform": xform(pos, rot)}
+    p.update(props or {})
+    sc.node(name, None, ".", instance="res://" + rel, props=p)
+
+
+FLOOR = 0.15
+
+
+# Starter Room: the players' first property. Station spots stay free for step 6.
+def starter_extra(sc):
+    inst(sc, "Bed", I + "bed.tscn", (-2.2, FLOOR, -7.6), 0)
+    inst(sc, "Sofa", I + "sofa.tscn", (1.6, FLOOR, -8.3), 0)
+    inst(sc, "Table", I + "coffee_table.tscn", (1.6, FLOOR, -6.9), 0, )
+    inst(sc, "TVStand", I + "cardboard_box.tscn", (2.5, FLOOR, -4.2), 0)
+    inst(sc, "TV", I + "television.tscn", (2.5, FLOOR + 0.34, -4.2), -90)
+    inst(sc, "Armchair", I + "armchair.tscn", (0.3, FLOOR, -3.6), 120)
+    inst(sc, "Bookshelf", I + "bookshelf.tscn", (-2.5, FLOOR, -3.2), 90)
+    inst(sc, "Box1", I + "cardboard_box.tscn", (-2.3, FLOOR, -1.0), 15)
+    inst(sc, "Box2", I + "cardboard_box.tscn", (-2.35, FLOOR + 0.34, -1.05), -10)
+    inst(sc, "Plant", I + "potted_plant.tscn", (2.4, FLOOR, -0.7))
+    inst(sc, "Lamp", I + "ceiling_lamp.tscn", (0, 2.98, -4.5))
+    marker(sc, "PotSpot", (-1.2, FLOOR, -5.2))
+    marker(sc, "PackagingSpot", (1.0, FLOOR, -5.4))
+    sc.node("Property", "Node3D", ".", props={
+        "transform": xform((0, 3.4, 0.25)), "script": sc.script(S["property"]),
+        "property_id": '&"starter_room"', "display_name": q("Starter Room")})
+    sc.node("Label3D", "Label3D", "Property", props={
+        "text": q("STARTER ROOM\nOwner: -"), "font_size": "40", "pixel_size": "0.006", "outline_size": "8",
+        "modulate": col(1, 0.95, 0.8), "billboard": "0", "double_sided": "false"})
+
+
+building(B + "starter_room.tscn", {
+    "width": "6.0", "depth": "9.0", "floors": "2", "wall_material": q("brick_white"),
+    "wall_tint": col(0.92, 0.9, 0.86), "roof_material": q("roof_dark"), "door_bay": "1",
+    "door_color": col(0.12, 0.2, 0.35), "enterable": "true", "chimney": q("left"), "variation_seed": "5"},
+    starter_extra)
+
+
+def store_extra(sc):
+    for i in range(3):
+        inst(sc, f"ShelfL{i}", I + "steel_shelves.tscn", (-4.4, FLOOR, -2.5 - i * 1.6), 90)
+        inst(sc, f"ShelfR{i}", I + "steel_shelves.tscn", (4.4, FLOOR, -2.5 - i * 1.6), -90)
+    for i in range(2):
+        inst(sc, f"ShelfMid{i}", I + "steel_shelves.tscn", (-0.6 + i * 1.15, FLOOR, -4.2), 0)
+    sc.node("Counter", "StaticBody3D", ".", props={
+        "transform": xform((1.8, FLOOR, -7.6)), "script": sc.script(S["proc_box"]),
+        "size": v3(3.0, 1.0, 0.7), "material_key": q("planks")})
+    inst(sc, "Register", I + "cash_register.tscn", (2.4, FLOOR + 1.0, -7.6), 180)
+    for i in range(4):
+        inst(sc, f"Box{i}", I + "cardboard_box.tscn", (-3.6 + (i % 2) * 0.45, FLOOR + (i // 2) * 0.34, -9.1), i * 13)
+    inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
+    inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
+    marker(sc, "StoreSpot", (1.8, FLOOR, -8.4), 0)
+    marker(sc, "BuyPoint", (1.8, FLOOR, -6.6), 0)
+
+
+building(B + "store.tscn", {
+    "width": "10.0", "depth": "10.0", "floors": "2", "wall_material": q("brick_old"),
+    "roof_material": q("roof_dark"), "roof_type": q("hip"), "ground_floor": q("shop"), "door_bay": "1",
+    "shop_sign": q("STORE"), "awning": "true", "awning_color": col(0.6, 0.12, 0.1), "enterable": "true",
+    "floor_material": q("floor_tiles"), "chimney": q("none"), "variation_seed": "12"}, store_extra)
+
+
+def hospital_extra(sc):
+    sc.node("Reception", "StaticBody3D", ".", props={
+        "transform": xform((0, FLOOR, -6.0)), "script": sc.script(S["proc_box"]),
+        "size": v3(4.0, 1.1, 0.8), "material_key": q("trim_paint")})
+    inst(sc, "Desk", I + "office_desk.tscn", (5.5, FLOOR, -11.0), 180)
+    for i in range(3):
+        inst(sc, f"Seat{i}", I + "sofa.tscn", (-8.0 + i * 2.0, FLOOR, -2.0), 180)
+    inst(sc, "Wheelchair1", I + "wheelchair.tscn", (8.5, FLOOR, -2.2), -30)
+    inst(sc, "Wheelchair2", I + "wheelchair.tscn", (9.4, FLOOR, -2.6), -50)
+    inst(sc, "Bed1", I + "bed.tscn", (-8.5, FLOOR, -11.0), 90)
+    inst(sc, "Plant1", I + "potted_plant.tscn", (-3.0, FLOOR, -1.0))
+    inst(sc, "Plant2", I + "potted_plant.tscn", (3.0, FLOOR, -1.0))
+    # Partition walls: lobby in front, treatment rooms at the back.
+    for name, cx, w in [("WallL", -6.5, 7.6), ("WallR", 6.5, 7.6)]:
+        sc.node(name, "StaticBody3D", ".", props={
+            "transform": xform((cx, FLOOR, -8.5)), "script": sc.script(S["proc_box"]),
+            "size": v3(w, 3.13, 0.15), "material_key": q("interior_plaster"), "bevel": "0.0"})
+    for i, x in enumerate([-7.0, 0.0, 7.0]):
+        inst(sc, f"Lamp{i}", I + "ceiling_lamp.tscn", (x, 3.28, -4.0))
+        inst(sc, f"LampB{i}", I + "ceiling_lamp.tscn", (x, 3.28, -11.0))
+
+
+building(B + "hospital.tscn", {
+    "width": "22.0", "depth": "14.0", "floors": "3", "floor_height": "3.3", "bays": "9",
+    "wall_material": q("plaster"), "wall_tint": col(0.95, 0.94, 0.9), "roof_type": q("flat"),
+    "ground_floor": q("shop"), "door_bay": "4", "shop_sign": q("ST. ANNA HOSPITAL"),
+    "trim_color": col(0.85, 0.87, 0.88), "string_courses": "true", "side_windows": "true",
+    "enterable": "true", "floor_material": q("floor_tiles"), "lit_windows": "0.45", "variation_seed": "3"},
+    hospital_extra)
+
+
+def contact_extra(sc):
+    inst(sc, "Desk", I + "office_desk.tscn", (0.2, FLOOR, -3.6), 0)
+    inst(sc, "Chair", I + "armchair.tscn", (-0.45, FLOOR, -4.75), 180)
+    inst(sc, "Crate1", P + "crate_long.tscn", (-1.7, FLOOR, -3.2), 0)
+    inst(sc, "Crate2", P + "crate_flat.tscn", (-1.7, FLOOR + 0.46, -3.3), 8)
+    inst(sc, "Barrel", P + "barrel.tscn", (1.8, FLOOR, -1.0))
+    inst(sc, "Lamp", I + "hanging_lamp.tscn", (0, 3.48, -2.6))
+    marker(sc, "ContactSpot", (0.75, FLOOR, -4.7), 0)
+
+
+building(B + "contact_hideout.tscn", {
+    "width": "5.0", "depth": "5.5", "floors": "1", "floor_height": "3.5", "bays": "2",
+    "wall_material": q("brick_old"), "wall_tint": col(0.8, 0.78, 0.76), "roof_type": q("flat"),
+    "door_bay": "0", "door_color": col(0.2, 0.2, 0.2), "string_courses": "false", "enterable": "true",
+    "floor_material": q("concrete"), "lit_windows": "0.0", "variation_seed": "13"}, contact_extra)

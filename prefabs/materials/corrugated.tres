@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/surface.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/textures/CorrugatedSteel005/color.jpg" id="2_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/CorrugatedSteel005/normal.jpg" id="3_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/CorrugatedSteel005/roughness.jpg" id="4_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/CorrugatedSteel005/ao.jpg" id="5_tx"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/albedo_tex = ExtResource("2_tx")
+shader_parameter/normal_tex = ExtResource("3_tx")
+shader_parameter/roughness_tex = ExtResource("4_tx")
+shader_parameter/ao_tex = ExtResource("5_tx")
+shader_parameter/uv_scale = Vector2(0.5, 0.5)
+shader_parameter/tint_channel = 1
+shader_parameter/metallic = 0.4
+shader_parameter/grime_amount = 0.4
+shader_parameter/streak_amount = 0.4
+shader_parameter/stain_amount = 0.3

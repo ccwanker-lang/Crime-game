@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://assets/polyhaven/barrel_03/barrel_03.gltf" id="2_r"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_1"]
+radius = 0.32
+height = 0.93
+
+[node name="Barrel" type="StaticBody3D"]
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("1_r")
+model = ExtResource("2_r")
+visibility_end = 80
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.465, 0)
+shape = SubResource("CylinderShape3D_1")

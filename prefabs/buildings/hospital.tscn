@@ -1,0 +1,96 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+[ext_resource type="Script" path="res://scripts/procgen/proc_box.gd" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/office_desk.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/sofa.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/wheelchair.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/bed.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/potted_plant.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="8_r"]
+
+[node name="Hospital" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 22.0
+depth = 14.0
+floors = 3
+floor_height = 3.3
+bays = 9
+wall_material = "plaster"
+wall_tint = Color(0.95, 0.94, 0.9, 1)
+roof_type = "flat"
+ground_floor = "shop"
+door_bay = 4
+shop_sign = "ST. ANNA HOSPITAL"
+trim_color = Color(0.85, 0.87, 0.88, 1)
+string_courses = true
+side_windows = true
+enterable = true
+floor_material = "floor_tiles"
+lit_windows = 0.45
+variation_seed = 3
+
+[node name="Reception" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.15, -6)
+script = ExtResource("2_r")
+size = Vector3(4, 1.1, 0.8)
+material_key = "trim_paint"
+
+[node name="Desk" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 5.5, 0.15, -11)
+
+[node name="Seat0" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -8, 0.15, -2)
+
+[node name="Seat1" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -6, 0.15, -2)
+
+[node name="Seat2" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -4, 0.15, -2)
+
+[node name="Wheelchair1" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, 0.866025, 8.5, 0.15, -2.2)
+
+[node name="Wheelchair2" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(0.642788, 0, -0.766044, 0, 1, 0, 0.766044, 0, 0.642788, 9.4, 0.15, -2.6)
+
+[node name="Bed1" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -8.5, 0.15, -11)
+
+[node name="Plant1" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3, 0.15, -1)
+
+[node name="Plant2" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3, 0.15, -1)
+
+[node name="WallL" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6.5, 0.15, -8.5)
+script = ExtResource("2_r")
+size = Vector3(7.6, 3.13, 0.15)
+material_key = "interior_plaster"
+bevel = 0.0
+
+[node name="WallR" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6.5, 0.15, -8.5)
+script = ExtResource("2_r")
+size = Vector3(7.6, 3.13, 0.15)
+material_key = "interior_plaster"
+bevel = 0.0
+
+[node name="Lamp0" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 3.28, -4)
+
+[node name="LampB0" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 3.28, -11)
+
+[node name="Lamp1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.28, -4)
+
+[node name="LampB1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.28, -11)
+
+[node name="Lamp2" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 7, 3.28, -4)
+
+[node name="LampB2" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 7, 3.28, -11)

@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://assets/polyhaven/planter_box_01/planter_box_01.gltf" id="2_r"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(0.91, 0.42, 0.41)
+
+[node name="PlanterBox" type="StaticBody3D"]
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("1_r")
+model = ExtResource("2_r")
+visibility_end = 60
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.21, 0)
+shape = SubResource("BoxShape3D_1")

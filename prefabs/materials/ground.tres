@@ -1,0 +1,15 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/ground.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/textures/Grass004/color.jpg" id="2_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Grass004/normal.jpg" id="3_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Ground037/color.jpg" id="4_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Ground037/normal.jpg" id="5_tx"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/grass_albedo = ExtResource("2_tx")
+shader_parameter/grass_normal = ExtResource("3_tx")
+shader_parameter/dirt_albedo = ExtResource("4_tx")
+shader_parameter/dirt_normal = ExtResource("5_tx")
+shader_parameter/dirt_amount = 0.3

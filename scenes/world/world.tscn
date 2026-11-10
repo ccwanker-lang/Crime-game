@@ -1,446 +1,1785 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scenes/world/world.gd" id="1_world"]
-[ext_resource type="Script" path="res://scripts/greybox_block.gd" id="1_block"]
-[ext_resource type="Script" path="res://scenes/world/property.gd" id="1_property"]
-[ext_resource type="Script" path="res://scenes/world/debug_fly_camera.gd" id="1_flycam"]
+[ext_resource type="Script" path="res://scenes/world/world.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://prefabs/environment/sun_and_sky.tscn" id="2_r"]
+[ext_resource type="Material" path="res://prefabs/materials/ground.tres" id="3_r"]
+[ext_resource type="Script" path="res://scripts/procgen/ground_area.gd" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/roads/road_straight.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/roads/road_t_junction.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/roads/road_crossing.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/roads/road_curve.tscn" id="8_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/road_barrier.tscn" id="9_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/manhole.tscn" id="10_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/row_house_e.tscn" id="11_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/row_house_f.tscn" id="12_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/row_house_b.tscn" id="13_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/row_house_a.tscn" id="14_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/starter_room.tscn" id="15_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/row_house_c.tscn" id="16_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/corner_house.tscn" id="17_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/garden_fence.tscn" id="18_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/shrub_b.tscn" id="19_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/hedge.tscn" id="20_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/tree_medium.tscn" id="21_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/trash_can_rusty.tscn" id="22_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/shrub_a.tscn" id="23_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/grass_field.tscn" id="24_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/tree_large.tscn" id="25_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/hospital.tscn" id="26_r"]
+[ext_resource type="Script" path="res://scripts/procgen/paved_area.gd" id="27_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/covered_car.tscn" id="28_r"]
+[ext_resource type="Material" path="res://prefabs/materials/road_marking.tres" id="29_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/shop.tscn" id="30_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/row_house_d.tscn" id="31_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/trash_can.tscn" id="32_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/contact_hideout.tscn" id="33_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/trashbag.tscn" id="34_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_long.tscn" id="35_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/wall_lantern.tscn" id="36_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/bench.tscn" id="37_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/flower_bed.tscn" id="38_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/bollard.tscn" id="39_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/bike_rack.tscn" id="40_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/street_lamp.tscn" id="41_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/store.tscn" id="42_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/post_box.tscn" id="43_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/planter_box.tscn" id="44_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/chainlink_fence.tscn" id="45_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/chainlink_gate_frame.tscn" id="46_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/warehouse.tscn" id="47_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/container_12m.tscn" id="48_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/container_6m.tscn" id="49_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_flat.tscn" id="50_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/barrel.tscn" id="51_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/utility_box.tscn" id="52_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/security_light.tscn" id="53_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/tree_street.tscn" id="54_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/sign_post.tscn" id="55_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/aircon.tscn" id="56_r"]
 
-[sub_resource type="ProceduralSkyMaterial" id="SkyMat"]
-ground_bottom_color = Color(0.22, 0.3, 0.2, 1)
-ground_horizon_color = Color(0.55, 0.6, 0.55, 1)
-
-[sub_resource type="StandardMaterial3D" id="OuterGroundMat"]
-albedo_color = Color(0.27, 0.38, 0.23, 1)
-
-[sub_resource type="PlaneMesh" id="OuterGroundMesh"]
-material = SubResource("OuterGroundMat")
-size = Vector2(800, 800)
-
-[sub_resource type="Sky" id="Sky"]
-sky_material = SubResource("SkyMat")
-
-[sub_resource type="Environment" id="Env"]
-background_mode = 2
-sky = SubResource("Sky")
-ambient_light_source = 3
-tonemap_mode = 2
-
-[sub_resource type="NavigationMesh" id="NavMesh"]
+[sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
+geometry_collision_mask = 1
+cell_size = 0.25
+cell_height = 0.25
 agent_height = 1.75
-agent_radius = 0.5
+agent_radius = 0.25
 agent_max_climb = 0.25
+filter_baking_aabb = AABB(-74, -2, -62, 148, 20, 130)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(0.1, 0.01, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(0.1, 0.01, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(0.1, 0.01, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(0.1, 0.01, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(0.1, 0.01, 10)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(0.1, 0.01, 10)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8"]
+size = Vector3(150, 10, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(150, 10, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(1, 10, 130)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(1, 10, 130)
 
 [node name="World" type="Node3D"]
-script = ExtResource("1_world")
+script = ExtResource("1_r")
 
-[node name="Environment" type="WorldEnvironment" parent="."]
-environment = SubResource("Env")
-
-[node name="Sun" type="DirectionalLight3D" parent="."]
-rotation = Vector3(-0.9, 0.6, 0)
-shadow_enabled = true
-
-[node name="OuterGround" type="MeshInstance3D" parent="."]
-position = Vector3(0, -0.05, 0)
-mesh = SubResource("OuterGroundMesh")
+[node name="SunAndSky" parent="." instance=ExtResource("2_r")]
 
 [node name="NavRegion" type="NavigationRegion3D" parent="."]
-navigation_mesh = SubResource("NavMesh")
+navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="Ground" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, -0.5, 0)
-size = Vector3(124, 1, 124)
-color = Color(0.3, 0.42, 0.25, 1)
+script = ExtResource("4_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, 3)
+size = Vector2(150, 132)
+material = ExtResource("3_r")
 
-[node name="MainRoad" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 0.01, 0)
-size = Vector3(120, 0.02, 10)
-color = Color(0.2, 0.2, 0.22, 1)
+[node name="OuterGround" type="StaticBody3D" parent="."]
+script = ExtResource("4_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -0.02, 3)
+size = Vector2(500, 500)
+collision = false
+material = ExtResource("3_r")
 
-[node name="SideStreet" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 0.01, -32.5)
-size = Vector3(8, 0.02, 55)
-color = Color(0.2, 0.2, 0.22, 1)
+[node name="RoadStraight1" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -66, 0, 0)
 
-[node name="SidewalkNW" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-32, 0.02, -6.5)
-size = Vector3(56, 0.04, 3)
-color = Color(0.55, 0.55, 0.55, 1)
+[node name="RoadStraight2" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -54, 0, 0)
 
-[node name="SidewalkNE" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(32, 0.02, -6.5)
-size = Vector3(56, 0.04, 3)
-color = Color(0.55, 0.55, 0.55, 1)
+[node name="RoadStraight3" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -42, 0, 0)
 
-[node name="SidewalkS" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 0.02, 6.5)
-size = Vector3(120, 0.04, 3)
-color = Color(0.55, 0.55, 0.55, 1)
+[node name="RoadStraight4" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -30, 0, 0)
 
-[node name="BorderN" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 1.5, -60.5)
-size = Vector3(122, 3, 1)
-color = Color(0.25, 0.25, 0.28, 1)
+[node name="RoadStraight5" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18, 0, 0)
 
-[node name="BorderS" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 1.5, 60.5)
-size = Vector3(122, 3, 1)
-color = Color(0.25, 0.25, 0.28, 1)
+[node name="RoadTJunction1" parent="NavRegion" instance=ExtResource("6_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6, 0, 0)
 
-[node name="BorderW" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-60.5, 1.5, 0)
-size = Vector3(1, 3, 122)
-color = Color(0.25, 0.25, 0.28, 1)
+[node name="RoadStraight6" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, 0)
 
-[node name="BorderE" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(60.5, 1.5, 0)
-size = Vector3(1, 3, 122)
-color = Color(0.25, 0.25, 0.28, 1)
+[node name="RoadStraight7" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 18, 0, 0)
 
-[node name="StarterRoom" type="Node3D" parent="NavRegion"]
-position = Vector3(-14, 0, -16)
-script = ExtResource("1_property")
-property_id = &"starter_room"
-display_name = "Starter Room"
+[node name="RoadCrossing1" parent="NavRegion" instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 30, 0, 0)
 
-[node name="Floor" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(0, 0.05, 0)
-size = Vector3(8, 0.1, 8)
-color = Color(0.45, 0.32, 0.2, 1)
+[node name="RoadStraight8" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0, 0)
 
-[node name="WallBack" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(0, 1.6, -3.85)
-size = Vector3(8, 3.2, 0.3)
-color = Color(0.7, 0.66, 0.55, 1)
+[node name="RoadStraight9" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0, 0)
 
-[node name="WallWest" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(-3.85, 1.6, 0)
-size = Vector3(0.3, 3.2, 8)
-color = Color(0.7, 0.66, 0.55, 1)
+[node name="RoadStraight10" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, 0)
 
-[node name="WallEast" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(3.85, 1.6, 0)
-size = Vector3(0.3, 3.2, 8)
-color = Color(0.7, 0.66, 0.55, 1)
+[node name="RoadStraight11" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -6, 0, -12)
 
-[node name="WallFrontW" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(-2.4, 1.6, 3.85)
-size = Vector3(3.2, 3.2, 0.3)
-color = Color(0.7, 0.66, 0.55, 1)
+[node name="RoadStraight12" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, -12)
 
-[node name="WallFrontE" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(2.4, 1.6, 3.85)
-size = Vector3(3.2, 3.2, 0.3)
-color = Color(0.7, 0.66, 0.55, 1)
+[node name="RoadStraight13" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -6, 0, -24)
 
-[node name="Lintel" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(0, 2.8, 3.85)
-size = Vector3(1.6, 0.8, 0.3)
-color = Color(0.7, 0.66, 0.55, 1)
+[node name="RoadStraight14" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, -24)
 
-[node name="Roof" type="StaticBody3D" parent="NavRegion/StarterRoom"]
-script = ExtResource("1_block")
-position = Vector3(0, 3.3, 0)
-size = Vector3(8.4, 0.2, 8.4)
-color = Color(0.3, 0.2, 0.18, 1)
+[node name="RoadStraight15" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -6, 0, -36)
 
-[node name="Lamp" type="OmniLight3D" parent="NavRegion/StarterRoom"]
-position = Vector3(0, 2.7, 0)
-light_color = Color(1, 0.9, 0.7, 1)
+[node name="RoadStraight16" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, -36)
+
+[node name="RoadCurve1" parent="NavRegion" instance=ExtResource("8_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -6, 0, -48)
+
+[node name="RoadTJunction2" parent="NavRegion" instance=ExtResource("6_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 30, 0, -48)
+
+[node name="RoadStraight17" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, -48)
+
+[node name="RoadStraight18" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 18, 0, -48)
+
+[node name="RoadStraight19" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0, -48)
+
+[node name="RoadStraight20" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0, -48)
+
+[node name="RoadStraight21" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, -48)
+
+[node name="RoadStraight22" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, 12)
+
+[node name="RoadStraight23" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, 24)
+
+[node name="RoadStraight24" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, 36)
+
+[node name="RoadStraight25" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, 48)
+
+[node name="RoadStraight26" parent="NavRegion" instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 30, 0, 60)
+
+[node name="RoadBarrier1" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -71, 0, -1.8)
+
+[node name="RoadBarrier2" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -71, 0, 1.8)
+
+[node name="RoadBarrier3" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 71, 0, -1.8)
+
+[node name="RoadBarrier4" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 71, 0, 1.8)
+
+[node name="RoadBarrier5" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 71, 0, -49.8)
+
+[node name="RoadBarrier6" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 71, 0, -46.2)
+
+[node name="RoadBarrier7" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 28.2, 0, 65)
+
+[node name="RoadBarrier8" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 31.8, 0, 65)
+
+[node name="Manhole1" parent="NavRegion" instance=ExtResource("10_r")]
+transform = Transform3D(0.536587, 0, 0.843845, 0, 1, 0, -0.843845, 0, 0.536587, -48, 0, 1.6)
+
+[node name="Manhole2" parent="NavRegion" instance=ExtResource("10_r")]
+transform = Transform3D(0.999228, 0, 0.0392767, 0, 1, 0, -0.0392767, 0, 0.999228, -20, 0, -1.7)
+
+[node name="Manhole3" parent="NavRegion" instance=ExtResource("10_r")]
+transform = Transform3D(0.908124, 0, 0.418702, 0, 1, 0, -0.418702, 0, 0.908124, 12, 0, 1.5)
+
+[node name="Manhole4" parent="NavRegion" instance=ExtResource("10_r")]
+transform = Transform3D(0.93916, 0, 0.343479, 0, 1, 0, -0.343479, 0, 0.93916, 46, 0, -1.6)
+
+[node name="Manhole5" parent="NavRegion" instance=ExtResource("10_r")]
+transform = Transform3D(0.402229, 0, 0.915539, 0, 1, 0, -0.915539, 0, 0.402229, 30, 0, 20)
+
+[node name="Manhole6" parent="NavRegion" instance=ExtResource("10_r")]
+transform = Transform3D(0.48629, 0, 0.873797, 0, 1, 0, -0.873797, 0, 0.48629, 12, 0, -48.5)
+
+[node name="RowHouseE1" parent="NavRegion" instance=ExtResource("11_r")]
+transform = Transform3D(0.999987, 0, -0.00504647, 0, 1, 0, 0.00504647, 0, 0.999987, -68.7, 0, -5.99907)
+width = 6.60
+variation_seed = 489
+door_color = Color(0.12, 0.22, 0.18, 1)
+wall_material = "plaster"
+wall_tint = Color(0.95, 0.93, 0.9, 1)
+floors = 2
+
+[node name="RowHouseF1" parent="NavRegion" instance=ExtResource("12_r")]
+transform = Transform3D(1, 0, -0.000983251, 0, 1, 0, 0.000983251, 0, 1, -63, 0, -6.00289)
+width = 4.80
+variation_seed = 4558
+door_color = Color(0.5, 0.45, 0.35, 1)
+
+[node name="RowHouseB1" parent="NavRegion" instance=ExtResource("13_r")]
+transform = Transform3D(0.999997, 0, 0.00242073, 0, 1, 0, -0.00242073, 0, 0.999997, -58, 0, -5.98764)
+width = 5.20
+variation_seed = 2548
+door_color = Color(0.45, 0.1, 0.1, 1)
+
+[node name="RowHouseA1" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(0.999999, 0, -0.00146696, 0, 1, 0, 0.00146696, 0, 0.999999, -52.4, 0, -5.99026)
+width = 6.00
+variation_seed = 5636
+door_color = Color(0.05, 0.25, 0.3, 1)
+wall_material = "brick_old"
+wall_tint = Color(0.967568, 0.967568, 0.967568, 1)
+
+[node name="RowHouseE2" parent="NavRegion" instance=ExtResource("11_r")]
+transform = Transform3D(0.999987, 0, -0.0051459, 0, 1, 0, 0.0051459, 0, 0.999987, -46.1, 0, -5.98104)
+width = 6.60
+variation_seed = 5926
+door_color = Color(0.05, 0.25, 0.3, 1)
+wall_material = "brick_old"
+wall_tint = Color(0.885499, 0.885499, 0.885499, 1)
+floors = 3
+
+[node name="RowHouseA2" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(0.999991, 0, 0.00434101, 0, 1, 0, -0.00434101, 0, 0.999991, -38.9, 0, -6.06131)
+width = 7.80
+variation_seed = 6228
+door_color = Color(0.1, 0.12, 0.2, 1)
+
+[node name="StarterRoom" parent="NavRegion" instance=ExtResource("15_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -32, 0, -6)
+
+[node name="RowHouseC1" parent="NavRegion" instance=ExtResource("16_r")]
+transform = Transform3D(0.999999, 0, -0.00158604, 0, 1, 0, 0.00158604, 0, 0.999999, -24.25, 0, -5.96933)
+width = 9.50
+variation_seed = 4375
+door_color = Color(0.35, 0.22, 0.12, 1)
+
+[node name="CornerHouse1" parent="NavRegion" instance=ExtResource("17_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -15.75, 0, -6)
+
+[node name="GardenFence1" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -65.4, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence2" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -60.6, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence3" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -55.4, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence4" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -49.4, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence5" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -42.8, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence6" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -35, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence7" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -29, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence8" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -19.5, 0, -15.5)
+length = 14.5
+
+[node name="GardenFence9" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0, -30)
+length = 8
+
+[node name="GardenFence10" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, -30)
+length = 8
+
+[node name="GardenFence11" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56, 0, -30)
+length = 8
+
+[node name="GardenFence12" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0, -30)
+length = 8
+
+[node name="GardenFence13" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0, -30)
+length = 8
+
+[node name="GardenFence14" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -32, 0, -30)
+length = 8
+
+[node name="GardenFence15" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 0, -30)
+length = 8
+
+[node name="GardenFence16" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -16, 0, -30)
+length = 4
+
+[node name="ShrubB1" parent="NavRegion" instance=ExtResource("19_r")]
+transform = Transform3D(-0.972017, 0, 0.23491, 0, 1, 0, -0.23491, 0, -0.972017, -68.543, 0, -24.5519)
+
+[node name="Hedge1" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -68.7, 0, -29.2)
+size = Vector3(6, 1.3, 0.7)
+hedge_seed = 82
+
+[node name="TreeMedium1" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.938868, 0, 0.344277, 0, 1, 0, -0.344277, 0, 0.938868, -63.3163, 0, -20.2376)
+tree_seed = 842
+
+[node name="Hedge2" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -63, 0, -29.2)
+size = Vector3(4.2, 1.3, 0.7)
+hedge_seed = 41
+
+[node name="TreeMedium2" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.200238, 0, -0.979747, 0, 1, 0, 0.979747, 0, -0.200238, -57.0911, 0, -21.7461)
+tree_seed = 218
+
+[node name="TrashCanRusty1" parent="NavRegion" instance=ExtResource("22_r")]
+transform = Transform3D(-0.926578, 0, -0.376103, 0, 1, 0, 0.376103, 0, -0.926578, -54.7, 0, -16.7)
+
+[node name="TreeMedium3" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.806797, 0, 0.590828, 0, 1, 0, -0.590828, 0, -0.806797, -45.7955, 0, -19.2663)
+tree_seed = 225
+
+[node name="TrashCanRusty2" parent="NavRegion" instance=ExtResource("22_r")]
+transform = Transform3D(0.0363224, 0, -0.99934, 0, 1, 0, 0.99934, 0, 0.0363224, -48.7, 0, -16.7)
+
+[node name="Hedge3" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -38.9, 0, -29.2)
+size = Vector3(7.2, 1.3, 0.7)
+hedge_seed = 21
+
+[node name="ShrubA1" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(-0.979918, 0, 0.199403, 0, 1, 0, -0.199403, 0, -0.979918, -32.4609, 0, -21.0411)
+
+[node name="Hedge4" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -32, 0, -29.2)
+size = Vector3(5.4, 1.3, 0.7)
+hedge_seed = 71
+
+[node name="TreeMedium4" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.973141, 0, -0.230208, 0, 1, 0, 0.230208, 0, -0.973141, -22.8153, 0, -20.8872)
+tree_seed = 274
+
+[node name="TreeMedium5" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.174454, 0, -0.984665, 0, 1, 0, 0.984665, 0, -0.174454, -17.2883, 0, -25.9757)
+tree_seed = 737
+
+[node name="Hedge5" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -15.75, 0, -29.2)
+size = Vector3(6.9, 1.3, 0.7)
+hedge_seed = 65
+
+[node name="Grass1" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64.5, 0, -23)
+size = Vector2(15, 14)
+field_seed = 100
+
+[node name="Grass2" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -49.5, 0, -23)
+size = Vector2(15, 14)
+field_seed = 110
+
+[node name="Grass3" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34.5, 0, -23)
+size = Vector2(15, 14)
+field_seed = 120
+
+[node name="Grass4" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -19.5, 0, -23)
+size = Vector2(15, 14)
+field_seed = 130
+
+[node name="TreeMedium6" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.705772, 0, -0.708439, 0, 1, 0, 0.708439, 0, -0.705772, -67.9693, 0, -48.7231)
+tree_seed = 100
+
+[node name="TreeLarge1" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(0.315517, 0, 0.94892, 0, 1, 0, -0.94892, 0, 0.315517, -57.6333, 0, -43.908)
+tree_seed = 101
+
+[node name="TreeMedium7" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.957621, 0, -0.288031, 0, 1, 0, 0.288031, 0, 0.957621, -50.5043, 0, -48.0614)
+tree_seed = 102
+
+[node name="TreeLarge2" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.812897, 0, -0.582407, 0, 1, 0, 0.582407, 0, -0.812897, -39.3103, 0, -38.9781)
+tree_seed = 103
+
+[node name="TreeMedium8" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.651742, 0, 0.758441, 0, 1, 0, -0.758441, 0, -0.651742, -32.0456, 0, -48.6576)
+tree_seed = 104
+
+[node name="TreeLarge3" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(0.0662246, 0, 0.997805, 0, 1, 0, -0.997805, 0, 0.0662246, -21.0587, 0, -40.3187)
+tree_seed = 105
+
+[node name="Grass5" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -63, 0, -51.5)
+size = Vector2(14, 13)
+field_seed = 200
+
+[node name="Grass6" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -63, 0, -38.5)
+size = Vector2(14, 13)
+field_seed = 201
+
+[node name="Grass7" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -49, 0, -51.5)
+size = Vector2(14, 13)
+field_seed = 210
+
+[node name="Grass8" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -49, 0, -38.5)
+size = Vector2(14, 13)
+field_seed = 211
+
+[node name="Grass9" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -35, 0, -51.5)
+size = Vector2(14, 13)
+field_seed = 220
+
+[node name="Grass10" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -35, 0, -38.5)
+size = Vector2(14, 13)
+field_seed = 221
+
+[node name="Grass11" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -21, 0, -51.5)
+size = Vector2(14, 13)
+field_seed = 230
+
+[node name="Grass12" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -21, 0, -38.5)
+size = Vector2(14, 13)
+field_seed = 231
+
+[node name="Hospital" parent="NavRegion" instance=ExtResource("26_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 12, 0, -6)
+
+[node name="Parking" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("27_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 12, 0, -25)
+size = Vector2(24, 10)
+surface = "asphalt"
+height = 0.02
+
+[node name="CoveredCar1" parent="NavRegion" instance=ExtResource("28_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.5, 0.02, -27.4)
+
+[node name="CoveredCar2" parent="NavRegion" instance=ExtResource("28_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 5.5, 0.02, -22.6)
+
+[node name="CoveredCar3" parent="NavRegion" instance=ExtResource("28_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 11, 0.02, -27.4)
+
+[node name="CoveredCar4" parent="NavRegion" instance=ExtResource("28_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 17.5, 0.02, -22.6)
+
+[node name="CoveredCar5" parent="NavRegion" instance=ExtResource("28_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20.5, 0.02, -27.4)
+
+[node name="ParkLine1" type="MeshInstance3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.5, 0.03, -25)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("29_r")
+
+[node name="ParkLine2" type="MeshInstance3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 7.5, 0.03, -25)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("29_r")
+
+[node name="ParkLine3" type="MeshInstance3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10.5, 0.03, -25)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("29_r")
+
+[node name="ParkLine4" type="MeshInstance3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 13.5, 0.03, -25)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("29_r")
+
+[node name="ParkLine5" type="MeshInstance3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16.5, 0.03, -25)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("29_r")
+
+[node name="ParkLine6" type="MeshInstance3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 19.5, 0.03, -25)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("29_r")
+
+[node name="RowHouseB2" parent="NavRegion" instance=ExtResource("13_r")]
+transform = Transform3D(-0.999989, 0, -0.00461824, 0, 1, 0, 0.00461824, 0, -0.999989, 2.6, 0, -41.9274)
+width = 5.20
+variation_seed = 1404
+door_color = Color(0.35, 0.22, 0.12, 1)
+floors = 2
+
+[node name="RowHouseC2" parent="NavRegion" instance=ExtResource("16_r")]
+transform = Transform3D(-0.999998, 0, -0.00195172, 0, 1, 0, 0.00195172, 0, -0.999998, 8.8, 0, -41.9274)
+width = 7.20
+variation_seed = 2706
+door_color = Color(0.1, 0.12, 0.2, 1)
+
+[node name="RowHouseB3" parent="NavRegion" instance=ExtResource("13_r")]
+transform = Transform3D(-0.999986, 0, -0.00524014, 0, 1, 0, 0.00524014, 0, -0.999986, 15, 0, -41.9543)
+width = 5.20
+variation_seed = 3296
+door_color = Color(0.35, 0.22, 0.12, 1)
+wall_material = "brick_yellow"
+wall_tint = Color(0.932572, 0.932572, 0.932572, 1)
+
+[node name="RowHouseA3" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(-0.999995, 0, 0.00307991, 0, 1, 0, -0.00307991, 0, -0.999995, 20.8, 0, -42.051)
+width = 6.40
+variation_seed = 345
+door_color = Color(0.05, 0.25, 0.3, 1)
+
+[node name="Shop1" parent="NavRegion" instance=ExtResource("30_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 39.5, 0, -6)
+width = 7
+shop_sign = "BAKERY"
+awning_color = Color(0.55, 0.38, 0.2, 1)
+wall_material = "brick_yellow"
+variation_seed = 200
+
+[node name="Shop2" parent="NavRegion" instance=ExtResource("30_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 46.25, 0, -6)
+width = 6.5
+shop_sign = "SNACK BAR"
+awning_color = Color(0.7, 0.1, 0.08, 1)
+wall_material = "plaster"
+variation_seed = 201
+wall_tint = Color(0.95, 0.9, 0.82, 1)
+
+[node name="Shop3" parent="NavRegion" instance=ExtResource("30_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 52.5, 0, -6)
+width = 6
+shop_sign = "BARBER"
+awning_color = Color(0.1, 0.2, 0.45, 1)
+wall_material = "brick_old"
+variation_seed = 202
+
+[node name="RowHouseB4" parent="NavRegion" instance=ExtResource("13_r")]
+transform = Transform3D(0.999986, 0, -0.00524128, 0, 1, 0, 0.00524128, 0, 0.999986, 58.1, 0, -6.02835)
+width = 5.20
+variation_seed = 3751
+door_color = Color(0.12, 0.22, 0.18, 1)
+
+[node name="RowHouseA4" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(1, 0, 0.00017295, 0, 1, 0, -0.00017295, 0, 1, 63.7, 0, -5.97899)
+width = 6.00
+variation_seed = 7954
+door_color = Color(0.45, 0.1, 0.1, 1)
+
+[node name="RowHouseF2" parent="NavRegion" instance=ExtResource("12_r")]
+transform = Transform3D(1, 0, 0.000931101, 0, 1, 0, -0.000931101, 0, 1, 69.35, 0, -5.97402)
+width = 5.30
+variation_seed = 7750
+door_color = Color(0.5, 0.45, 0.35, 1)
+wall_material = "brick_old"
+wall_tint = Color(0.891632, 0.891632, 0.891632, 1)
+
+[node name="RowHouseD1" parent="NavRegion" instance=ExtResource("31_r")]
+transform = Transform3D(-0.999999, 0, 0.00108609, 0, 1, 0, -0.00108609, 0, -0.999999, 38.8, 0, -41.9391)
+width = 5.60
+variation_seed = 888
+door_color = Color(0.35, 0.22, 0.12, 1)
+
+[node name="RowHouseA5" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(-0.999999, 0, 0.00118971, 0, 1, 0, -0.00118971, 0, -0.999999, 44.6, 0, -42.0125)
+width = 6.00
+variation_seed = 1791
+door_color = Color(0.45, 0.1, 0.1, 1)
+wall_material = "plaster"
+wall_tint = Color(0.85, 0.85, 0.88, 1)
+floors = 2
+
+[node name="RowHouseD2" parent="NavRegion" instance=ExtResource("31_r")]
+transform = Transform3D(-1, 0, 0.000456584, 0, 1, 0, -0.000456584, 0, -1, 50.4, 0, -41.9376)
+width = 5.60
+variation_seed = 1236
+door_color = Color(0.2, 0.2, 0.21, 1)
+
+[node name="RowHouseA6" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(-0.999985, 0, 0.00549057, 0, 1, 0, -0.00549057, 0, -0.999985, 56.2, 0, -41.9201)
+width = 6.00
+variation_seed = 242
+door_color = Color(0.12, 0.22, 0.18, 1)
+
+[node name="RowHouseC3" parent="NavRegion" instance=ExtResource("16_r")]
+transform = Transform3D(-0.999999, 0, 0.00114337, 0, 1, 0, -0.00114337, 0, -0.999999, 62.8, 0, -41.9926)
+width = 7.20
+variation_seed = 6571
+door_color = Color(0.12, 0.22, 0.18, 1)
+wall_material = "brick_old"
+wall_tint = Color(0.998237, 0.998237, 0.998237, 1)
+floors = 3
+
+[node name="RowHouseD3" parent="NavRegion" instance=ExtResource("31_r")]
+transform = Transform3D(-1, 0, 0.000940641, 0, 1, 0, -0.000940641, 0, -1, 69.2, 0, -41.926)
+width = 5.60
+variation_seed = 9106
+door_color = Color(0.35, 0.22, 0.12, 1)
+floors = 3
+
+[node name="GardenFence17" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 43, 0, -16)
+length = 10
+
+[node name="GardenFence18" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 49.5, 0, -16)
+length = 10
+
+[node name="GardenFence19" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 55.5, 0, -16)
+length = 10
+
+[node name="GardenFence20" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 60.7, 0, -16)
+length = 10
+
+[node name="GardenFence21" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 66.7, 0, -16)
+length = 10
+
+[node name="Grass13" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0, -28)
+size = Vector2(12, 8)
+field_seed = 400
+
+[node name="Grass14" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0, -20)
+size = Vector2(12, 8)
+field_seed = 401
+
+[node name="Grass15" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0, -28)
+size = Vector2(12, 8)
+field_seed = 410
+
+[node name="Grass16" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0, -20)
+size = Vector2(12, 8)
+field_seed = 411
+
+[node name="Grass17" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, -28)
+size = Vector2(12, 8)
+field_seed = 420
+
+[node name="Grass18" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, -20)
+size = Vector2(12, 8)
+field_seed = 421
+
+[node name="TreeMedium9" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.933242, 0, 0.359247, 0, 1, 0, -0.359247, 0, 0.933242, 38.8708, 0, -26)
+tree_seed = 340
+
+[node name="TreeMedium10" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.927545, 0, 0.373712, 0, 1, 0, -0.373712, 0, 0.927545, 52.9429, 0, -26)
+tree_seed = 352
+
+[node name="TreeMedium11" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.95078, 0, 0.309867, 0, 1, 0, -0.309867, 0, 0.95078, 63.2544, 0, -26)
+tree_seed = 364
+
+[node name="RowHouseE3" parent="NavRegion" instance=ExtResource("11_r")]
+transform = Transform3D(-1, 0, -3.4824e-05, 0, 1, 0, 3.4824e-05, 0, -1, -68.7, 0, 6.05938)
+width = 6.60
+variation_seed = 2580
+door_color = Color(0.12, 0.22, 0.18, 1)
+floors = 2
+
+[node name="RowHouseA7" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(-0.999999, 0, -0.00116107, 0, 1, 0, 0.00116107, 0, -0.999999, -62.4, 0, 6.03453)
+width = 6.00
+variation_seed = 3854
+door_color = Color(0.2, 0.2, 0.21, 1)
+wall_material = "plaster"
+wall_tint = Color(0.78, 0.84, 0.82, 1)
+
+[node name="RowHouseB5" parent="NavRegion" instance=ExtResource("13_r")]
+transform = Transform3D(-0.999999, 0, -0.00145852, 0, 1, 0, 0.00145852, 0, -0.999999, -56.8, 0, 5.99869)
+width = 5.20
+variation_seed = 9563
+door_color = Color(0.05, 0.25, 0.3, 1)
+
+[node name="RowHouseC4" parent="NavRegion" instance=ExtResource("16_r")]
+transform = Transform3D(-0.999998, 0, -0.00207359, 0, 1, 0, 0.00207359, 0, -0.999998, -50.6, 0, 5.98399)
+width = 7.20
+variation_seed = 4352
+door_color = Color(0.2, 0.2, 0.21, 1)
+wall_material = "brick_yellow"
+wall_tint = Color(0.934867, 0.934867, 0.934867, 1)
+
+[node name="RowHouseA8" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(-0.999982, 0, 0.00599481, 0, 1, 0, -0.00599481, 0, -0.999982, -44, 0, 6.02696)
+width = 6.00
+variation_seed = 9225
+door_color = Color(0.12, 0.22, 0.18, 1)
+wall_material = "brick_mixed"
+wall_tint = Color(0.940706, 0.940706, 0.940706, 1)
+floors = 3
+
+[node name="RowHouseB6" parent="NavRegion" instance=ExtResource("13_r")]
+transform = Transform3D(-0.999989, 0, -0.00463364, 0, 1, 0, 0.00463364, 0, -0.999989, -38.5, 0, 5.99173)
+width = 5.00
+variation_seed = 2585
+door_color = Color(0.2, 0.2, 0.21, 1)
+
+[node name="RowHouseF3" parent="NavRegion" instance=ExtResource("12_r")]
+transform = Transform3D(-0.999983, 0, -0.00591135, 0, 1, 0, 0.00591135, 0, -0.999983, -30.6, 0, 6.05299)
+width = 4.80
+variation_seed = 8667
+door_color = Color(0.12, 0.22, 0.18, 1)
+
+[node name="RowHouseA9" parent="NavRegion" instance=ExtResource("14_r")]
+transform = Transform3D(-0.999986, 0, -0.00536252, 0, 1, 0, 0.00536252, 0, -0.999986, -25.2, 0, 5.9588)
+width = 6.00
+variation_seed = 1892
+door_color = Color(0.12, 0.22, 0.18, 1)
+floors = 3
+
+[node name="RowHouseF4" parent="NavRegion" instance=ExtResource("12_r")]
+transform = Transform3D(-0.999994, 0, 0.00353532, 0, 1, 0, -0.00353532, 0, -0.999994, -18.1, 0, 5.988)
+width = 8.20
+variation_seed = 4326
+door_color = Color(0.05, 0.25, 0.3, 1)
+
+[node name="GardenFence22" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -65.4, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence23" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -59.4, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence24" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -54.2, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence25" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -47, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence26" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -41, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence27" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0, 30)
+length = 8
+
+[node name="GardenFence28" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, 30)
+length = 8
+
+[node name="GardenFence29" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56, 0, 30)
+length = 8
+
+[node name="GardenFence30" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0, 30)
+length = 8
+
+[node name="GardenFence31" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0, 30)
+length = 4
+
+[node name="GardenFence32" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -28.2, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence33" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -22.2, 0, 15.5)
+length = 14.5
+
+[node name="GardenFence34" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -33, 0, 30)
+length = 8
+
+[node name="GardenFence35" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -25, 0, 30)
+length = 8
+
+[node name="GardenFence36" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -17, 0, 30)
+length = 3
+
+[node name="Hedge6" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -68.7, 0, 29.2)
+size = Vector3(6, 1.3, 0.7)
+hedge_seed = 55
+
+[node name="TreeMedium12" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.991955, 0, -0.126593, 0, 1, 0, 0.126593, 0, 0.991955, -62.8993, 0, 20.4811)
+tree_seed = 166
+
+[node name="ShrubA2" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(-0.36216, 0, -0.932116, 0, 1, 0, 0.932116, 0, -0.36216, -58.042, 0, 27.9505)
+
+[node name="Hedge7" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56.8, 0, 29.2)
+size = Vector3(4.6, 1.3, 0.7)
+hedge_seed = 5
+
+[node name="ShrubB2" parent="NavRegion" instance=ExtResource("19_r")]
+transform = Transform3D(-0.659668, 0, 0.751557, 0, 1, 0, -0.751557, 0, -0.659668, -50.9651, 0, 18.9183)
+
+[node name="TreeMedium13" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.498548, 0, -0.866862, 0, 1, 0, 0.866862, 0, -0.498548, -44.4266, 0, 24.6155)
+tree_seed = 363
+
+[node name="ShrubB3" parent="NavRegion" instance=ExtResource("19_r")]
+transform = Transform3D(0.522489, 0, 0.852646, 0, 1, 0, -0.852646, 0, 0.522489, -37.2227, 0, 20.8674)
+
+[node name="TrashCanRusty3" parent="NavRegion" instance=ExtResource("22_r")]
+transform = Transform3D(0.429411, 0, 0.903109, 0, 1, 0, -0.903109, 0, 0.429411, -40.3, 0, 16.7)
+
+[node name="ShrubB4" parent="NavRegion" instance=ExtResource("19_r")]
+transform = Transform3D(0.778085, 0, 0.628159, 0, 1, 0, -0.628159, 0, 0.778085, -26.1328, 0, 26.3737)
+
+[node name="TreeMedium14" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.339866, 0, 0.940474, 0, 1, 0, -0.940474, 0, -0.339866, -16.4537, 0, 22.9523)
+tree_seed = 815
+
+[node name="TrashCan1" parent="NavRegion" instance=ExtResource("32_r")]
+transform = Transform3D(-0.803314, 0, 0.595556, 0, 1, 0, -0.595556, 0, -0.803314, -21.5, 0, 16.7)
+
+[node name="Grass19" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64.75, 0, 23)
+size = Vector2(14.5, 14)
+field_seed = 500
+
+[node name="Grass20" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50.25, 0, 23)
+size = Vector2(14.5, 14)
+field_seed = 510
+
+[node name="Grass21" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -35.75, 0, 23)
+size = Vector2(14.5, 14)
+field_seed = 520
+holes = Array[Rect2]([Rect2(-2.75, -1.2, 5.5, 6), Rect2(-0.35, -18, 3.2, 17)])
+
+[node name="Grass22" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -21.25, 0, 23)
+size = Vector2(14.5, 14)
+field_seed = 530
+
+[node name="ContactAlley" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("27_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34.5, 0, 14)
+size = Vector2(3, 16)
+surface = "cobbles"
+height = 0.15
+
+[node name="ContactHideout" parent="NavRegion" instance=ExtResource("33_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -35.75, 0, 22)
+
+[node name="GardenFence37" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, 16)
+length = 6
+
+[node name="GardenFence38" parent="NavRegion" instance=ExtResource("18_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -33, 0, 16)
+length = 6
+
+[node name="TrashCanRusty4" parent="NavRegion" instance=ExtResource("22_r")]
+transform = Transform3D(0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.939693, -35.6, 0.15, 12.5)
+
+[node name="Trashbag1" parent="NavRegion" instance=ExtResource("34_r")]
+transform = Transform3D(0.766044, 0, 0.642788, 0, 1, 0, -0.642788, 0, 0.766044, -35.5, 0.15, 13.4)
+
+[node name="Trashbag2" parent="NavRegion" instance=ExtResource("34_r")]
+transform = Transform3D(-0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, -0.939693, -35.4, 0.15, 14)
+
+[node name="CrateLong1" parent="NavRegion" instance=ExtResource("35_r")]
+transform = Transform3D(0.996195, 0, 0.0871557, 0, 1, 0, -0.0871557, 0, 0.996195, -33.6, 0.15, 18.5)
+
+[node name="WallLantern1" parent="NavRegion" instance=ExtResource("36_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -33.4, 2.6, 21.2)
+
+[node name="AlleyLight" type="OmniLight3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34.5, 2.8, 20.5)
+light_color = Color(1, 0.75, 0.45, 1)
+light_energy = 1.2
 omni_range = 7.0
 
-[node name="Label3D" type="Label3D" parent="NavRegion/StarterRoom"]
-position = Vector3(0, 4.2, 4.3)
-billboard = 1
-text = "STARTER ROOM"
-font_size = 96
-outline_size = 20
-
-[node name="Hospital" type="Node3D" parent="NavRegion"]
-position = Vector3(22, 0, -20)
-
-[node name="Body" type="StaticBody3D" parent="NavRegion/Hospital"]
-script = ExtResource("1_block")
-position = Vector3(0, 3.5, 0)
-size = Vector3(16, 7, 12)
-color = Color(0.85, 0.85, 0.88, 1)
-
-[node name="Door" type="StaticBody3D" parent="NavRegion/Hospital"]
-script = ExtResource("1_block")
-position = Vector3(0, 1.3, 6.05)
-size = Vector3(2.4, 2.6, 0.1)
-color = Color(0.2, 0.3, 0.5, 1)
-
-[node name="Cross" type="StaticBody3D" parent="NavRegion/Hospital"]
-script = ExtResource("1_block")
-position = Vector3(0, 5.5, 6.05)
-size = Vector3(2.5, 0.7, 0.1)
-color = Color(0.8, 0.1, 0.1, 1)
-
-[node name="Label3D" type="Label3D" parent="NavRegion/Hospital"]
-position = Vector3(0, 8, 6.5)
-billboard = 1
-text = "HOSPITAL"
-font_size = 128
-outline_size = 20
-
-[node name="Store" type="Node3D" parent="NavRegion"]
-position = Vector3(22, 0, 18)
-
-[node name="Body" type="StaticBody3D" parent="NavRegion/Store"]
-script = ExtResource("1_block")
-position = Vector3(0, 2, 0)
-size = Vector3(12, 4, 10)
-color = Color(0.55, 0.7, 0.85, 1)
-
-[node name="Awning" type="StaticBody3D" parent="NavRegion/Store"]
-script = ExtResource("1_block")
-position = Vector3(0, 3.2, -6)
-size = Vector3(12, 0.2, 2)
-color = Color(0.85, 0.3, 0.25, 1)
-
-[node name="Counter" type="StaticBody3D" parent="NavRegion/Store"]
-script = ExtResource("1_block")
-position = Vector3(0, 0.5, -7)
-size = Vector3(4, 1, 0.8)
-color = Color(0.6, 0.5, 0.35, 1)
-
-[node name="Label3D" type="Label3D" parent="NavRegion/Store"]
-position = Vector3(0, 5, -5.5)
-billboard = 1
-text = "STORE"
-font_size = 128
-outline_size = 20
-
-[node name="BuildingD" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-30.75, 3, 18)
-size = Vector3(10, 6, 10)
-color = Color(0.5, 0.48, 0.45, 1)
-
-[node name="BuildingE" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-17.75, 3, 18)
-size = Vector3(10, 6, 10)
-color = Color(0.42, 0.4, 0.42, 1)
-
-[node name="AlleyFloor" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-24.25, 0.02, 18)
-size = Vector3(3, 0.04, 10)
-color = Color(0.38, 0.37, 0.36, 1)
-
-[node name="AlleyBackWall" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-24.25, 1.5, 22.8)
-size = Vector3(3, 3, 0.3)
-color = Color(0.3, 0.28, 0.28, 1)
-
-[node name="Dumpster" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-25.1, 0.6, 21.5)
-size = Vector3(1.2, 1.2, 1.8)
-color = Color(0.2, 0.35, 0.25, 1)
-
-[node name="AlleyLamp" type="OmniLight3D" parent="NavRegion"]
-position = Vector3(-23, 3.2, 19)
-light_color = Color(1, 0.75, 0.45, 1)
-light_energy = 1.5
-omni_range = 6.0
-
-[node name="ContactLabel" type="Label3D" parent="NavRegion"]
-position = Vector3(-24.25, 6.8, 12.8)
-billboard = 1
-text = "CONTACT"
-font_size = 128
-outline_size = 20
-
 [node name="Plaza" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 0.02, 19)
-size = Vector3(16, 0.04, 12)
-color = Color(0.7, 0.65, 0.5, 1)
+script = ExtResource("27_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, 12)
+size = Vector2(20, 12)
+surface = "cobbles"
+height = 0.15
 
-[node name="BenchW" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-3, 0.25, 21)
-size = Vector3(3, 0.5, 0.8)
-color = Color(0.45, 0.3, 0.2, 1)
+[node name="Grass23" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -9, 0, 25)
+size = Vector2(10, 14)
+field_seed = 600
 
-[node name="BenchE" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(3, 0.25, 21)
-size = Vector3(3, 0.5, 0.8)
-color = Color(0.45, 0.3, 0.2, 1)
+[node name="Grass24" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1, 0, 25)
+size = Vector2(10, 14)
+field_seed = 610
 
-[node name="TreeTrunk" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 1.5, 23.5)
-size = Vector3(0.5, 3, 0.5)
-color = Color(0.4, 0.28, 0.15, 1)
+[node name="TreeLarge4" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10.5, 0, 25)
+tree_seed = 17
 
-[node name="TreeCrown" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(0, 3.8, 23.5)
-size = Vector3(2.5, 2.5, 2.5)
-color = Color(0.2, 0.5, 0.2, 1)
+[node name="TreeLarge5" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.5, 0, 27)
+tree_seed = 23
 
-[node name="Crate1" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(40, 0.6, 20)
-size = Vector3(1.2, 1.2, 1.2)
-color = Color(0.5, 0.36, 0.2, 1)
+[node name="TreeMedium15" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, 29)
+tree_seed = 31
 
-[node name="Crate2" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(46, 0.6, 27)
-size = Vector3(1.2, 1.2, 1.2)
-color = Color(0.5, 0.36, 0.2, 1)
+[node name="Bench1" parent="NavRegion" instance=ExtResource("37_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -9, 0.15, 16.6)
 
-[node name="Crate3" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(50, 0.6, 20)
-size = Vector3(1.2, 1.2, 1.2)
-color = Color(0.5, 0.36, 0.2, 1)
+[node name="TrashCan2" parent="NavRegion" instance=ExtResource("32_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7.2, 0.15, 16.8)
 
-[node name="Crate4" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(42, 0.6, 33)
-size = Vector3(1.2, 1.2, 1.2)
-color = Color(0.5, 0.36, 0.2, 1)
+[node name="Bench2" parent="NavRegion" instance=ExtResource("37_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 1, 0.15, 16.6)
 
-[node name="Crate5" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(49, 0.6, 35)
-size = Vector3(1.2, 1.2, 1.2)
-color = Color(0.5, 0.36, 0.2, 1)
+[node name="TrashCan3" parent="NavRegion" instance=ExtResource("32_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.8, 0.15, 16.8)
 
-[node name="LowWall" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(45, 0.6, 30)
-size = Vector3(6, 1.2, 0.4)
-color = Color(0.5, 0.5, 0.5, 1)
+[node name="Bench3" parent="NavRegion" instance=ExtResource("37_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -12.6, 0.15, 11)
 
-[node name="ContainerA" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(56.5, 1.3, 26)
-size = Vector3(2.4, 2.6, 6)
-color = Color(0.15, 0.3, 0.55, 1)
+[node name="Bench4" parent="NavRegion" instance=ExtResource("37_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 4.6, 0.15, 11)
 
-[node name="ContainerB" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(45, 1.3, 44)
-size = Vector3(6, 2.6, 2.4)
-color = Color(0.6, 0.25, 0.15, 1)
+[node name="FlowerBed1" parent="NavRegion" instance=ExtResource("38_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0.15, 17.2)
+size = Vector2(5, 1.2)
+bed_seed = 3
 
-[node name="RivalLabel" type="Label3D" parent="NavRegion"]
-position = Vector3(45, 6, 24)
-billboard = 1
-text = "RIVAL TURF"
-font_size = 160
-outline_size = 20
+[node name="FlowerBed2" parent="NavRegion" instance=ExtResource("38_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.6, 0.15, 15.5)
+size = Vector2(1.6, 2.4)
+bed_seed = 8
 
-[node name="BuildingA" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-30, 3, -18)
-size = Vector3(10, 6, 10)
-color = Color(0.5, 0.48, 0.45, 1)
+[node name="FlowerBed3" parent="NavRegion" instance=ExtResource("38_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.6, 0.15, 15.5)
+size = Vector2(1.6, 2.4)
+bed_seed = 9
 
-[node name="BuildingB" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-45, 4, -18)
-size = Vector3(12, 8, 10)
-color = Color(0.42, 0.4, 0.42, 1)
+[node name="Bollard1" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.15, 6.3)
 
-[node name="BuildingC" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(40, 4, -20)
-size = Vector3(10, 8, 10)
-color = Color(0.42, 0.4, 0.42, 1)
+[node name="Bollard2" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0.15, 6.3)
 
-[node name="BuildingF" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("1_block")
-position = Vector3(-45, 3, 18)
-size = Vector3(12, 6, 10)
-color = Color(0.5, 0.48, 0.45, 1)
+[node name="Bollard3" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0.15, 6.3)
+
+[node name="Bollard4" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.15, 6.3)
+
+[node name="Bollard5" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4, 0.15, 6.3)
+
+[node name="BikeRack1" parent="NavRegion" instance=ExtResource("40_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -11, 0.15, 7.5)
+
+[node name="StreetLamp1" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -13.3, 0.15, 7)
+
+[node name="StreetLamp2" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5.3, 0.15, 7)
+
+[node name="Hedge8" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0, 25)
+size = Vector3(0.8, 1.2, 14)
+hedge_seed = 36
+
+[node name="Hedge9" parent="NavRegion" instance=ExtResource("20_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, 25)
+size = Vector3(0.8, 1.2, 14)
+hedge_seed = 56
+
+[node name="Store" parent="NavRegion" instance=ExtResource("42_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 11, 0, 6)
+
+[node name="CornerHouse2" parent="NavRegion" instance=ExtResource("17_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 20.25, 0, 6)
+wall_material = "brick_yellow"
+variation_seed = 321
+door_color = Color(0.4, 0.1, 0.1, 1)
+
+[node name="PostBox1" parent="NavRegion" instance=ExtResource("43_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 15.5, 0.15, 5.2)
+
+[node name="PlanterBox1" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 7, 0.15, 5.4)
+
+[node name="PlanterBox2" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14.8, 0.15, 5.4)
+
+[node name="Grass25" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 9, 0, 25)
+size = Vector2(10, 14)
+field_seed = 700
+
+[node name="Grass26" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 19, 0, 25)
+size = Vector2(10, 14)
+field_seed = 710
+
+[node name="TurfYard" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("27_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0, 27)
+size = Vector2(24, 38)
+surface = "concrete"
+height = 0.05
+
+[node name="ChainlinkFence1" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 38, 0.05, 8)
+
+[node name="ChainlinkFence2" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0.05, 8)
+
+[node name="ChainlinkFence3" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0.05, 8)
+
+[node name="ChainlinkFence4" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 0.05, 8)
+
+[node name="ChainlinkFence5" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 46, 0.05, 8)
+
+[node name="ChainlinkGateFrame1" parent="NavRegion" instance=ExtResource("46_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 49, 0.05, 8)
+
+[node name="ChainlinkFence6" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0.05, 8)
+
+[node name="ChainlinkFence7" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 52, 0.05, 8)
+
+[node name="ChainlinkFence8" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0.05, 8)
+
+[node name="ChainlinkFence9" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 0.05, 8)
+
+[node name="ChainlinkFence10" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0.05, 8)
+
+[node name="ChainlinkFence11" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0.05, 8)
+
+[node name="ChainlinkFence12" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 8)
+
+[node name="ChainlinkFence13" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 8)
+
+[node name="ChainlinkFence14" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 10)
+
+[node name="ChainlinkFence15" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 10)
+
+[node name="ChainlinkFence16" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 12)
+
+[node name="ChainlinkFence17" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 12)
+
+[node name="ChainlinkFence18" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 14)
+
+[node name="ChainlinkFence19" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 14)
+
+[node name="ChainlinkFence20" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 16)
+
+[node name="ChainlinkFence21" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 16)
+
+[node name="ChainlinkFence22" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 18)
+
+[node name="ChainlinkFence23" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 18)
+
+[node name="ChainlinkFence24" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 20)
+
+[node name="ChainlinkFence25" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 20)
+
+[node name="ChainlinkFence26" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 22)
+
+[node name="ChainlinkFence27" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 22)
+
+[node name="ChainlinkFence28" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 24)
+
+[node name="ChainlinkFence29" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 24)
+
+[node name="ChainlinkFence30" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 26)
+
+[node name="ChainlinkFence31" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 26)
+
+[node name="ChainlinkFence32" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 28)
+
+[node name="ChainlinkFence33" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 28)
+
+[node name="ChainlinkFence34" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 30)
+
+[node name="ChainlinkFence35" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 30)
+
+[node name="ChainlinkFence36" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 32)
+
+[node name="ChainlinkFence37" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 32)
+
+[node name="ChainlinkFence38" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 34)
+
+[node name="ChainlinkFence39" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 34)
+
+[node name="ChainlinkFence40" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 36)
+
+[node name="ChainlinkFence41" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 36)
+
+[node name="ChainlinkFence42" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 38)
+
+[node name="ChainlinkFence43" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 38)
+
+[node name="ChainlinkFence44" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 40)
+
+[node name="ChainlinkFence45" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 40)
+
+[node name="ChainlinkFence46" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 42)
+
+[node name="ChainlinkFence47" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 42)
+
+[node name="ChainlinkFence48" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 38, 0.05, 44)
+
+[node name="ChainlinkFence49" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 62, 0.05, 44)
+
+[node name="ChainlinkFence50" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 38, 0.05, 46)
+
+[node name="ChainlinkFence51" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0.05, 46)
+
+[node name="ChainlinkFence52" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0.05, 46)
+
+[node name="ChainlinkFence53" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 0.05, 46)
+
+[node name="ChainlinkFence54" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 46, 0.05, 46)
+
+[node name="ChainlinkFence55" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0.05, 46)
+
+[node name="ChainlinkFence56" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0.05, 46)
+
+[node name="ChainlinkFence57" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 52, 0.05, 46)
+
+[node name="ChainlinkFence58" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0.05, 46)
+
+[node name="ChainlinkFence59" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 0.05, 46)
+
+[node name="ChainlinkFence60" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0.05, 46)
+
+[node name="ChainlinkFence61" parent="NavRegion" instance=ExtResource("45_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0.05, 46)
+
+[node name="Warehouse" parent="NavRegion" instance=ExtResource("47_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 50, 0.05, 32)
+
+[node name="Container12M1" parent="NavRegion" instance=ExtResource("48_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 41.6, 0.05, 22)
+color = Color(0.55, 0.12, 0.08, 1)
+
+[node name="Container6M1" parent="NavRegion" instance=ExtResource("49_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.5, 0.05, 13.5)
+color = Color(0.12, 0.3, 0.5, 1)
+
+[node name="Container6M2" parent="NavRegion" instance=ExtResource("49_r")]
+transform = Transform3D(0.99863, 0, 0.052336, 0, 1, 0, -0.052336, 0, 0.99863, 45.5, 2.66, 13.5)
+color = Color(0.15, 0.4, 0.2, 1)
+
+[node name="Container6M3" parent="NavRegion" instance=ExtResource("49_r")]
+transform = Transform3D(0.258819, 0, 0.965926, 0, 1, 0, -0.965926, 0, 0.258819, 57.5, 0.05, 20)
+color = Color(0.6, 0.45, 0.1, 1)
+
+[node name="Graffiti" type="Label3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.5, 1.6, 12.27)
+text = "BLACK CROWS"
+font_size = 96
+pixel_size = 0.012
+modulate = Color(0.85, 0.85, 0.85, 0.9)
+outline_size = 0
+double_sided = false
+
+[node name="CrateLong2" parent="NavRegion" instance=ExtResource("35_r")]
+transform = Transform3D(0.984808, 0, 0.173648, 0, 1, 0, -0.173648, 0, 0.984808, 53, 0.05, 11)
+
+[node name="CrateLong3" parent="NavRegion" instance=ExtResource("35_r")]
+transform = Transform3D(0.173648, 0, 0.984808, 0, 1, 0, -0.984808, 0, 0.173648, 53.6, 0.05, 11.9)
+
+[node name="CrateFlat1" parent="NavRegion" instance=ExtResource("50_r")]
+transform = Transform3D(0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.939693, 53.2, 0.51, 11.3)
+
+[node name="Barrel1" parent="NavRegion" instance=ExtResource("51_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55, 0.05, 25)
+
+[node name="Barrel2" parent="NavRegion" instance=ExtResource("51_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55.7, 0.05, 25.6)
+
+[node name="Barrel3" parent="NavRegion" instance=ExtResource("51_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0.05, 30)
+
+[node name="CrateLong4" parent="NavRegion" instance=ExtResource("35_r")]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, 44, 0.05, 28)
+
+[node name="TrashCanRusty5" parent="NavRegion" instance=ExtResource("22_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 51, 0.05, 15.5)
+
+[node name="RoadBarrier9" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47, 0.05, 10)
+
+[node name="RoadBarrier10" parent="NavRegion" instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 51.2, 0.05, 10)
+
+[node name="UtilityBox1" parent="NavRegion" instance=ExtResource("52_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 59, 0.05, 30)
+
+[node name="SecurityLight1" parent="NavRegion" instance=ExtResource("53_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 44, 4.6, 31.75)
+
+[node name="SecurityLight2" parent="NavRegion" instance=ExtResource("53_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 56, 4.6, 31.75)
+
+[node name="TreeMedium16" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.146041, 0, -0.989278, 0, 1, 0, 0.989278, 0, 0.146041, 65.5572, 0, 10.2777)
+tree_seed = 412
+
+[node name="TreeMedium17" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.428517, 0, -0.903534, 0, 1, 0, 0.903534, 0, -0.428517, 65.7023, 0, 24.0376)
+tree_seed = 424
+
+[node name="TreeMedium18" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.985001, 0, 0.172551, 0, 1, 0, -0.172551, 0, 0.985001, 66.6873, 0, 35.3246)
+tree_seed = 436
+
+[node name="Grass27" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 67, 0, 11.25)
+size = Vector2(8, 12.5)
+field_seed = 800
+
+[node name="Grass28" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 67, 0, 23.75)
+size = Vector2(8, 12.5)
+field_seed = 801
+
+[node name="Grass29" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 67, 0, 36.25)
+size = Vector2(8, 12.5)
+field_seed = 802
+
+[node name="Grass30" parent="." instance=ExtResource("24_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 67, 0, 48.75)
+size = Vector2(8, 12.5)
+field_seed = 803
+
+[node name="TreeLarge6" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 49, 0, 52)
+tree_seed = 52
+
+[node name="TreeLarge7" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0, 58)
+tree_seed = 58
+
+[node name="StreetLamp3" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -60, 0.15, -3.95)
+
+[node name="StreetLamp4" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -36, 0.15, -3.95)
+
+[node name="StreetLamp5" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -12, 0.15, -3.95)
+
+[node name="StreetLamp6" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 12, 0.15, -3.95)
+
+[node name="StreetLamp7" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 42, 0.15, -3.95)
+
+[node name="StreetLamp8" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 60, 0.15, -3.95)
+
+[node name="StreetLamp9" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0.15, 3.95)
+
+[node name="StreetLamp10" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 0.15, 3.95)
+
+[node name="StreetLamp11" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24, 0.15, 3.95)
+
+[node name="StreetLamp12" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0.15, 3.95)
+
+[node name="TreeStreet1" parent="NavRegion" instance=ExtResource("54_r")]
+transform = Transform3D(0.716105, 0, -0.697993, 0, 1, 0, 0.697993, 0, 0.716105, -66, 0.15, 4.9)
+tree_seed = 434
+
+[node name="TreeStreet2" parent="NavRegion" instance=ExtResource("54_r")]
+transform = Transform3D(-0.0704089, 0, 0.997518, 0, 1, 0, -0.997518, 0, -0.0704089, -54, 0.15, 4.9)
+tree_seed = 446
+
+[node name="TreeStreet3" parent="NavRegion" instance=ExtResource("54_r")]
+transform = Transform3D(-0.874516, 0, -0.484997, 0, 1, 0, 0.484997, 0, -0.874516, -18, 0.15, 4.9)
+tree_seed = 482
+
+[node name="StreetLamp13" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -9.95, 0.15, -18)
+
+[node name="StreetLamp14" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0.15, -18)
+
+[node name="StreetLamp15" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -9.95, 0.15, -30)
+
+[node name="StreetLamp16" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0.15, -30)
+
+[node name="StreetLamp17" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0.15, 18)
+
+[node name="StreetLamp18" parent="NavRegion" instance=ExtResource("41_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0.15, 42)
+
+[node name="SignPost1" parent="NavRegion" instance=ExtResource("55_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.6, 0.15, -3.9)
+sign_text = "MILL LANE"
+
+[node name="SignPost2" parent="NavRegion" instance=ExtResource("55_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24.4, 0.15, -3.9)
+sign_text = "STATION ROAD"
+
+[node name="SignPost3" parent="NavRegion" instance=ExtResource("55_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -0.6, 0.15, -3.9)
+sign_text = "MAIN STREET"
+
+[node name="UtilityBox2" parent="NavRegion" instance=ExtResource("52_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -11.2, 0.15, -5.4)
+
+[node name="UtilityBox3" parent="NavRegion" instance=ExtResource("52_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 25, 0.15, 5.4)
+
+[node name="TrashCan4" parent="NavRegion" instance=ExtResource("32_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 36.6, 0.15, -5.2)
+
+[node name="BikeRack2" parent="NavRegion" instance=ExtResource("40_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 43.4, 0.15, -5.2)
+
+[node name="TrashCan5" parent="NavRegion" instance=ExtResource("32_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0.15, -5.2)
+
+[node name="Bench5" parent="NavRegion" instance=ExtResource("37_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 56, 0.15, -5.5)
+
+[node name="Bollard6" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 0.15, -3.8)
+
+[node name="Bollard7" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4, 0.15, -3.8)
+
+[node name="Bollard8" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0.15, -3.8)
+
+[node name="Bollard9" parent="NavRegion" instance=ExtResource("39_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 0.15, -3.8)
+
+[node name="PostBox2" parent="NavRegion" instance=ExtResource("43_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44.5, 0.15, -5.4)
+
+[node name="Trashbag3" parent="NavRegion" instance=ExtResource("34_r")]
+transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -52.3, 0.15, -5.6)
+
+[node name="Trashbag4" parent="NavRegion" instance=ExtResource("34_r")]
+transform = Transform3D(-0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, -0.5, -52.8, 0.15, -5.5)
+
+[node name="Aircon1" parent="NavRegion" instance=ExtResource("56_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -23, 3.2, -14.9)
+
+[node name="Aircon2" parent="NavRegion" instance=ExtResource("56_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 64, 3.2, -14.9)
+
+[node name="TreeLarge8" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.821491, 0, -0.570221, 0, 1, 0, 0.570221, 0, -0.821491, -70.5493, 0, -59.847)
+tree_seed = 600
+
+[node name="TreeMedium19" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.921198, 0, 0.389095, 0, 1, 0, -0.389095, 0, -0.921198, -72.4629, 0, 64.1457)
+tree_seed = 700
+
+[node name="TreeMedium20" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.807184, 0, -0.5903, 0, 1, 0, 0.5903, 0, 0.807184, -64.7473, 0, -59.5374)
+tree_seed = 601
+
+[node name="TreeMedium21" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.920373, 0, 0.391041, 0, 1, 0, -0.391041, 0, -0.920373, -61.3298, 0, -59.8225)
+tree_seed = 602
+
+[node name="TreeMedium22" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.386412, 0, -0.922326, 0, 1, 0, 0.922326, 0, -0.386412, -60.3402, 0, 64.226)
+tree_seed = 702
+
+[node name="TreeLarge9" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(0.326679, 0, 0.945135, 0, 1, 0, -0.945135, 0, 0.326679, -53.2792, 0, -57.0518)
+tree_seed = 603
+
+[node name="TreeMedium23" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.87863, 0, -0.477504, 0, 1, 0, 0.477504, 0, 0.87863, -49.0061, 0, -56.2045)
+tree_seed = 604
+
+[node name="TreeMedium24" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.708769, 0, 0.70544, 0, 1, 0, -0.70544, 0, 0.708769, -48.4305, 0, 63.6535)
+tree_seed = 704
+
+[node name="TreeMedium25" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.498768, 0, -0.866735, 0, 1, 0, 0.866735, 0, -0.498768, -41.7999, 0, -57.9715)
+tree_seed = 605
+
+[node name="TreeLarge10" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.942125, 0, -0.335262, 0, 1, 0, 0.335262, 0, -0.942125, -37.7215, 0, -57.2112)
+tree_seed = 606
+
+[node name="TreeMedium26" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.725282, 0, 0.688452, 0, 1, 0, -0.688452, 0, -0.725282, -38.1245, 0, 63.6597)
+tree_seed = 706
+
+[node name="TreeMedium27" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.907206, 0, -0.420686, 0, 1, 0, 0.420686, 0, -0.907206, -30.6556, 0, -59.3039)
+tree_seed = 607
+
+[node name="TreeMedium28" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.332079, 0, 0.943252, 0, 1, 0, -0.943252, 0, -0.332079, -25.8818, 0, -56.6651)
+tree_seed = 608
+
+[node name="TreeMedium29" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.783713, 0, -0.621123, 0, 1, 0, 0.621123, 0, -0.783713, -26.4695, 0, 64.143)
+tree_seed = 708
+
+[node name="TreeLarge11" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.450476, 0, -0.892789, 0, 1, 0, 0.892789, 0, -0.450476, -20.3333, 0, -58.2329)
+tree_seed = 609
+
+[node name="TreeMedium30" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.96832, 0, -0.249712, 0, 1, 0, 0.249712, 0, 0.96832, -13.9665, 0, -56.8251)
+tree_seed = 610
+
+[node name="TreeMedium31" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.210695, 0, 0.977552, 0, 1, 0, -0.977552, 0, -0.210695, -13.2921, 0, 63.6354)
+tree_seed = 710
+
+[node name="TreeMedium32" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.832734, 0, 0.553673, 0, 1, 0, -0.553673, 0, 0.832734, -7.70844, 0, -57.523)
+tree_seed = 611
+
+[node name="TreeLarge12" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.370574, 0, 0.928803, 0, 1, 0, -0.928803, 0, -0.370574, -1.044, 0, -59.0605)
+tree_seed = 612
+
+[node name="TreeMedium33" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.958138, 0, 0.286306, 0, 1, 0, -0.286306, 0, 0.958138, -1.48031, 0, 61.5894)
+tree_seed = 712
+
+[node name="TreeMedium34" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.115911, 0, -0.99326, 0, 1, 0, 0.99326, 0, 0.115911, 4.85181, 0, -57.5549)
+tree_seed = 613
+
+[node name="TreeMedium35" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.889085, 0, -0.457742, 0, 1, 0, 0.457742, 0, -0.889085, 9.06625, 0, -56.4555)
+tree_seed = 614
+
+[node name="TreeMedium36" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.807733, 0, 0.589548, 0, 1, 0, -0.589548, 0, -0.807733, 9.85504, 0, 62.5359)
+tree_seed = 714
+
+[node name="TreeLarge13" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(0.781058, 0, -0.624459, 0, 1, 0, 0.624459, 0, 0.781058, 13.9427, 0, -57.2495)
+tree_seed = 615
+
+[node name="TreeMedium37" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.177623, 0, -0.984099, 0, 1, 0, 0.984099, 0, 0.177623, 21.8813, 0, -56.4581)
+tree_seed = 616
+
+[node name="TreeMedium38" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.333342, 0, -0.942806, 0, 1, 0, 0.942806, 0, -0.333342, 19.9565, 0, 64.2164)
+tree_seed = 716
+
+[node name="TreeMedium39" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.868538, 0, -0.495622, 0, 1, 0, 0.495622, 0, 0.868538, 26.4936, 0, -57.7704)
+tree_seed = 617
+
+[node name="TreeLarge14" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.975425, 0, 0.22033, 0, 1, 0, -0.22033, 0, -0.975425, 31.2641, 0, -59.4666)
+tree_seed = 618
+
+[node name="TreeMedium40" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.410357, 0, 0.911925, 0, 1, 0, -0.911925, 0, -0.410357, 32.4934, 0, 63.2357)
+tree_seed = 718
+
+[node name="TreeMedium41" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.397185, 0, -0.917738, 0, 1, 0, 0.917738, 0, 0.397185, 38.9658, 0, -58.2297)
+tree_seed = 619
+
+[node name="TreeMedium42" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.833575, 0, -0.552407, 0, 1, 0, 0.552407, 0, 0.833575, 45.1761, 0, -58.293)
+tree_seed = 620
+
+[node name="TreeMedium43" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.644633, 0, -0.764492, 0, 1, 0, 0.764492, 0, 0.644633, 43.8377, 0, 61.6366)
+tree_seed = 720
+
+[node name="TreeLarge15" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(0.535099, 0, -0.844789, 0, 1, 0, 0.844789, 0, 0.535099, 49.6502, 0, -56.9929)
+tree_seed = 621
+
+[node name="TreeMedium44" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.99532, 0, 0.0966288, 0, 1, 0, -0.0966288, 0, -0.99532, 54.9319, 0, -56.8893)
+tree_seed = 622
+
+[node name="TreeMedium45" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.227057, 0, -0.973882, 0, 1, 0, 0.973882, 0, -0.227057, 54.8177, 0, 62.7595)
+tree_seed = 722
+
+[node name="TreeMedium46" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.782496, 0, -0.622656, 0, 1, 0, 0.622656, 0, 0.782496, 60.6035, 0, -58.6566)
+tree_seed = 623
+
+[node name="TreeLarge16" parent="NavRegion" instance=ExtResource("25_r")]
+transform = Transform3D(-0.74189, 0, 0.670521, 0, 1, 0, -0.670521, 0, -0.74189, 65.9417, 0, -59.3967)
+tree_seed = 624
+
+[node name="TreeMedium47" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.860319, 0, 0.509756, 0, 1, 0, -0.509756, 0, -0.860319, 66.1584, 0, 61.8558)
+tree_seed = 724
+
+[node name="TreeMedium48" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.924442, 0, 0.381323, 0, 1, 0, -0.381323, 0, 0.924442, 72.4926, 0, -58.1363)
+tree_seed = 625
+
+[node name="TreeMedium49" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.768414, 0, 0.639953, 0, 1, 0, -0.639953, 0, -0.768414, -74.3342, 0, -37)
+tree_seed = 802
+
+[node name="TreeMedium50" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.94312, 0, -0.332452, 0, 1, 0, 0.332452, 0, 0.94312, -74.4604, 0, -30.5)
+tree_seed = 803
+
+[node name="TreeMedium51" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.731787, 0, -0.681534, 0, 1, 0, 0.681534, 0, 0.731787, -75.9609, 0, -24)
+tree_seed = 804
+
+[node name="TreeMedium52" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.989558, 0, 0.144137, 0, 1, 0, -0.144137, 0, -0.989558, -74.8486, 0, -17.5)
+tree_seed = 805
+
+[node name="TreeMedium53" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.300715, 0, 0.953714, 0, 1, 0, -0.953714, 0, -0.300715, -74.1145, 0, -11)
+tree_seed = 806
+
+[node name="TreeMedium54" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.777047, 0, -0.629443, 0, 1, 0, 0.629443, 0, 0.777047, -75.22, 0, 8.5)
+tree_seed = 809
+
+[node name="TreeMedium55" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.971303, 0, -0.237845, 0, 1, 0, 0.237845, 0, -0.971303, -74.3285, 0, 15)
+tree_seed = 810
+
+[node name="TreeMedium56" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.308229, 0, -0.951312, 0, 1, 0, 0.951312, 0, 0.308229, -74.5307, 0, 21.5)
+tree_seed = 811
+
+[node name="TreeMedium57" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.997266, 0, 0.073889, 0, 1, 0, -0.073889, 0, -0.997266, -74.2044, 0, 28)
+tree_seed = 812
+
+[node name="TreeMedium58" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.995933, 0, 0.0900917, 0, 1, 0, -0.0900917, 0, -0.995933, -75.4541, 0, 34.5)
+tree_seed = 813
+
+[node name="TreeMedium59" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.487943, 0, -0.872875, 0, 1, 0, 0.872875, 0, -0.487943, -75.2223, 0, 41)
+tree_seed = 814
+
+[node name="TreeMedium60" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.161513, 0, -0.986871, 0, 1, 0, 0.986871, 0, -0.161513, -74.4037, 0, 47.5)
+tree_seed = 815
+
+[node name="TreeMedium61" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(0.874916, 0, -0.484276, 0, 1, 0, 0.484276, 0, 0.874916, -74.319, 0, 54)
+tree_seed = 816
+
+[node name="TreeMedium62" parent="NavRegion" instance=ExtResource("21_r")]
+transform = Transform3D(-0.977103, 0, -0.212766, 0, 1, 0, 0.212766, 0, -0.977103, -74.0386, 0, 60.5)
+tree_seed = 817
+
+[node name="Bounds" type="StaticBody3D" parent="."]
+
+[node name="WallN" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 5, -61)
+shape = SubResource("BoxShape3D_8")
+
+[node name="WallS" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 5, 67)
+shape = SubResource("BoxShape3D_9")
+
+[node name="WallW" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -73, 5, 3)
+shape = SubResource("BoxShape3D_10")
+
+[node name="WallE" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 73, 5, 3)
+shape = SubResource("BoxShape3D_11")
 
 [node name="Markers" type="Node3D" parent="."]
 
 [node name="SpawnPoints" type="Node3D" parent="Markers"]
 
 [node name="Spawn1" type="Marker3D" parent="Markers/SpawnPoints"]
-position = Vector3(18, 1, -10)
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 10, 0.3, -4.6)
 
 [node name="Spawn2" type="Marker3D" parent="Markers/SpawnPoints"]
-position = Vector3(20, 1, -10)
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 12, 0.3, -4.6)
 
 [node name="Spawn3" type="Marker3D" parent="Markers/SpawnPoints"]
-position = Vector3(22, 1, -10)
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 14, 0.3, -4.6)
 
 [node name="Spawn4" type="Marker3D" parent="Markers/SpawnPoints"]
-position = Vector3(24, 1, -10)
-
-[node name="PotSpot" type="Marker3D" parent="Markers"]
-position = Vector3(-16, 0.1, -18)
-
-[node name="PackagingSpot" type="Marker3D" parent="Markers"]
-position = Vector3(-11.5, 0.1, -18)
-
-[node name="ContactSpot" type="Marker3D" parent="Markers"]
-position = Vector3(-24.25, 0, 20)
-
-[node name="StoreSpot" type="Marker3D" parent="Markers"]
-position = Vector3(22, 0, 12.2)
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 16, 0.3, -4.6)
 
 [node name="CustomerSpawn" type="Marker3D" parent="Markers"]
-position = Vector3(55, 0, 6.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 68, 0.15, 4.8)
 
 [node name="CustomerMeetPoint" type="Marker3D" parent="Markers"]
-position = Vector3(0, 0, 16)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0.15, 12.5)
 
 [node name="Label3D" type="Label3D" parent="Markers/CustomerMeetPoint"]
-position = Vector3(0, 2.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.6, 0)
 billboard = 1
 text = "MEET POINT"
-font_size = 72
-outline_size = 20
+font_size = 48
+outline_size = 12
+modulate = Color(1, 0.95, 0.75, 1)
 
 [node name="RivalPatrol" type="Node3D" parent="Markers"]
 
 [node name="P1" type="Marker3D" parent="Markers/RivalPatrol"]
-position = Vector3(38, 0, 15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0.05, 12)
 
 [node name="P2" type="Marker3D" parent="Markers/RivalPatrol"]
-position = Vector3(53, 0, 15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0.05, 12)
 
 [node name="P3" type="Marker3D" parent="Markers/RivalPatrol"]
-position = Vector3(53, 0, 38)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0.05, 28)
 
 [node name="P4" type="Marker3D" parent="Markers/RivalPatrol"]
-position = Vector3(38, 0, 38)
-
-[node name="DebugFlyCamera" type="Camera3D" parent="."]
-position = Vector3(0, 30, 50)
-current = true
-script = ExtResource("1_flycam")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0.05, 28)
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
@@ -460,13 +1799,6 @@ layout_mode = 2
 [node name="PlayersLabel" type="Label" parent="HUD/Panel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-
-[node name="HintLabel" type="Label" parent="HUD/Panel/VBox"]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
-text = "Debug camera: hold Right Mouse = look, WASD = move, Q/E = down/up, Shift = fast"
-autowrap_mode = 3
 
 [node name="LeaveButton" type="Button" parent="HUD/Panel/VBox"]
 unique_name_in_owner = true

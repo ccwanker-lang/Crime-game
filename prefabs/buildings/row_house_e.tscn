@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+
+[node name="RowHouseE" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 6.6
+depth = 11.0
+floors = 3
+floor_height = 3.1
+wall_material = "brick_white"
+wall_tint = Color(0.95, 0.95, 0.93, 1)
+roof_material = "roof_dark"
+roof_type = "hip"
+roof_pitch = 35.0
+door_bay = 0
+balcony_bay = 1
+corner_quoins = true
+chimney = "none"
+door_color = Color(0.05, 0.25, 0.3, 1)
+variation_seed = 55

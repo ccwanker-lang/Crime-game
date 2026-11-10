@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/surface.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/textures/Asphalt025C/color.jpg" id="2_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Asphalt025C/normal.jpg" id="3_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Asphalt025C/roughness.jpg" id="4_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Asphalt025C/ao.jpg" id="5_tx"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/albedo_tex = ExtResource("2_tx")
+shader_parameter/normal_tex = ExtResource("3_tx")
+shader_parameter/roughness_tex = ExtResource("4_tx")
+shader_parameter/ao_tex = ExtResource("5_tx")
+shader_parameter/uv_scale = Vector2(0.25, 0.25)
+shader_parameter/grime_amount = 0.0
+shader_parameter/stain_amount = 0.35
+shader_parameter/stain_scale = 0.15
+shader_parameter/grime_color = Color(0.55, 0.55, 0.55, 1.0)

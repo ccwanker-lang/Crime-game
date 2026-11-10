@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Environment" path="res://prefabs/environment/city_environment.tres" id="1_env"]
+
+[node name="SunAndSky" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("1_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.75, -0.65, 0)
+light_color = Color(1, 0.95, 0.87, 1)
+light_energy = 1.2
+light_angular_distance = 0.6
+shadow_enabled = true
+shadow_bias = 0.04
+shadow_normal_bias = 1.2
+shadow_blur = 1.2
+directional_shadow_split_1 = 0.06
+directional_shadow_split_2 = 0.18
+directional_shadow_split_3 = 0.45
+directional_shadow_blend_splits = true
+directional_shadow_max_distance = 140.0

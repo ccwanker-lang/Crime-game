@@ -1,0 +1,12 @@
+[gd_resource type="ORMMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/bark/color.jpg" id="1_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/bark/normal.jpg" id="2_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/bark/arm.jpg" id="3_tx"]
+
+[resource]
+albedo_texture = ExtResource("1_tx")
+normal_texture = ExtResource("2_tx")
+orm_texture = ExtResource("3_tx")
+uv1_scale = Vector3(1, 2, 1)
+normal_enabled = true

@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+
+[node name="CornerHouse" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 7.5
+depth = 9.0
+floors = 3
+floor_height = 3.0
+wall_material = "brick_old"
+roof_material = "roof_dark"
+roof_type = "hip"
+door_bay = 1
+side_windows = true
+corner_quoins = true
+bay_window_bay = 2
+chimney = "none"
+door_color = Color(0.1, 0.15, 0.12, 1)
+variation_seed = 77

@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/office_desk.tscn" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/armchair.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_long.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_flat.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/barrel.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/hanging_lamp.tscn" id="7_r"]
+
+[node name="ContactHideout" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 5.0
+depth = 5.5
+floors = 1
+floor_height = 3.5
+bays = 2
+wall_material = "brick_old"
+wall_tint = Color(0.8, 0.78, 0.76, 1)
+roof_type = "flat"
+door_bay = 0
+door_color = Color(0.2, 0.2, 0.2, 1)
+string_courses = false
+enterable = true
+floor_material = "concrete"
+lit_windows = 0.0
+variation_seed = 13
+
+[node name="Desk" parent="." instance=ExtResource("2_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.2, 0.15, -3.6)
+
+[node name="Chair" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -0.45, 0.15, -4.75)
+
+[node name="Crate1" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.7, 0.15, -3.2)
+
+[node name="Crate2" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(0.990268, 0, 0.139173, 0, 1, 0, -0.139173, 0, 0.990268, -1.7, 0.61, -3.3)
+
+[node name="Barrel" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.8, 0.15, -1)
+
+[node name="Lamp" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.48, -2.6)
+
+[node name="ContactSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.75, 0.15, -4.7)

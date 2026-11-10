@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+
+[node name="Warehouse" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 16.0
+depth = 12.0
+floors = 1
+floor_height = 5.5
+bays = 4
+wall_material = "corrugated"
+wall_tint = Color(0.55, 0.6, 0.62, 1)
+roof_material = "roof_dark"
+roof_type = "gable"
+roof_pitch = 15.0
+string_courses = false
+chimney = "none"
+door_bay = 1
+lit_windows = 0.0
+variation_seed = 99

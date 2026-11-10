@@ -1,0 +1,8 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/foliage.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/textures/foliage/leaves_cluster.png" id="2_tx"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/leaf_tex = ExtResource("2_tx")

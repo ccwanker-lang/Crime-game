@@ -1,7 +1,7 @@
 extends Control
 ## Main menu: Host, Join (IP), Quit, plus a player name field.
 ## Optional command line args for quick testing (after "--"):
-##   --host   --join=127.0.0.1   --name=Alex
+##   --host   --join=127.0.0.1   --name=Alex   --port=7790
 
 const WORLD_SCENE: String = "res://scenes/world/world.tscn"
 const SETTINGS_PATH: String = "user://settings.cfg"
@@ -38,9 +38,9 @@ func _ready() -> void:
 func _on_host_pressed() -> void:
 	_save_settings()
 	GameState.reset()  # step 9: load the save here instead
-	var err: Error = Net.host_game(name_edit.text)
+	var err: Error = Net.host_game(name_edit.text, _port)
 	if err != OK:
-		_set_status("Could not host on port %d (%s). Is another instance already hosting?" % [Net.DEFAULT_PORT, error_string(err)])
+		_set_status("Could not host on port %d (%s). Is another instance already hosting?" % [_port, error_string(err)])
 		return
 	get_tree().change_scene_to_file(WORLD_SCENE)
 
@@ -51,7 +51,7 @@ func _on_join_pressed() -> void:
 		_set_status("Enter the host's IP address.")
 		return
 	_save_settings()
-	var err: Error = Net.join_game(address, name_edit.text)
+	var err: Error = Net.join_game(address, name_edit.text, _port)
 	if err != OK:
 		_set_status("Could not start connection (%s)." % error_string(err))
 		return
@@ -105,6 +105,10 @@ func _save_settings() -> void:
 
 # --- Command line (testing) -------------------------------------------------
 
+## Port for host/join; only changed with --port=N (e.g. for the screenshot tool).
+var _port: int = Net.DEFAULT_PORT
+
+
 func _apply_cmdline_args() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	var auto_host: bool = false
@@ -115,6 +119,8 @@ func _apply_cmdline_args() -> void:
 		elif arg.begins_with("--join="):
 			ip_edit.text = arg.trim_prefix("--join=")
 			auto_join = true
+		elif arg.begins_with("--port="):
+			_port = arg.trim_prefix("--port=").to_int()
 		elif arg == "--host" or arg == "--screenshot":
 			auto_host = true
 	# Deferred so the menu is fully ready before switching scenes.

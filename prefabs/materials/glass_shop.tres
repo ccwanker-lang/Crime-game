@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/window_interior.gdshader" id="1_sh"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/room_brightness = 0.9
+shader_parameter/lit_brightness = 0.8
+shader_parameter/reflection = 0.35
+shader_parameter/floor_color = Color(0.6, 0.6, 0.58, 1.0)
+shader_parameter/ceiling_color = Color(0.95, 0.95, 0.95, 1.0)

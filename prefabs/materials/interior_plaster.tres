@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/surface.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/textures/Plaster001/color.jpg" id="2_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Plaster001/normal.jpg" id="3_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/Plaster001/roughness.jpg" id="4_tx"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/albedo_tex = ExtResource("2_tx")
+shader_parameter/normal_tex = ExtResource("3_tx")
+shader_parameter/roughness_tex = ExtResource("4_tx")
+shader_parameter/uv_scale = Vector2(0.4, 0.4)
+shader_parameter/grime_amount = 0.15
+shader_parameter/stain_amount = 0.1
+shader_parameter/base_tint = Color(0.93, 0.9, 0.84, 1.0)
+shader_parameter/tint_channel = 0

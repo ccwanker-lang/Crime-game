@@ -1,0 +1,82 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/bed.tscn" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/sofa.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/coffee_table.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/cardboard_box.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/television.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/armchair.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/bookshelf.tscn" id="8_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/potted_plant.tscn" id="9_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="10_r"]
+[ext_resource type="Script" path="res://scenes/world/property.gd" id="11_r"]
+
+[node name="StarterRoom" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 6.0
+depth = 9.0
+floors = 2
+wall_material = "brick_white"
+wall_tint = Color(0.92, 0.9, 0.86, 1)
+roof_material = "roof_dark"
+door_bay = 1
+door_color = Color(0.12, 0.2, 0.35, 1)
+enterable = true
+chimney = "left"
+variation_seed = 5
+
+[node name="Bed" parent="." instance=ExtResource("2_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.2, 0.15, -7.6)
+
+[node name="Sofa" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.6, 0.15, -8.3)
+
+[node name="Table" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.6, 0.15, -6.9)
+
+[node name="TVStand" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.5, 0.15, -4.2)
+
+[node name="TV" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 2.5, 0.49, -4.2)
+
+[node name="Armchair" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(-0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, -0.5, 0.3, 0.15, -3.6)
+
+[node name="Bookshelf" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -2.5, 0.15, -3.2)
+
+[node name="Box1" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(0.965926, 0, 0.258819, 0, 1, 0, -0.258819, 0, 0.965926, -2.3, 0.15, -1)
+
+[node name="Box2" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(0.984808, 0, -0.173648, 0, 1, 0, 0.173648, 0, 0.984808, -2.35, 0.49, -1.05)
+
+[node name="Plant" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.4, 0.15, -0.7)
+
+[node name="Lamp" parent="." instance=ExtResource("10_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -4.5)
+
+[node name="PotSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.2, 0.15, -5.2)
+
+[node name="PackagingSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1, 0.15, -5.4)
+
+[node name="Property" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.4, 0.25)
+script = ExtResource("11_r")
+property_id = &"starter_room"
+display_name = "Starter Room"
+
+[node name="Label3D" type="Label3D" parent="Property"]
+text = "STARTER ROOM
+Owner: -"
+font_size = 40
+pixel_size = 0.006
+outline_size = 8
+modulate = Color(1, 0.95, 0.8, 1)
+billboard = 0
+double_sided = false

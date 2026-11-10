@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/proc_tree.gd" id="1_r"]
+
+[node name="TreeMedium" type="StaticBody3D"]
+script = ExtResource("1_r")
+tree_seed = 1
+height = 8.0
+crown_radius = 2.8
+trunk_radius = 0.18
+leaf_cards = 240

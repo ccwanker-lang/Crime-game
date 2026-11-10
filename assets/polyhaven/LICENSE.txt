@@ -1,0 +1,2 @@
+Models from Poly Haven (https://polyhaven.com), license CC0 1.0.
+Note: wire_diff texture replaced by the PNG version (with alpha); material set to alpha MASK.

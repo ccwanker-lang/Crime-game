@@ -1,6 +1,9 @@
 extends Node3D
-## Greybox test map (milestone 1). Bakes the navigation mesh at startup so it
-## always matches the geometry, and provides spawn points / markers for later steps.
+## Test map (milestone 1), built from prefabs in res://prefabs/. Bakes the
+## navigation mesh at startup so it always matches the geometry, provides spawn
+## points / markers, and syncs networked props (doors) to late joiners.
+
+const WALK_VIEWER: PackedScene = preload("res://scenes/world/walk_viewer.tscn")
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
 @onready var spawn_points: Node3D = $Markers/SpawnPoints
@@ -25,12 +28,49 @@ func _ready() -> void:
 
 	if "--screenshot" in OS.get_cmdline_user_args():
 		_start_screenshot_tour()
+	else:
+		_spawn_walk_viewer()
+
+	if not multiplayer.is_server():
+		_request_snapshot.rpc_id(1)
+
+
+## TEMPORARY until step 3: a local first-person walker on the street.
+func _spawn_walk_viewer() -> void:
+	var viewer: Node3D = WALK_VIEWER.instantiate()
+	var spawn: Node3D = spawn_points.get_child(maxi(0, Net.players.keys().find(multiplayer.get_unique_id())) % spawn_points.get_child_count())
+	add_child(viewer)
+	viewer.global_transform = spawn.global_transform
+
+
+## Finds a marker anywhere in the map (markers can live inside building prefabs).
+func get_marker(marker_name: String) -> Node3D:
+	return find_child(marker_name, true, false) as Node3D
+
+
+# --- Late join: networked props (group "net_state") -------------------------------
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_snapshot() -> void:
+	if not multiplayer.is_server():
+		return
+	var data: Dictionary = {}
+	for n: Node in get_tree().get_nodes_in_group("net_state"):
+		data[str(get_path_to(n))] = n.call("get_net_state")
+	_apply_snapshot.rpc_id(multiplayer.get_remote_sender_id(), data)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_snapshot(data: Dictionary) -> void:
+	for path: String in data:
+		var n: Node = get_node_or_null(path)
+		if n and n.has_method("apply_net_state"):
+			n.call("apply_net_state", data[path])
 
 
 ## Debug: take screenshots from fixed spots and quit (scripts/debug/screenshot_tour.gd).
 func _start_screenshot_tour() -> void:
 	var tour: Node = preload("res://scripts/debug/screenshot_tour.gd").new()
-	tour.camera = $DebugFlyCamera
 	tour.hide_nodes = [$HUD/Panel]
 	add_child(tour)
 
@@ -52,14 +92,14 @@ func _debug_check_paths() -> void:
 	# The navigation server applies the new mesh asynchronously (region first,
 	# then the map), so wait until the map actually contains it.
 	var map: RID = nav_region.get_navigation_map()
-	var start: Vector3 = ($Markers/CustomerSpawn as Node3D).global_position
+	var start: Vector3 = get_marker("CustomerSpawn").global_position
 	for i: int in 300:
 		if NavigationServer3D.map_get_iteration_id(map) > 0 \
 				and NavigationServer3D.map_get_closest_point(map, start).distance_to(start) < 2.0:
 			break
 		await get_tree().physics_frame
-	for target_name: String in ["CustomerMeetPoint", "ContactSpot", "StoreSpot", "PotSpot", "RivalPatrol/P3"]:
-		var target: Vector3 = (get_node("Markers/" + target_name) as Node3D).global_position
+	for target_name: String in ["CustomerMeetPoint", "ContactSpot", "StoreSpot", "PotSpot", "P3"]:
+		var target: Vector3 = get_marker(target_name).global_position
 		var path: PackedVector3Array = NavigationServer3D.map_get_path(map, start, target, true)
 		var reached: bool = not path.is_empty() and path[path.size() - 1].distance_to(target) < 1.0
 		print("[World] Path CustomerSpawn -> %s: %s" % [target_name, "OK" if reached else "NOT REACHABLE"])

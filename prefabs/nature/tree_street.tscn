@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/proc_tree.gd" id="1_r"]
+
+[node name="TreeStreet" type="StaticBody3D"]
+script = ExtResource("1_r")
+tree_seed = 3
+height = 6.5
+crown_radius = 2.0
+trunk_radius = 0.13
+leaf_cards = 170
+leaf_tint = Color(1.05, 1.08, 0.9, 1)

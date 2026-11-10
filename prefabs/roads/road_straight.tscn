@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/road_tile.gd" id="1_road"]
+
+[node name="RoadStraight" type="StaticBody3D"]
+script = ExtResource("1_road")
+type = 0
