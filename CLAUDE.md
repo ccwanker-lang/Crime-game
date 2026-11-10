@@ -23,6 +23,16 @@ Godot console exe:
 `C:\Users\alexc\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.6.3-stable_win64_console.exe`
 - Import / script check: `--headless --path . --import`
 - Auto host/join for tests: `--headless --path . -- --host --name=A` / `-- --join=127.0.0.1 --name=B`
-- Visual check (needs a window, not headless): `--path . -- --screenshot` hosts, takes PNGs from fixed
+- Visual check (needs a window, not headless):
+  `--path . --position 4000,40 --resolution 1600x900 -- --screenshot --port=7790` (off-screen, own port so it never
+  disturbs the user's open game on 7777) hosts, takes PNGs from fixed
   camera spots (`scripts/debug/screenshot_tour.gd`, list SHOTS) into `screenshots/` (git-ignored) and quits.
   Look at them with the Read tool after map/visual changes.
+- Optional `--shots=02,05` limits the tour to those shots. The tour also prints FPS + draw calls.
+
+## Map / prefabs
+- Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts in `scripts/procgen/`).
+- `tools/generators/*.py` regenerate materials, prefabs and the test map `world.tscn`; edit the generator, not the output.
+- Markers that belong to a building (PotSpot, StoreSpot, ContactSpot...) live inside its prefab; find them with
+  `world.get_marker(name)`.
+- Doors and other networked props: group `net_state` (`get_net_state`/`apply_net_state`), synced to late joiners.
