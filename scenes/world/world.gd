@@ -20,15 +20,18 @@ const PEDESTRIAN_COUNT: int = 10
 @onready var leave_button: Button = %LeaveButton
 
 
+func _enter_tree() -> void:
+	# Before the children's _ready: stations register their state in GameState.world.
+	if multiplayer.is_server() and GameState.world.is_empty():
+		GameState.init_new_world()
+
+
 func _ready() -> void:
 	Net.players_changed.connect(_refresh_players)
 	# Every peer builds player nodes with the same function (spawn data from the host).
 	player_spawner.spawn_function = _create_player
 	loot_spawner.spawn_function = _create_loot_bag
 	leave_button.pressed.connect(_on_leave_pressed)
-
-	if multiplayer.is_server() and GameState.world.is_empty():
-		GameState.init_new_world()
 
 	nav_region.bake_finished.connect(_on_nav_baked)
 	nav_region.bake_navigation_mesh(false)  # false = bake right now, not on a thread
@@ -104,6 +107,10 @@ func _net_check() -> void:
 			print("[NetCheck] client walks from %s" % me.global_position.snapped(Vector3.ONE * 0.1))
 		await get_tree().create_timer(6.0).timeout
 	else:
+		# A growing plant in the starter room: the client must see it (snapshot / sync).
+		var pot := find_child("Pot1", true, false) as GrowPot
+		pot.state.merge({"stage": GrowPot.Stage.GROWING, "growth": 0.3, "water": 1.0, "seed": 5}, true)
+		pot.changed()
 		for i: int in 12:  # the host reports what it sees of the client players
 			await get_tree().create_timer(3.0).timeout
 			for p: Node in players_root.get_children():
@@ -111,6 +118,9 @@ func _net_check() -> void:
 				if not pl.is_local():
 					print("[NetCheck] host sees client %s at %s crouch=%s" % [pl.player_name,
 							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch])
+	var pot1 := find_child("Pot1", true, false) as GrowPot
+	print("[NetCheck] %s sees Pot1: %s (plant visible=%s)" % ["host" if multiplayer.is_server() else "client",
+			pot1.status_text(), pot1._plant.visible])
 	var parts: PackedStringArray = []
 	for npc: Node in npcs.get_children().slice(0, 3):
 		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])

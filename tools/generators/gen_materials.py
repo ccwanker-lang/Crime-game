@@ -124,6 +124,19 @@ shader_material("ground", "ground.gdshader", {
 }, {"dirt_amount": 0.3})
 shader_material("grass_blades", "grass_blades.gdshader", {}, {})
 shader_material("leaves", "foliage.gdshader", {"leaf_tex": TX + "foliage/leaves_cluster.png"}, {})
+shader_material("weed_leaves", "foliage.gdshader", {"leaf_tex": TX + "foliage/weed_atlas.png"}, {"wind_strength": 0.006, "wind_speed": 0.6})
+
+# --- Stations (weed growing) ---
+surface("soil_wet", "Ground048", 1.0, grime_amount=0.0, stain_amount=0.0, base_tint=(0.45, 0.4, 0.36, 1.0), roughness_mult=0.6)
+surface("soil_dry", "Ground048", 1.0, grime_amount=0.0, stain_amount=0.0, base_tint=(0.95, 0.88, 0.78, 1.0))
+shader_material("pot_plastic", "painted.gdshader", {}, {"base_color": (0.13, 0.13, 0.12, 1.0), "roughness": 0.6, "wear": 0.15})
+shader_material("lamp_housing", "painted.gdshader", {}, {"base_color": (0.75, 0.76, 0.76, 1.0), "roughness": 0.35, "metallic": 0.6, "wear": 0.1})
+standard_material("grow_light_glow", {
+    "albedo_color": (1.0, 0.85, 0.95, 1.0), "emission_enabled": True,
+    "emission": (1.0, 0.72, 0.9, 1.0), "emission_energy_multiplier": 3.0,
+})
+shader_material("weed_stem", "painted.gdshader", {}, {"base_color": (0.36, 0.46, 0.22, 1.0), "roughness": 0.8, "wear": 0.1})
+standard_material("string", {"albedo_color": (0.75, 0.7, 0.6, 1.0), "roughness": 0.9})
 standard_material("bark", {"uv1_scale": "Vector3(1, 2, 1)", "normal_enabled": True},
                   rtype="ORMMaterial3D",
                   textures={"albedo_texture": TX + "bark/color.jpg", "normal_texture": TX + "bark/normal.jpg",

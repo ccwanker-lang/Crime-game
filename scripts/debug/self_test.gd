@@ -18,6 +18,8 @@ extends Node
 ## 7. Inventory + shops: stacks/slot limits, shopkeepers stand on the floor and can
 ##    be targeted from the counter, buying pays and fills the inventory, the host
 ##    refuses too far / not in stock / no cash / full pockets, items drop in the bag.
+## 8. Weed growing: pot (soil -> seed -> water -> grow, faster under the lamp ->
+##    harvest Fresh Weed), drying rack (hang -> dry -> take Dried Weed), state in GameState.
 ## Prints "[SelfTest] PASS/FAIL ..." lines and quits.
 
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
@@ -39,6 +41,7 @@ func _run() -> void:
 	await _check_player(world)
 	await _check_combat(world)
 	await _check_shops(world)
+	await _check_growing(world)
 	await _check_pedestrians(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
@@ -384,6 +387,88 @@ func _check_shops(world: Node3D) -> void:
 	await get_tree().create_timer(Player.RESPAWN_TIME + 0.5).timeout
 	if bag:
 		bag.queue_free()
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Weed growing --------------------------------------------------------------------
+
+func _check_growing(world: Node3D) -> void:
+	var room: Node = world.find_child("StarterRoom", true, false)
+	var pot: GrowPot = room.find_child("Pot1", true, false) as GrowPot
+	var lamp: GrowLamp = room.find_child("GrowLamp", true, false) as GrowLamp
+	var rack: DryingRack = room.find_child("DryingRack", true, false) as DryingRack
+	_report(pot != null and lamp != null and rack != null, "starter room has pots, a grow lamp and a drying rack")
+	if pot == null or lamp == null or rack == null:
+		return
+	var stations: Dictionary = GameState.world.get("stations", {})
+	_report(stations.get(pot.station_id) == pot.state, "pot state lives in GameState.world (%s)" % pot.station_id)
+
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Grower"
+	var front: Vector3 = pot.global_position + Vector3(0, 0.1, 0.9)
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Grower")
+	p.send_wallet()
+
+	pot._server_action(1)
+	_report(int(pot.state["stage"]) == GrowPot.Stage.EMPTY and p.last_message.contains("Soil"),
+			"empty pot without soil: '%s'" % p.last_message)
+	GameState.give("Grower", 0, [{"id": "soil", "count": 1}, {"id": "weed_seed", "count": 1}, {"id": "watering_can", "count": 1}])
+	p.send_wallet()
+	_report(pot.prompt_for(p).begins_with("Fill with soil"), "prompt: '%s'" % pot.prompt_for(p))
+	pot._server_action(1)
+	pot._server_action(1)
+	_report(int(pot.state["stage"]) == GrowPot.Stage.GROWING and GameState.count_item("Grower", "soil") == 0
+			and GameState.count_item("Grower", "weed_seed") == 0, "soil + seed planted (stage %d)" % int(pot.state["stage"]))
+	pot.tick(1.0)
+	_report(float(pot.state["growth"]) == 0.0, "a dry plant does not grow")
+	pot._server_action(1)
+	_report(float(pot.state["water"]) == 1.0 and GameState.count_item("Grower", "watering_can") == 1,
+			"watering fills the soil and keeps the can")
+	lamp.state["on"] = true
+	var g0: float = float(pot.state["growth"])
+	pot.tick(1.0)
+	var lit: float = float(pot.state["growth"]) - g0
+	lamp.state["on"] = false
+	g0 = float(pot.state["growth"])
+	pot.tick(1.0)
+	var unlit: float = float(pot.state["growth"]) - g0
+	lamp.state["on"] = true
+	_report(absf(lit - GrowLamp.BOOST / GrowPot.GROW_HOURS) < 0.001 and absf(unlit - 1.0 / GrowPot.GROW_HOURS) < 0.001,
+			"grow light speeds it up (%.3f vs %.3f per hour)" % [lit, unlit])
+	for i: int in 20:
+		if int(pot.state["stage"]) == GrowPot.Stage.READY:
+			break
+		pot._server_action(1)  # water when needed
+		pot.tick(1.0)
+	_report(int(pot.state["stage"]) == GrowPot.Stage.READY, "plant becomes ready to harvest")
+	pot._server_action(1)
+	_report(int(pot.state["stage"]) == GrowPot.Stage.EMPTY and GameState.count_item("Grower", "fresh_weed") == GrowPot.YIELD,
+			"harvest gives %d Fresh Weed and empties the pot" % GameState.count_item("Grower", "fresh_weed"))
+
+	p.teleport(rack.global_position + rack.global_basis.z * 0.9 + Vector3.UP * 0.1)
+	await get_tree().physics_frame
+	_report(rack.prompt_for(p).begins_with("Hang"), "rack prompt: '%s'" % rack.prompt_for(p))
+	rack._server_action(1)
+	_report(int(rack.state["wet"]) == GrowPot.YIELD and GameState.count_item("Grower", "fresh_weed") == 0, "fresh weed hangs on the rack")
+	rack.tick(DryingRack.DRY_HOURS + 0.1)
+	_report(int(rack.state["dry"]) == GrowPot.YIELD and int(rack.state["wet"]) == 0, "it dries after %d hours" % int(DryingRack.DRY_HOURS))
+	rack._server_action(1)
+	_report(GameState.count_item("Grower", "weed_bud") == GrowPot.YIELD and int(rack.state["dry"]) == 0,
+			"take %d Dried Weed off the rack" % GameState.count_item("Grower", "weed_bud"))
+	var visible_buds: int = 0
+	for c: Node in rack.get_children():
+		if c is MeshInstance3D and (c as MeshInstance3D).visible and (c as MeshInstance3D).mesh in [rack._bud_mesh_wet, rack._bud_mesh_dry]:
+			visible_buds += 1
+	_report(visible_buds == 0, "rack shows no buds when empty")
+	GameState.player_data.erase("Grower")
 	p.queue_free()
 	await get_tree().physics_frame
 

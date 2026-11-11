@@ -213,6 +213,7 @@ save(sc, I + "ceiling_lamp.tscn")
 
 # --------------------------------------------------------------------------- buildings
 B = "prefabs/buildings/"
+ST = "prefabs/stations/"
 
 
 def building(rel, props, extra=None):
@@ -308,6 +309,11 @@ def starter_extra(sc):
     inst(sc, "Plant", I + "potted_plant.tscn", (2.4, FLOOR, -0.7))
     inst(sc, "Lamp", I + "ceiling_lamp.tscn", (0, 2.98, -4.5))
     marker(sc, "PotSpot", (-1.2, FLOOR, -5.2))
+    # Weed corner: two pots under a grow light, drying rack against the right wall.
+    inst(sc, "GrowLamp", ST + "grow_lamp.tscn", (-1.2, FLOOR, -5.2), 0)
+    inst(sc, "Pot1", ST + "grow_pot.tscn", (-1.6, FLOOR, -5.2), 0)
+    inst(sc, "Pot2", ST + "grow_pot.tscn", (-0.8, FLOOR, -5.2), 0)
+    inst(sc, "DryingRack", ST + "drying_rack.tscn", (2.55, FLOOR, -6.0), 90)
     marker(sc, "PackagingSpot", (1.0, FLOOR, -5.4))
     sc.node("Property", "Node3D", ".", props={
         "transform": xform((0, 3.4, 0.25)), "script": sc.script(S["property"]),

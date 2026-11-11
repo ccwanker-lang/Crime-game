@@ -28,6 +28,8 @@ func init_new_world() -> void:
 		"properties": {
 			"starter_room": {"owner": "host"},
 		},
+		## station_id -> state Dictionary (pots, lamps, racks; see Station)
+		"stations": {},
 	}
 	world_changed.emit()
 

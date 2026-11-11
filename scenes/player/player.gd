@@ -103,6 +103,8 @@ var cash: int = 0  # owner: last value sent by the host
 var inventory: Array = []
 ## Owner: the shop window that is open (null = none).
 var shop: Shopkeeper = null
+## Owner: last message from the host (show_message), also for tests.
+var last_message: String = ""
 
 signal wallet_changed
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -649,6 +651,25 @@ func _set_wallet(amount: int, items: Array) -> void:
 		ui.set_cash(amount)
 		ui.set_inventory(items)
 	wallet_changed.emit()
+
+
+## Host: short message on the owner's screen (station results, errors).
+func show_message(text: String) -> void:
+	if not multiplayer.is_server():
+		return
+	if peer_id == multiplayer.get_unique_id():
+		_show_message(text)
+	else:
+		_show_message.rpc_id(peer_id, text)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _show_message(text: String) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	last_message = text
+	if ui:
+		ui.toast(text)
 
 
 # --- Host validation -------------------------------------------------------------

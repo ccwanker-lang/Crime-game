@@ -94,6 +94,11 @@ func _process(delta: float) -> void:
 				_sync_time.rpc_id(peer, hours, fast_forward)
 
 
+## In-game hours that pass per real second (stations grow/dry in game hours).
+func hours_per_second() -> float:
+	return FAST_HOURS_PER_SECOND if fast_forward else 24.0 / maxf(0.1, day_length_minutes * 60.0)
+
+
 ## "HH:MM" of the current in-game time.
 func clock_text() -> String:
 	var total: int = int(hours * 60.0) % (24 * 60)

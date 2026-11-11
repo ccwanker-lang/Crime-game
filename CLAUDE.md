@@ -65,6 +65,12 @@ Godot console exe:
 - Shops: `prefabs/npc/shopkeeper.tscn` (`Shopkeeper`, a stationary Pedestrian + layer-2 body) placed in building
   prefabs by `gen_prefabs.py` (`shopkeeper(...)`, stock = item ids). E opens the HUD shop window; `request_buy`
   -> host checks distance/stock/cash/space -> `buy_result`.
+- Stations (`scripts/stations/`, prefabs in `prefabs/stations/`): `Station` base = StaticBody3D on layer 2,
+  host-owned `state` Dictionary stored in GameState.world["stations"][station_id], E -> `do_action(player)` on
+  the host, `tick(hours)` runs on every peer in in-game hours (DayNight.hours_per_second, F7 speeds it up), host
+  re-sends every 3 s + late-join snapshot. GrowPot (soil -> seed -> water -> grow -> harvest Fresh Weed),
+  GrowLamp (boost), DryingRack (Fresh Weed -> Dried Weed `weed_bud`). Plant visual: `WeedPlant` (procedural,
+  atlas from `tools/generators/gen_weed_atlas.py`). `Player.show_message()` = host -> owner toast.
 - Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
   World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
 - In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.

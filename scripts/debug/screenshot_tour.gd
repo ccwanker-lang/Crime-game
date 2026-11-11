@@ -46,6 +46,10 @@ const SHOTS: Array[Array] = [
 	# 32/33: a staged local player at the store counter (HUD with inventory, then the shop window).
 	["32_store_counter", Vector3.ZERO, Vector3.FORWARD],
 	["33_shop_window", Vector3.ZERO, Vector3.FORWARD],
+	# 34-36: the weed corner in the starter room with staged plant/rack states.
+	["34_weed_corner", Vector3(-30.0, 1.7, -7.3), Vector3(-33.2, 0.8, -11.2)],
+	["35_plants_close", Vector3(-33.2, 1.35, -9.9), Vector3(-33.2, 0.6, -11.2)],
+	["36_drying_rack", Vector3(-31.3, 1.45, -10.8), Vector3(-29.45, 1.1, -12.0)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -201,6 +205,15 @@ func _stage(shot_name: String) -> void:
 				me.open_shop(clerk)
 			await get_tree().create_timer(0.6).timeout
 			me.prompt_label.text = "[E] %s" % clerk.get_interaction_prompt()
+		"34_weed_corner", "35_plants_close", "36_drying_rack":
+			var room: Node = get_tree().current_scene.find_child("StarterRoom", true, false)
+			var pot1: GrowPot = room.find_child("Pot1", true, false)
+			var pot2: GrowPot = room.find_child("Pot2", true, false)
+			var rack: DryingRack = room.find_child("DryingRack", true, false)
+			pot1.apply_net_state({"stage": GrowPot.Stage.GROWING, "growth": 0.45, "water": 0.6, "seed": 3})
+			pot2.apply_net_state({"stage": GrowPot.Stage.READY, "growth": 1.0, "water": 0.0, "seed": 8})
+			rack.apply_net_state({"wet": 5, "dry": 4, "progress": 0.3})
+			await get_tree().create_timer(0.3).timeout
 		"31_loot_bag":
 			var bag: LootBag = (load("res://prefabs/props/loot_bag.tscn") as PackedScene).instantiate()
 			bag.position = Vector3(-10.0, 0.15, -4.8)

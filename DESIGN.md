@@ -145,3 +145,6 @@ Terrain should have real height differences (hills up, down to the river and har
 - Shooting pedestrians shows a hit but they don't react yet (flee / police later).
 - No lag compensation: the host hits what it sees (fine on LAN).
 - First-person hands wear dark gloves; the third-person body shows bare hands.
+- The starter room has 2 fixed pots, a grow light and a drying rack. Buying/placing extra stations
+  (and pots as items) comes with the bigger properties.
+- The pedestrian self-test "activities" check is random and fails now and then (nobody sat/visited).

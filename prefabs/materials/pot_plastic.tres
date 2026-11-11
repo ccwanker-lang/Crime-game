@@ -1,0 +1,9 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/painted.gdshader" id="1_sh"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/base_color = Color(0.13, 0.13, 0.12, 1.0)
+shader_parameter/roughness = 0.6
+shader_parameter/wear = 0.15
