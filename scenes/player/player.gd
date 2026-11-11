@@ -219,7 +219,8 @@ func _build_model() -> void:
 func _place_hand_gun() -> void:
 	var gun: WeaponModel = combat.hand_gun
 	gun.visible = net_weapon != 0 and not dead
-	if not gun.visible or _bone_wrist_r < 0:
+	# The skeleton can still update while the player leaves the tree (disconnect).
+	if not gun.visible or _bone_wrist_r < 0 or not is_inside_tree():
 		return
 	var t: Transform3D = _skeleton.global_transform
 	var lower: Vector3 = t * _skeleton.get_bone_global_pose(_bone_lower_r).origin
