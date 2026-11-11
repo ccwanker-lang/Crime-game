@@ -15,6 +15,9 @@ extends Node
 ## 6. Combat: a shot uses ammo and leaves an impact, reload refills from the
 ##    reserve, damage lowers health, death drops a loot bag with the cash,
 ##    respawn at the hospital with full health/ammo, the bag can be picked up.
+## 7. Inventory + shops: stacks/slot limits, shopkeepers stand on the floor and can
+##    be targeted from the counter, buying pays and fills the inventory, the host
+##    refuses too far / not in stock / no cash / full pockets, items drop in the bag.
 ## Prints "[SelfTest] PASS/FAIL ..." lines and quits.
 
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
@@ -35,6 +38,7 @@ func _run() -> void:
 	await _check_doors(world)
 	await _check_player(world)
 	await _check_combat(world)
+	await _check_shops(world)
 	await _check_pedestrians(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
@@ -284,6 +288,102 @@ func _check_combat(world: Node3D) -> void:
 	await get_tree().physics_frame
 	_report(int(GameState.get_or_create_player_data(p.player_name)["cash"]) == cash and world.get_node("Loot").get_child_count() == 0,
 			"loot bag pickup gives the cash back and removes the bag")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Inventory + shops --------------------------------------------------------------
+
+func _check_shops(world: Node3D) -> void:
+	# Inventory rules (GameState, host side).
+	GameState.player_data.erase("InvTest")
+	var left: Array = GameState.give("InvTest", 0, [{"id": "weed_seed", "count": 25}, {"id": "watering_can", "count": 2}])
+	var inv: Array = GameState.get_or_create_player_data("InvTest")["inventory"]
+	_report(inv.size() == 4 and left.is_empty() and GameState.count_item("InvTest", "weed_seed") == 25,
+			"stacks split at max_stack (25 seeds + 2 cans = 4 slots, got %d)" % inv.size())
+	left = GameState.give("InvTest", 0, [{"id": "soil", "count": 1000}])
+	_report(inv.size() == GameState.INVENTORY_SLOTS and not left.is_empty(), "inventory stops at %d slots" % GameState.INVENTORY_SLOTS)
+	_report(GameState.remove_item("InvTest", "weed_seed", 22) and GameState.count_item("InvTest", "weed_seed") == 3
+			and not GameState.remove_item("InvTest", "weed_seed", 4), "remove_item takes items, refuses more than carried")
+	GameState.player_data.erase("InvTest")
+
+	var keepers: Dictionary = {}
+	for n: Node in world.find_children("*", "Node3D", true, false):
+		if n is Shopkeeper:
+			keepers[(n as Shopkeeper).shop_name] = n
+	_report(keepers.has("Store") and keepers.has("Contact"), "shopkeepers in the store and contact hideout (%s)" % ", ".join(keepers.keys()))
+	if not (keepers.has("Store") and keepers.has("Contact")):
+		return
+	var space := world.get_world_3d().direct_space_state
+	for k: Shopkeeper in keepers.values():
+		var q := PhysicsRayQueryParameters3D.create(k.global_position + Vector3.UP * 0.3, k.global_position + Vector3.DOWN * 0.5, 1)
+		var hit: Dictionary = space.intersect_ray(q)
+		var gap: float = k.global_position.y - (hit["position"] as Vector3).y if not hit.is_empty() else INF
+		_report(absf(gap) < 0.05, "%s stands on the floor (gap %.2f)" % [k.npc_name, gap])
+		# A player 1.4 m in front of the NPC (across the counter) can target it.
+		var front: Vector3 = k.global_position - k.global_basis.z * 1.4
+		var eye: Vector3 = front + Vector3.UP * Player.EYE_STAND
+		var ray := PhysicsRayQueryParameters3D.create(eye, k.global_position + Vector3.UP * 1.4, 1 | 2)
+		var h: Dictionary = space.intersect_ray(ray)
+		var target: Node = h.get("collider") as Node
+		_report(target != null and target.get_parent() == k, "%s can be targeted from the front (hit %s)" % [k.npc_name,
+				target.name if target else "nothing"])
+
+	# Buying with a real player body.
+	var clerk: Shopkeeper = keepers["Store"]
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Shopper"
+	var front_pos: Vector3 = clerk.global_position - clerk.global_basis.z * 1.6
+	p.auto_target = front_pos
+	world.get_node("Players").add_child(p)
+	p.global_position = front_pos + Vector3.UP * 0.1
+	for i: int in 20:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Shopper")
+	var cash0: int = int(GameState.get_or_create_player_data("Shopper")["cash"])
+	var results: Array = []
+	clerk.buy_result.connect(func(ok: bool, msg: String) -> void: results.append([ok, msg]))
+	clerk.request_buy(&"soil", 5)
+	await get_tree().physics_frame
+	var paid: int = cash0 - int(GameState.get_or_create_player_data("Shopper")["cash"])
+	_report(results.size() == 1 and results[0][0] and paid == clerk.price_of(&"soil") * 5
+			and GameState.count_item("Shopper", "soil") == 5 and p.inventory.size() == 1,
+			"buy 5 soil: paid €%d, owner inventory %s" % [paid, p.inventory])
+	clerk.request_buy(&"weed_seed", 1)
+	_report(results.size() == 2 and not results[1][0], "clerk refuses items he doesn't stock (%s)" % results[1][1])
+	GameState.get_or_create_player_data("Shopper")["cash"] = 3
+	clerk.request_buy(&"baggie", 5)
+	_report(results.size() == 3 and not results[2][0] and GameState.count_item("Shopper", "baggie") == 0,
+			"no sale without enough cash (%s)" % results[2][1])
+	GameState.get_or_create_player_data("Shopper")["cash"] = 100000
+	GameState.give("Shopper", 0, [{"id": "soil", "count": 1000}])
+	clerk.request_buy(&"watering_can", 1)
+	_report(results.size() == 4 and not results[3][0], "no sale with full pockets (%s)" % results[3][1])
+	GameState.player_data.erase("Shopper")
+	p.teleport(front_pos + Vector3(0, 0.1, 8.0))
+	await get_tree().physics_frame
+	clerk.request_buy(&"soil", 1)
+	_report(results.size() == 5 and not results[4][0], "no sale from too far away (%s)" % results[4][1])
+
+	# Seeds from the contact, then die: the items go into the loot bag.
+	var contact: Shopkeeper = keepers["Contact"]
+	var c_front: Vector3 = contact.global_position - contact.global_basis.z * 1.2
+	p.teleport(c_front + Vector3.UP * 0.1)
+	await get_tree().physics_frame
+	contact.request_buy(&"weed_seed", 5)
+	_report(GameState.count_item("Shopper", "weed_seed") == 5, "contact sells weed seeds")
+	p.host_damage(500, null)
+	await get_tree().physics_frame
+	var bag: LootBag = null
+	for b: Node in world.get_node("Loot").get_children():
+		bag = b as LootBag
+	_report(bag != null and bag.items.size() == 1 and int(bag.items[0]["count"]) == 5 and p.inventory.is_empty(),
+			"death puts carried items in the loot bag")
+	await get_tree().create_timer(Player.RESPAWN_TIME + 0.5).timeout
+	if bag:
+		bag.queue_free()
 	p.queue_free()
 	await get_tree().physics_frame
 

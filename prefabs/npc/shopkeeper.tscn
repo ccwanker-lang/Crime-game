@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/npc/shopkeeper.gd" id="1_shop"]
+[ext_resource type="PackedScene" path="res://prefabs/npc/pedestrian.tscn" id="2_ped"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule"]
+radius = 0.3
+height = 1.8
+
+[node name="Shopkeeper" type="Node3D"]
+script = ExtResource("1_shop")
+
+[node name="Body" type="StaticBody3D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="Collision" type="CollisionShape3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("Capsule")
+
+[node name="Pedestrian" parent="." instance=ExtResource("2_ped")]
+ambient = false

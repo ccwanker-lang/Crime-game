@@ -88,6 +88,14 @@ func _net_check() -> void:
 			print("[NetCheck] client sees host after respawn: dead=%s health=%d at %s" % [host.dead, host.health,
 					host.global_position.snapped(Vector3.ONE * 0.1)])
 			me.head.rotation.x = 0.0
+			# Shop RPC round trip: from out here the clerk must refuse ("walked away").
+			var clerk: Shopkeeper = null
+			for n: Node in find_children("Clerk", "Node3D", true, false):
+				clerk = n as Shopkeeper
+			if clerk:
+				clerk.buy_result.connect(func(ok: bool, msg: String) -> void:
+					print("[NetCheck] client buy answer: ok=%s '%s' (inventory %s)" % [ok, msg, me.inventory]))
+				clerk.request_buy(&"soil", 1)
 		# The client walks its own player 5 m east, crouched; the host must see that.
 		if me:
 			me.auto_walk = true

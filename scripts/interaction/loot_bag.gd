@@ -47,7 +47,21 @@ func _server_take(peer: int) -> void:
 	var picker := get_tree().current_scene.get_node_or_null("Players/%d" % peer) as Player
 	if picker == null or picker.dead or picker.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 1.0:
 		return
-	GameState.give(picker.player_name, cash, items)
-	print("[Loot] %s took %s's bag (€%d, %d item stacks)" % [picker.player_name, owner_name, cash, items.size()])
+	var leftover: Array = GameState.give(picker.player_name, cash, items)
+	print("[Loot] %s took %s's bag (€%d, %d item stacks, %d left)" % [picker.player_name, owner_name, cash,
+			items.size(), leftover.size()])
 	picker.send_wallet()
-	queue_free()
+	if leftover.is_empty():
+		queue_free()
+	else:
+		# Pockets full: the rest stays in the bag.
+		_set_contents(0, leftover)
+		for other: int in Net.peers_in_world:
+			_set_contents.rpc_id(other, 0, leftover)
+
+
+## Host -> everyone: what is still in the bag.
+@rpc("authority", "call_remote", "reliable")
+func _set_contents(new_cash: int, new_items: Array) -> void:
+	cash = new_cash
+	items = new_items

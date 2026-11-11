@@ -60,6 +60,11 @@ Godot console exe:
   sends effects to the others. First person = `Viewmodel` (copy of the player's character, gloved, arms by
   `ViewmodelIK`, procedural recoil/reload/draw, `viewmodel.gdshader` keeps it in front of walls). Effects:
   `WeaponFX` (flash, casings, impact decal/particles/sound per surface). Sounds: `tools/generators/gen_weapon_sounds.py`.
+- Inventory: host-owned in GameState.player_data (8 slots, stacks up to ItemData.max_stack; `give` returns what
+  didn't fit). The owner gets cash + items via `Player.send_wallet()` (call it after every change) -> HUD bar.
+- Shops: `prefabs/npc/shopkeeper.tscn` (`Shopkeeper`, a stationary Pedestrian + layer-2 body) placed in building
+  prefabs by `gen_prefabs.py` (`shopkeeper(...)`, stock = item ids). E opens the HUD shop window; `request_buy`
+  -> host checks distance/stock/cash/space -> `buy_result`.
 - Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
   World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
 - In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.

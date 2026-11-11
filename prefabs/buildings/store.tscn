@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://prefabs/interiors/cash_register.tscn" id="4_r"]
 [ext_resource type="PackedScene" path="res://prefabs/interiors/cardboard_box.tscn" id="5_r"]
 [ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/npc/shopkeeper.tscn" id="7_r"]
 
 [node name="Store" type="StaticBody3D"]
 script = ExtResource("1_r")
@@ -79,6 +80,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -7)
 
 [node name="StoreSpot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.8, 0.15, -8.4)
+
+[node name="Clerk" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 1.8, 0.15, -8.4)
+npc_name = "Marc"
+shop_name = "Store"
+greeting = "Morning. Soil, cans, baggies... it's all on the shelves."
+stock = Array[StringName]([&"soil", &"watering_can", &"baggie"])
+variant = 1
+color_seed = 7
 
 [node name="BuyPoint" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.8, 0.15, -6.6)

@@ -51,6 +51,9 @@ signal arrived(ok: bool)
 @export var color_seed: int = 0
 ## Run the built-in wander behaviour (host only).
 @export var ambient: bool = true
+## Placed in a prefab on every peer (shopkeepers): no AI, physics or network
+## sync, just stands there idling. Its parent handles interaction/collision.
+@export var stationary: bool = false
 
 var net_pos: Vector3 = Vector3.ZERO
 var net_yaw: float = 0.0
@@ -83,6 +86,13 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 
 func _ready() -> void:
+	if stationary:
+		$Sync.free()
+		collision.disabled = true
+		set_physics_process(false)
+		_build_model()
+		_apply_anim()
+		return
 	add_to_group(&"npc")
 	Net.limit_sync_to_world($Sync)
 	_build_model()

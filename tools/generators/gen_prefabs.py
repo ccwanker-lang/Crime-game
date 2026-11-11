@@ -286,6 +286,14 @@ def inst(sc, name, rel, pos, rot=0.0, props=None):
 FLOOR = 0.15
 
 
+def shopkeeper(sc, name, pos, npc_name, shop_name, greeting, stock, variant, color_seed):
+    """NPC who sells `stock` (item ids), standing at `pos` facing the room (+Z)."""
+    inst(sc, name, "prefabs/npc/shopkeeper.tscn", pos, 180, {
+        "npc_name": q(npc_name), "shop_name": q(shop_name), "greeting": q(greeting),
+        "stock": "Array[StringName]([" + ", ".join(f'&"{i}"' for i in stock) + "])",
+        "variant": str(variant), "color_seed": str(color_seed)})
+
+
 # Starter Room: the players' first property. Station spots stay free for step 6.
 def starter_extra(sc):
     inst(sc, "Bed", I + "bed.tscn", (-2.2, FLOOR, -7.6), 0)
@@ -331,6 +339,8 @@ def store_extra(sc):
     inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
     inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
     marker(sc, "StoreSpot", (1.8, FLOOR, -8.4), 0)
+    shopkeeper(sc, "Clerk", (1.8, FLOOR, -8.4), "Marc", "Store",
+               "Morning. Soil, cans, baggies... it's all on the shelves.", ["soil", "watering_can", "baggie"], 1, 7)
     marker(sc, "BuyPoint", (1.8, FLOOR, -6.6), 0)
 
 
@@ -382,6 +392,8 @@ def contact_extra(sc):
     inst(sc, "Barrel", P + "barrel.tscn", (1.8, FLOOR, -1.0))
     inst(sc, "Lamp", I + "hanging_lamp.tscn", (0, 3.48, -2.6))
     marker(sc, "ContactSpot", (0.75, FLOOR, -4.7), 0)
+    shopkeeper(sc, "Contact", (0.75, FLOOR, -4.7), "Dries", "Contact",
+               "You looking to grow? I got seeds. Cash only.", ["weed_seed"], 10, 3)
 
 
 building(B + "contact_hideout.tscn", {

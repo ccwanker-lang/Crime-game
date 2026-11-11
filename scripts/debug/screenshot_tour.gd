@@ -43,6 +43,9 @@ const SHOTS: Array[Array] = [
 	["30_first_person", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["19_starter_door_open", Vector3(-31.4, 1.7, -3.2), Vector3(-32, 1.2, -8)],
 	["31_loot_bag", Vector3(-9.0, 1.3, -3.4), Vector3(-10.0, 0.15, -4.8)],
+	# 32/33: a staged local player at the store counter (HUD with inventory, then the shop window).
+	["32_store_counter", Vector3.ZERO, Vector3.FORWARD],
+	["33_shop_window", Vector3.ZERO, Vector3.FORWARD],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -177,6 +180,27 @@ func _stage(shot_name: String) -> void:
 			me.head.rotation.x = -0.08
 			me._set_third_person(shot_name == "29_third_person")
 			await get_tree().create_timer(0.5).timeout
+		"32_store_counter", "33_shop_window":
+			var clerk: Shopkeeper = get_tree().current_scene.find_child("Clerk", true, false) as Shopkeeper
+			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+			me.peer_id = multiplayer.get_unique_id()
+			me.player_name = "Me"
+			me.auto_walk = true
+			me.position = clerk.global_position - clerk.global_basis.z * 1.7
+			me.auto_target = me.position
+			me.rotation.y = clerk.global_rotation.y + PI  # face the clerk
+			get_tree().current_scene.add_child(me)
+			_staged.append(me)
+			me.ui.visible = true
+			me.camera.current = true
+			me.head.rotation.x = -0.12
+			me.combat.set_equipped(false)
+			me._set_wallet(455, [{"id": "weed_seed", "count": 5}, {"id": "soil", "count": 3}, {"id": "watering_can", "count": 1}])
+			me.prompt_label.text = "[E] %s" % clerk.get_interaction_prompt()
+			if shot_name == "33_shop_window":
+				me.open_shop(clerk)
+			await get_tree().create_timer(0.6).timeout
+			me.prompt_label.text = "[E] %s" % clerk.get_interaction_prompt()
 		"31_loot_bag":
 			var bag: LootBag = (load("res://prefabs/props/loot_bag.tscn") as PackedScene).instantiate()
 			bag.position = Vector3(-10.0, 0.15, -4.8)

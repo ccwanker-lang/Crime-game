@@ -99,6 +99,12 @@ var auto_target: Vector3 = Vector3.ZERO
 
 var third_person: bool = false
 var cash: int = 0  # owner: last value sent by the host
+## Owner: carried item stacks [{ "id", "count" }], last list sent by the host.
+var inventory: Array = []
+## Owner: the shop window that is open (null = none).
+var shop: Shopkeeper = null
+
+signal wallet_changed
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _crouch_amount: float = 0.0  # 0 standing .. 1 crouched (smoothed, also for remote players)
 var _focused: Node = null
@@ -248,6 +254,12 @@ func _set_third_person(on: bool) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local() or auto_walk:
+		return
+	if shop != null:
+		# Shop window open: the mouse is free for its buttons; E or Esc leaves.
+		if event.is_action_pressed("release_mouse") or event.is_action_pressed("interact"):
+			close_shop()
+			get_viewport().set_input_as_handled()
 		return
 	var captured: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and captured:
@@ -471,7 +483,7 @@ func _update_focus() -> void:
 	var query := PhysicsRayQueryParameters3D.create(from, to, 1 | 2, [get_rid()])
 	var hit: Dictionary = space.intersect_ray(query)
 	var found: Node = null
-	if not hit.is_empty() and not dead:
+	if not hit.is_empty() and not dead and shop == null:
 		var n: Node = hit["collider"]
 		while n != null and not n.is_in_group("interactable"):
 			n = n.get_parent()
@@ -479,6 +491,25 @@ func _update_focus() -> void:
 	_focused = found
 	if prompt_label:
 		prompt_label.text = "[E] %s" % _focused.call("get_interaction_prompt") if _focused else ""
+
+
+## Owner: opens the buy window of a shopkeeper (frees the mouse).
+func open_shop(keeper: Shopkeeper) -> void:
+	if ui == null or dead:
+		return
+	shop = keeper
+	ui.open_shop(keeper, cash)
+	if not ui.close_requested.is_connected(close_shop):
+		ui.close_requested.connect(close_shop)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_shop() -> void:
+	shop = null
+	if ui:
+		ui.close_shop()
+	if not auto_walk:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 # --- Health and death ------------------------------------------------------------
@@ -545,6 +576,8 @@ func _on_dead_changed() -> void:
 	else:
 		_anim.play(_anim_names.get("Idle", ""), 0.1)
 	if is_local():
+		if dead and shop != null:
+			close_shop()
 		if dead:
 			_view_before_death = third_person
 			_set_third_person(true)  # watch your own body fall
@@ -586,15 +619,17 @@ func _debug_hurt() -> void:
 
 # --- Money (host -> owner) -------------------------------------------------------
 
-## Host: tell the owner its current cash.
+## Host: tell the owner its current cash and carried items.
 func send_wallet() -> void:
 	if not multiplayer.is_server():
 		return
-	var amount: int = int(GameState.get_or_create_player_data(player_name)["cash"])
+	var data: Dictionary = GameState.get_or_create_player_data(player_name)
+	var amount: int = int(data["cash"])
+	var items: Array = (data["inventory"] as Array).duplicate(true)
 	if peer_id == multiplayer.get_unique_id():
-		_set_wallet(amount)
+		_set_wallet(amount, items)
 	else:
-		_set_wallet.rpc_id(peer_id, amount)
+		_set_wallet.rpc_id(peer_id, amount, items)
 
 
 ## Owner -> host: send me my cash (when my player node is ready).
@@ -605,12 +640,15 @@ func _request_wallet() -> void:
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _set_wallet(amount: int) -> void:
+func _set_wallet(amount: int, items: Array) -> void:
 	if multiplayer.get_remote_sender_id() not in [0, 1]:
 		return
 	cash = amount
+	inventory = items
 	if ui:
 		ui.set_cash(amount)
+		ui.set_inventory(items)
+	wallet_changed.emit()
 
 
 # --- Host validation -------------------------------------------------------------
