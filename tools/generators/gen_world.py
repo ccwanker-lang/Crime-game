@@ -443,6 +443,11 @@ sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
 sc.node("Players", "Node3D", ".")
 sc.node("PlayerSpawner", "MultiplayerSpawner", ".", props={"spawn_path": 'NodePath("../Players")'})
 
+# --------------------------------------------------------------------------- loot
+# Loot bags dropped on death (World._create_loot_bag is the spawn function).
+sc.node("Loot", "Node3D", ".")
+sc.node("LootSpawner", "MultiplayerSpawner", ".", props={"spawn_path": 'NodePath("../Loot")'})
+
 # --------------------------------------------------------------------------- HUD
 sc.node("HUD", "CanvasLayer", ".")
 sc.node("Panel", "PanelContainer", "HUD", props={

@@ -1,0 +1,100 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interaction/loot_bag.gd" id="1_bag"]
+[ext_resource type="Texture2D" path="res://assets/textures/Fabric049/color.jpg" id="2_col"]
+[ext_resource type="Texture2D" path="res://assets/textures/Fabric049/normal.jpg" id="3_nor"]
+[ext_resource type="Texture2D" path="res://assets/textures/Fabric049/roughness.jpg" id="4_rough"]
+[ext_resource type="Texture2D" path="res://assets/textures/Fabric049/ao.jpg" id="5_ao"]
+
+[sub_resource type="StandardMaterial3D" id="Fabric"]
+albedo_color = Color(0.55, 0.55, 0.58, 1)
+albedo_texture = ExtResource("2_col")
+roughness_texture = ExtResource("4_rough")
+normal_enabled = true
+normal_texture = ExtResource("3_nor")
+ao_enabled = true
+ao_texture = ExtResource("5_ao")
+uv1_scale = Vector3(14, 14, 14)
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="Strap"]
+albedo_color = Color(0.09, 0.09, 0.1, 1)
+roughness = 0.75
+albedo_texture = ExtResource("2_col")
+normal_enabled = true
+normal_texture = ExtResource("3_nor")
+uv1_scale = Vector3(12, 12, 12)
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="Zipper"]
+albedo_color = Color(0.32, 0.3, 0.28, 1)
+metallic = 0.8
+roughness = 0.45
+
+[sub_resource type="CapsuleMesh" id="Body"]
+material = SubResource("Fabric")
+radius = 0.16
+height = 0.64
+radial_segments = 20
+rings = 6
+
+[sub_resource type="TorusMesh" id="Handle"]
+material = SubResource("Strap")
+inner_radius = 0.075
+outer_radius = 0.092
+rings = 16
+ring_segments = 6
+
+[sub_resource type="BoxMesh" id="ZipperMesh"]
+material = SubResource("Zipper")
+size = Vector3(0.5, 0.008, 0.014)
+
+[sub_resource type="BoxMesh" id="BandMesh"]
+material = SubResource("Strap")
+size = Vector3(0.035, 0.29, 0.335)
+
+[sub_resource type="SceneReplicationConfig" id="Replication"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 0
+
+[sub_resource type="BoxShape3D" id="Shape"]
+size = Vector3(0.64, 0.28, 0.3)
+
+[node name="LootBag" type="StaticBody3D" groups=["interactable"]]
+collision_layer = 2
+collision_mask = 0
+script = ExtResource("1_bag")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 0)
+shape = SubResource("Shape")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 1, 0, -0.85, 0, 0, 0, 0, 1, 0, 0.136, 0)
+mesh = SubResource("Body")
+
+[node name="BandL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0.137, 0)
+mesh = SubResource("BandMesh")
+
+[node name="BandR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.137, 0)
+mesh = SubResource("BandMesh")
+
+[node name="HandleL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.6, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.235, -0.04)
+mesh = SubResource("Handle")
+
+[node name="HandleR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.6, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.235, 0.04)
+mesh = SubResource("Handle")
+
+[node name="Zipper" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.273, 0.03)
+mesh = SubResource("ZipperMesh")
+
+[node name="Sync" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+public_visibility = false
+replication_config = SubResource("Replication")

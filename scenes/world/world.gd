@@ -4,6 +4,7 @@ extends Node3D
 ## points / markers, and syncs networked props (doors) to late joiners.
 
 const PLAYER: PackedScene = preload("res://scenes/player/player.tscn")
+const LOOT_BAG: PackedScene = preload("res://prefabs/props/loot_bag.tscn")
 const PEDESTRIAN: PackedScene = preload("res://prefabs/npc/pedestrian.tscn")
 const PEDESTRIAN_COUNT: int = 10
 
@@ -12,6 +13,8 @@ const PEDESTRIAN_COUNT: int = 10
 @onready var npcs: Node3D = $NPCs
 @onready var players_root: Node3D = $Players
 @onready var player_spawner: MultiplayerSpawner = $PlayerSpawner
+@onready var loot_root: Node3D = $Loot
+@onready var loot_spawner: MultiplayerSpawner = $LootSpawner
 @onready var players_label: Label = %PlayersLabel
 @onready var info_label: Label = %InfoLabel
 @onready var leave_button: Button = %LeaveButton
@@ -21,6 +24,7 @@ func _ready() -> void:
 	Net.players_changed.connect(_refresh_players)
 	# Every peer builds player nodes with the same function (spawn data from the host).
 	player_spawner.spawn_function = _create_player
+	loot_spawner.spawn_function = _create_loot_bag
 	leave_button.pressed.connect(_on_leave_pressed)
 
 	if multiplayer.is_server() and GameState.world.is_empty():
@@ -36,12 +40,16 @@ func _ready() -> void:
 	_set_debug_visible(false)
 	if "--screenshot" in OS.get_cmdline_user_args():
 		_start_screenshot_tour()
+	elif "--vmpreview" in OS.get_cmdline_user_args():
+		$HUD/Panel.visible = false
+		add_child(preload("res://scripts/debug/viewmodel_preview.gd").new())
 	elif "--selftest" in OS.get_cmdline_user_args():
 		add_child(preload("res://scripts/debug/self_test.gd").new())
 
 	if not multiplayer.is_server():
 		_request_snapshot.rpc_id(1)
-	if not ("--screenshot" in OS.get_cmdline_user_args() or "--selftest" in OS.get_cmdline_user_args()):
+	if not ("--screenshot" in OS.get_cmdline_user_args() or "--selftest" in OS.get_cmdline_user_args()
+			or "--vmpreview" in OS.get_cmdline_user_args()):
 		if multiplayer.is_server():
 			Net.players_changed.connect(_remove_left_players)
 			_spawn_player_for(1)
@@ -54,17 +62,41 @@ func _ready() -> void:
 ## Debug (--netcheck): after 12 s print what this peer sees of the synced NPCs, then quit.
 func _net_check() -> void:
 	if not multiplayer.is_server():
-		# The client walks its own player 5 m east, crouched; the host must see that.
 		await get_tree().create_timer(4.0).timeout
 		var me: Player = players_root.get_node_or_null(str(multiplayer.get_unique_id()))
+		var host: Player = players_root.get_node_or_null("1")
+		# Combat: shoot the host until it dies, then take its loot bag.
+		if me and host:
+			for i: int in 6:
+				if host.dead:
+					break
+				var target: Vector3 = host.global_position + Vector3(0, 1.2, 0)
+				var d: Vector3 = target - me.head.global_position
+				me.rotation.y = atan2(-d.x, -d.z)
+				me.head.rotation.x = asin(d.normalized().y)
+				me.combat.try_fire()
+				print("[NetCheck] client fired (mag %d) host health %d" % [me.combat.mag, host.health])
+				await get_tree().create_timer(0.4).timeout
+			await get_tree().create_timer(0.5).timeout
+			print("[NetCheck] client sees host dead=%s health=%d, bags: %d" % [host.dead, host.health, $Loot.get_child_count()])
+			var cash_before: int = me.cash
+			for bag: Node in $Loot.get_children():
+				(bag as LootBag).interact()
+			await get_tree().create_timer(1.0).timeout
+			print("[NetCheck] client cash %d -> %d, bags left: %d" % [cash_before, me.cash, $Loot.get_child_count()])
+			await get_tree().create_timer(4.0).timeout
+			print("[NetCheck] client sees host after respawn: dead=%s health=%d at %s" % [host.dead, host.health,
+					host.global_position.snapped(Vector3.ONE * 0.1)])
+			me.head.rotation.x = 0.0
+		# The client walks its own player 5 m east, crouched; the host must see that.
 		if me:
 			me.auto_walk = true
 			me.auto_target = me.global_position + Vector3(5, 0, 0)
 			Input.action_press("crouch")
 			print("[NetCheck] client walks from %s" % me.global_position.snapped(Vector3.ONE * 0.1))
-		await get_tree().create_timer(8.0).timeout
+		await get_tree().create_timer(6.0).timeout
 	else:
-		for i: int in 8:  # the host reports what it sees of the client players
+		for i: int in 12:  # the host reports what it sees of the client players
 			await get_tree().create_timer(3.0).timeout
 			for p: Node in players_root.get_children():
 				var pl := p as Player
@@ -125,6 +157,33 @@ func _create_player(data: Dictionary) -> Node:
 	return p
 
 
+# --- Loot bags --------------------------------------------------------------------
+
+var _loot_counter: int = 0
+
+
+## Host only: drops a bag with cash + items on the ground below `pos` (replicated by LootSpawner).
+func spawn_loot_bag(pos: Vector3, owner_name: String, cash: int, items: Array) -> void:
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.5, pos + Vector3.DOWN * 20.0, 1)
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	var ground: Vector3 = hit["position"] if not hit.is_empty() else pos
+	_loot_counter += 1
+	loot_spawner.spawn({"id": _loot_counter, "pos": ground, "yaw": randf() * TAU,
+			"owner": owner_name, "cash": cash, "items": items})
+	print("[World] Loot bag of %s dropped at %s (€%d)" % [owner_name, ground.snapped(Vector3.ONE * 0.1), cash])
+
+
+func _create_loot_bag(data: Dictionary) -> Node:
+	var bag: LootBag = LOOT_BAG.instantiate()
+	bag.name = "Bag%d" % data["id"]
+	bag.position = data["pos"]
+	bag.rotation.y = data["yaw"]
+	bag.owner_name = data["owner"]
+	bag.cash = data["cash"]
+	bag.items = data["items"]
+	return bag
+
+
 ## Host only: remove the bodies of players that left (the spawner despawns them on clients).
 func _remove_left_players() -> void:
 	for p: Node in players_root.get_children():
@@ -179,6 +238,21 @@ func _start_screenshot_tour() -> void:
 	var tour: Node = preload("res://scripts/debug/screenshot_tour.gd").new()
 	tour.hide_nodes = [$HUD/Panel]
 	add_child(tour)
+
+
+## Spawn point near the hospital with nobody standing on it (random order).
+func get_free_spawn_point() -> Vector3:
+	var points: Array[Node] = spawn_points.get_children()
+	points.shuffle()
+	for pt: Node in points:
+		var pos: Vector3 = (pt as Node3D).global_position
+		var free: bool = true
+		for p: Node in players_root.get_children():
+			if (p as Node3D).global_position.distance_to(pos) < 1.5:
+				free = false
+		if free:
+			return pos
+	return (points[0] as Node3D).global_position
 
 
 ## Returns a spawn position near the hospital (index wraps around).

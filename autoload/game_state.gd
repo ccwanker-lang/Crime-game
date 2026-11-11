@@ -10,7 +10,7 @@ signal world_changed
 const STARTING_CASH: int = 500
 
 var world: Dictionary = {}
-## player name -> { "cash": int, "inventory": Array }
+## player name -> { "cash": int, "inventory": Array of { "id": String, "count": int } }
 var player_data: Dictionary = {}
 
 
@@ -35,6 +35,32 @@ func get_or_create_player_data(player_name: String) -> Dictionary:
 	if not player_data.has(player_name):
 		player_data[player_name] = {"cash": STARTING_CASH, "inventory": []}
 	return player_data[player_name]
+
+
+## Host only: empties a player's cash and carried items and returns them
+## ({ "cash": int, "items": Array }), e.g. for the loot bag on death.
+func take_all(player_name: String) -> Dictionary:
+	var data: Dictionary = get_or_create_player_data(player_name)
+	var taken: Dictionary = {"cash": int(data["cash"]), "items": (data["inventory"] as Array).duplicate(true)}
+	data["cash"] = 0
+	data["inventory"] = []
+	return taken
+
+
+## Host only: adds cash and items ([{ "id", "count" }], stacks merged) to a player.
+func give(player_name: String, cash: int, items: Array) -> void:
+	var data: Dictionary = get_or_create_player_data(player_name)
+	data["cash"] = int(data["cash"]) + cash
+	var inv: Array = data["inventory"]
+	for it: Dictionary in items:
+		var merged: bool = false
+		for own: Dictionary in inv:
+			if own.get("id") == it.get("id"):
+				own["count"] = int(own.get("count", 1)) + int(it.get("count", 1))
+				merged = true
+				break
+		if not merged:
+			inv.append(it.duplicate())
 
 
 func to_save_dict() -> Dictionary:

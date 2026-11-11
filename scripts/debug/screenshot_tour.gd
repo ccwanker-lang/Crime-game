@@ -42,6 +42,7 @@ const SHOTS: Array[Array] = [
 	["29_third_person", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["30_first_person", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["19_starter_door_open", Vector3(-31.4, 1.7, -3.2), Vector3(-32, 1.2, -8)],
+	["31_loot_bag", Vector3(-9.0, 1.3, -3.4), Vector3(-10.0, 0.15, -4.8)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -176,6 +177,15 @@ func _stage(shot_name: String) -> void:
 			me.head.rotation.x = -0.08
 			me._set_third_person(shot_name == "29_third_person")
 			await get_tree().create_timer(0.5).timeout
+		"31_loot_bag":
+			var bag: LootBag = (load("res://prefabs/props/loot_bag.tscn") as PackedScene).instantiate()
+			bag.position = Vector3(-10.0, 0.15, -4.8)
+			bag.rotation.y = 0.5
+			bag.owner_name = "Alex"
+			bag.cash = 500
+			get_tree().current_scene.add_child(bag)
+			_staged.append(bag)
+			await get_tree().create_timer(0.2).timeout
 		"25_bench_east":
 			for s: Node in get_tree().get_nodes_in_group(&"bench_seat"):
 				var p: Vector3 = (s as Node3D).global_position

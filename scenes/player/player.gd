@@ -4,18 +4,23 @@ extends CharacterBody3D
 ## World/PlayerSpawner (also replicated to late joiners).
 ##
 ## NETWORK: the owning peer moves its own body (responsive, no input lag) and
-## sends its state (position, look, movement input, crouch...) through the
-## MultiplayerSynchronizer. The HOST validates it: a client that moves faster
-## than possible is put back with _teleport(). Damage, items and money (later
-## steps) are always decided by the host.
+## sends its state (position, look, movement input, crouch, weapon out...)
+## through the MultiplayerSynchronizer. The HOST validates it: a client that
+## moves faster than possible is put back with _teleport(). Health, death,
+## damage, ammo and money are decided by the host (HostSync replicates health
+## and dead; shooting lives in the Combat child, see PlayerCombat).
+##
+## Death: the host drops a LootBag with the player's cash + carried items and
+## respawns the player at the hospital after RESPAWN_TIME.
 ##
 ## Controls: WASD/arrows move, Shift sprint, Space jump, Ctrl/C crouch, mouse look,
-## V first/third person, E interact, Esc frees the mouse (click to capture again).
+## LMB shoot, R reload, 1 pistol / 2 holster / Q switch, V first/third person,
+## E interact, Esc frees the mouse (click to capture again), F4 debug: hurt yourself.
 
 enum Move { IDLE, FORWARD, BACK, LEFT, RIGHT }
 
 ## Quaternius characters for players (CharacterArmature set: idle/walk/run in four
-## directions, plus gun animations for step 4). "scale" brings them to ~1.75 m.
+## directions, gun aim/shoot, death). "scale" brings them to ~1.75 m.
 const MODELS: Array[Dictionary] = [
 	{"model": "hoodie", "scale": 0.94},
 	{"model": "worker", "scale": 0.95},
@@ -43,6 +48,10 @@ const THIRD_PERSON_DISTANCE: float = 3.0
 const RUN_ANIM_SPEED: float = 4.6
 const WALK_ANIM_SPEED: float = 1.25
 
+const MAX_HEALTH: int = 100
+const RESPAWN_TIME: float = 5.0
+const DEBUG_HURT: int = 25
+
 ## Host check: highest horizontal speed accepted from a client (m/s).
 const MAX_CLIENT_SPEED: float = SPRINT_SPEED * 1.6
 
@@ -60,6 +69,20 @@ var net_move: Vector2 = Vector2.ZERO
 var net_sprint: bool = false
 var net_crouch: bool = false
 var net_air: bool = false
+## Weapon in hand: 0 = none (holstered), 1 = pistol.
+var net_weapon: int = 1
+
+# --- Synced from the host (HostSync) --------------------------------------------
+var health: int = MAX_HEALTH:
+	set(v):
+		var old: int = health
+		health = v
+		_on_health_changed(old)
+var dead: bool = false:
+	set(v):
+		if v != dead:
+			dead = v
+			_on_dead_changed()
 
 ## Test mode (self-test): walk straight to auto_target without mouse/camera.
 var auto_walk: bool = false
@@ -70,18 +93,25 @@ var auto_target: Vector3 = Vector3.ZERO
 @onready var spring: SpringArm3D = $Head/Spring
 @onready var camera: Camera3D = $Head/Spring/Camera3D
 @onready var nametag: Label3D = $Nametag
-@onready var ui: CanvasLayer = $UI
+@onready var ui: PlayerHUD = $UI
 @onready var prompt_label: Label = %PromptLabel
+@onready var combat: PlayerCombat = $Combat
 
 var third_person: bool = false
+var cash: int = 0  # owner: last value sent by the host
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _crouch_amount: float = 0.0  # 0 standing .. 1 crouched (smoothed, also for remote players)
 var _focused: Node = null
 var _anim: AnimationPlayer
 var _anim_names: Dictionary = {}
 var _pose: PoseModifier
+var _skeleton: Skeleton3D
+var _bone_lower_r: int = -1
+var _bone_wrist_r: int = -1
 var _meshes: Array[MeshInstance3D] = []
 var _model: Node3D
+var _recoil_pending: float = 0.0  # camera pitch still to recover from recoil
+var _view_before_death: bool = false
 # Host-side validation of client movement.
 var _check_pos: Vector3 = Vector3.INF
 var _check_time: float = 0.0
@@ -106,18 +136,31 @@ func _ready() -> void:
 		net_yaw = rotation.y
 		nametag.visible = false
 		spring.add_excluded_object(get_rid())
+		var vm := Viewmodel.new()
+		vm.name = "Viewmodel"
+		camera.add_child(vm)
+		var v: Dictionary = MODELS[model_index % MODELS.size()]
+		vm.setup(MODEL_DIR % v["model"], float(v["scale"]), combat.weapon)
+		combat.viewmodel = vm
 		if auto_walk:
 			ui.visible = false
 		else:
 			camera.current = true
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		_set_third_person(false)
+		ui.set_health(health, MAX_HEALTH)
+		if multiplayer.is_server():
+			send_wallet()
+		else:
+			_request_wallet.rpc_id(1)
 	else:
 		ui.queue_free()
 		ui = null
 		global_position = net_pos
 		rotation.y = net_yaw
 	_apply_crouch_shape()
+	if dead:
+		_on_dead_changed()  # late joiner sees a dead player lying down
 
 
 ## True on the peer that controls this player.
@@ -145,25 +188,59 @@ func _build_model() -> void:
 				m.set_surface_override_material(s, Pedestrian._matte(mat, -1))
 		_meshes.append(m)
 	_anim = _model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	var aim_anim: Animation = null
 	for a: String in _anim.get_animation_list():
 		var short: String = a.get_slice("|", a.get_slice_count("|") - 1)
 		if short in ["Idle", "Walk", "Run", "Run_Back", "Run_Left", "Run_Right"]:
 			_anim_names[short] = a
 			_anim.get_animation(a).loop_mode = Animation.LOOP_LINEAR
-	var skeleton: Skeleton3D = _model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+		elif short == "Death":
+			_anim_names[short] = a
+			_anim.get_animation(a).loop_mode = Animation.LOOP_NONE
+		elif short == "Idle_Gun_Pointing":
+			aim_anim = _anim.get_animation(a)
+	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	_pose = PoseModifier.new()
-	skeleton.add_child(_pose)
+	_skeleton.add_child(_pose)
+	if aim_anim:
+		_pose.set_aim_pose(aim_anim, 0.3)
 	_anim.play(_anim_names.get("Idle", ""))
 
+	# Pistol in the right fist, placed after every skeleton update.
+	combat.hand_gun = combat.weapon.model_scene.instantiate() as WeaponModel
+	combat.hand_gun.name = "HandGun"
+	add_child(combat.hand_gun)
+	WeaponFX.make_flash(combat.hand_gun.muzzle, false)
+	_bone_lower_r = _skeleton.find_bone("LowerArm.R")
+	_bone_wrist_r = _skeleton.find_bone("Wrist.R")
+	_skeleton.skeleton_updated.connect(_place_hand_gun)
 
-## First person: the own body is invisible but still casts a shadow.
+
+func _place_hand_gun() -> void:
+	var gun: WeaponModel = combat.hand_gun
+	gun.visible = net_weapon != 0 and not dead
+	if not gun.visible or _bone_wrist_r < 0:
+		return
+	var t: Transform3D = _skeleton.global_transform
+	var lower: Vector3 = t * _skeleton.get_bone_global_pose(_bone_lower_r).origin
+	var wrist: Vector3 = t * _skeleton.get_bone_global_pose(_bone_wrist_r).origin
+	gun.global_transform = ViewmodelIK.gun_in_fist(lower, wrist, global_basis.y)
+
+
+## First person: the own body (and the gun in its hand) is invisible but still
+## casts a shadow; the viewmodel shows the arms instead.
 func _set_third_person(on: bool) -> void:
 	third_person = on
 	spring.spring_length = THIRD_PERSON_DISTANCE if on else 0.0
 	spring.position = Vector3(0.45, 0.15, 0) if on else Vector3.ZERO
+	var mode: GeometryInstance3D.ShadowCastingSetting = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if on \
+			else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	for m: MeshInstance3D in _meshes:
-		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if on \
-				else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		m.cast_shadow = mode
+	for m: Node in combat.hand_gun.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).cast_shadow = mode
+	if combat.viewmodel:
+		combat.viewmodel.hidden_by_view = on
 
 
 # --- Input (owner only) ----------------------------------------------------------
@@ -173,19 +250,41 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var captured: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and captured:
+		if dead:
+			return
 		var motion := event as InputEventMouseMotion
 		rotate_y(-motion.relative.x * MOUSE_SENSITIVITY)
 		head.rotation.x = clampf(head.rotation.x - motion.relative.y * MOUSE_SENSITIVITY, -1.45, 1.45)
+		if combat.viewmodel:
+			combat.viewmodel.add_mouse(motion.relative)
 	elif event is InputEventMouseButton and event.pressed and not captured:
 		# Clicks on HUD buttons never get here (the GUI handles them first).
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("release_mouse"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif event.is_action_pressed("toggle_view") and captured:
+	elif not captured:
+		return
+	elif event.is_action_pressed("fire"):
+		combat.try_fire()
+	elif event.is_action_pressed("reload"):
+		combat.try_reload()
+	elif event.is_action_pressed("weapon_1"):
+		combat.set_equipped(true)
+	elif event.is_action_pressed("weapon_holster"):
+		combat.set_equipped(false)
+	elif event.is_action_pressed("weapon_toggle"):
+		combat.set_equipped(not combat.equipped)
+	elif event.is_action_pressed("toggle_view") and not dead:
 		_set_third_person(not third_person)
-	elif event.is_action_pressed("interact") and captured and _focused != null:
+	elif event.is_action_pressed("interact") and _focused != null and not dead:
 		_focused.call("interact")
+	elif event is InputEventKey and event.pressed and not event.echo \
+			and (event as InputEventKey).physical_keycode == KEY_F4:
+		if multiplayer.is_server():
+			_debug_hurt()
+		else:
+			_debug_hurt.rpc_id(1)
 
 
 # --- Movement --------------------------------------------------------------------
@@ -206,14 +305,29 @@ func _physics_process(delta: float) -> void:
 	_update_anim()
 
 
+func _process(delta: float) -> void:
+	if not is_local():
+		return
+	# Recoil: most of the kick comes back down by itself.
+	var step: float = _recoil_pending * minf(1.0, 7.0 * delta)
+	head.rotation.x -= step
+	_recoil_pending -= step
+	var vm: Viewmodel = combat.viewmodel
+	if vm:
+		var speed: float = Vector2(velocity.x, velocity.z).length() / SPRINT_SPEED
+		vm.update(delta, clampf(speed, 0.0, 1.0), net_sprint, is_on_floor())
+	if ui:
+		ui.set_ammo(combat.weapon.display_name, combat.mag, combat.reserve, combat.equipped, combat.is_reloading())
+
+
 func _local_move(delta: float) -> void:
 	# Test mode reads the (simulated) actions without a captured mouse.
-	var active: bool = auto_walk or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	var active: bool = (auto_walk or Input.mouse_mode == Input.MOUSE_MODE_CAPTURED) and not dead
 	var input := Vector2.ZERO
 	if active and not auto_walk:
 		input = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir: Vector3 = (transform.basis * Vector3(input.x, 0, input.y))
-	if auto_walk:
+	if auto_walk and not dead:
 		dir = Vector3(auto_target.x - global_position.x, 0, auto_target.z - global_position.z)
 		dir = dir.normalized() if dir.length() > 0.1 else Vector3.ZERO
 		input = Vector2(0, -dir.length())
@@ -277,9 +391,10 @@ func _update_crouch(delta: float) -> void:
 	head.position.y = lerpf(EYE_STAND, EYE_CROUCH, _crouch_amount)
 
 
-## Remote players: smooth towards the last synced state.
+## Remote players: smooth towards the last synced state. Big jumps (respawn,
+## correction) snap: gliding there would shove whoever stands in between.
 func _follow_net(delta: float) -> void:
-	if global_position.distance_to(net_pos) > 5.0:
+	if global_position.distance_to(net_pos) > 2.0:
 		global_position = net_pos
 	else:
 		global_position = global_position.lerp(net_pos, minf(1.0, 15.0 * delta))
@@ -287,11 +402,20 @@ func _follow_net(delta: float) -> void:
 	head.rotation.x = lerpf(head.rotation.x, net_pitch, minf(1.0, 15.0 * delta))
 
 
+## Owner: camera kick of a shot (pitch up, yaw sideways); 75% recovers by itself.
+func add_recoil(pitch: float, yaw: float) -> void:
+	head.rotation.x = clampf(head.rotation.x + pitch, -1.45, 1.45)
+	_recoil_pending += pitch * 0.75
+	rotate_y(yaw)
+
+
 # --- Animation (same on every peer, from the synced state) ----------------------
 
 func _update_anim() -> void:
 	if _anim == null:
 		return
+	if dead:
+		return  # the death animation plays once and holds its last frame
 	var move: Vector2 = net_move
 	var key: String = "Idle"
 	var speed_scale: float = 1.0
@@ -321,9 +445,14 @@ func _update_anim() -> void:
 	if _anim.current_animation != a:
 		_anim.play(a, 0.2)
 	_anim.speed_scale = speed_scale
+	# Holding a gun: the body keeps facing forward (the arm must point where you look).
+	if net_weapon != 0:
+		model_yaw *= 0.3
 	_model.rotation.y = lerp_angle(_model.rotation.y, PI + model_yaw, 0.2)
 	_pose.crouch = maxf(_crouch_amount, 0.3 if net_air else 0.0)
 	_pose.pitch = head.rotation.x
+	_pose.aim = move_toward(_pose.aim, combat.body_aim(), 0.15)
+	_pose.kick = combat.body_kick()
 
 
 # --- Interaction (owner only) ----------------------------------------------------
@@ -336,7 +465,7 @@ func _update_focus() -> void:
 	var query := PhysicsRayQueryParameters3D.create(from, to, 1 | 2, [get_rid()])
 	var hit: Dictionary = space.intersect_ray(query)
 	var found: Node = null
-	if not hit.is_empty():
+	if not hit.is_empty() and not dead:
 		var n: Node = hit["collider"]
 		while n != null and not n.is_in_group("interactable"):
 			n = n.get_parent()
@@ -344,6 +473,138 @@ func _update_focus() -> void:
 	_focused = found
 	if prompt_label:
 		prompt_label.text = "[E] %s" % _focused.call("get_interaction_prompt") if _focused else ""
+
+
+# --- Health and death ------------------------------------------------------------
+
+## Host: apply damage from `attacker` (may be null). Returns true if this killed.
+func host_damage(amount: int, attacker: Player) -> bool:
+	if not multiplayer.is_server() or dead or amount <= 0:
+		return false
+	health = maxi(0, health - amount)
+	if health > 0:
+		return false
+	_host_die(attacker)
+	return true
+
+
+func _host_die(attacker: Player) -> void:
+	dead = true
+	var killer: String = attacker.player_name if attacker and attacker != self else ""
+	print("[Player] %s died%s" % [player_name, (" (killed by %s)" % killer) if killer != "" else ""])
+	# Drop everything carried in a bag on the ground.
+	var loot: Dictionary = GameState.take_all(player_name)
+	var world := get_tree().current_scene
+	var dropped: String = "You had nothing on you."
+	if (int(loot["cash"]) > 0 or not (loot["items"] as Array).is_empty()) and world.has_method("spawn_loot_bag"):
+		world.call("spawn_loot_bag", global_position, player_name, int(loot["cash"]), loot["items"])
+		dropped = "Your bag with €%d dropped where you died." % int(loot["cash"])
+	send_wallet()
+	if peer_id == multiplayer.get_unique_id():
+		_show_death(killer, dropped)
+	else:
+		_show_death.rpc_id(peer_id, killer, dropped)
+	await get_tree().create_timer(RESPAWN_TIME).timeout
+	if not is_inside_tree():
+		return
+	var spawn: Vector3 = world.call("get_free_spawn_point") if world.has_method("get_free_spawn_point") else global_position
+	teleport(spawn)
+	health = MAX_HEALTH
+	dead = false
+	combat.host_refill()
+	print("[Player] %s respawned at the hospital %s" % [player_name, spawn.snapped(Vector3.ONE * 0.1)])
+
+
+## Every peer: health changed (HostSync). Owner: HUD + damage flash.
+func _on_health_changed(old: int) -> void:
+	if ui and is_local():
+		ui.set_health(health, MAX_HEALTH)
+		if health < old:
+			ui.flash_damage(old - health)
+			head.rotation.x = clampf(head.rotation.x + 0.03, -1.45, 1.45)  # small flinch
+
+
+## Every peer: dead flag changed (HostSync).
+func _on_dead_changed() -> void:
+	if not is_inside_tree() or _anim == null:
+		return
+	# Dead bodies are not solid for others and can't be shot again.
+	collision_layer = 0 if dead else 8
+	if dead:
+		_pose.aim = 0.0
+		_pose.crouch = 0.0
+		_pose.pitch = 0.0
+		_anim.speed_scale = 1.0
+		_anim.play(_anim_names.get("Death", ""), 0.15)
+	else:
+		_anim.play(_anim_names.get("Idle", ""), 0.1)
+	if is_local():
+		if dead:
+			_view_before_death = third_person
+			_set_third_person(true)  # watch your own body fall
+			if combat.viewmodel:
+				combat.viewmodel.cancel_reload()
+			combat._reload_end = 0.0
+		else:
+			_set_third_person(_view_before_death)
+			if ui:
+				ui.hide_death()
+
+
+## Host -> owner: you died.
+@rpc("any_peer", "call_remote", "reliable")
+func _show_death(killer: String, dropped: String) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1] or ui == null:
+		return
+	var text: String = ("Killed by %s. " % killer if killer != "" else "") + dropped
+	ui.show_death(text, RESPAWN_TIME)
+
+
+## Shooter only: the host confirmed a hit.
+func on_hit_confirmed(headshot: bool, killed: bool) -> void:
+	if ui:
+		ui.show_hitmarker(headshot, killed)
+	WeaponFX.play_2d(self, WeaponFX.random_stream("impact_flesh"), -14.0 if not killed else -8.0, 0.1)
+
+
+## Debug (F4): the host hurts this player (to test death without a second player).
+@rpc("any_peer", "call_remote", "reliable")
+func _debug_hurt() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != peer_id:
+		return
+	host_damage(DEBUG_HURT, null)
+
+
+# --- Money (host -> owner) -------------------------------------------------------
+
+## Host: tell the owner its current cash.
+func send_wallet() -> void:
+	if not multiplayer.is_server():
+		return
+	var amount: int = int(GameState.get_or_create_player_data(player_name)["cash"])
+	if peer_id == multiplayer.get_unique_id():
+		_set_wallet(amount)
+	else:
+		_set_wallet.rpc_id(peer_id, amount)
+
+
+## Owner -> host: send me my cash (when my player node is ready).
+@rpc("any_peer", "call_remote", "reliable")
+func _request_wallet() -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		send_wallet()
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _set_wallet(amount: int) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	cash = amount
+	if ui:
+		ui.set_cash(amount)
 
 
 # --- Host validation -------------------------------------------------------------
@@ -365,7 +626,7 @@ func _host_validate(delta: float) -> void:
 	_check_time = 0.0
 
 
-## Host -> owner: put the player at a position (speed check now, respawn later).
+## Host -> owner: put the player at a position (speed check, respawn).
 @rpc("any_peer", "call_local", "reliable")
 func _teleport(pos: Vector3) -> void:
 	if multiplayer.get_remote_sender_id() not in [0, 1]:
@@ -375,7 +636,7 @@ func _teleport(pos: Vector3) -> void:
 	net_pos = pos
 
 
-## Host: move a player anywhere (e.g. respawn at the hospital in step 4).
+## Host: move a player anywhere (e.g. respawn at the hospital).
 func teleport(pos: Vector3) -> void:
 	if multiplayer.is_server():
 		_check_pos = pos
@@ -384,3 +645,4 @@ func teleport(pos: Vector3) -> void:
 		else:
 			_teleport.rpc_id(peer_id, pos)
 			net_pos = pos
+			global_position = pos

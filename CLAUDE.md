@@ -32,10 +32,16 @@ Godot console exe:
   `--npcs=N` changes the pedestrian count; `--env:ssil_enabled=false` overrides an Environment property.
 - Map self-test (headless): `--headless --path . -- --selftest --port=7791` (`scripts/debug/self_test.gd`):
   lamps on poles, walk + navmesh through every door, debug labels hidden, pedestrians stay off the
-  road (except zebras) and keep moving, player jump/speed/crouch. Run it after map/door/NPC/player
+  road (except zebras) and keep moving, player jump/speed/crouch, combat (ammo, reload, damage, death,
+  loot bag, respawn). Run it after map/door/NPC/player/combat
   changes; it prints PASS/FAIL. The door/player checks use `player.tscn` with `auto_walk`.
 - Network check (headless): `-- --host --port=7792 --netcheck --name=Host`, then 4 s later
-  `-- --join=127.0.0.1 --port=7792 --netcheck --name=B`: the client walks crouched 5 m, both print what they see.
+  `-- --join=127.0.0.1 --port=7792 --netcheck --name=B`: the client shoots the host dead, takes the loot bag,
+  sees the respawn, then walks crouched 5 m; both print what they see. The host runs ~40 s: wait for it to
+  quit before starting another run on the same port.
+- Viewmodel check (window): `-- --vmpreview --port=7790 [--reload=0.5] [--fire] [--model=1]` saves
+  `screenshots/vm_view.png` (player view) + `vm_side.png` (side view) of the first-person arms + weapon.
+  `--script res://scripts/debug/model_preview.gd -- --scene=res://... --size=0.3` renders any scene (no autoloads).
 
 ## Map / prefabs
 - Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts in `scripts/procgen/`).
@@ -43,11 +49,20 @@ Godot console exe:
 - Markers that belong to a building (PotSpot, StoreSpot, ContactSpot...) live inside its prefab; find them with
   `world.get_marker(name)`.
 - Doors and other networked props: group `net_state` (`get_net_state`/`apply_net_state`), synced to late joiners.
-- Navmesh: cell 0.1 m (coarser cells left corners too tight -> NPCs stuck). Physics layers: 1 world (navmesh bakes from it), 2 doors (not baked), 3 npcs, 4 players. Debug-only nodes (marker
+- Navmesh: cell 0.1 m (coarser cells left corners too tight -> NPCs stuck). Physics layers: 1 world (navmesh bakes from it), 2 doors + props like loot bags (not baked), 3 npcs, 4 players (players do not collide with npcs for now). Debug-only nodes (marker
   labels): group `debug_only`, hidden in game, F3 toggles.
 - NPCs: `prefabs/npc/pedestrian.tscn` (`Pedestrian`): host runs AI/physics, clients get net_pos/net_yaw/
   anim_state via MultiplayerSynchronizer; spawned by World/NPCSpawner. Road tiles carve the asphalt (minus
   zebras) out of the navmesh with NavigationObstacle3D. Moving meshes: no SDFGI (environment uses SSIL).
+- Weapons: `WeaponData` (extends ItemData) in `data/items/` (pistol.tres); visual model `prefabs/weapons/*.tscn`
+  (`WeaponModel`, origin = grip, barrel -Z, markers Muzzle/Ejection/RightHand/Support/MagazineDir). Shooting lives
+  in Player/Combat (`PlayerCombat`): owner predicts + plays effects, host validates, raycasts, applies damage,
+  sends effects to the others. First person = `Viewmodel` (copy of the player's character, gloved, arms by
+  `ViewmodelIK`, procedural recoil/reload/draw, `viewmodel.gdshader` keeps it in front of walls). Effects:
+  `WeaponFX` (flash, casings, impact decal/particles/sound per surface). Sounds: `tools/generators/gen_weapon_sounds.py`.
+- Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
+  World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
+- In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

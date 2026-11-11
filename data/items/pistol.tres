@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="PackedScene" path="res://prefabs/weapons/pistol.tscn" id="2_model"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_1.ogg" id="3_s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_2.ogg" id="4_s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_1.ogg" id="5_f1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_2.ogg" id="6_f2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_reload.ogg" id="7_rl"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_dry_fire.ogg" id="8_dry"]
+
+[resource]
+script = ExtResource("1_wd")
+id = &"pistol"
+display_name = "Service Pistol"
+max_stack = 1
+is_legal = false
+base_price = 650
+description = "Worn semi-automatic service pistol, 8 rounds."
+damage = 26
+headshot_multiplier = 4.0
+fire_interval = 0.16
+magazine_size = 8
+starting_reserve = 32
+reload_time = 1.6
+max_range = 150.0
+spread_still = 0.004
+spread_moving = 0.03
+spread_air = 0.08
+recoil_pitch = 0.022
+recoil_yaw = 0.008
+model_scene = ExtResource("2_model")
+shot_sounds = Array[AudioStream]([ExtResource("3_s1"), ExtResource("4_s2")])
+shot_far_sounds = Array[AudioStream]([ExtResource("5_f1"), ExtResource("6_f2")])
+reload_sound = ExtResource("7_rl")
+dry_fire_sound = ExtResource("8_dry")

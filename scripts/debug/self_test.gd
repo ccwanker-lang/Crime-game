@@ -12,6 +12,9 @@ extends Node
 ##    they wander, idle, sit on benches and visit public buildings.
 ## 5. Player: jump height, walk/sprint speed, crouch (lower capsule, stays down
 ##    under a low ceiling, stands up again when it is gone).
+## 6. Combat: a shot uses ammo and leaves an impact, reload refills from the
+##    reserve, damage lowers health, death drops a loot bag with the cash,
+##    respawn at the hospital with full health/ammo, the bag can be picked up.
 ## Prints "[SelfTest] PASS/FAIL ..." lines and quits.
 
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
@@ -31,6 +34,7 @@ func _run() -> void:
 	_check_debug_labels()
 	await _check_doors(world)
 	await _check_player(world)
+	await _check_combat(world)
 	await _check_pedestrians(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
@@ -213,6 +217,73 @@ func _check_player(world: Node3D) -> void:
 	for i: int in 30:
 		await get_tree().physics_frame
 	_report(not p.net_crouch and shape.height > 1.7, "player stands up when there is room")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Combat ---------------------------------------------------------------------
+
+func _check_combat(world: Node3D) -> void:
+	var start: Vector3 = (world.get_node("Markers/SpawnPoints").get_child(0) as Node3D).global_position
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.auto_target = start
+	p.name = "1"
+	p.player_name = "Tester"
+	world.get_node("Players").add_child(p)
+	p.global_position = start + Vector3.UP * 0.1
+	for i: int in 40:
+		await get_tree().physics_frame
+	var c: PlayerCombat = p.combat
+
+	# Shoot at the ground in front of the feet.
+	p.head.rotation.x = -1.3
+	var decals_before: int = world.find_children("*", "Decal", true, false).size()
+	c.try_fire()
+	await get_tree().physics_frame
+	var decals: int = world.find_children("*", "Decal", true, false).size()
+	_report(c.mag == c.weapon.magazine_size - 1 and c._h_mag == c.mag, "shot uses one round (mag %d, host %d)" % [c.mag, c._h_mag])
+	_report(decals > decals_before, "shot leaves a bullet hole decal")
+
+	# Reload: back to a full magazine, the reserve pays for it.
+	await get_tree().create_timer(0.3).timeout
+	c.try_reload()
+	_report(c.is_reloading(), "reload starts")
+	await get_tree().create_timer(c.weapon.reload_time + 0.3).timeout
+	_report(c.mag == c.weapon.magazine_size and c.reserve == c.weapon.starting_reserve - 1,
+			"reload refills (mag %d, reserve %d)" % [c.mag, c.reserve])
+
+	# Damage and death.
+	p.host_damage(30, null)
+	_report(p.health == Player.MAX_HEALTH - 30, "damage lowers health to %d" % p.health)
+	var cash: int = int(GameState.get_or_create_player_data(p.player_name)["cash"])
+	var death_pos: Vector3 = p.global_position
+	p.host_damage(200, null)
+	await get_tree().physics_frame
+	var bags: Array[Node] = world.get_node("Loot").get_children()
+	_report(p.dead and p.collision_layer == 0, "player dies at 0 health (not solid while dead)")
+	_report(bags.size() == 1 and (bags[0] as LootBag).cash == cash and cash > 0,
+			"death drops a loot bag with the cash (€%d)" % cash)
+	_report(int(GameState.get_or_create_player_data(p.player_name)["cash"]) == 0, "dead player's cash is in the bag, not on him")
+
+	# Respawn at the hospital.
+	await get_tree().create_timer(Player.RESPAWN_TIME + 0.5).timeout
+	_report(not p.dead and p.health == Player.MAX_HEALTH and c.mag == c.weapon.magazine_size
+			and c.reserve == c.weapon.starting_reserve, "respawn with full health and ammo")
+	var near_spawn: bool = false
+	for sp: Node in world.get_node("Markers/SpawnPoints").get_children():
+		if (sp as Node3D).global_position.distance_to(p.global_position) < 1.0:
+			near_spawn = true
+	_report(near_spawn, "respawned at a hospital spawn point %s" % p.global_position.snapped(Vector3.ONE * 0.1))
+
+	# Pick the bag up again.
+	p.teleport(death_pos + Vector3(1.0, 0.1, 0))
+	await get_tree().physics_frame
+	if not bags.is_empty() and is_instance_valid(bags[0]):
+		(bags[0] as LootBag).interact()
+	await get_tree().physics_frame
+	_report(int(GameState.get_or_create_player_data(p.player_name)["cash"]) == cash and world.get_node("Loot").get_child_count() == 0,
+			"loot bag pickup gives the cash back and removes the bag")
 	p.queue_free()
 	await get_tree().physics_frame
 

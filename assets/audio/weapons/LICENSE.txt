@@ -1,0 +1,13 @@
+Weapon sounds - made with tools/generators/gen_weapon_sounds.py from these CC0 1.0 (public domain) sources:
+
+pistol_shot_*.ogg, pistol_shot_far_*.ogg
+    "The Free Firearm Sound Library" (1911 .45, near + mid distance) - OpenGameArt, CC0
+    https://opengameart.org/content/the-free-firearm-sound-library
+pistol_reload.ogg
+    "Handgun reload sound effect" by zer0_sol - OpenGameArt, CC0
+    https://opengameart.org/content/handgun-reload-sound-effect
+pistol_dry_fire.ogg
+    "Equipment clicks II" - OpenGameArt, CC0
+    https://opengameart.org/content/equipment-clicks-ii
+casing_*.ogg, impact_*.ogg
+    Synthesized by gen_weapon_sounds.py (made for this project, CC0).

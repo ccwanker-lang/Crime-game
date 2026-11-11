@@ -4,6 +4,8 @@ extends SkeletonModifier3D
 ## - crouch (0..1): lowers the body, bends the knees forward (two-bone IK so the
 ##   ankles stay on the feet) and leans the torso forward.
 ## - pitch (radians, + = look up): bends chest and head so others see where you look.
+## - aim (0..1): right arm in the gun-aim pose (sampled from an animation by
+##   set_aim_pose), on top of whatever the legs do; kick (0..1) = recoil.
 ## The Quaternius characters have no crouch animation. In their rig the feet hang
 ## from the root (IK setup), so lowering "Body" leaves the feet planted and the
 ## legs are solved towards them.
@@ -18,6 +20,11 @@ const BONES: Array[String] = ["Body", "Hips", "Abdomen", "Torso", "Chest", "Neck
 
 var crouch: float = 0.0
 var pitch: float = 0.0
+var aim: float = 0.0
+var kick: float = 0.0
+
+## bone index -> local rotation of the aim pose
+var _aim_pose: Dictionary = {}
 
 var _idx: Dictionary = {}  # bone name -> index
 
@@ -30,9 +37,28 @@ func _ready() -> void:
 		_idx[b] = sk.find_bone(b)
 
 
+## Stores the right-arm rotations of `anim` at `time` as the aim pose.
+func set_aim_pose(anim: Animation, time: float) -> void:
+	var sk: Skeleton3D = get_skeleton()
+	_aim_pose.clear()
+	for t: int in anim.get_track_count():
+		if anim.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+			continue
+		var bone_name: String = str(anim.track_get_path(t).get_concatenated_subnames())
+		if bone_name.ends_with(".R") and not bone_name.begins_with("UpperLeg") 				and not bone_name.begins_with("LowerLeg") and not bone_name.begins_with("Foot") 				and not bone_name.begins_with("PT"):
+			var b: int = sk.find_bone(bone_name)
+			if b >= 0:
+				_aim_pose[b] = anim.rotation_track_interpolate(t, time)
+
+
 func _process_modification_with_delta(_delta: float) -> void:
 	var sk: Skeleton3D = get_skeleton()
-	if sk == null or _idx.is_empty() or (crouch < 0.001 and absf(pitch) < 0.001):
+	if sk == null or _idx.is_empty():
+		return
+	if aim > 0.001:
+		for b: int in _aim_pose:
+			sk.set_bone_pose_rotation(b, sk.get_bone_pose_rotation(b).slerp(_aim_pose[b], aim))
+	if crouch < 0.001 and absf(pitch) < 0.001 and kick < 0.001:
 		return
 	# Character axes in skeleton space (the armature is Z-up and scaled x100).
 	var to_sk: Basis = sk.global_basis.inverse()
@@ -48,8 +74,12 @@ func _process_modification_with_delta(_delta: float) -> void:
 
 	# Upper body: lean (crouch) and look up/down. Every bend is around `right`, so
 	# a bone's total extra rotation is the sum of its own and its parents' in the chain.
-	var chain: Array = [["Abdomen", "Hips", -LEAN_ANGLE * crouch], ["Chest", "Torso", pitch * 0.45],
-			["Neck", "Chest", pitch * 0.2], ["Head", "Neck", pitch * 0.35]]
+	# Aiming: the chest takes most of the pitch, so the gun arm points where you look.
+	var chest_pitch: float = pitch * lerpf(0.45, 0.85, aim) + kick * 0.12
+	var neck_pitch: float = pitch * lerpf(0.2, 0.05, aim)
+	var head_pitch: float = pitch * lerpf(0.35, 0.1, aim) - kick * 0.08
+	var chain: Array = [["Abdomen", "Hips", -LEAN_ANGLE * crouch], ["Chest", "Torso", chest_pitch],
+			["Neck", "Chest", neck_pitch], ["Head", "Neck", head_pitch]]
 	var total: float = 0.0
 	for link: Array in chain:
 		var bone: String = link[0]
