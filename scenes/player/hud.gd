@@ -21,7 +21,10 @@ var _hit_time: float = 0.0
 var _hit_color: Color = Color.WHITE
 var _respawn_at: float = 0.0
 var _death_text: String = ""
+var _scope: Control
 var _slots: Array[PanelContainer] = []
+var _slot_styles: Array[StyleBoxFlat] = []
+var _hotbar_selected: int = -2
 var _toast: Label
 var _toast_time: float = 0.0
 var _last_cash: int = -1
@@ -40,6 +43,14 @@ func _ready() -> void:
 	damage_flash.color.a = 0.0
 	_build_inventory_bar()
 	_build_shop_panel()
+	_scope = Control.new()
+	_scope.name = "Scope"
+	_scope.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_scope.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scope.visible = false
+	_scope.draw.connect(_draw_scope)
+	add_child(_scope)
+	move_child(_scope, 1)  # under the HUD labels
 
 
 func set_health(hp: int, max_hp: int) -> void:
@@ -59,6 +70,45 @@ func set_ammo(weapon_name: String, mag: int, reserve: int, drawn: bool, reloadin
 	else:
 		ammo_label.text = "%d / %d" % [mag, reserve]
 	ammo_label.add_theme_color_override("font_color", Color(1, 0.4, 0.3) if drawn and mag == 0 else Color.WHITE)
+
+
+## Sniper scope overlay (black outside the lens, reticle).
+func set_scope(on: bool) -> void:
+	if _scope.visible != on:
+		_scope.visible = on
+		var cross := get_node_or_null("Crosshair") as CanvasItem
+		if cross:
+			cross.visible = not on
+
+
+func _draw_scope() -> void:
+	var size: Vector2 = _scope.size
+	var c: Vector2 = size / 2.0
+	var r: float = size.y * 0.46
+	var black := Color(0, 0, 0, 1)
+	# Lens ring: polygon between the circle and the screen edges.
+	var outer: float = size.length()
+	var pts := PackedVector2Array()
+	var steps: int = 64
+	for i: int in steps + 1:
+		var a: float = TAU * i / steps
+		pts.append(c + Vector2(cos(a), sin(a)) * r)
+	for i: int in range(steps, -1, -1):
+		var a: float = TAU * i / steps
+		pts.append(c + Vector2(cos(a), sin(a)) * outer)
+	_scope.draw_colored_polygon(pts, black)
+	_scope.draw_arc(c, r, 0.0, TAU, 96, Color(0.05, 0.05, 0.05), 6.0, true)
+	# Reticle: thick outer posts, fine centre cross and mil dots.
+	var line := Color(0, 0, 0, 0.9)
+	_scope.draw_line(c - Vector2(r, 0), c - Vector2(r * 0.12, 0), line, 3.0)
+	_scope.draw_line(c + Vector2(r * 0.12, 0), c + Vector2(r, 0), line, 3.0)
+	_scope.draw_line(c + Vector2(0, r * 0.12), c + Vector2(0, r), line, 3.0)
+	_scope.draw_line(c - Vector2(r * 0.12, 0), c + Vector2(r * 0.12, 0), line, 1.0)
+	_scope.draw_line(c - Vector2(0, r * 0.12), c + Vector2(0, r * 0.12), line, 1.0)
+	for k: int in range(1, 4):
+		_scope.draw_circle(c + Vector2(0, r * 0.03 * k), 1.6, line)
+		_scope.draw_circle(c + Vector2(r * 0.03 * k, 0), 1.6, line)
+		_scope.draw_circle(c - Vector2(r * 0.03 * k, 0), 1.6, line)
 
 
 func set_cash(cash: int) -> void:
@@ -93,6 +143,7 @@ func _build_inventory_bar() -> void:
 		style.set_corner_radius_all(4)
 		style.set_content_margin_all(4)
 		slot.add_theme_stylebox_override("panel", style)
+		_slot_styles.append(style)
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -108,6 +159,14 @@ func _build_inventory_bar() -> void:
 		count.add_theme_constant_override("outline_size", 5)
 		count.add_theme_color_override("font_outline_color", Color.BLACK)
 		slot.add_child(count)
+		var key := Label.new()  # the number key of this slot
+		key.text = str(i + 1)
+		key.add_theme_font_size_override("font_size", 11)
+		key.modulate = Color(1, 1, 1, 0.55)
+		key.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		key.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(key)
 		bar.add_child(slot)
 		_slots.append(slot)
 	_toast = Label.new()
@@ -137,6 +196,19 @@ func set_inventory(items: Array) -> void:
 		else:
 			name_label.text = ""
 			count_label.text = ""
+
+
+## Highlights hotbar slot `slot` (weapon in hand / last picked), -1 = none.
+func set_hotbar_selected(slot: int) -> void:
+	if slot == _hotbar_selected:
+		return
+	_hotbar_selected = slot
+	for i: int in _slot_styles.size():
+		var st: StyleBoxFlat = _slot_styles[i]
+		var on: bool = i == slot
+		st.border_color = Color(1.0, 0.82, 0.35, 0.95) if on else Color(1, 1, 1, 0.18)
+		st.set_border_width_all(2 if on else 1)
+		st.bg_color = Color(0.16, 0.13, 0.06, 0.7) if on else Color(0.05, 0.05, 0.06, 0.55)
 
 
 ## Short message above the inventory bar (purchases, cash changes).
@@ -228,7 +300,7 @@ func open_shop(shop: Shopkeeper, cash: int) -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		var info := Label.new()
-		info.text = item.display_name
+		info.text = item.display_name + (" (x%d)" % item.pack_size if item.pack_size > 1 else "")
 		info.tooltip_text = item.description
 		info.mouse_filter = Control.MOUSE_FILTER_PASS
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -240,7 +312,7 @@ func open_shop(shop: Shopkeeper, cash: int) -> void:
 		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		price.add_theme_font_size_override("font_size", 18)
 		row.add_child(price)
-		var counts: Array = [1] if item.max_stack <= 1 else [1, 5]
+		var counts: Array = [1] if item.max_stack <= 1 else ([1, 5] if item.max_stack >= 5 * item.pack_size else [1])
 		for n: int in counts:
 			var b := _button("Buy %d" % n)
 			b.custom_minimum_size = Vector2(76, 0)

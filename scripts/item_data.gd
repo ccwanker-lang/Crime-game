@@ -10,3 +10,5 @@ extends Resource
 ## Price in whole euros.
 @export var base_price: int = 0
 @export_multiline var description: String = ""
+## Shops sell this many per "Buy" (ammo boxes); the price is per pack.
+@export var pack_size: int = 1

@@ -1,0 +1,1 @@
+Generated procedurally for this project (tools/generators/gen_gun_textures.py), CC0.

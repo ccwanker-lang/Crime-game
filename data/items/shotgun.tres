@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="PackedScene" path="res://prefabs/weapons/shotgun.tscn" id="2_model"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_1.ogg" id="3_s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_2.ogg" id="4_s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_1.ogg" id="5_f1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_2.ogg" id="6_f2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_reload.ogg" id="7_rl"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_dry_fire.ogg" id="8_dry"]
+
+[resource]
+script = ExtResource("1_wd")
+
+id = &"shotgun"
+display_name = "Pump Shotgun"
+max_stack = 1
+is_legal = false
+base_price = 1800
+description = "12 gauge pump action, 6 shells. Deadly up close."
+damage = 14
+headshot_multiplier = 2.0
+fire_interval = 0.85
+magazine_size = 6
+starting_reserve = 24
+ammo_id = &"ammo_12g"
+reload_time = 2.8
+max_range = 45.0
+spread_still = 0.01
+spread_moving = 0.03
+spread_air = 0.06
+recoil_pitch = 0.06
+recoil_yaw = 0.02
+slot = 4
+pellets = 9
+pellet_spread = 0.055
+aim_fov = 58.0
+vm_offset = Vector3(0.0, -0.07, 0.1)
+vm_shoulder_shift = Vector3(0, -0.02, -0.1)
+vm_yaw = 0.05
+vm_arm_scale = 1.4
+sound_pitch = 0.62
+sound_volume_db = 3.0
+model_scene = ExtResource("2_model")
+shot_sounds = Array[AudioStream]([ExtResource("3_s1"), ExtResource("4_s2")])
+shot_far_sounds = Array[AudioStream]([ExtResource("5_f1"), ExtResource("6_f2")])
+reload_sound = ExtResource("7_rl")
+dry_fire_sound = ExtResource("8_dry")

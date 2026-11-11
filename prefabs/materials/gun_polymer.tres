@@ -1,0 +1,11 @@
+[gd_resource type="ORMMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/guns/gun_polymer_albedo.png" id="1_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/guns/gun_polymer_orm.png" id="2_tx"]
+
+[resource]
+albedo_texture = ExtResource("1_tx")
+orm_texture = ExtResource("2_tx")
+uv1_scale = Vector3(6, 6, 6)
+metallic = 1.0
+roughness = 1.0

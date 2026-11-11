@@ -13,8 +13,19 @@ extends Node3D
 @export var part_hammer: String = "service_pistol_hammer_a"
 @export var part_magazine: String = "service_pistol_magazine_loaded"
 @export var hidden_parts: PackedStringArray = []
-## Slide travel in metres (model space -X = towards the shooter).
+## Slide travel in metres along slide_axis (the slide part's parent space).
 @export var slide_travel: float = 0.028
+## Direction towards the shooter in the slide part's parent space (glTF models
+## lie along X; procedural guns are built along Z).
+@export var slide_axis: Vector3 = Vector3(-1, 0, 0)
+## Left hand on the weapon (weapon space): finger direction and palm normal.
+## Pistol: wraps around the right fist. Long guns: palm up under the handguard.
+@export var support_fingers: Vector3 = Vector3(0.45, 0.55, -0.7)
+@export var support_palm: Vector3 = Vector3(1, 0.1, 0.2)
+## Per shot: wait, move back, return (seconds). Pump / bolt actions are slow.
+@export var cycle_delay: float = 0.0
+@export var cycle_back: float = 0.025
+@export var cycle_return: float = 0.06
 ## Local position of the magazine inside the grip (in model space).
 @export var magazine_home: Vector3 = Vector3.ZERO
 
@@ -40,9 +51,9 @@ func _ready() -> void:
 	for n: Node in find_children("*", "", true, false):
 		if n.name in hidden_parts:
 			(n as Node3D).visible = false
-	_slide = find_child(part_slide, true, false) as Node3D
-	_hammer = find_child(part_hammer, true, false) as Node3D
-	_magazine = find_child(part_magazine, true, false) as Node3D
+	_slide = find_child(part_slide, true, false) as Node3D if part_slide != "" else null
+	_hammer = find_child(part_hammer, true, false) as Node3D if part_hammer != "" else null
+	_magazine = find_child(part_magazine, true, false) as Node3D if part_magazine != "" else null
 	if _magazine:
 		_magazine.position = magazine_home
 	if _slide:
@@ -60,10 +71,12 @@ func cycle(last_round: bool = false) -> void:
 	if _slide_tween:
 		_slide_tween.kill()
 	_slide_tween = create_tween()
-	var back: Vector3 = _slide_home + Vector3(-slide_travel, 0, 0)
-	_slide_tween.tween_property(_slide, "position", back, 0.025)
+	var back: Vector3 = _slide_home + slide_axis * slide_travel
+	if cycle_delay > 0.0:
+		_slide_tween.tween_interval(cycle_delay)
+	_slide_tween.tween_property(_slide, "position", back, cycle_back)
 	if not last_round:
-		_slide_tween.tween_property(_slide, "position", _slide_home, 0.06).set_ease(Tween.EASE_IN)
+		_slide_tween.tween_property(_slide, "position", _slide_home, cycle_return).set_ease(Tween.EASE_IN)
 	if _hammer:
 		_hammer.basis = _hammer_home.rotated(Vector3.FORWARD, 0.6)
 		_slide_tween.parallel().tween_property(_hammer, "basis", _hammer_home, 0.08)
@@ -74,7 +87,7 @@ func set_slide(amount: float) -> void:
 	if _slide:
 		if _slide_tween:
 			_slide_tween.kill()
-		_slide.position = _slide_home + Vector3(-slide_travel * amount, 0, 0)
+		_slide.position = _slide_home + slide_axis * slide_travel * amount
 
 
 ## Moves the magazine `distance` metres out of the grip; hidden when `visible_mag` is false.

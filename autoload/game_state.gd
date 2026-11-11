@@ -38,7 +38,19 @@ func init_new_world() -> void:
 func get_or_create_player_data(player_name: String) -> Dictionary:
 	if not player_data.has(player_name):
 		player_data[player_name] = {"cash": STARTING_CASH, "inventory": []}
+		give_starter_kit(player_name)
 	return player_data[player_name]
+
+
+## Host only: a service pistol (unless carried) + its starter rounds (new player, respawn).
+func give_starter_kit(player_name: String) -> void:
+	var pistol := ItemDB.get_item(&"pistol") as WeaponData
+	if pistol == null:
+		return
+	var kit: Array = [{"id": "pistol", "count": 1}] if count_item(player_name, "pistol") == 0 else []
+	if pistol.starting_reserve > 0:
+		kit.append({"id": String(pistol.ammo_id), "count": pistol.starting_reserve})
+	give(player_name, 0, kit)
 
 
 ## Host only: empties a player's cash and carried items and returns them

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"ammo_762"
+display_name = "7.62x39 Rounds"
+max_stack = 150
+is_legal = false
+base_price = 60
+pack_size = 30
+description = "AK-47 ammunition. Sold per box of 30."

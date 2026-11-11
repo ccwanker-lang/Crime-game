@@ -50,6 +50,9 @@ const SHOTS: Array[Array] = [
 	["34_weed_corner", Vector3(-30.0, 1.7, -7.3), Vector3(-33.2, 0.8, -11.2)],
 	["35_plants_close", Vector3(-33.2, 1.35, -9.9), Vector3(-33.2, 0.6, -11.2)],
 	["36_drying_rack", Vector3(-31.3, 1.45, -10.8), Vector3(-29.45, 1.1, -12.0)],
+	# Gun shop (Block C, centre x 53, front z -6).
+	["37_gun_shop_outside", Vector3(53, 1.8, 3.0), Vector3(53, 2.6, -6)],
+	["38_gun_shop_inside", Vector3(51.6, 1.7, -7.2), Vector3(53.4, 1.4, -15.7)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

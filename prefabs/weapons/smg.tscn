@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_model.gd" id="1_wm"]
+[ext_resource type="Script" path="res://scripts/weapons/proc_gun.gd" id="2_pg"]
+
+[node name="SMG" type="Node3D"]
+script = ExtResource("1_wm")
+part_slide = "Bolt"
+part_hammer = ""
+part_magazine = "Magazine"
+slide_axis = Vector3(0, 0, 1)
+support_fingers = Vector3(0.75, 0.55, -0.35)
+support_palm = Vector3(0.35, 1, 0)
+slide_travel = 0.05
+cycle_delay = 0.0
+cycle_back = 0.02
+cycle_return = 0.04
+
+[node name="Model" type="Node3D" parent="."]
+position = Vector3(0, 0.05, -0.015)
+script = ExtResource("2_pg")
+kind = 1
+
+[node name="Muzzle" type="Marker3D" parent="."]
+position = Vector3(0, 0.1, -0.425)
+
+[node name="Ejection" type="Marker3D" parent="."]
+position = Vector3(0.023, 0.095, -0.095)
+
+[node name="RightHand" type="Marker3D" parent="."]
+position = Vector3(0.03, -0.02, 0.04)
+
+[node name="Support" type="Marker3D" parent="."]
+position = Vector3(-0.03, 0.04, -0.25)
+
+[node name="MagazineDir" type="Marker3D" parent="."]
+position = Vector3(0, 0.05, -0.105)
+rotation = Vector3(0.12, 0, 0)
+
+[node name="Sight" type="Marker3D" parent="."]
+position = Vector3(0, 0.152, 0)

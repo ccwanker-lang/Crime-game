@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="PackedScene" path="res://prefabs/weapons/ak47.tscn" id="2_model"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_1.ogg" id="3_s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_2.ogg" id="4_s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_1.ogg" id="5_f1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_2.ogg" id="6_f2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_reload.ogg" id="7_rl"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_dry_fire.ogg" id="8_dry"]
+
+[resource]
+script = ExtResource("1_wd")
+
+id = &"ak47"
+display_name = "AK-47"
+max_stack = 1
+is_legal = false
+base_price = 2600
+description = "7.62 mm assault rifle, 30 rounds. Hits hard, kicks hard."
+damage = 30
+headshot_multiplier = 3.5
+fire_interval = 0.1
+magazine_size = 30
+starting_reserve = 90
+ammo_id = &"ammo_762"
+reload_time = 2.4
+max_range = 220.0
+spread_still = 0.008
+spread_moving = 0.05
+spread_air = 0.1
+recoil_pitch = 0.019
+recoil_yaw = 0.011
+slot = 3
+automatic = true
+aim_fov = 50.0
+aim_spread = 0.003
+vm_offset = Vector3(0.0, -0.07, 0.1)
+vm_shoulder_shift = Vector3(0, -0.02, -0.08)
+vm_yaw = 0.05
+vm_arm_scale = 1.35
+sound_pitch = 0.8
+sound_volume_db = 1.5
+model_scene = ExtResource("2_model")
+shot_sounds = Array[AudioStream]([ExtResource("3_s1"), ExtResource("4_s2")])
+shot_far_sounds = Array[AudioStream]([ExtResource("5_f1"), ExtResource("6_f2")])
+reload_sound = ExtResource("7_rl")
+dry_fire_sound = ExtResource("8_dry")

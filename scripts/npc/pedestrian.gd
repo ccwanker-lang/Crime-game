@@ -8,8 +8,13 @@ extends CharacterBody3D
 ## Clients receive net_pos / net_yaw / anim_state through the
 ## MultiplayerSynchronizer (10x per second) and smooth between updates.
 ## The model variant and colour seed are sent once, when the NPC spawns.
+##
+## Combat (host): bullets call host_damage(); at 0 health the NPC dies (death
+## animation, not solid any more), lies there corpse_time seconds and is then
+## removed; World spawns a fresh pedestrian respawn_time after the death.
+## Gunshots nearby (hear_gunshot) make it run away from the shooter.
 
-enum Anim { IDLE, WALK, SIT }
+enum Anim { IDLE, WALK, SIT, RUN, DEAD }
 
 ## Quaternius CC0 characters. "scale" brings them to ~1.75 m; "walk" is the
 ## animation speed that matches WALK_SPEED (no foot sliding).
@@ -43,6 +48,14 @@ const TURN_SPEED: float = 8.0
 const STEP_HEIGHT: float = 0.3
 const SIT_OFFSET: float = 0.03  # from the seat marker towards the front of the bench
 const SIT_HEIGHT: float = 0.08  # the sit animation expects a slightly higher seat
+const RUN_SPEED: float = 4.0
+const MAX_HEALTH: int = 100
+## Gunshots closer than this make the NPC flee.
+const HEAR_DISTANCE: float = 35.0
+const FLEE_TIME: float = 8.0
+## Seconds a dead NPC lies on the ground; a new one appears respawn_time after the death.
+static var corpse_time: float = 20.0
+static var respawn_time: float = 60.0
 
 signal arrived(ok: bool)
 
@@ -63,6 +76,12 @@ var anim_state: int = Anim.IDLE:
 		_apply_anim()
 ## The door this NPC wants to pass; NetDoor opens itself for it.
 var target_door: Node = null
+## Host: hit points; at 0 -> dead (anim_state DEAD is what clients see).
+var health: int = MAX_HEALTH
+var dead: bool = false
+## Host: running away from gunfire until this time (msec ticks).
+var _flee_until: int = 0
+var _sit_front: Vector3 = Vector3.INF
 ## Debug counters (self-test): how often it did each activity.
 var stats: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0}
 
@@ -159,8 +178,12 @@ func _build_model() -> void:
 			_anim_names[Anim.IDLE] = a
 		elif short.ends_with("Sitting"):
 			_anim_names[Anim.SIT] = a
+		elif short == "Run" or short.ends_with("_Run"):
+			_anim_names[Anim.RUN] = a
+		elif short.ends_with("Death"):
+			_anim_names[Anim.DEAD] = a
 	for key: int in _anim_names:
-		_anim.get_animation(_anim_names[key]).loop_mode = Animation.LOOP_LINEAR
+		_anim.get_animation(_anim_names[key]).loop_mode = Animation.LOOP_NONE if key == Anim.DEAD else Animation.LOOP_LINEAR
 
 
 static func _matte(source: StandardMaterial3D, tint: int) -> StandardMaterial3D:
@@ -187,8 +210,10 @@ func _apply_anim() -> void:
 	var a: String = _anim_names.get(anim_state, _anim_names.get(Anim.IDLE, ""))
 	if a == "" or _anim.current_animation == a:
 		return
-	_anim.play(a, 0.3)
+	_anim.play(a, 0.15 if anim_state == Anim.DEAD else 0.3)
 	_anim.speed_scale = _anim_walk_speed if anim_state == Anim.WALK else 1.0
+	if anim_state == Anim.DEAD:
+		_anim.process_mode = Node.PROCESS_MODE_INHERIT  # fall even if off screen
 	if anim_state == Anim.IDLE:
 		_anim.seek(randf() * _anim.current_animation_length)  # not everyone in sync
 
@@ -205,6 +230,10 @@ func _physics_process(delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, net_yaw, minf(1.0, 10.0 * delta))
 		return
 
+	if dead:
+		_on_velocity_computed(Vector3.ZERO)  # just gravity
+		net_pos = global_position
+		return
 	if _sitting:
 		return
 	if _moving:
@@ -234,7 +263,8 @@ func _physics_process(delta: float) -> void:
 					if along.length() < 0.05 * dir.length():
 						along = n.cross(Vector3.UP)
 					dir = along + n * 0.1 * along.length()
-			var wish: Vector3 = dir.normalized() * WALK_SPEED if dir.length() > 0.01 else Vector3.ZERO
+			var speed: float = RUN_SPEED if is_fleeing() else WALK_SPEED
+			var wish: Vector3 = dir.normalized() * speed if dir.length() > 0.01 else Vector3.ZERO
 			if agent.avoidance_enabled:
 				agent.velocity = wish  # -> velocity_computed -> _on_velocity_computed
 			else:
@@ -267,7 +297,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_velocity_computed(safe: Vector3) -> void:
-	if _sitting:
+	if _sitting or not is_inside_tree():
 		return
 	var delta: float = get_physics_process_delta_time()
 	velocity.x = safe.x
@@ -279,7 +309,7 @@ func _on_velocity_computed(safe: Vector3) -> void:
 	_try_step_up(delta)
 	move_and_slide()
 	var flat := Vector2(safe.x, safe.z)
-	if flat.length() > 0.2:
+	if flat.length() > 0.2 and not dead:
 		rotation.y = lerp_angle(rotation.y, atan2(-safe.x, -safe.z), minf(1.0, TURN_SPEED * delta))
 
 
@@ -321,7 +351,8 @@ func _unstick() -> void:
 func _finish_move(ok: bool) -> void:
 	_moving = false
 	agent.velocity = Vector3.ZERO
-	anim_state = Anim.IDLE
+	if not dead:
+		anim_state = Anim.IDLE
 	arrived.emit(ok)
 
 
@@ -329,16 +360,27 @@ func _finish_move(ok: bool) -> void:
 
 ## Walks to a point over the navigation mesh. Returns false if it got stuck.
 func walk_to(target: Vector3) -> bool:
+	if dead or is_fleeing():
+		# Busy dying / running away: whatever the caller planned is cancelled.
+		await get_tree().process_frame
+		return false
+	return await _go(target, Anim.WALK)
+
+
+func _go(target: Vector3, anim: int) -> bool:
+	if _moving:
+		_finish_move(false)  # release whoever awaited the previous move
 	agent.target_position = target
 	_moving = true
 	_stuck_time = 0.0
 	_last_pos = global_position
-	anim_state = Anim.WALK
+	anim_state = anim
 	return await arrived
 
 
 func idle(seconds: float) -> void:
-	anim_state = Anim.IDLE
+	if not dead and not is_fleeing():
+		anim_state = Anim.IDLE
 	await get_tree().create_timer(seconds).timeout
 
 
@@ -349,8 +391,9 @@ func sit_on(seat: Node3D, seconds: float) -> bool:
 	_taken_seats[seat] = self
 	var front: Vector3 = seat.global_position + seat.global_basis.z * 0.8
 	var ok: bool = await walk_to(front)
-	if ok and is_inside_tree():
+	if ok and is_inside_tree() and not dead and not is_fleeing():
 		_sitting = true
+		_sit_front = front
 		collision.disabled = true
 		var fwd: Vector3 = seat.global_basis.z
 		global_position = seat.global_position + fwd * SIT_OFFSET + Vector3.UP * SIT_HEIGHT
@@ -359,11 +402,9 @@ func sit_on(seat: Node3D, seconds: float) -> bool:
 		net_yaw = rotation.y
 		anim_state = Anim.SIT
 		await get_tree().create_timer(seconds).timeout
-		global_position = front
-		net_pos = global_position
-		_sitting = false
-		collision.disabled = false
-		anim_state = Anim.IDLE
+		if _sitting:  # (not already jumped up by a gunshot)
+			_stand_up()
+			anim_state = Anim.IDLE
 	_taken_seats.erase(seat)
 	return ok
 
@@ -393,11 +434,93 @@ func visit(door: NetDoor, seconds: float) -> bool:
 	return ok
 
 
+func _stand_up() -> void:
+	_sitting = false
+	if _sit_front != Vector3.INF:
+		global_position = _sit_front
+		net_pos = global_position
+	_sit_front = Vector3.INF
+	collision.disabled = false
+
+
+# --- Combat (host) -----------------------------------------------------------------
+
+func is_fleeing() -> bool:
+	return Time.get_ticks_msec() < _flee_until
+
+
+## Host: did a bullet that hit at `pos` hit the head?
+func is_head_hit(pos: Vector3) -> bool:
+	return pos.y - global_position.y > 1.5
+
+
+## Host: bullet damage. Returns true if this killed the NPC.
+func host_damage(amount: int, _attacker: Node = null, from: Vector3 = Vector3.INF) -> bool:
+	if not _is_host() or dead or stationary or amount <= 0:
+		return false
+	health = maxi(0, health - amount)
+	if health > 0:
+		hear_gunshot(from if from != Vector3.INF else global_position, true)
+		return false
+	_die()
+	return true
+
+
+func _die() -> void:
+	dead = true
+	_flee_until = 0
+	if _sitting:
+		_stand_up()
+	collision_layer = 0  # bullets and people pass through the body
+	if _moving:
+		_finish_move(false)
+	anim_state = Anim.DEAD
+	net_pos = global_position
+	print("[NPC] %s died at %s" % [name, global_position.snapped(Vector3.ONE * 0.1)])
+	var world: Node = get_tree().current_scene
+	if world and world.has_method("respawn_pedestrian_later"):
+		world.call("respawn_pedestrian_later", respawn_time)
+	await get_tree().create_timer(corpse_time).timeout
+	if is_inside_tree():
+		queue_free()  # NPCSpawner removes it on the clients too
+
+
+## Host (called on the "npc" group for every shot): run away from `origin`.
+func hear_gunshot(origin: Vector3, hit: bool = false) -> void:
+	if not _is_host() or dead or stationary or not is_inside_tree():
+		return
+	var away := Vector3(global_position.x - origin.x, 0, global_position.z - origin.z)
+	if not hit and away.length() > HEAR_DISTANCE:
+		return
+	var was_fleeing: bool = is_fleeing()
+	_flee_until = Time.get_ticks_msec() + int(FLEE_TIME * 1000.0)
+	if was_fleeing:
+		return  # keep running to the spot it picked
+	if _sitting:
+		_stand_up()
+	if away.length() < 0.1:
+		away = -global_basis.z
+	var map: RID = get_world_3d().navigation_map
+	var best: Vector3 = global_position
+	for i: int in 8:
+		var dir: Vector3 = away.normalized().rotated(Vector3.UP, randf_range(-0.9, 0.9))
+		var p: Vector3 = NavigationServer3D.map_get_closest_point(map, global_position + dir * randf_range(14.0, 22.0))
+		if p.distance_to(origin) > best.distance_to(origin):
+			best = p
+	stats["flee"] = int(stats.get("flee", 0)) + 1
+	_go(best, Anim.RUN)
+
+
 # --- Ambient behaviour (host) -----------------------------------------------------
 
 func _wander() -> void:
 	await idle(randf_range(0.5, 3.0))
-	while is_inside_tree() and ambient:
+	while is_inside_tree() and ambient and not dead:
+		if is_fleeing() or _sitting:
+			await get_tree().create_timer(0.5).timeout
+			if not is_fleeing() and not _moving and not dead and not _sitting:
+				anim_state = Anim.IDLE
+			continue
 		if _backoff != Vector3.INF:
 			var back: Vector3 = _backoff
 			_backoff = Vector3.INF

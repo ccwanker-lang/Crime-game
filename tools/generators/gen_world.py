@@ -227,8 +227,7 @@ row(0, 24, -42, False, gB2)
 
 # Block C: shops on the main road, houses behind.
 gC = []
-SHOPS = [("BAKERY", col(0.55, 0.38, 0.2), "brick_yellow"), ("SNACK BAR", col(0.7, 0.1, 0.08), "plaster"),
-         ("BARBER", col(0.1, 0.2, 0.45), "brick_old")]
+SHOPS = [("BAKERY", col(0.55, 0.38, 0.2), "brick_yellow"), ("SNACK BAR", col(0.7, 0.1, 0.08), "plaster")]
 x = 36.0
 for i, (name, c, wm) in enumerate(SHOPS):
     w = [7.0, 6.5, 6.0][i]
@@ -237,6 +236,8 @@ for i, (name, c, wm) in enumerate(SHOPS):
     if wm == "plaster":
         props["wall_tint"] = col(0.95, 0.9, 0.82)
     x = fixed("buildings/shop.tscn", x, w, -6, True, gC, props=props)
+# Gun shop (Vince sells weapons + ammo).
+x = fixed("buildings/gun_shop.tscn", x, 7, -6, True, gC, name="GunShop")
 row(x, 72, -6, True, gC)
 gC2 = []
 row(36, 72, -42, False, gC2)

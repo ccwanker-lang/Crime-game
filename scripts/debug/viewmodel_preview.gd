@@ -2,7 +2,7 @@ extends Node
 ## Debug: renders the first-person viewmodel alone (player camera view + a side
 ## view) into screenshots/vm_*.png, then quits. Started by World with:
 ##   godot --path . --position 4000,40 --resolution 1600x900 -- --vmpreview --port=7790
-## Optional: --reload=0.5 (seconds into the reload), --fire, --model=1
+## Optional: --reload=0.5 (seconds into the reload), --fire, --model=1, --weapon=ak47, --aim
 
 
 func _ready() -> void:
@@ -13,11 +13,17 @@ func _run() -> void:
 	var reload_t: float = -1.0
 	var fire: bool = false
 	var model: int = 0
+	var weapon_id: String = "pistol"
+	var aim: bool = false
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--reload="):
 			reload_t = arg.trim_prefix("--reload=").to_float()
 		elif arg == "--fire":
 			fire = true
+		elif arg.begins_with("--weapon="):
+			weapon_id = arg.trim_prefix("--weapon=")
+		elif arg == "--aim":
+			aim = true
 		elif arg.begins_with("--model="):
 			model = arg.trim_prefix("--model=").to_int()
 	var world := Node3D.new()
@@ -31,12 +37,13 @@ func _run() -> void:
 	var vm := Viewmodel.new()
 	cam.add_child(vm)
 	var v: Dictionary = Player.MODELS[model]
-	vm.setup(Player.MODEL_DIR % v["model"], float(v["scale"]), ItemDB.get_item(&"pistol") as WeaponData)
+	vm.setup(Player.MODEL_DIR % v["model"], float(v["scale"]), ItemDB.get_item(StringName(weapon_id)) as WeaponData)
+	vm.aim_target = 1.0 if aim else 0.0
 	for i: int in 30:
 		vm.update(1.0 / 60.0, 0.0, false, true)
 		await get_tree().process_frame
 	if reload_t >= 0.0:
-		vm.reload(1.6)
+		vm.reload(vm.weapon_data.reload_time)
 		var t: float = 0.0
 		while t < reload_t:
 			vm.update(1.0 / 60.0, 0.0, false, true)
@@ -51,7 +58,7 @@ func _run() -> void:
 	var dir: String = ProjectSettings.globalize_path("res://screenshots/")
 	DirAccess.make_dir_recursive_absolute(dir)
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(dir.path_join("vm_view.png"))
+	get_viewport().get_texture().get_image().save_png(dir.path_join("vm_view_%s%s.png" % [weapon_id, "_aim" if aim else ""]))
 	# Side view: a second camera looking at the rig from the right.
 	var side := Camera3D.new()
 	side.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -70,7 +77,7 @@ func _run() -> void:
 	for i: int in 3:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(dir.path_join("vm_side.png"))
+	get_viewport().get_texture().get_image().save_png(dir.path_join("vm_side_%s.png" % weapon_id))
 	print("[VM] saved")
 	Net.leave_game()
 	get_tree().quit()

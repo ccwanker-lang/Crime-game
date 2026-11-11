@@ -46,7 +46,7 @@ static func random_stream(base: String) -> AudioStream:
 
 ## Positional one-shot sound, removed when done.
 static func play_3d(parent: Node, s: AudioStream, pos: Vector3, volume_db: float = 0.0,
-		max_distance: float = 60.0, pitch_jitter: float = 0.06) -> void:
+		max_distance: float = 60.0, pitch_jitter: float = 0.06, pitch: float = 1.0) -> void:
 	if s == null or parent == null or not parent.is_inside_tree():
 		return
 	var p := AudioStreamPlayer3D.new()
@@ -55,7 +55,7 @@ static func play_3d(parent: Node, s: AudioStream, pos: Vector3, volume_db: float
 	p.max_distance = max_distance
 	p.unit_size = 4.0
 	p.attenuation_filter_cutoff_hz = 9000.0
-	p.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
+	p.pitch_scale = pitch * (1.0 + randf_range(-pitch_jitter, pitch_jitter))
 	parent.add_child(p)
 	p.global_position = pos
 	p.finished.connect(p.queue_free)
@@ -63,13 +63,14 @@ static func play_3d(parent: Node, s: AudioStream, pos: Vector3, volume_db: float
 
 
 ## Non-positional one-shot (the local player's own weapon).
-static func play_2d(parent: Node, s: AudioStream, volume_db: float = 0.0, pitch_jitter: float = 0.04) -> void:
+static func play_2d(parent: Node, s: AudioStream, volume_db: float = 0.0, pitch_jitter: float = 0.04,
+		pitch: float = 1.0) -> void:
 	if s == null or parent == null or not parent.is_inside_tree():
 		return
 	var p := AudioStreamPlayer.new()
 	p.stream = s
 	p.volume_db = volume_db
-	p.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
+	p.pitch_scale = pitch * (1.0 + randf_range(-pitch_jitter, pitch_jitter))
 	parent.add_child(p)
 	p.finished.connect(p.queue_free)
 	p.play()

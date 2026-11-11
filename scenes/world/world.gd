@@ -316,12 +316,42 @@ func spawn_pedestrians(count: int) -> void:
 				break
 		if p == Vector3.INF:
 			continue
-		var npc: Pedestrian = PEDESTRIAN.instantiate()
-		npc.variant = i % Pedestrian.VARIANTS.size()
-		npc.color_seed = randi()
-		npc.position = p
-		npc.rotation.y = randf() * TAU
-		npcs.add_child(npc, true)
+		_add_pedestrian(p, i % Pedestrian.VARIANTS.size())
+
+
+func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
+	var npc: Pedestrian = PEDESTRIAN.instantiate()
+	npc.variant = variant
+	npc.color_seed = randi()
+	npc.position = p
+	npc.rotation.y = randf() * TAU
+	npcs.add_child(npc, true)
+	return npc
+
+
+## Host only: a pedestrian died -> after `delay` s a new one appears on a
+## sidewalk, preferably out of every player's sight (> 25 m away).
+func respawn_pedestrian_later(delay: float) -> void:
+	await get_tree().create_timer(delay).timeout
+	if not is_inside_tree() or not multiplayer.is_server():
+		return
+	var best: Vector3 = Vector3.INF
+	var best_dist: float = -1.0
+	for attempt: int in 12:
+		var p: Vector3 = Pedestrian.random_sidewalk_point(self)
+		if p == Vector3.INF:
+			continue
+		var nearest: float = INF
+		for pl: Node in players_root.get_children():
+			nearest = minf(nearest, (pl as Node3D).global_position.distance_to(p))
+		if nearest > best_dist:
+			best = p
+			best_dist = nearest
+		if nearest > 25.0:
+			break
+	if best != Vector3.INF:
+		var npc := _add_pedestrian(best, randi() % Pedestrian.VARIANTS.size())
+		print("[World] Pedestrian %s respawned at %s" % [npc.name, best.snapped(Vector3.ONE * 0.1)])
 
 
 ## Prints whether NPCs can path to the key spots (visible in the Output panel).

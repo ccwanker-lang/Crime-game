@@ -14,7 +14,7 @@ extends Node3D
 @export_multiline var greeting: String = "What can I get you?"
 ## Item ids for sale (ItemData in data/items/).
 @export var stock: Array[StringName] = []
-## Price = item base_price * this, rounded.
+## Price = item base_price * this, rounded (per pack, see ItemData.pack_size).
 @export var price_factor: float = 1.0
 ## Look of the NPC (Pedestrian variants).
 @export var variant: int = 0
@@ -80,15 +80,18 @@ func _server_buy(peer: int, id: StringName, count: int) -> void:
 		msg = "\"I don't sell that.\""
 	else:
 		var total: int = price_of(id) * count
-		if GameState.space_for(buyer.player_name, String(id)) < count:
+		var amount: int = count * maxi(1, item.pack_size)
+		if item is WeaponData and (count > 1 or GameState.count_item(buyer.player_name, String(id)) > 0):
+			msg = "\"One's enough, friend.\""
+		elif GameState.space_for(buyer.player_name, String(id)) < amount:
 			msg = "Your pockets are full."
 		elif not GameState.add_cash(buyer.player_name, -total):
 			msg = "Not enough cash (€%d needed)." % total
 		else:
-			GameState.give(buyer.player_name, 0, [{"id": String(id), "count": count}])
+			GameState.give(buyer.player_name, 0, [{"id": String(id), "count": amount}])
 			buyer.send_wallet()
-			print("[Shop] %s bought %dx %s from %s for €%d" % [buyer.player_name, count, id, npc_name, total])
-			_answer(peer, true, "Bought %dx %s for €%d." % [count, item.display_name, total])
+			print("[Shop] %s bought %dx %s from %s for €%d" % [buyer.player_name, amount, id, npc_name, total])
+			_answer(peer, true, "Bought %dx %s for €%d." % [amount, item.display_name, total])
 			return
 	_answer(peer, false, msg)
 

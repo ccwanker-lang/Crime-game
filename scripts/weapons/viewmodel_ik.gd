@@ -63,8 +63,8 @@ func _process_modification_with_delta(_delta: float) -> void:
 	if left_weight > 0.001:
 		if left_target == Vector3.INF:
 			var l_pos: Vector3 = gun * weapon.support.position
-			var l_fingers: Vector3 = gb * Vector3(0.45, 0.55, -0.7).normalized()
-			var l_palm: Vector3 = gb * Vector3(1, 0.1, 0.2).normalized()
+			var l_fingers: Vector3 = gb * weapon.support_fingers.normalized()
+			var l_palm: Vector3 = gb * weapon.support_palm.normalized()
 			_solve_arm(sk, ".L", to_sk * l_pos, _to_sk_dir(sk, l_fingers), _to_sk_dir(sk, l_palm),
 					_to_sk_dir(sk, -view.y - view.x * 0.6), CURL_LEFT, left_weight)
 		else:

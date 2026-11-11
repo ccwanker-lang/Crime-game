@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://scripts/weapons/weapon_data.gd" id="1_wd"]
+[ext_resource type="PackedScene" path="res://prefabs/weapons/sniper.tscn" id="2_model"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_1.ogg" id="3_s1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_2.ogg" id="4_s2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_1.ogg" id="5_f1"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_shot_far_2.ogg" id="6_f2"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_reload.ogg" id="7_rl"]
+[ext_resource type="AudioStream" path="res://assets/audio/weapons/pistol_dry_fire.ogg" id="8_dry"]
+
+[resource]
+script = ExtResource("1_wd")
+
+id = &"sniper"
+display_name = "Scoped Rifle"
+max_stack = 1
+is_legal = false
+base_price = 4200
+description = "Bolt-action 7.62 rifle with a scope, 5 rounds. One shot, one kill."
+damage = 90
+headshot_multiplier = 4.0
+fire_interval = 1.4
+magazine_size = 5
+starting_reserve = 20
+ammo_id = &"ammo_308"
+reload_time = 3.0
+max_range = 450.0
+spread_still = 0.04
+spread_moving = 0.09
+spread_air = 0.14
+recoil_pitch = 0.07
+recoil_yaw = 0.015
+slot = 5
+aim_fov = 12.0
+aim_spread = 0.0004
+vm_offset = Vector3(0.0, -0.07, 0.08)
+vm_shoulder_shift = Vector3(0, -0.02, -0.08)
+vm_yaw = 0.05
+vm_arm_scale = 1.35
+sound_pitch = 0.7
+sound_volume_db = 4.0
+model_scene = ExtResource("2_model")
+shot_sounds = Array[AudioStream]([ExtResource("3_s1"), ExtResource("4_s2")])
+shot_far_sounds = Array[AudioStream]([ExtResource("5_f1"), ExtResource("6_f2")])
+reload_sound = ExtResource("7_rl")
+dry_fire_sound = ExtResource("8_dry")

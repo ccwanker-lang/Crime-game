@@ -41,8 +41,10 @@ func _run() -> void:
 	await _check_player(world)
 	await _check_combat(world)
 	await _check_shops(world)
+	await _check_gun_shop(world)
 	await _check_growing(world)
 	await _check_pedestrians(world)
+	await _check_npc_combat(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -257,8 +259,9 @@ func _check_combat(world: Node3D) -> void:
 	c.try_reload()
 	_report(c.is_reloading(), "reload starts")
 	await get_tree().create_timer(c.weapon.reload_time + 0.3).timeout
-	_report(c.mag == c.weapon.magazine_size and c.reserve == c.weapon.starting_reserve - 1,
-			"reload refills (mag %d, reserve %d)" % [c.mag, c.reserve])
+	_report(c.mag == c.weapon.magazine_size and c.reserve == c.weapon.starting_reserve - 1
+			and GameState.count_item(p.player_name, String(c.weapon.ammo_id)) == c.reserve,
+			"reload refills from the ammo items (mag %d, reserve %d)" % [c.mag, c.reserve])
 
 	# Damage and death.
 	p.host_damage(30, null)
@@ -300,6 +303,7 @@ func _check_combat(world: Node3D) -> void:
 func _check_shops(world: Node3D) -> void:
 	# Inventory rules (GameState, host side).
 	GameState.player_data.erase("InvTest")
+	(GameState.get_or_create_player_data("InvTest")["inventory"] as Array).clear()  # no starter rounds
 	var left: Array = GameState.give("InvTest", 0, [{"id": "weed_seed", "count": 25}, {"id": "watering_can", "count": 2}])
 	var inv: Array = GameState.get_or_create_player_data("InvTest")["inventory"]
 	_report(inv.size() == 4 and left.is_empty() and GameState.count_item("InvTest", "weed_seed") == 25,
@@ -352,7 +356,7 @@ func _check_shops(world: Node3D) -> void:
 	await get_tree().physics_frame
 	var paid: int = cash0 - int(GameState.get_or_create_player_data("Shopper")["cash"])
 	_report(results.size() == 1 and results[0][0] and paid == clerk.price_of(&"soil") * 5
-			and GameState.count_item("Shopper", "soil") == 5 and p.inventory.size() == 1,
+			and GameState.count_item("Shopper", "soil") == 5 and p.inventory.size() == 3,
 			"buy 5 soil: paid €%d, owner inventory %s" % [paid, p.inventory])
 	clerk.request_buy(&"weed_seed", 1)
 	_report(results.size() == 2 and not results[1][0], "clerk refuses items he doesn't stock (%s)" % results[1][1])
@@ -382,12 +386,90 @@ func _check_shops(world: Node3D) -> void:
 	var bag: LootBag = null
 	for b: Node in world.get_node("Loot").get_children():
 		bag = b as LootBag
-	_report(bag != null and bag.items.size() == 1 and int(bag.items[0]["count"]) == 5 and p.inventory.is_empty(),
-			"death puts carried items in the loot bag")
+	var seeds_in_bag: int = 0
+	if bag:
+		for it: Dictionary in bag.items:
+			if it["id"] == "weed_seed":
+				seeds_in_bag += int(it["count"])
+	_report(bag != null and seeds_in_bag == 5 and p.inventory.is_empty(), "death puts carried items in the loot bag")
 	await get_tree().create_timer(Player.RESPAWN_TIME + 0.5).timeout
 	if bag:
 		bag.queue_free()
 	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Gun shop -------------------------------------------------------------------------
+
+func _check_gun_shop(world: Node3D) -> void:
+	var dealer: Shopkeeper = null
+	for n: Node in world.find_children("*", "Node3D", true, false):
+		if n is Shopkeeper and (n as Shopkeeper).shop_name == "Gun Shop":
+			dealer = n as Shopkeeper
+	_report(dealer != null, "gun shop dealer exists")
+	if dealer == null:
+		return
+	var front_pos: Vector3 = dealer.global_position - dealer.global_basis.z * 1.6
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Gunner"
+	p.auto_target = front_pos
+	GameState.player_data.erase("Gunner")
+	world.get_node("Players").add_child(p)
+	p.global_position = front_pos + Vector3.UP * 0.1
+	for i: int in 20:
+		await get_tree().physics_frame
+	var c: PlayerCombat = p.combat
+	var ak: int = PlayerCombat.LOADOUT.find(&"ak47")
+	c.select(ak)
+	_report(c.current == 0, "can't draw an AK-47 you don't carry")
+	GameState.get_or_create_player_data("Gunner")["cash"] = 10000
+	var results: Array = []
+	dealer.buy_result.connect(func(ok: bool, msg: String) -> void: results.append([ok, msg]))
+	dealer.request_buy(&"ak47", 1)
+	dealer.request_buy(&"ak47", 1)
+	dealer.request_buy(&"ammo_762", 1)
+	await get_tree().physics_frame
+	_report(results.size() == 3 and results[0][0] and not results[1][0] and results[2][0]
+			and GameState.count_item("Gunner", "ak47") == 1 and GameState.count_item("Gunner", "ammo_762") == 30,
+			"buy an AK-47 (only one) and a box of 30 rounds: %s" % [results])
+	var ak_slot: int = c.slot_of(ak)
+	c.select_slot(ak_slot)
+	await get_tree().create_timer(0.5).timeout
+	_report(c.current == ak and p.net_weapon == ak + 1 and c.mag == 0 and c.reserve == 30,
+			"bought AK-47 drawn, empty magazine, 30 spare (mag %d, reserve %d)" % [c.mag, c.reserve])
+	c.try_reload()
+	await get_tree().create_timer(c.weapon.reload_time + 0.3).timeout
+	_report(c.mag == 30 and c.reserve == 0 and GameState.count_item("Gunner", "ammo_762") == 0 and c._h_mag == 30,
+			"reload loads the ammo items into the AK (mag %d, reserve %d)" % [c.mag, c.reserve])
+	p.head.rotation.x = -1.3
+	c.try_fire()
+	await get_tree().physics_frame
+	_report(c.mag == 29 and c._h_mag == 29, "AK fires (mag %d)" % c.mag)
+	p.host_damage(500, null)
+	await get_tree().physics_frame
+	var bag: LootBag = null
+	for b: Node in world.get_node("Loot").get_children():
+		bag = b as LootBag
+	var got: Dictionary = {}
+	if bag:
+		for it: Dictionary in bag.items:
+			got[it["id"]] = int(got.get(it["id"], 0)) + int(it["count"])
+	_report(got.get("ak47", 0) == 1 and got.get("ammo_762", 0) == 29 and got.get("pistol", 0) == 1
+			and not c.equipped and p.net_weapon == 0,
+			"death: the guns + loaded rounds go into the bag, hands empty (%s)" % got)
+	await get_tree().create_timer(Player.RESPAWN_TIME + 0.5).timeout
+	_report(c.owns(0) and c._mags[0] == c.weapons[0].magazine_size and int(c.ammo.get("ammo_9mm", 0)) == c.weapons[0].starting_reserve,
+			"respawn: loaded pistol + %d starter rounds" % int(c.ammo.get("ammo_9mm", 0)))
+	c.select_slot(c.slot_of(0))
+	_report(c.equipped and c.current == 0 and c.hotbar_slot() == c.slot_of(0), "hotbar key draws the pistol")
+	c.select_slot(c.slot_of(0))
+	_report(not c.equipped, "same hotbar key again puts it away")
+	if bag:
+		bag.queue_free()
+	p.queue_free()
+	GameState.player_data.erase("Gunner")
 	await get_tree().physics_frame
 
 
@@ -524,3 +606,33 @@ func _check_pedestrians(world: Node3D) -> void:
 	# Getting stuck now and then is fine (it backs off); staying stuck is not.
 	_report(worst_stuck <= 2 and totals["stuck"] <= 5,
 			"nobody stays stuck (%d stuck moves, worst NPC %d)" % [totals["stuck"], worst_stuck])
+
+
+# --- NPC combat -----------------------------------------------------------------------
+
+func _check_npc_combat(world: Node3D) -> void:
+	var npcs: Array[Node] = get_tree().get_nodes_in_group(&"npc")
+	var count0: int = npcs.size()
+	if count0 < 2:
+		_report(false, "need pedestrians for the NPC combat check")
+		return
+	Pedestrian.corpse_time = 1.0
+	Pedestrian.respawn_time = 2.0
+	var a: Pedestrian = npcs[0] as Pedestrian
+	var b: Pedestrian = npcs[1] as Pedestrian
+	var b_start: Vector3 = b.global_position
+	world.get_tree().call_group(&"npc", "hear_gunshot", b.global_position + Vector3(3, 0, 0))
+	_report(b.is_fleeing() and b.anim_state == Pedestrian.Anim.RUN, "pedestrian runs from a gunshot nearby")
+	await get_tree().create_timer(1.5).timeout
+	_report(b.global_position.distance_to(b_start) > 2.0, "fleeing pedestrian moves away (%.1f m)" % b.global_position.distance_to(b_start))
+	_report(not a.host_damage(30, null) and a.health == 70, "NPC takes damage (health %d)" % a.health)
+	_report(a.is_head_hit(a.global_position + Vector3.UP * 1.6) and not a.is_head_hit(a.global_position + Vector3.UP * 1.0),
+			"NPC head hit zone")
+	var killed: bool = a.host_damage(200, null)
+	_report(killed and a.dead and a.anim_state == Pedestrian.Anim.DEAD and a.collision_layer == 0,
+			"NPC dies at 0 health (death anim, not solid)")
+	await get_tree().create_timer(2.5).timeout
+	var now: int = get_tree().get_nodes_in_group(&"npc").size()
+	_report(not is_instance_valid(a) and now == count0, "dead NPC removed and a new one respawned (%d -> %d)" % [count0, now])
+	Pedestrian.corpse_time = 20.0
+	Pedestrian.respawn_time = 60.0

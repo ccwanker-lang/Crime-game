@@ -141,3 +141,14 @@ standard_material("bark", {"uv1_scale": "Vector3(1, 2, 1)", "normal_enabled": Tr
                   rtype="ORMMaterial3D",
                   textures={"albedo_texture": TX + "bark/color.jpg", "normal_texture": TX + "bark/normal.jpg",
                             "orm_texture": TX + "bark/arm.jpg"})
+
+# --- Firearms (StandardMaterial3D: the first-person viewmodel shader copies these inputs) ---
+standard_material("gun_metal", {"uv1_scale": "Vector3(6, 6, 6)", "metallic": 1.0, "roughness": 1.0},
+                  rtype="ORMMaterial3D",
+                  textures={"albedo_texture": TX + "guns/gun_metal_albedo.png", "orm_texture": TX + "guns/gun_metal_orm.png"})
+standard_material("gun_polymer", {"uv1_scale": "Vector3(6, 6, 6)", "metallic": 1.0, "roughness": 1.0},
+                  rtype="ORMMaterial3D",
+                  textures={"albedo_texture": TX + "guns/gun_polymer_albedo.png", "orm_texture": TX + "guns/gun_polymer_orm.png"})
+standard_material("gun_wood", {"uv1_scale": "Vector3(3, 3, 3)", "albedo_color": (0.62, 0.36, 0.22, 1.0), "roughness": 0.55,
+                               "normal_enabled": True, "normal_scale": 0.6},
+                  textures={"albedo_texture": TX + "WoodFloor041/color.jpg", "normal_texture": TX + "WoodFloor041/normal.jpg"})

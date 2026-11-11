@@ -22,8 +22,17 @@ const AIM_ANIM: String = "Idle_Gun_Pointing"
 
 var weapon_data: WeaponData
 var gun: WeaponModel
-## True in third person (the body shows the gun instead).
+## True in third person (the body shows the gun instead) or looking through a scope.
 var hidden_by_view: bool = false
+var hidden_by_scope: bool = false
+## 0..1 aim down sights (set by the player every frame, smoothed here).
+var aim_target: float = 0.0
+
+var _aim: float = 0.0
+var _pending: WeaponData = null  # weapon to take out once the current one is away
+var _want_drawn: bool = true
+var _arms_scale: float = 1.0
+var _skeleton: Skeleton3D
 
 var _rig: Node3D           # moved by bob / sway / recoil / reload
 var _arms: Node3D
@@ -73,23 +82,60 @@ func setup(model_path: String, model_scale: float, data: WeaponData) -> void:
 	anim.advance(0.0)
 	var sk := _arms.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 
-	gun = data.model_scene.instantiate() as WeaponModel
-	_rig.add_child(gun)
-	gun.position = GUN_POS
-	gun.rotation = Vector3(0, GUN_YAW, GUN_ROLL)
-	gun.make_viewmodel()
-	WeaponFX.make_flash(gun.muzzle, true)
+	_make_gun(data)
 
 	_ik = ViewmodelIK.new()
 	_ik.weapon = gun
 	_ik.frame = self
 	sk.add_child(_ik)
 
-	# Put the arms so that the shoulders land on SHOULDERS.
-	# (Needs to be in the tree: call setup after adding the viewmodel to the camera.)
+	_arms_scale = model_scale
+	_skeleton = sk
+	_place_arms()
+
+
+## Scales the arms for the current weapon and puts the shoulders on SHOULDERS
+## (+ the weapon's shoulder shift). Needs to be in the tree.
+func _place_arms() -> void:
+	var k: float = weapon_data.vm_arm_scale
+	_arms.scale = Vector3.ONE * _arms_scale * k
+	_arms.position = Vector3.ZERO
+	var sk: Skeleton3D = _skeleton
 	var mid: Vector3 = (sk.global_transform * sk.get_bone_global_pose(sk.find_bone("UpperArm.R")).origin
 			+ sk.global_transform * sk.get_bone_global_pose(sk.find_bone("UpperArm.L")).origin) / 2.0
-	_arms.position += SHOULDERS - to_local(mid)
+	_arms.position = SHOULDERS + weapon_data.vm_shoulder_shift - to_local(mid)
+	_ik.hand_scale = 0.8 / k
+
+
+func _make_gun(data: WeaponData) -> void:
+	weapon_data = data
+	gun = data.model_scene.instantiate() as WeaponModel
+	_rig.add_child(gun)
+	gun.position = _base_pos()
+	gun.rotation = Vector3(0, _yaw(), GUN_ROLL)
+	gun.make_viewmodel()
+	WeaponFX.make_flash(gun.muzzle, true)
+	if _ik:
+		_ik.weapon = gun
+
+
+func _yaw() -> float:
+	return weapon_data.vm_yaw if weapon_data and weapon_data.vm_yaw >= 0.0 else GUN_YAW
+
+
+func _base_pos() -> Vector3:
+	return GUN_POS + (weapon_data.vm_offset if weapon_data else Vector3.ZERO)
+
+
+## Puts the current weapon away and takes `data` out.
+func switch_to(data: WeaponData) -> void:
+	if data == weapon_data and _pending == null:
+		set_drawn(true)
+		return
+	cancel_reload()
+	_pending = data
+	_want_drawn = true
+	_draw_target = 0.0
 
 
 ## Converts every surface of `m` to the viewmodel shader (keeps the PBR inputs).
@@ -129,10 +175,15 @@ static func convert_material(src: BaseMaterial3D) -> ShaderMaterial:
 			mat.set_shader_parameter("use_normal", true)
 			mat.set_shader_parameter("normal_tex", src.normal_texture)
 			mat.set_shader_parameter("normal_strength", src.normal_scale)
-		if src.roughness_texture:
+		if src is ORMMaterial3D and (src as ORMMaterial3D).orm_texture:
+			mat.set_shader_parameter("use_orm", true)
+			mat.set_shader_parameter("orm_tex", (src as ORMMaterial3D).orm_texture)
+			mat.set_shader_parameter("use_ao", true)
+		elif src.roughness_texture:
 			mat.set_shader_parameter("use_orm", true)
 			mat.set_shader_parameter("orm_tex", src.roughness_texture)
 			mat.set_shader_parameter("use_ao", src.ao_enabled)
+		mat.set_shader_parameter("uv_scale", Vector2(src.uv1_scale.x, src.uv1_scale.y))
 	_material_cache[key] = mat
 	return mat
 
@@ -162,13 +213,15 @@ func cancel_reload() -> void:
 
 ## Draw (true) or holster (false) the weapon.
 func set_drawn(on: bool) -> void:
-	_draw_target = 1.0 if on else 0.0
+	_want_drawn = on
+	if _pending == null:
+		_draw_target = 1.0 if on else 0.0
 	if not on:
 		cancel_reload()
 
 
 func is_drawn() -> bool:
-	return _draw > 0.99 and _draw_target > 0.5
+	return _draw > 0.99 and _draw_target > 0.5 and _pending == null
 
 
 func add_mouse(relative: Vector2) -> void:
@@ -190,10 +243,17 @@ func update(delta: float, move: float, sprinting: bool, on_floor: bool) -> void:
 	_move = lerpf(_move, move, minf(1.0, 8.0 * delta))
 	_sprint = move_toward(_sprint, 1.0 if sprinting and _reload_t < 0.0 else 0.0, 4.0 * delta)
 	_air = move_toward(_air, 0.0 if on_floor else 1.0, 6.0 * delta)
-	_draw = move_toward(_draw, _draw_target, 4.0 * delta)
+	_draw = move_toward(_draw, _draw_target, 5.0 * delta)
+	if _pending != null and _draw <= 0.01:
+		gun.queue_free()
+		_make_gun(_pending)
+		_place_arms()
+		_pending = null
+		_draw_target = 1.0 if _want_drawn else 0.0
+	_aim = move_toward(_aim, aim_target if _reload_t < 0.0 else 0.0, 6.0 * delta)
 	_kick = move_toward(_kick, 0.0, 7.0 * delta)
 	_sway = _sway.lerp(Vector2.ZERO, minf(1.0, 10.0 * delta))
-	visible = _draw > 0.01 and not hidden_by_view
+	visible = _draw > 0.01 and not hidden_by_view and not hidden_by_scope
 
 	# Base pose + bob + sway.
 	var pos := Vector3.ZERO
@@ -212,6 +272,19 @@ func update(delta: float, move: float, sprinting: bool, on_floor: bool) -> void:
 	# Sprint: gun down and turned in.
 	pos += Vector3(-0.03, -0.04, 0.02) * _sprint
 	rot += Vector3(-0.45, 0.5, 0.2) * _sprint
+	# Aim down sights: the sight line (about muzzle height above the grip) to the
+	# middle of the screen, less bob and sway.
+	var base: Vector3 = _base_pos()
+	var sight := gun.get_node_or_null("Sight") as Node3D
+	var sight_y: float = sight.position.y if sight else gun.muzzle.position.y + 0.012
+	# Long guns sit further out than a real cheek weld, so the receiver does not fill the view.
+	var ads_z: float = -0.34 if weapon_data.vm_arm_scale > 1.0 else base.z - 0.04
+	var ads := Vector3(0.0, -sight_y - 0.008, ads_z)
+	var a: float = smoothstep(0.0, 1.0, _aim)
+	gun.position = base.lerp(ads, a)
+	gun.rotation = Vector3(0, _yaw() * (1.0 - a), GUN_ROLL * (1.0 - a))
+	pos *= 1.0 - 0.7 * a
+	rot *= 1.0 - 0.7 * a
 	# Draw / holster: from below the screen.
 	var d: float = 1.0 - ease(_draw, 0.4)
 	pos.y -= 0.32 * d
@@ -228,7 +301,7 @@ func update(delta: float, move: float, sprinting: bool, on_floor: bool) -> void:
 
 	_rig.position = pos
 	# Rotate around the grip (not the camera) so the gun tilts in place.
-	var pivot: Vector3 = GUN_POS
+	var pivot: Vector3 = gun.position
 	var basis_rot := Basis.from_euler(rot)
 	_rig.transform = Transform3D(basis_rot, pos + pivot - basis_rot * pivot)
 	_ik.left_target = left
@@ -245,7 +318,7 @@ func _reload_pose(delta: float) -> Array:
 		cancel_reload()
 		return [Vector3.ZERO, Vector3.ZERO, Vector3.INF, 1.0]
 	# Whole rig: tilt the gun (roll left, nose up) while working on it.
-	var tilt: float = _blend(t, 0.0, 0.2, 1.3, 1.6)
+	var tilt: float = _blend(t, 0.0, 0.2, 1.3, 1.6) * (0.35 if weapon_data.vm_arm_scale > 1.0 else 1.0)
 	var pos := Vector3(-0.03, 0.03, 0.02) * tilt
 	var rot := Vector3(0.25, 0.1, 0.55) * tilt
 
@@ -265,7 +338,7 @@ func _reload_pose(delta: float) -> Array:
 	var support: Vector3 = gun.global_transform * gun.support.position
 	var away: Vector3 = mag_base + dir * 0.3 + gun.global_basis.x * -0.12
 	var mag_bottom: Vector3 = mag_base + dir * (gun.magazine_out + 0.14)
-	var slide_rear: Vector3 = gun.global_transform * Vector3(-0.03, 0.05, 0.1)
+	var slide_rear: Vector3 = gun.ejection.global_position + gun.global_basis * Vector3(-0.05, 0.0, 0.06)
 	var left: Vector3
 	if t < 0.15:
 		left = support.lerp(away, smoothstep(0.0, 0.15, t))

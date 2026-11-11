@@ -1,0 +1,13 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/WoodFloor041/color.jpg" id="1_tx"]
+[ext_resource type="Texture2D" path="res://assets/textures/WoodFloor041/normal.jpg" id="2_tx"]
+
+[resource]
+albedo_texture = ExtResource("1_tx")
+normal_texture = ExtResource("2_tx")
+uv1_scale = Vector3(3, 3, 3)
+albedo_color = Color(0.62, 0.36, 0.22, 1.0)
+roughness = 0.55
+normal_enabled = true
+normal_scale = 0.6

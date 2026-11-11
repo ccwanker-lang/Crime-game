@@ -27,6 +27,7 @@ const MODELS: Array[Dictionary] = [
 	{"model": "punk", "scale": 0.93},
 	{"model": "man_longsleeve", "scale": 0.95},
 ]
+const DEBUG_CASH: int = 1000
 const MODEL_DIR: String = "res://assets/characters/quaternius/%s.glb"
 
 const WALK_SPEED: float = 4.2
@@ -103,6 +104,7 @@ var cash: int = 0  # owner: last value sent by the host
 var inventory: Array = []
 ## Owner: the shop window that is open (null = none).
 var shop: Shopkeeper = null
+var _base_fov: float = 75.0
 ## Owner: last message from the host (show_message), also for tests.
 var last_message: String = ""
 
@@ -144,6 +146,7 @@ func _ready() -> void:
 		net_yaw = rotation.y
 		nametag.visible = false
 		spring.add_excluded_object(get_rid())
+		_base_fov = camera.fov
 		var vm := Viewmodel.new()
 		vm.name = "Viewmodel"
 		camera.add_child(vm)
@@ -214,11 +217,15 @@ func _build_model() -> void:
 		_pose.set_aim_pose(aim_anim, 0.3)
 	_anim.play(_anim_names.get("Idle", ""))
 
-	# Pistol in the right fist, placed after every skeleton update.
-	combat.hand_gun = combat.weapon.model_scene.instantiate() as WeaponModel
-	combat.hand_gun.name = "HandGun"
-	add_child(combat.hand_gun)
-	WeaponFX.make_flash(combat.hand_gun.muzzle, false)
+	# Every weapon of the loadout in the right fist (only the one in hand is
+	# visible), placed after every skeleton update.
+	for w: WeaponData in combat.weapons:
+		var g := w.model_scene.instantiate() as WeaponModel
+		g.name = "HandGun_%s" % w.id
+		g.visible = false
+		add_child(g)
+		WeaponFX.make_flash(g.muzzle, false)
+		combat.hand_guns.append(g)
 	_bone_lower_r = _skeleton.find_bone("LowerArm.R")
 	_bone_wrist_r = _skeleton.find_bone("Wrist.R")
 	_skeleton.skeleton_updated.connect(_place_hand_gun)
@@ -226,9 +233,10 @@ func _build_model() -> void:
 
 func _place_hand_gun() -> void:
 	var gun: WeaponModel = combat.hand_gun
-	gun.visible = net_weapon != 0 and not dead
+	for g: WeaponModel in combat.hand_guns:
+		g.visible = g == gun and not dead
 	# The skeleton can still update while the player leaves the tree (disconnect).
-	if not gun.visible or _bone_wrist_r < 0 or not is_inside_tree():
+	if gun == null or not gun.visible or _bone_wrist_r < 0 or not is_inside_tree():
 		return
 	var t: Transform3D = _skeleton.global_transform
 	var lower: Vector3 = t * _skeleton.get_bone_global_pose(_bone_lower_r).origin
@@ -246,8 +254,9 @@ func _set_third_person(on: bool) -> void:
 			else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	for m: MeshInstance3D in _meshes:
 		m.cast_shadow = mode
-	for m: Node in combat.hand_gun.find_children("*", "MeshInstance3D", true, false):
-		(m as MeshInstance3D).cast_shadow = mode
+	for g: WeaponModel in combat.hand_guns:
+		for m: Node in g.find_children("*", "MeshInstance3D", true, false):
+			(m as MeshInstance3D).cast_shadow = mode
 	if combat.viewmodel:
 		combat.viewmodel.hidden_by_view = on
 
@@ -268,8 +277,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if dead:
 			return
 		var motion := event as InputEventMouseMotion
-		rotate_y(-motion.relative.x * MOUSE_SENSITIVITY)
-		head.rotation.x = clampf(head.rotation.x - motion.relative.y * MOUSE_SENSITIVITY, -1.45, 1.45)
+		# Slower turning while zoomed in (same feel on screen).
+		var sens: float = MOUSE_SENSITIVITY * camera.fov / _base_fov
+		rotate_y(-motion.relative.x * sens)
+		head.rotation.x = clampf(head.rotation.x - motion.relative.y * sens, -1.45, 1.45)
 		if combat.viewmodel:
 			combat.viewmodel.add_mouse(motion.relative)
 	elif event is InputEventMouseButton and event.pressed and not captured:
@@ -278,18 +289,31 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("release_mouse"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		combat.trigger_held = false
+		combat.aiming = false
+	elif event.is_action_released("fire"):
+		combat.trigger_held = false
+	elif event.is_action_released("aim"):
+		combat.aiming = false
 	elif not captured:
 		return
 	elif event.is_action_pressed("fire"):
+		combat.trigger_held = true
 		combat.try_fire()
+	elif event.is_action_pressed("aim"):
+		combat.aiming = not dead
 	elif event.is_action_pressed("reload"):
 		combat.try_reload()
-	elif event.is_action_pressed("weapon_1"):
-		combat.set_equipped(true)
 	elif event.is_action_pressed("weapon_holster"):
 		combat.set_equipped(false)
 	elif event.is_action_pressed("weapon_toggle"):
 		combat.set_equipped(not combat.equipped)
+	elif event.is_action_pressed("weapon_next"):
+		combat.cycle(1)
+	elif event.is_action_pressed("weapon_prev"):
+		combat.cycle(-1)
+	elif _weapon_key(event) >= 0:
+		combat.select_slot(_weapon_key(event))
 	elif event.is_action_pressed("toggle_view") and not dead:
 		_set_third_person(not third_person)
 	elif event.is_action_pressed("interact") and _focused != null and not dead:
@@ -305,6 +329,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			_debug_hurt()
 		else:
 			_debug_hurt.rpc_id(1)
+	elif event is InputEventKey and event.pressed and not event.echo 			and (event as InputEventKey).physical_keycode == KEY_F6:
+		if multiplayer.is_server():
+			_debug_cash()
+		else:
+			_debug_cash.rpc_id(1)
+
+
+## 0-based hotbar slot for the number keys 1-8, -1 otherwise.
+func _weapon_key(event: InputEvent) -> int:
+	for i: int in GameState.INVENTORY_SLOTS:
+		if event.is_action_pressed("weapon_%d" % (i + 1)):
+			return i
+	return -1
 
 
 # --- Movement --------------------------------------------------------------------
@@ -336,8 +373,17 @@ func _process(delta: float) -> void:
 	if vm:
 		var speed: float = Vector2(velocity.x, velocity.z).length() / SPRINT_SPEED
 		vm.update(delta, clampf(speed, 0.0, 1.0), net_sprint, is_on_floor())
+	# Aim down sights / scope: zoom the camera (not while sprinting or reloading).
+	var aim_on: bool = combat.aiming and combat.equipped and not net_sprint and not combat.is_reloading() and not dead
+	var fov_goal: float = combat.weapon.aim_fov if aim_on else _base_fov
+	camera.fov = lerpf(camera.fov, fov_goal, minf(1.0, 14.0 * delta))
+	if vm:
+		vm.aim_target = 1.0 if aim_on else 0.0
+		vm.hidden_by_scope = combat.is_scoped() and camera.fov < 30.0
 	if ui:
 		ui.set_ammo(combat.weapon.display_name, combat.mag, combat.reserve, combat.equipped, combat.is_reloading())
+		ui.set_hotbar_selected(combat.hotbar_slot())
+		ui.set_scope(combat.is_scoped() and camera.fov < 30.0 and not third_person)
 
 
 func _local_move(delta: float) -> void:
@@ -516,8 +562,14 @@ func close_shop() -> void:
 
 # --- Health and death ------------------------------------------------------------
 
+## Host: did a bullet that hit this player at `pos` hit the head?
+func is_head_hit(pos: Vector3) -> bool:
+	return pos.y - global_position.y > head.position.y - 0.2
+
+
 ## Host: apply damage from `attacker` (may be null). Returns true if this killed.
-func host_damage(amount: int, attacker: Player) -> bool:
+## `from`: where the shot came from (ragdoll impulse), INF = unknown.
+func host_damage(amount: int, attacker: Player, from: Vector3 = Vector3.INF) -> bool:
 	if not multiplayer.is_server() or dead or amount <= 0:
 		return false
 	health = maxi(0, health - amount)
@@ -531,7 +583,8 @@ func _host_die(attacker: Player) -> void:
 	dead = true
 	var killer: String = attacker.player_name if attacker and attacker != self else ""
 	print("[Player] %s died%s" % [player_name, (" (killed by %s)" % killer) if killer != "" else ""])
-	# Drop everything carried in a bag on the ground.
+	# Drop everything carried in a bag on the ground (loaded rounds included).
+	combat.host_unload()
 	var loot: Dictionary = GameState.take_all(player_name)
 	var world := get_tree().current_scene
 	var dropped: String = "You had nothing on you."
@@ -606,6 +659,19 @@ func on_hit_confirmed(headshot: bool, killed: bool) -> void:
 	if ui:
 		ui.show_hitmarker(headshot, killed)
 	WeaponFX.play_2d(self, WeaponFX.random_stream("impact_flesh"), -14.0 if not killed else -8.0, 0.1)
+
+
+## Debug (F6): the host gives this player €1000 (to test the shops before selling exists).
+@rpc("any_peer", "call_remote", "reliable")
+func _debug_cash() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != peer_id:
+		return
+	GameState.add_cash(player_name, DEBUG_CASH)
+	send_wallet()
+	show_message("Debug: +€%d" % DEBUG_CASH)
 
 
 ## Debug (F4): the host hurts this player (to test death without a second player).

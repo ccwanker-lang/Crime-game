@@ -21,6 +21,8 @@ uniform float metallic = 0.0;
 // (the player capsule keeps walls 0.35 m away); parts nearer than 0.125 m get
 // clipped by the camera's near plane (0.05 m), but those are outside the view.
 uniform float depth_scale = 0.4;
+// StandardMaterial3D uv1_scale (procedural guns use metre UVs).
+uniform vec2 uv_scale = vec2(1.0);
 
 void vertex() {
 	vec4 view_pos = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
@@ -29,12 +31,13 @@ void vertex() {
 }
 
 void fragment() {
-	vec4 c = texture(albedo_tex, UV) * albedo;
+	vec2 uv = UV * uv_scale;
+	vec4 c = texture(albedo_tex, uv) * albedo;
 	ALBEDO = c.rgb;
 	ROUGHNESS = roughness;
 	METALLIC = metallic;
 	if (use_orm) {
-		vec3 orm = texture(orm_tex, UV).rgb;
+		vec3 orm = texture(orm_tex, uv).rgb;
 		ROUGHNESS = roughness * orm.g;
 		METALLIC = metallic * orm.b;
 		if (use_ao) {
@@ -42,7 +45,7 @@ void fragment() {
 		}
 	}
 	if (use_normal) {
-		NORMAL_MAP = texture(normal_tex, UV).rgb;
+		NORMAL_MAP = texture(normal_tex, uv).rgb;
 		NORMAL_MAP_DEPTH = normal_strength;
 	}
 }

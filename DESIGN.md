@@ -139,10 +139,12 @@ Terrain should have real height differences (hills up, down to the river and har
   walls. Turn avoidance back on (and tune it) in milestone 4, with the big city map.
 - Players and NPCs pass through each other (NPCs walking into players used to shove them metres
   away). Make them collide again together with the avoidance work in milestone 4.
-- Every player gets the service pistol for testing; it is not an inventory item yet and is not
-  dropped in the loot bag. From the gun shop / black market it becomes a real (illegal) item.
-- Ammo is per player (8 + 32, refilled on respawn); buying ammo comes with the shops.
-- Shooting pedestrians shows a hit but they don't react yet (flee / police later).
+- Weapons + ammo are inventory items, sold by Vince in the gun shop (temporary spot in the shop row).
+  Every new player and every respawn gets a free loaded service pistol + 24 rounds (until earning money
+  works); later this should go. F6 = debug +€1000 to test buying.
+- Pedestrians die and respawn after 60 s (corpse 20 s); no ragdoll physics yet (death animation), no
+  police/witnesses yet. Shopkeepers can't be shot.
+- Aiming down sights with the long guns (AK, shotgun, SMG) still looks off: the stock fills the view.
 - No lag compensation: the host hits what it sees (fine on LAN).
 - First-person hands wear dark gloves; the third-person body shows bare hands.
 - The starter room has 2 fixed pots, a grow light and a drying rack. Buying/placing extra stations

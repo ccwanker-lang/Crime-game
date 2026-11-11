@@ -390,6 +390,44 @@ building(B + "hospital.tscn", {
     hospital_extra)
 
 
+W = "prefabs/weapons/"
+
+
+def gun_shop_extra(sc):
+    """Gun shop: counter with the dealer, guns on a pegboard behind him, ammo crates."""
+    sc.node("Counter", "StaticBody3D", ".", props={
+        "transform": xform((0.6, FLOOR, -6.3)), "script": sc.script(S["proc_box"]),
+        "size": v3(4.2, 1.0, 0.65), "material_key": q("planks")})
+    inst(sc, "Register", I + "cash_register.tscn", (2.0, FLOOR + 1.0, -6.3), 180)
+    sc.node("Pegboard", "StaticBody3D", ".", props={
+        "transform": xform((0.2, FLOOR + 0.95, -9.72)), "script": sc.script(S["proc_box"]),
+        "size": v3(5.4, 1.75, 0.06), "material_key": q("metal_dark"), "bevel": "0.0"})
+    # Display guns (decoration), barrels pointing left, hung on the pegboard.
+    for name, rel, x, y in [("DisplaySniper", "sniper.tscn", 0.6, 2.38), ("DisplayAK", "ak47.tscn", 0.4, 2.02),
+                            ("DisplayShotgun", "shotgun.tscn", 0.5, 1.66), ("DisplaySMG", "smg.tscn", -1.2, 1.3),
+                            ("DisplayPistol", "pistol.tscn", 1.4, 1.3)]:
+        inst(sc, name, W + rel, (x, FLOOR + y, -9.62), 90)
+    for i in range(2):
+        inst(sc, f"Shelf{i}", I + "steel_shelves.tscn", (-3.0, FLOOR, -2.4 - i * 1.6), 90)
+    inst(sc, "AmmoCrate1", P + "crate_flat.tscn", (2.6, FLOOR, -2.2), 10)
+    inst(sc, "AmmoCrate2", P + "crate_flat.tscn", (2.62, FLOOR + 0.46, -2.25), -5)
+    inst(sc, "AmmoCrate3", P + "crate_long.tscn", (2.6, FLOOR, -3.6), 90)
+    inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
+    inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.6))
+    marker(sc, "GunShopSpot", (0.6, FLOOR, -7.1), 0)
+    shopkeeper(sc, "Dealer", (0.6, FLOOR, -7.1), "Vince", "Gun Shop",
+               "Looking for protection? Guns on the wall, ammo by the box. No questions.",
+               ["smg", "shotgun", "ak47", "sniper", "ammo_9mm", "ammo_12g", "ammo_762", "ammo_308"], 11, 42)
+
+
+building(B + "gun_shop.tscn", {
+    "width": "7.0", "depth": "10.0", "floors": "2", "wall_material": q("concrete"),
+    "wall_tint": col(0.75, 0.74, 0.72), "roof_material": q("roof_dark"), "roof_type": q("flat"),
+    "ground_floor": q("shop"), "door_bay": "1", "shop_sign": q("GUNS & AMMO"), "awning": "true",
+    "awning_color": col(0.15, 0.15, 0.16), "enterable": "true", "public_building": "true",
+    "floor_material": q("concrete"), "chimney": q("none"), "variation_seed": "17"}, gun_shop_extra)
+
+
 def contact_extra(sc):
     inst(sc, "Desk", I + "office_desk.tscn", (0.2, FLOOR, -3.6), 0)
     inst(sc, "Chair", I + "armchair.tscn", (-0.45, FLOOR, -4.75), 180)
