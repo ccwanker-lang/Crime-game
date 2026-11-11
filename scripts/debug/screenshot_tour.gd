@@ -23,6 +23,13 @@ const SHOTS: Array[Array] = [
 	["10_hospital", Vector3(18, 1.9, 4.6), Vector3(9, 5, -6)],
 	["11_backyards", Vector3(-50, 7, -32), Vector3(-42, 1, -14)],
 	["12_contact_inside", Vector3(-34.7, 1.75, 22.5), Vector3(-35.6, 1.0, 26.5)],
+	["13_sign_main_back", Vector3(-0.9, 2.2, -1.9), Vector3(-0.6, 2.35, -3.9)],
+	["14_sign_main_front", Vector3(-0.3, 2.2, -5.6), Vector3(-0.6, 2.35, -3.9)],
+	["15_sign_station", Vector3(24.0, 2.2, -1.6), Vector3(24.4, 2.35, -3.9)],
+	["16_alley_lamp", Vector3(-34.2, 1.7, 5.0), Vector3(-33.6, 3.0, 11.5)],
+	["17_floodlights", Vector3(50, 1.8, 22), Vector3(50, 3.5, 31)],
+	["18_lamps_street", Vector3(-30, 1.8, -1.5), Vector3(-48, 2.5, 3.0)],
+	["19_starter_door_open", Vector3(-31.4, 1.7, -3.2), Vector3(-32, 1.2, -8)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -56,6 +63,9 @@ func _run() -> void:
 	for shot: Array in SHOTS:
 		if only != "" and not (shot[0] as String).substr(0, 2) in only.split(","):
 			continue
+		if (shot[0] as String).ends_with("door_open"):
+			for door: Node in get_tree().current_scene.find_children("*", "NetDoor", true, false):
+				(door as NetDoor)._set_open(true)
 		await _place(shot[1], shot[2], SETTLE_FRAMES)
 		await RenderingServer.frame_post_draw
 		var image: Image = get_viewport().get_texture().get_image()

@@ -101,7 +101,6 @@ def lamp_light(sc):
 
 
 model_prefab(P + "street_lamp.tscn", "street_lamp_01", None, ("cyl", 0.12, 4.8), scale=1.25, extra=lamp_light)
-model_prefab(P + "wall_lantern.tscn", "street_lamp_02", None, vis_end=60)
 model_prefab(P + "bench.tscn", "modular_street_seating",
              ["seat", "seat_back", "crossbar", "legs_single", "legs_double", "back_support_r", "back_support_l",
               "suspended_support_01", "arm_rest_01", "arm_rest_02"],
@@ -123,13 +122,21 @@ model_prefab(P + "covered_car.tscn", "covered_car", None, ("box", (1.79, 1.4, 4.
 model_prefab(P + "aircon.tscn", "exterior_aircon_unit", ["exterior_aircon_unit"], vis_end=70)
 
 
-def security_spot(sc):
+# Flood light on its own steel pole (StreetProp LIGHT_POLE): lamps never float.
+def floodlight_pole():
+    sc = Scene()
+    sc.node("FloodlightPole", "StaticBody3D", props={"script": sc.script(S["street_prop"]), "kind": "6"})
+    sc.node("Model", "Node3D", ".", props={
+        "transform": xform((0, 4.95, 0.42)), "script": sc.script(S["model_part"]),
+        "model": sc.scene(PH % ("security_light", "security_light")), "recenter": "false",
+        "visibility_end": "90"})
     sc.node("Light", "SpotLight3D", ".", groups=["street_lights"],
-            props={"transform": "Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, -0.2, 0.2)",
-                   "visible": "false", "light_energy": "3.0", "spot_range": "14.0", "spot_angle": "50.0"})
+            props={"transform": "Transform3D(1, 0, 0, 0, 0.5, 0.866, 0, -0.866, 0.5, 0, 4.75, 0.62)",
+                   "visible": "false", "light_energy": "3.0", "spot_range": "16.0", "spot_angle": "50.0"})
+    save(sc, P + "floodlight_pole.tscn")
 
 
-model_prefab(P + "security_light.tscn", "security_light", None, vis_end=70, extra=security_spot)
+floodlight_pole()
 
 
 def fence_extra(sc):

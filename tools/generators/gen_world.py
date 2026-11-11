@@ -261,7 +261,7 @@ put("props/trash_can_rusty.tscn", (-35.6, 0.15, 12.5), 20)
 put("props/trashbag.tscn", (-35.5, 0.15, 13.4), 40)
 put("props/trashbag.tscn", (-35.4, 0.15, 14.0), 160)
 put("props/crate_long.tscn", (-33.6, 0.15, 18.5), 5)
-put("props/wall_lantern.tscn", (-33.4, 2.6, 21.2), 90)
+put("props/street_lamp.tscn", (-33.35, 0.15, 11.0), 90, name="AlleyLamp")
 sc.node("AlleyLight", "OmniLight3D", NAV, props={
     "transform": xform((-34.5, 2.8, 20.5)), "light_color": col(1, 0.75, 0.45), "light_energy": "1.2",
     "omni_range": "7.0"})
@@ -331,7 +331,7 @@ for pos, rot, pf in [((53, 0.05, 11), 10, "crate_long"), ((53.6, 0.05, 11.9), 80
                      ((59, 0.05, 30), 0, "utility_box")]:
     put(f"props/{pf}.tscn", pos, rot)
 for x in (44, 56):
-    put("props/security_light.tscn", (x, 4.6, 31.75), 180)
+    put("props/floodlight_pole.tscn", (x, 0.05, 30.9), 180)
 for z in (12, 24, 36):
     put("nature/tree_medium.tscn", (66 + rng.uniform(-1, 1), 0, z + rng.uniform(-2, 2)), rng.uniform(0, 360),
         props={"tree_seed": str(400 + z)})
@@ -397,12 +397,24 @@ for i, x in enumerate([10, 12, 14, 16]):
     sc.node(f"Spawn{i + 1}", "Marker3D", "Markers/SpawnPoints", props={"transform": xform((x, 0.3, -4.6), 90)})
 sc.node("CustomerSpawn", "Marker3D", "Markers", props={"transform": xform((68, 0.15, 4.8))})
 sc.node("CustomerMeetPoint", "Marker3D", "Markers", props={"transform": xform((-4, 0.15, 12.5))})
-sc.node("Label3D", "Label3D", "Markers/CustomerMeetPoint", props={
-    "transform": xform((0, 2.6, 0)), "billboard": "1", "text": q("MEET POINT"), "font_size": "48",
-    "outline_size": "12", "modulate": col(1, 0.95, 0.75)})
+
+
+
+def debug_label(parent, text):
+    """Marker label: visible in the editor, hidden in game (F3 toggles it)."""
+    sc.node("DebugLabel", "Label3D", parent, groups=["debug_only"], props={
+        "transform": xform((0, 2.2, 0)), "billboard": "1", "text": q(text), "font_size": "40",
+        "outline_size": "12", "modulate": col(1, 0.95, 0.75), "no_depth_test": "true"})
+
+
+debug_label("Markers/CustomerMeetPoint", "MEET POINT")
+debug_label("Markers/CustomerSpawn", "CUSTOMER SPAWN")
 sc.node("RivalPatrol", "Node3D", "Markers")
 for i, (x, z) in enumerate([(42, 12), (58, 12), (58, 28), (42, 28)]):
     sc.node(f"P{i + 1}", "Marker3D", "Markers/RivalPatrol", props={"transform": xform((x, 0.05, z))})
+    debug_label(f"Markers/RivalPatrol/P{i + 1}", f"PATROL P{i + 1}")
+for i in range(4):
+    debug_label(f"Markers/SpawnPoints/Spawn{i + 1}", f"SPAWN {i + 1}")
 
 # --------------------------------------------------------------------------- HUD
 sc.node("HUD", "CanvasLayer", ".")

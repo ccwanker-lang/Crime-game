@@ -26,8 +26,11 @@ func _ready() -> void:
 	info_label.text = "You are the %s" % role
 	_refresh_players()
 
+	_set_debug_visible(false)
 	if "--screenshot" in OS.get_cmdline_user_args():
 		_start_screenshot_tour()
+	elif "--selftest" in OS.get_cmdline_user_args():
+		add_child(preload("res://scripts/debug/self_test.gd").new())
 	else:
 		_spawn_walk_viewer()
 
@@ -41,6 +44,23 @@ func _spawn_walk_viewer() -> void:
 	var spawn: Node3D = spawn_points.get_child(maxi(0, Net.players.keys().find(multiplayer.get_unique_id())) % spawn_points.get_child_count())
 	add_child(viewer)
 	viewer.global_transform = spawn.global_transform
+
+
+## F3 toggles debug helpers (marker labels like "MEET POINT", group "debug_only").
+## They are always visible in the editor, hidden in game by default.
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.physical_keycode == KEY_F3:
+		_debug_visible = not _debug_visible
+		_set_debug_visible(_debug_visible)
+
+
+var _debug_visible: bool = false
+
+
+func _set_debug_visible(on: bool) -> void:
+	for n: Node in get_tree().get_nodes_in_group("debug_only"):
+		(n as Node3D).visible = on
 
 
 ## Finds a marker anywhere in the map (markers can live inside building prefabs).

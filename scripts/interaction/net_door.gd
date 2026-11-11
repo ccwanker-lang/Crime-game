@@ -17,7 +17,7 @@ const DOOR_LAYER: int = 2  # physics layer 2 ("doors"), ignored by navmesh bakin
 @export var open_angle: float = 100.0
 
 var is_open: bool = false
-var _pivot: Node3D
+var _pivot: AnimatableBody3D  # the door leaf itself; rotating it moves the collision too
 var _mesh: MeshInstance3D
 var _color: Color = Color(0.16, 0.27, 0.22)
 var _tween: Tween
@@ -47,12 +47,13 @@ func _rebuild() -> void:
 	_pending = false
 	if _pivot:
 		_pivot.queue_free()
-	_pivot = Node3D.new()
-	add_child(_pivot)
+	# The body is rotated directly (not via a parent pivot): an AnimatableBody3D
+	# only updates its physics shape when its own transform changes.
 	var body := AnimatableBody3D.new()
 	body.collision_layer = 1 << (DOOR_LAYER - 1)
 	body.collision_mask = 0
-	_pivot.add_child(body)
+	_pivot = body
+	add_child(body)
 
 	var b := MeshBuilder.new()
 	var t: float = 0.05

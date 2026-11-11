@@ -17,11 +17,20 @@ const INTERACT_DISTANCE: float = 3.0
 @onready var prompt_label: Label = %PromptLabel
 @onready var fps_label: Label = %FpsLabel
 
+## Test mode (scripts/debug/self_test.gd): walk straight to auto_target, no
+## mouse/camera. The same movement code as a real walk, so doors/steps are tested.
+var auto_walk: bool = false
+var auto_target: Vector3 = Vector3.ZERO
+
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 var _focused: Node = null
 
 
 func _ready() -> void:
+	if auto_walk:
+		$UI.visible = false
+		set_process_unhandled_input(false)
+		return
 	camera.current = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -52,6 +61,9 @@ func _physics_process(delta: float) -> void:
 		input.x = float(Input.is_physical_key_pressed(KEY_D)) - float(Input.is_physical_key_pressed(KEY_A))
 		input.y = float(Input.is_physical_key_pressed(KEY_S)) - float(Input.is_physical_key_pressed(KEY_W))
 	var dir: Vector3 = (transform.basis * Vector3(input.x, 0, input.y)).normalized()
+	if auto_walk:
+		dir = Vector3(auto_target.x - global_position.x, 0, auto_target.z - global_position.z)
+		dir = dir.normalized() if dir.length() > 0.1 else Vector3.ZERO
 	var speed: float = SPRINT_SPEED if Input.is_physical_key_pressed(KEY_SHIFT) else WALK_SPEED
 	var target := dir * speed
 	velocity.x = move_toward(velocity.x, target.x, ACCEL * speed * delta)
@@ -59,6 +71,8 @@ func _physics_process(delta: float) -> void:
 
 	_try_step_up(delta)
 	move_and_slide()
+	if auto_walk:
+		return
 	_update_focus()
 	fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 
