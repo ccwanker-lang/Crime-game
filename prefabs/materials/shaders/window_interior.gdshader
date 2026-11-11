@@ -12,6 +12,12 @@ uniform float room_brightness = 0.35;
 uniform float lit_brightness = 1.4;
 uniform vec4 glass_tint : source_color = vec4(0.55, 0.62, 0.68, 1.0);
 uniform float reflection = 0.55;         // how much the glass darkens/reflects
+// Night: share of rooms with the light on, and how bright / warm they glow.
+uniform float night_lit_share = 0.65;
+uniform float night_brightness = 2.2;
+uniform vec4 night_light_color : source_color = vec4(1.0, 0.78, 0.5, 1.0);
+// 0 = day .. 1 = night (set by DayNight).
+global uniform float night_lights;
 
 varying vec3 obj_pos;
 
@@ -79,6 +85,15 @@ void fragment() {
 	if (covered) {
 		inside = curtain_col * (0.35 + COLOR.a * 0.9) * (0.85 + 0.15 * sin(uv.x * 60.0));
 	}
+	// Night: some rooms have the lights on (warm glow, curtains shine through),
+	// the others are dark. Chosen per window from its position.
+	float lit_hash = hash(floor(obj_pos.xz * 0.9) + floor(obj_pos.y * 0.45) * 3.1 + 11.0);
+	float lit = step(lit_hash, night_lit_share);
+	vec3 night_room = room * shade * night_brightness * night_light_color.rgb;
+	if (covered) {
+		night_room = curtain_col * night_brightness * 0.75 * night_light_color.rgb;
+	}
+	inside = mix(inside, mix(inside * 0.04, night_room, lit), night_lights);
 
 	// Glass: darkened interior plus reflections from the sky/environment.
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);

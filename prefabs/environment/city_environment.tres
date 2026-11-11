@@ -1,14 +1,18 @@
 [gd_resource type="Environment" format=3]
 
 [ext_resource type="Texture2D" path="res://assets/hdri/partly_cloudy_sky_2k.hdr" id="1_hdri"]
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/sky_day_night.gdshader" id="2_sky"]
 
-[sub_resource type="PanoramaSkyMaterial" id="SkyMat"]
-panorama = ExtResource("1_hdri")
-energy_multiplier = 1.0
+[sub_resource type="ShaderMaterial" id="SkyMat"]
+shader = ExtResource("2_sky")
+shader_parameter/hdri = ExtResource("1_hdri")
+shader_parameter/hdri_energy = 1.0
+shader_parameter/sun_dir = Vector3(0.4, 0.68, 0.6)
 
 [sub_resource type="Sky" id="Sky"]
 sky_material = SubResource("SkyMat")
 radiance_size = 3
+process_mode = 2
 
 [resource]
 background_mode = 2

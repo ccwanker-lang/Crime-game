@@ -196,6 +196,21 @@ theme_override_constants/outline_size = 6
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_colors/font_color = Color(0.75, 1, 0.7, 1)
 
+[node name="ClockLabel" type="Label" parent="UI"]
+unique_name_in_owner = true
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 50.0
+offset_right = -16.0
+offset_bottom = 80.0
+text = "10:00"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 22
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+
 [node name="DeathPanel" type="PanelContainer" parent="UI"]
 unique_name_in_owner = true
 visible = false
@@ -255,7 +270,7 @@ offset_left = 12.0
 offset_top = -36.0
 offset_right = 1260.0
 offset_bottom = -10.0
-text = "WASD move | Shift sprint | Space jump | Ctrl/C crouch | LMB shoot | R reload | 1 pistol, 2 holster, Q switch | V 1st/3rd | E interact | Esc mouse | F4 debug: hurt yourself"
+text = "WASD move | Shift sprint | Space jump | Ctrl/C crouch | LMB shoot | R reload | 1 pistol, 2 holster, Q switch | V 1st/3rd | E interact | Esc mouse | F4 debug: hurt yourself | F7 (hold) fast-forward time"
 theme_override_font_sizes/font_size = 13
 theme_override_constants/outline_size = 5
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)

@@ -280,6 +280,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_third_person(not third_person)
 	elif event.is_action_pressed("interact") and _focused != null and not dead:
 		_focused.call("interact")
+	elif event is InputEventKey and not event.echo and (event as InputEventKey).physical_keycode == KEY_F7:
+		# Debug: fast-forward the day/night clock while held.
+		var dn := get_tree().get_first_node_in_group("day_night") as DayNight
+		if dn:
+			dn.request_fast_forward(event.pressed)
 	elif event is InputEventKey and event.pressed and not event.echo \
 			and (event as InputEventKey).physical_keycode == KEY_F4:
 		if multiplayer.is_server():

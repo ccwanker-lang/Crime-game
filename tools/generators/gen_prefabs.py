@@ -96,8 +96,10 @@ P = "prefabs/props/"
 
 def lamp_light(sc):
     sc.node("Light", "OmniLight3D", ".", groups=["street_lights"],
-            props={"transform": xform((0.0, 4.55, 0.0)), "visible": "false", "light_energy": "2.5",
-                   "light_color": col(1, 0.82, 0.6), "omni_range": "13.0", "shadow_enabled": "false"})
+            props={"transform": xform((0.0, 4.55, 0.0)), "visible": "false", "light_energy": "1.8",
+                   "light_color": col(1, 0.8, 0.55), "omni_range": "12.0", "omni_attenuation": "1.4",
+                   "shadow_enabled": "false", "distance_fade_enabled": "true", "distance_fade_begin": "70.0",
+                   "distance_fade_length": "20.0"})
 
 
 model_prefab(P + "street_lamp.tscn", "street_lamp_01", None, ("cyl", 0.12, 4.8), scale=1.25, extra=lamp_light)

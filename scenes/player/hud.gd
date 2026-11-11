@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var death_label: Label = %DeathLabel
 @onready var damage_flash: ColorRect = %DamageFlash
 @onready var hitmarker: Control = %Hitmarker
+@onready var clock_label: Label = %ClockLabel
 
 var _hit_time: float = 0.0
 var _hit_color: Color = Color.WHITE
@@ -69,6 +70,9 @@ func hide_death() -> void:
 
 
 func _process(delta: float) -> void:
+	var dn := get_tree().get_first_node_in_group("day_night") as DayNight
+	if dn:
+		clock_label.text = dn.clock_text() + (" >>" if dn.fast_forward else "")
 	damage_flash.color.a = move_toward(damage_flash.color.a, 0.0, delta * 0.8)
 	if _hit_time > 0.0:
 		_hit_time -= delta
