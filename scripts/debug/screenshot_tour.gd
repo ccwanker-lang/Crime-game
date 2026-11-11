@@ -35,6 +35,12 @@ const SHOTS: Array[Array] = [
 	["23_npc_walk", Vector3(-12, 1.7, -3.6), Vector3(-19, 1.0, -4.9)],
 	["24_npc_lineup", Vector3(-3.5, 1.6, 4.6), Vector3(-3.5, 1.0, 9.0)],
 	["25_bench_east", Vector3(58.5, 2.2, -2.5), Vector3(56, 0.3, -6.2)],
+	["26_players_front", Vector3(-10.5, 1.5, -0.6), Vector3(-10.5, 0.9, -4.6)],
+	["27_players_side", Vector3(-10.5, 1.3, -0.6), Vector3(-10.5, 0.8, -4.6)],
+	["28_player_crouch_close", Vector3(-10.0, 1.0, -2.2), Vector3(-10.0, 0.6, -4.6)],
+	# 29/30 use the camera of a staged local player (third / first person), not these spots.
+	["29_third_person", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
+	["30_first_person", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["19_starter_door_open", Vector3(-31.4, 1.7, -3.2), Vector3(-32, 1.2, -8)],
 ]
 
@@ -91,6 +97,7 @@ func _run() -> void:
 		for n: Node in _staged:
 			n.queue_free()
 		_staged.clear()
+		_camera.current = true
 
 	# Performance: uncapped FPS at a few typical views.
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
@@ -130,6 +137,45 @@ func _stage(shot_name: String) -> void:
 				var npc := _posed(scene, npcs, [8, 5, 11][i], Vector3(-22.0 - i * 1.6, 0.15, -4.4 - (i % 2) * 0.9), 0.0)
 				npc.walk_to(Vector3(-4.0, 0.15, -4.6 - (i % 2) * 0.9))
 			await get_tree().create_timer(1.6).timeout
+		"26_players_front", "27_players_side", "28_player_crouch_close":
+			# Remote-player look (peer 99 = not local): idle, run, sprint, crouch,
+			# crouch-walk, looking up, looking down.
+			var states: Array[Dictionary] = [
+				{}, {"net_move": Vector2(0, -1)}, {"net_move": Vector2(0, -1), "net_sprint": true},
+				{"net_crouch": true}, {"net_crouch": true, "net_move": Vector2(0, -1)},
+				{"net_pitch": 0.8}, {"net_pitch": -0.8}]
+			for i: int in states.size():
+				var pl: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+				pl.peer_id = 99
+				pl.player_name = "Player %d" % (i + 1)
+				pl.model_index = i
+				var pos := Vector3(-14.0 + i * 1.2, 0.15, -4.6)
+				pl.position = pos
+				pl.net_pos = pos
+				var yaw: float = PI if shot_name == "26_players_front" else -PI / 2.0  # 27/28: profile
+				pl.rotation.y = yaw
+				pl.net_yaw = yaw
+				for k: String in states[i]:
+					pl.set(k, states[i][k])
+				get_tree().current_scene.add_child(pl)
+				_staged.append(pl)
+			await get_tree().create_timer(0.7).timeout
+		"29_third_person", "30_first_person":
+			# A local player (auto_walk: no mouse capture) whose own camera takes the shot.
+			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+			me.peer_id = multiplayer.get_unique_id()
+			me.player_name = "Me"
+			me.auto_walk = true
+			me.position = Vector3(-8, 0.15, -4.6)
+			me.auto_target = me.position
+			me.rotation.y = PI / 2.0  # looking west along the sidewalk
+			get_tree().current_scene.add_child(me)
+			_staged.append(me)
+			me.ui.visible = true
+			me.camera.current = true
+			me.head.rotation.x = -0.08
+			me._set_third_person(shot_name == "29_third_person")
+			await get_tree().create_timer(0.5).timeout
 		"25_bench_east":
 			for s: Node in get_tree().get_nodes_in_group(&"bench_seat"):
 				var p: Vector3 = (s as Node3D).global_position

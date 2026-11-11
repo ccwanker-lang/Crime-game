@@ -109,8 +109,15 @@ func _save_settings() -> void:
 var _port: int = Net.DEFAULT_PORT
 
 
+## Command line auto host/join happens once; back in the menu you choose yourself.
+static var _cmdline_used: bool = false
+
+
 func _apply_cmdline_args() -> void:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
+	if _cmdline_used:
+		return
+	_cmdline_used = true
 	var auto_host: bool = false
 	var auto_join: bool = false
 	for arg: String in args:

@@ -84,6 +84,7 @@ var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 func _ready() -> void:
 	add_to_group(&"npc")
+	Net.limit_sync_to_world($Sync)
 	_build_model()
 	if _is_host():
 		net_pos = global_position

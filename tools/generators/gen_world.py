@@ -438,6 +438,11 @@ sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
     "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn")',
     "spawn_path": 'NodePath("../NPCs")'})
 
+# --------------------------------------------------------------------------- players
+# Host spawns one Player per peer under Players (World._create_player is the spawn function).
+sc.node("Players", "Node3D", ".")
+sc.node("PlayerSpawner", "MultiplayerSpawner", ".", props={"spawn_path": 'NodePath("../Players")'})
+
 # --------------------------------------------------------------------------- HUD
 sc.node("HUD", "CanvasLayer", ".")
 sc.node("Panel", "PanelContainer", "HUD", props={

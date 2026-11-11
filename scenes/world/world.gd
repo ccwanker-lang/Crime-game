@@ -3,13 +3,15 @@ extends Node3D
 ## navigation mesh at startup so it always matches the geometry, provides spawn
 ## points / markers, and syncs networked props (doors) to late joiners.
 
-const WALK_VIEWER: PackedScene = preload("res://scenes/world/walk_viewer.tscn")
+const PLAYER: PackedScene = preload("res://scenes/player/player.tscn")
 const PEDESTRIAN: PackedScene = preload("res://prefabs/npc/pedestrian.tscn")
 const PEDESTRIAN_COUNT: int = 10
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
 @onready var spawn_points: Node3D = $Markers/SpawnPoints
 @onready var npcs: Node3D = $NPCs
+@onready var players_root: Node3D = $Players
+@onready var player_spawner: MultiplayerSpawner = $PlayerSpawner
 @onready var players_label: Label = %PlayersLabel
 @onready var info_label: Label = %InfoLabel
 @onready var leave_button: Button = %LeaveButton
@@ -17,6 +19,8 @@ const PEDESTRIAN_COUNT: int = 10
 
 func _ready() -> void:
 	Net.players_changed.connect(_refresh_players)
+	# Every peer builds player nodes with the same function (spawn data from the host).
+	player_spawner.spawn_function = _create_player
 	leave_button.pressed.connect(_on_leave_pressed)
 
 	if multiplayer.is_server() and GameState.world.is_empty():
@@ -34,33 +38,98 @@ func _ready() -> void:
 		_start_screenshot_tour()
 	elif "--selftest" in OS.get_cmdline_user_args():
 		add_child(preload("res://scripts/debug/self_test.gd").new())
-	else:
-		_spawn_walk_viewer()
 
 	if not multiplayer.is_server():
 		_request_snapshot.rpc_id(1)
+	if not ("--screenshot" in OS.get_cmdline_user_args() or "--selftest" in OS.get_cmdline_user_args()):
+		if multiplayer.is_server():
+			Net.players_changed.connect(_remove_left_players)
+			_spawn_player_for(1)
+		else:
+			_client_world_ready.rpc_id(1)  # the world is loaded here: ask the host for a body
 	if "--netcheck" in OS.get_cmdline_user_args():
 		_net_check()
 
 
 ## Debug (--netcheck): after 12 s print what this peer sees of the synced NPCs, then quit.
 func _net_check() -> void:
-	await get_tree().create_timer(12.0).timeout
+	if not multiplayer.is_server():
+		# The client walks its own player 5 m east, crouched; the host must see that.
+		await get_tree().create_timer(4.0).timeout
+		var me: Player = players_root.get_node_or_null(str(multiplayer.get_unique_id()))
+		if me:
+			me.auto_walk = true
+			me.auto_target = me.global_position + Vector3(5, 0, 0)
+			Input.action_press("crouch")
+			print("[NetCheck] client walks from %s" % me.global_position.snapped(Vector3.ONE * 0.1))
+		await get_tree().create_timer(8.0).timeout
+	else:
+		for i: int in 8:  # the host reports what it sees of the client players
+			await get_tree().create_timer(3.0).timeout
+			for p: Node in players_root.get_children():
+				var pl := p as Player
+				if not pl.is_local():
+					print("[NetCheck] host sees client %s at %s crouch=%s" % [pl.player_name,
+							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch])
 	var parts: PackedStringArray = []
 	for npc: Node in npcs.get_children().slice(0, 3):
 		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])
 	print("[NetCheck] %s sees %d NPCs: %s" % ["host" if multiplayer.is_server() else "client", npcs.get_child_count(), ", ".join(parts)])
+	for p: Node in players_root.get_children():
+		var pl := p as Player
+		print("[NetCheck]   player %s '%s' at %s local=%s crouch=%s move=%s" % [pl.name, pl.player_name,
+				pl.global_position.snapped(Vector3.ONE * 0.1), pl.is_local(), pl.net_crouch, pl.net_move])
 	await get_tree().create_timer(1.0).timeout
 	Net.leave_game()
 	get_tree().quit()
 
 
-## TEMPORARY until step 3: a local first-person walker on the street.
-func _spawn_walk_viewer() -> void:
-	var viewer: Node3D = WALK_VIEWER.instantiate()
-	var spawn: Node3D = spawn_points.get_child(maxi(0, Net.players.keys().find(multiplayer.get_unique_id())) % spawn_points.get_child_count())
-	add_child(viewer)
-	viewer.global_transform = spawn.global_transform
+# --- Players ---------------------------------------------------------------------
+
+## Client -> host: my world is loaded. The host starts sending it the existing
+## players/NPCs and spawns its player.
+@rpc("any_peer", "call_remote", "reliable")
+func _client_world_ready() -> void:
+	if not multiplayer.is_server():
+		return
+	var peer: int = multiplayer.get_remote_sender_id()
+	Net.mark_peer_in_world(peer)
+	_spawn_player_for(peer)
+
+
+## Host only: spawns the player of a peer at a free spawn point (replicated by PlayerSpawner).
+func _spawn_player_for(peer: int) -> void:
+	if not Net.players.has(peer) or players_root.has_node(str(peer)):
+		return
+	var used_models: Array[int] = []
+	for p: Node in players_root.get_children():
+		used_models.append((p as Player).model_index)
+	var model: int = 0
+	while model in used_models:
+		model += 1
+	var spawn: Node3D = spawn_points.get_child(players_root.get_child_count() % spawn_points.get_child_count())
+	player_spawner.spawn({"peer": peer, "name": Net.get_player_name(peer), "model": model,
+			"pos": spawn.global_position, "yaw": spawn.global_rotation.y})
+
+
+func _create_player(data: Dictionary) -> Node:
+	var p: Player = PLAYER.instantiate()
+	p.name = str(data["peer"])
+	p.peer_id = data["peer"]
+	p.player_name = data["name"]
+	p.model_index = data["model"]
+	p.position = data["pos"]
+	p.rotation.y = data["yaw"]
+	p.net_pos = data["pos"]
+	p.net_yaw = data["yaw"]
+	return p
+
+
+## Host only: remove the bodies of players that left (the spawner despawns them on clients).
+func _remove_left_players() -> void:
+	for p: Node in players_root.get_children():
+		if not Net.players.has((p as Player).peer_id):
+			p.queue_free()
 
 
 ## F3 toggles debug helpers (marker labels like "MEET POINT", group "debug_only").

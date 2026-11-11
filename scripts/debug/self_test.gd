@@ -3,16 +3,18 @@ extends Node
 ##   --headless --path . -- --selftest --port=7791
 ## 1. Lamps: every light in group "street_lights" belongs to a pole prefab that
 ##    stands on the ground (no floating lamps).
-## 2. Doors: opens every NetDoor, then a real walk body (walk_viewer.tscn, same
-##    movement code as the player) walks from the street to 2.5 m inside.
+## 2. Doors: opens every NetDoor, then a real player body (player.tscn in auto_walk mode, same
+##    movement code as a real player) walks from the street to 2.5 m inside.
 ##    Also checks that the navigation mesh has a path through the door.
 ## 3. Debug labels (group "debug_only") are hidden in game.
 ## 4. Pedestrians: spawns them, runs 90 game-seconds at 3x speed and checks that
 ##    nobody walks on the road outside a zebra, nobody gets stuck for good, and
 ##    they wander, idle, sit on benches and visit public buildings.
+## 5. Player: jump height, walk/sprint speed, crouch (lower capsule, stays down
+##    under a low ceiling, stands up again when it is gone).
 ## Prints "[SelfTest] PASS/FAIL ..." lines and quits.
 
-const WALKER: PackedScene = preload("res://scenes/world/walk_viewer.tscn")
+const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
 var _fails: int = 0
@@ -28,6 +30,7 @@ func _run() -> void:
 	_check_lamps(world)
 	_check_debug_labels()
 	await _check_doors(world)
+	await _check_player(world)
 	await _check_pedestrians(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
@@ -142,6 +145,76 @@ func _check_doors(world: Node3D) -> void:
 		var p2: Vector3 = walker.global_position
 		walker.queue_free()
 		_report((p2 - center).dot(out) > 0.0, "closed %s/%s blocks the walker" % [building, door.name])
+
+
+# --- Player ---------------------------------------------------------------------
+
+func _check_player(world: Node3D) -> void:
+	var start: Vector3 = (world.get_node("Markers/SpawnPoints").get_child(0) as Node3D).global_position
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.auto_target = start
+	world.add_child(p)
+	p.global_position = start + Vector3.UP * 0.1
+	for i: int in 30:
+		await get_tree().physics_frame
+	var ground: float = p.global_position.y
+
+	# Jump: peak height.
+	Input.action_press("jump")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	Input.action_release("jump")
+	var peak: float = ground
+	for i: int in 90:
+		await get_tree().physics_frame
+		peak = maxf(peak, p.global_position.y)
+	_report(peak - ground > 0.9 and peak - ground < 1.5, "player jumps %.2f m high" % (peak - ground))
+
+	# Walk and sprint speed along the sidewalk.
+	for sprint: bool in [false, true]:
+		if sprint:
+			Input.action_press("sprint")
+		var from: Vector3 = p.global_position
+		p.auto_target = from + Vector3(-30, 0, 0)
+		for i: int in 60:  # 1 s
+			await get_tree().physics_frame
+		var a: Vector3 = p.global_position
+		for i: int in 60:
+			await get_tree().physics_frame
+		var speed: float = Vector2(p.global_position.x - a.x, p.global_position.z - a.z).length()
+		var want: float = Player.SPRINT_SPEED if sprint else Player.WALK_SPEED
+		_report(absf(speed - want) < 0.6, "player %s speed %.1f m/s (expected %.1f)" % ["sprint" if sprint else "walk", speed, want])
+		Input.action_release("sprint")
+		p.auto_target = p.global_position
+
+	# Crouch under a low ceiling: must stay down until the ceiling is gone.
+	for i: int in 20:
+		await get_tree().physics_frame
+	Input.action_press("crouch")
+	for i: int in 30:
+		await get_tree().physics_frame
+	var shape := p.get_node("Collision").shape as CapsuleShape3D
+	var head_y: float = (p.get_node("Head") as Node3D).position.y
+	_report(p.net_crouch and shape.height < 1.3 and head_y < 1.2, "player crouches (capsule %.2f m, eyes %.2f m)" % [shape.height, head_y])
+	var ceiling := StaticBody3D.new()
+	var box := CollisionShape3D.new()
+	box.shape = BoxShape3D.new()
+	(box.shape as BoxShape3D).size = Vector3(3, 0.2, 3)
+	ceiling.add_child(box)
+	world.add_child(ceiling)
+	ceiling.global_position = p.global_position + Vector3.UP * 1.45
+	await get_tree().physics_frame
+	Input.action_release("crouch")
+	for i: int in 30:
+		await get_tree().physics_frame
+	_report(p.net_crouch, "player stays crouched under a 1.35 m ceiling")
+	ceiling.queue_free()
+	for i: int in 30:
+		await get_tree().physics_frame
+	_report(not p.net_crouch and shape.height > 1.7, "player stands up when there is room")
+	p.queue_free()
+	await get_tree().physics_frame
 
 
 # --- Pedestrians -----------------------------------------------------------------

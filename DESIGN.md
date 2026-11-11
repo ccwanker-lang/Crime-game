@@ -133,3 +133,7 @@ Top-down, north = up. Organic town, NOT a square grid; compact dense center.
   later continues to region 2 (map edge = blocked for now).
 - Rival HQ: in the harbor/industrial area.
 Terrain should have real height differences (hills up, down to the river and harbor).
+
+## Known issues / later
+- NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into
+  walls. Turn avoidance back on (and tune it) in milestone 4, with the big city map.

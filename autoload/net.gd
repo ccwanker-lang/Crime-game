@@ -24,6 +24,10 @@ var local_name: String = ""
 ## Message for the main menu after a disconnect or error.
 var last_message: String = ""
 
+## Host: peers whose world scene is loaded. Spawns and state sync only go to
+## them, otherwise a joining client gets nodes before it has a World to put them in.
+var peers_in_world: Array[int] = []
+
 var _joined: bool = false
 
 
@@ -73,9 +77,29 @@ func leave_game() -> void:
 		peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_joined = false
+	peers_in_world.clear()
 	if not players.is_empty():
 		players.clear()
 		players_changed.emit()
+
+
+## Use for every MultiplayerSynchronizer of a spawned node (players, NPCs):
+## it then only syncs (and spawns) to peers that have the world loaded.
+func limit_sync_to_world(sync: MultiplayerSynchronizer) -> void:
+	sync.public_visibility = false
+	sync.add_to_group(&"world_sync")
+	sync.set_visibility_for(1, true)  # clients always talk to the host
+	for peer: int in peers_in_world:
+		sync.set_visibility_for(peer, true)
+
+
+## Host: a client finished loading the world -> start sending it spawns/sync.
+func mark_peer_in_world(peer: int) -> void:
+	if peer in peers_in_world:
+		return
+	peers_in_world.append(peer)
+	for sync: Node in get_tree().get_nodes_in_group(&"world_sync"):
+		(sync as MultiplayerSynchronizer).set_visibility_for(peer, true)
 
 
 func is_online() -> bool:
@@ -110,6 +134,7 @@ func _on_peer_connected(peer_id: int) -> void:
 func _on_peer_disconnected(peer_id: int) -> void:
 	if not multiplayer.is_server():
 		return  # clients get the updated list from the host
+	peers_in_world.erase(peer_id)
 	if players.erase(peer_id):
 		print("[Net] Peer %d left" % peer_id)
 		_sync_players.rpc(players)

@@ -1918,6 +1918,11 @@ no_depth_test = true
 _spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn")
 spawn_path = NodePath("../NPCs")
 
+[node name="Players" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Players")
+
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Panel" type="PanelContainer" parent="HUD"]
