@@ -7,6 +7,9 @@ extends Node
 ##    movement code as the player) walks from the street to 2.5 m inside.
 ##    Also checks that the navigation mesh has a path through the door.
 ## 3. Debug labels (group "debug_only") are hidden in game.
+## 4. Pedestrians: spawns them, runs 90 game-seconds at 3x speed and checks that
+##    nobody walks on the road outside a zebra, nobody gets stuck for good, and
+##    they wander, idle, sit on benches and visit public buildings.
 ## Prints "[SelfTest] PASS/FAIL ..." lines and quits.
 
 const WALKER: PackedScene = preload("res://scenes/world/walk_viewer.tscn")
@@ -25,6 +28,7 @@ func _run() -> void:
 	_check_lamps(world)
 	_check_debug_labels()
 	await _check_doors(world)
+	await _check_pedestrians(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -138,3 +142,56 @@ func _check_doors(world: Node3D) -> void:
 		var p2: Vector3 = walker.global_position
 		walker.queue_free()
 		_report((p2 - center).dot(out) > 0.0, "closed %s/%s blocks the walker" % [building, door.name])
+
+
+# --- Pedestrians -----------------------------------------------------------------
+
+func _check_pedestrians(world: Node3D) -> void:
+	world.call("spawn_pedestrians", 10)
+	await get_tree().physics_frame
+	var npcs: Array[Node] = get_tree().get_nodes_in_group(&"npc")
+	_report(npcs.size() == 10, "spawned %d pedestrians" % npcs.size())
+	var roads: Array[Node] = world.find_children("*", "RoadTile", true, false)
+	var start: Dictionary = {}
+	var travelled: Dictionary = {}
+	for n: Node in npcs:
+		start[n] = (n as Node3D).global_position
+		travelled[n] = 0.0
+	var on_road: int = 0
+	var samples: int = 0
+	var indoor_hits: int = 0
+	Engine.time_scale = 3.0
+	var last: Dictionary = start.duplicate()
+	for step: int in 450:  # 90 game-seconds, sampled every 0.2 s
+		await get_tree().create_timer(0.2).timeout
+		for n: Node in npcs:
+			var p: Vector3 = (n as Node3D).global_position
+			travelled[n] += p.distance_to(last[n])
+			last[n] = p
+			samples += 1
+			for r: Node in roads:
+				# Fully on the road (body overlapping a zebra edge is fine).
+				var t := r as RoadTile
+				if p.y < 0.12 and t.is_blocked(p) and t.is_blocked(p + Vector3(0.4, 0, 0)) 						and t.is_blocked(p - Vector3(0.4, 0, 0)) and t.is_blocked(p + Vector3(0, 0, 0.4)) 						and t.is_blocked(p - Vector3(0, 0, 0.4)):
+					on_road += 1
+					if on_road <= 5:
+						print("[SelfTest]   %s on the road at %s" % [n.name, p])
+					break
+	Engine.time_scale = 1.0
+	_report(on_road == 0, "pedestrians stayed off the road outside zebras (%d of %d samples on road)" % [on_road, samples])
+	var totals: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0}
+	var lazy: int = 0
+	var worst_stuck: int = 0
+	for n: Node in npcs:
+		var st: Dictionary = n.get("stats")
+		for k: String in totals:
+			totals[k] += st[k]
+		worst_stuck = maxi(worst_stuck, st["stuck"])
+		if travelled[n] < 10.0:
+			lazy += 1
+			print("[SelfTest]   %s only moved %.1f m (%s)" % [n.name, travelled[n], st])
+	_report(lazy <= 1, "pedestrians keep moving (%d of %d moved < 10 m)" % [lazy, npcs.size()])
+	_report(totals["walk"] >= 8 and totals["sit"] + totals["visit"] > 0, "activities: %s" % totals)
+	# Getting stuck now and then is fine (it backs off); staying stuck is not.
+	_report(worst_stuck <= 2 and totals["stuck"] <= 5,
+			"nobody stays stuck (%d stuck moves, worst NPC %d)" % [totals["stuck"], worst_stuck])

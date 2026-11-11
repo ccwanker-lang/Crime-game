@@ -33,6 +33,16 @@ const MARK_Y: float = 0.006
 		zebra = v
 		_queue_rebuild()
 
+## STRAIGHT only: a zebra crossing across the road in the middle of the tile.
+@export var crossing: bool = false:
+	set(v):
+		crossing = v
+		_queue_rebuild()
+
+## Asphalt without the zebra crossings (local XZ, convex parts). Pedestrians may
+## not walk here: NavigationObstacle3D children carve it out of the navmesh.
+var blocked_areas: Array[PackedVector2Array] = []
+
 var _mesh_instance: MeshInstance3D
 var _shape: CollisionShape3D
 var _pending: bool = false
@@ -70,6 +80,7 @@ func _rebuild() -> void:
 		asphalt = next
 	for a: PackedVector2Array in asphalt:
 		b.slab(&"asphalt", &"asphalt", a, 0.0, 0.0)
+	_build_obstacles(asphalt)
 
 	for sw: PackedVector2Array in sidewalks:
 		_add_sidewalk(b, sw)
@@ -78,6 +89,68 @@ func _rebuild() -> void:
 	var mesh: ArrayMesh = b.build()
 	_mesh_instance.mesh = mesh
 	_shape.shape = mesh.create_trimesh_shape()
+
+
+## Carves the road (minus zebra crossings) out of the navigation mesh, so
+## pedestrians stay on the sidewalks and cross only at zebras.
+func _build_obstacles(asphalt: Array[PackedVector2Array]) -> void:
+	for c: Node in get_children():
+		if c is NavigationObstacle3D:
+			c.queue_free()
+	blocked_areas.clear()
+	var parts: Array[PackedVector2Array] = asphalt.duplicate()
+	for zone: PackedVector2Array in _crossing_zones():
+		var next: Array[PackedVector2Array] = []
+		for a: PackedVector2Array in parts:
+			# Zones always cross the whole road, so clipping never leaves holes.
+			for r: PackedVector2Array in Geometry2D.clip_polygons(a, zone):
+				next.append(r)
+		parts = next
+	for a: PackedVector2Array in parts:
+		for convex: PackedVector2Array in Geometry2D.decompose_polygon_in_convex(a):
+			blocked_areas.append(convex)
+			var ob := NavigationObstacle3D.new()
+			ob.avoidance_enabled = false
+			ob.affect_navigation_mesh = true
+			ob.carve_navigation_mesh = false  # grown by the agent radius: paths keep clear of the road
+			ob.height = 1.0
+			ob.position.y = -0.5
+			var verts := PackedVector3Array()
+			for p: Vector2 in convex:
+				verts.append(Vector3(p.x, 0, p.y))
+			ob.vertices = verts
+			add_child(ob)
+
+
+## Walkable strips across the road (the zebras, widened to the curbs).
+func _crossing_zones() -> Array[PackedVector2Array]:
+	var zones: Array[Rect2] = []
+	match type:
+		Type.STRAIGHT:
+			if crossing:
+				zones.append(Rect2(-1.2, -HALF, 2.4, TILE))
+		Type.T:
+			if zebra:
+				zones.append(Rect2(-HALF, -5.9, TILE, 1.1))
+		Type.CROSS:
+			if zebra:
+				zones.append(Rect2(-HALF, -5.9, TILE, 1.8))
+				zones.append(Rect2(-HALF, 4.1, TILE, 1.8))
+				zones.append(Rect2(-5.9, -HALF, 1.8, TILE))
+				zones.append(Rect2(4.1, -HALF, 1.8, TILE))
+	var out: Array[PackedVector2Array] = []
+	for r: Rect2 in zones:
+		out.append(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]))
+	return out
+
+
+## True if a world position is on the road outside a zebra crossing.
+func is_blocked(world_pos: Vector3) -> bool:
+	var l: Vector3 = to_local(world_pos)
+	for a: PackedVector2Array in blocked_areas:
+		if Geometry2D.is_point_in_polygon(Vector2(l.x, l.z), a):
+			return true
+	return false
 
 
 # --- Layout ------------------------------------------------------------------
@@ -180,6 +253,8 @@ func _add_markings(b: MeshBuilder) -> void:
 			if center_line:
 				for x0: float in [-4.5, 1.5]:
 					_rect(b, Vector2(x0, -0.06), Vector2(x0 + 3.0, 0.06))
+			if crossing:
+				_zebra(b, Vector2(-1.2, -3.3), Vector2(1.2, 3.3), false)
 		Type.CURVE:
 			if center_line:
 				var c := Vector2(-HALF, HALF)

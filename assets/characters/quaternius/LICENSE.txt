@@ -1,0 +1,17 @@
+Animated characters by Quaternius (https://quaternius.com) - CC0 1.0 (public domain).
+Downloaded from Poly Pizza (https://poly.pizza). Credit is not required but appreciated.
+
+woman_purple_hair.glb   poly.pizza/m/AQsd9ngvKU  "Woman"
+man_tshirt.glb          poly.pizza/m/HMnuH5geEG  "Man"
+woman_tank_top.glb      poly.pizza/m/XqzeZGB7iU  "Woman in Tank Top"
+woman_casual.glb        poly.pizza/m/jpKRgGDxhk  "Woman Casual"
+woman_dress.glb         poly.pizza/m/zMyPlQXBzq  "Woman in Dress"
+man_casual.glb          poly.pizza/m/fjHyMd5Wxw  "Man"
+man_suit_grey.glb       poly.pizza/m/mQnGoME1ez  "Man in Suit"
+man_longsleeve.glb      poly.pizza/m/kZ3DmIoGip  "Casual Character"
+woman_green_dress.glb   poly.pizza/m/nIItLV9nxS  "Animated Woman"
+woman_orange_pants.glb  poly.pizza/m/qJ2gsTUBHL  "Animated Woman"
+business_man.glb        poly.pizza/m/JFrLIKqvCH  "Business Man"
+worker.glb              poly.pizza/m/Yg2bQZO6Hj  "Worker"
+hoodie.glb              poly.pizza/m/gKLBoRsyKe  "Hoodie Character"
+punk.glb                poly.pizza/m/BTALZymknF  "Punk"

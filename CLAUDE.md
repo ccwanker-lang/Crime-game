@@ -29,6 +29,10 @@ Godot console exe:
   camera spots (`scripts/debug/screenshot_tour.gd`, list SHOTS) into `screenshots/` (git-ignored) and quits.
   Look at them with the Read tool after map/visual changes.
 - Optional `--shots=02,05` limits the tour to those shots. The tour also prints FPS + draw calls.
+  `--npcs=N` changes the pedestrian count; `--env:ssil_enabled=false` overrides an Environment property.
+- Map self-test (headless): `--headless --path . -- --selftest --port=7791` (`scripts/debug/self_test.gd`):
+  lamps on poles, walk + navmesh through every door, debug labels hidden, pedestrians stay off the
+  road (except zebras) and keep moving. Run it after map/door/NPC changes; it prints PASS/FAIL.
 
 ## Map / prefabs
 - Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts in `scripts/procgen/`).
@@ -36,3 +40,8 @@ Godot console exe:
 - Markers that belong to a building (PotSpot, StoreSpot, ContactSpot...) live inside its prefab; find them with
   `world.get_marker(name)`.
 - Doors and other networked props: group `net_state` (`get_net_state`/`apply_net_state`), synced to late joiners.
+- Navmesh: cell 0.1 m (coarser cells left corners too tight -> NPCs stuck). Physics layers: 1 world (navmesh bakes from it), 2 doors (not baked), 3 npcs. Debug-only nodes (marker
+  labels): group `debug_only`, hidden in game, F3 toggles.
+- NPCs: `prefabs/npc/pedestrian.tscn` (`Pedestrian`): host runs AI/physics, clients get net_pos/net_yaw/
+  anim_state via MultiplayerSynchronizer; spawned by World/NPCSpawner. Road tiles carve the asphalt (minus
+  zebras) out of the navmesh with NavigationObstacle3D. Moving meshes: no SDFGI (environment uses SSIL).

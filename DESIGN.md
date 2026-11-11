@@ -5,8 +5,7 @@ but keep code compatible with everything described here.
 
 ## Concept
 Co-op crime/shooter inspired by Schedule I (economy, production, NPC selling) + Counter-Strike-style gunplay.
-Fictional Belgian/European town, currency euro (€). Game language: English. Art: low-poly
-(Kenney/Quaternius asset packs later, primitives/greybox for now).
+Fictional Belgian/European town, currency euro (€). Game language: English. Art: see "Art direction".
 
 ## Tech decisions
 - Godot 4.x (standard, GDScript, static typing), Forward+.
@@ -72,6 +71,37 @@ Acts:
 5. The HQ (rank 6): final assault, defeat Viktor and spare him.
 Ending: the Crows work for the player (dealers/guards), Viktor runs the harbor. Highway to region 2
 opens with a new rival.
+
+## Art direction
+**Style: low-poly but detailed and grounded — NOT Roblox-like, not toy-like, not cartoon-bright.**
+A believable Belgian/European town at human scale (1 unit = 1 m, people ~1.75 m).
+- Architecture: Belgian row houses (brick in red/yellow/white, plaster, bluestone plinths, sills,
+  string courses, dormers, bay windows), narrow plots, shops with awnings, cobbled squares,
+  raised sidewalks with curbs, zebra crossings, cast-iron street lamps, street-name signs.
+- Materials: PBR (albedo/normal/roughness) from CC0 sources, slightly desaturated, real-world scale.
+  Lighting: HDRI sky, sun with shadows, SSAO + SSIL (no SDFGI: it smears dark blocks on moving
+  characters), light fog for depth.
+- Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts or imported
+  models); lamps always come with their pole/mount in one prefab.
+- People: Quaternius CC0 animated characters with realistic proportions (no chibi/big-head
+  packs), matte materials, random clothing colours. One prefab base (`prefabs/npc/pedestrian.tscn`)
+  for pedestrians, customers, dealers, police and rivals.
+- Asset sources, in this order: (1) CC0 — Quaternius, Poly Haven, ambientCG, Kenney (only packs that
+  fit the grounded style); (2) Sketchfab CC-BY, credits kept in `CREDITS.md`; (3) if nothing is good
+  enough, propose a paid pack (e.g. Synty POLYGON) with its price and let the user decide.
+  Every asset folder keeps a LICENSE.txt; every non-CC0 asset is listed in `CREDITS.md`.
+
+### Weapons (from milestone step 4)
+- Realistic low-poly firearms: pistol, SMG, shotgun, rifle. PBR textures with metal, wear and
+  scratches. **No toy or sci-fi blasters** (so not the Kenney Blaster Kit).
+- Sources: CC0 first (Quaternius, Poly Haven); otherwise Sketchfab CC-BY with credits in
+  `CREDITS.md`. If nothing is good enough: propose a paid pack (e.g. Synty POLYGON Military /
+  Gang Warfare, roughly US$ 40–100 per pack, check the current price) before buying anything.
+- First person: viewmodel with arms/hands; animations for shoot, reload and weapon switch;
+  recoil (camera kick + viewmodel kick), muzzle flash, ejected shell casings, impact effects
+  (decals + particles per surface) and sound (shot, reload, casing, impact).
+- Third person / other players: the same weapon held in the character model's hand (bone
+  attachment), with matching shoot/reload animations.
 
 ## Buildings / services
 Starter room, garage property, barn, lab warehouse, harbor containers/storage, villa, mountain cabin,

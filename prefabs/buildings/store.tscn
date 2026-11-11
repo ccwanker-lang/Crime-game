@@ -21,6 +21,7 @@ shop_sign = "STORE"
 awning = true
 awning_color = Color(0.6, 0.12, 0.1, 1)
 enterable = true
+public_building = true
 floor_material = "floor_tiles"
 chimney = "none"
 variation_seed = 12

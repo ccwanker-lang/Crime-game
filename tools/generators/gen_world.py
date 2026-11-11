@@ -37,8 +37,8 @@ sc.node("SunAndSky", None, ".", instance=PF + "environment/sun_and_sky.tscn")
 
 navmesh = sc.subres("NavigationMesh", {
     "geometry_parsed_geometry_type": "1", "geometry_collision_mask": "1",
-    "cell_size": "0.25", "cell_height": "0.25",
-    "agent_height": "1.75", "agent_radius": "0.25", "agent_max_climb": "0.25",
+    "cell_size": "0.1", "cell_height": "0.1",
+    "agent_height": "1.8", "agent_radius": "0.25", "agent_max_climb": "0.3",
     "filter_baking_aabb": "AABB(-74, -2, -62, 148, 20, 130)"})
 sc.node(NAV, "NavigationRegion3D", ".", props={"navigation_mesh": navmesh})
 
@@ -58,6 +58,8 @@ for x in range(-66, 67, 12):
         put(R + "road_t_junction.tscn", (x, 0, 0))
     elif x == 30:
         put(R + "road_crossing.tscn", (x, 0, 0))
+    elif x in (-30, 6):  # mid-block zebra crossings (Starter Room, Store)
+        put(R + "road_straight.tscn", (x, 0, 0), props={"crossing": "true"})
     else:
         put(R + "road_straight.tscn", (x, 0, 0))
 for z in (-12, -24, -36):
@@ -204,6 +206,11 @@ grass(-42, -45, 56, 26, 2)
 # Block B: hospital, parking behind it, houses facing the top road.
 gB = []
 fixed("buildings/hospital.tscn", 1, 22, -6, True, gB, name="Hospital")
+# Pave the 1 m gaps between the hospital and the side-road sidewalks (no sunken grass pockets).
+for i, cx in enumerate((0.5, 23.5)):
+    sc.node(f"HospitalSidePaving{i + 1}", "StaticBody3D", NAV, props={
+        "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((cx, 0, -13)),
+        "size": "Vector2(1, 14)", "surface": q("sidewalk"), "height": "0.15", "edge": "false"})
 sc.node("Parking", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((12, 0, -25)),
     "size": "Vector2(24, 10)", "surface": q("asphalt"), "height": "0.02"})
@@ -351,14 +358,14 @@ for z in (-18, -30):
     put("props/street_lamp.tscn", (26.05, 0.15, z), 90)
 for z in (18, 42):
     put("props/street_lamp.tscn", (26.05, 0.15, z), 90)
-put("props/sign_post.tscn", (-12.6, 0.15, -3.9), 0, props={"sign_text": q("MILL LANE")})
-put("props/sign_post.tscn", (24.4, 0.15, -3.9), 0, props={"sign_text": q("STATION ROAD")})
-put("props/sign_post.tscn", (-0.6, 0.15, -3.9), 180, props={"sign_text": q("MAIN STREET")})
+put("props/sign_post.tscn", (-12.6, 0.15, -3.72), 0, props={"sign_text": q("MILL LANE")})
+put("props/sign_post.tscn", (23.5, 0.15, -3.72), 0, props={"sign_text": q("STATION ROAD")})
+put("props/sign_post.tscn", (-0.6, 0.15, -3.72), 180, props={"sign_text": q("MAIN STREET")})
 put("props/utility_box.tscn", (-11.2, 0.15, -5.4), 0)
 put("props/utility_box.tscn", (25.0, 0.15, 5.4), 180)
 for x in (36.6, 43.4, 50.0):
     put("props/bike_rack.tscn" if x == 43.4 else "props/trash_can.tscn", (x, 0.15, -5.2), 0)
-put("props/bench.tscn", (56, 0.15, -5.5), 180)
+put("props/bench.tscn", (56, 0.15, -5.45), 0)  # faces the street
 for x in (2.0, 4.0, 20.0, 22.0):
     put("props/bollard.tscn", (x, 0.15, -3.8))
 put("props/post_box.tscn", (-44.5, 0.15, -5.4), 0)
@@ -386,9 +393,17 @@ for i in range(18):
 # --------------------------------------------------------------------------- invisible walls
 sc.node("Bounds", "StaticBody3D", ".")
 for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150, 10, 1)),
-                        ("W", (-73, 5, 3), (1, 10, 130)), ("E", (73, 5, 3), (1, 10, 130))]:
+                        ("W", (-72.5, 5, 3), (1, 10, 130)), ("E", (72.5, 5, 3), (1, 10, 130))]:
     sc.node("Wall" + name, "CollisionShape3D", "Bounds", props={
         "transform": xform(pos), "shape": sc.subres("BoxShape3D", {"size": v3(*size)})})
+
+# Keep NPCs 2 m away from the invisible map-edge walls (no rubbing along them).
+for name, (x0, z0, x1, z1) in [("N", (-74, -62, 74, -58.5)), ("S", (-74, 64.5, 74, 68)),
+                               ("W", (-74, -62, -70, 68)), ("E", (70, -62, 74, 68))]:
+    sc.node("EdgeNoWalk" + name, "NavigationObstacle3D", NAV, props={
+        "transform": xform((0, -1, 0)), "height": "4.0", "avoidance_enabled": "false",
+        "affect_navigation_mesh": "true", "carve_navigation_mesh": "true",
+        "vertices": f"PackedVector3Array({x0}, 0, {z0}, {x1}, 0, {z0}, {x1}, 0, {z1}, {x0}, 0, {z1})"})
 
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")
@@ -415,6 +430,13 @@ for i, (x, z) in enumerate([(42, 12), (58, 12), (58, 28), (42, 28)]):
     debug_label(f"Markers/RivalPatrol/P{i + 1}", f"PATROL P{i + 1}")
 for i in range(4):
     debug_label(f"Markers/SpawnPoints/Spawn{i + 1}", f"SPAWN {i + 1}")
+
+# --------------------------------------------------------------------------- NPCs
+# Host spawns pedestrians under NPCs; the spawner replicates them to clients.
+sc.node("NPCs", "Node3D", ".")
+sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
+    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn")',
+    "spawn_path": 'NodePath("../NPCs")'})
 
 # --------------------------------------------------------------------------- HUD
 sc.node("HUD", "CanvasLayer", ".")

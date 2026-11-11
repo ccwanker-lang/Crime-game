@@ -16,7 +16,11 @@ const DOOR_LAYER: int = 2  # physics layer 2 ("doors"), ignored by navmesh bakin
 	set(v): glass_panel = v; _queue_rebuild()
 @export var open_angle: float = 100.0
 
+const NPC_RANGE: float = 1.8  # an NPC (group "npc") whose target_door is this door opens it within this range
+
 var is_open: bool = false
+var _npc_opened: bool = false  # opened automatically for an NPC: closes again by itself
+var _npc_clear_time: float = 0.0
 var _pivot: AnimatableBody3D  # the door leaf itself; rotating it moves the collision too
 var _mesh: MeshInstance3D
 var _color: Color = Color(0.16, 0.27, 0.22)
@@ -109,7 +113,41 @@ func _request_toggle() -> void:
 
 
 func _server_toggle() -> void:
+	_npc_opened = false
 	_set_open.rpc(not is_open)
+
+
+# --- NPCs (host only) ---------------------------------------------------------------
+
+## Door centre at floor height, and the outward direction (towards the street).
+func get_center() -> Vector3:
+	return global_position + global_basis.x.normalized() * width / 2.0
+
+
+func get_outward() -> Vector3:
+	return global_basis.z.normalized()
+
+
+func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint() or not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
+		return
+	var near: bool = false
+	var c: Vector3 = get_center()
+	for npc: Node in get_tree().get_nodes_in_group(&"npc"):
+		# Only NPCs that want to go through this door (not passers-by).
+		if npc.get("target_door") == self and (npc as Node3D).global_position.distance_to(c) < NPC_RANGE:
+			near = true
+			break
+	if near:
+		_npc_clear_time = 0.0
+		if not is_open:
+			_npc_opened = true
+			_set_open.rpc(true)
+	elif is_open and _npc_opened:
+		_npc_clear_time += delta
+		if _npc_clear_time > 2.0:
+			_npc_opened = false
+			_set_open.rpc(false)
 
 
 @rpc("authority", "call_local", "reliable")

@@ -86,6 +86,9 @@ const ROOM_COLORS: Array[Color] = [
 ## Ground floor can be entered: real door, interior walls, floor and ceiling.
 @export var enterable: bool = false:
 	set(v): enterable = v; _queue_rebuild()
+## Shops, hospital...: ambient pedestrians may walk in (doors in group "public_door").
+@export var public_building: bool = false:
+	set(v): public_building = v; _queue_rebuild()
 @export_enum("wood_floor", "floor_tiles", "concrete") var floor_material: String = "wood_floor":
 	set(v): floor_material = v; _queue_rebuild()
 
@@ -214,6 +217,8 @@ func _spawn_doors() -> void:
 		door.width = slot["width"]
 		door.height = slot["height"]
 		door.glass_panel = slot["glass"]
+		if public_building:
+			door.add_to_group(&"public_door")
 		_add_generated(door)
 		door.set_color(door_color)
 

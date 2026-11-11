@@ -101,10 +101,16 @@ def lamp_light(sc):
 
 
 model_prefab(P + "street_lamp.tscn", "street_lamp_01", None, ("cyl", 0.12, 4.8), scale=1.25, extra=lamp_light)
+def bench_seats(sc):
+    # Sit spots for pedestrians (they sit facing +Z, the front of the bench).
+    for i, x in enumerate((-0.55, 0.55)):
+        sc.node(f"Seat{i + 1}", "Marker3D", ".", groups=["bench_seat"], props={"transform": xform((x, 0, 0.0))})
+
+
 model_prefab(P + "bench.tscn", "modular_street_seating",
              ["seat", "seat_back", "crossbar", "legs_single", "legs_double", "back_support_r", "back_support_l",
               "suspended_support_01", "arm_rest_01", "arm_rest_02"],
-             ("box", (2.3, 0.85, 0.7), (0, 0.425, 0)), vis_end=80)
+             ("box", (2.3, 0.85, 0.7), (0, 0.425, 0)), vis_end=80, extra=bench_seats)
 model_prefab(P + "trash_can.tscn", "metal_trash_can",
              ["metal_trash_can", "metal_trash_can_handle_left", "metal_trash_can_handle_right"],
              ("cyl", 0.3, 0.9), vis_end=70)
@@ -330,6 +336,7 @@ building(B + "store.tscn", {
     "width": "10.0", "depth": "10.0", "floors": "2", "wall_material": q("brick_old"),
     "roof_material": q("roof_dark"), "roof_type": q("hip"), "ground_floor": q("shop"), "door_bay": "1",
     "shop_sign": q("STORE"), "awning": "true", "awning_color": col(0.6, 0.12, 0.1), "enterable": "true",
+    "public_building": "true",
     "floor_material": q("floor_tiles"), "chimney": q("none"), "variation_seed": "12"}, store_extra)
 
 
@@ -360,7 +367,8 @@ building(B + "hospital.tscn", {
     "wall_material": q("plaster"), "wall_tint": col(0.95, 0.94, 0.9), "roof_type": q("flat"),
     "ground_floor": q("shop"), "door_bay": "4", "shop_sign": q("ST. ANNA HOSPITAL"),
     "trim_color": col(0.85, 0.87, 0.88), "string_courses": "true", "side_windows": "true",
-    "enterable": "true", "floor_material": q("floor_tiles"), "lit_windows": "0.45", "variation_seed": "3"},
+    "enterable": "true", "public_building": "true", "floor_material": q("floor_tiles"), "lit_windows": "0.45",
+    "variation_seed": "3"},
     hospital_extra)
 
 

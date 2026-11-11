@@ -4,9 +4,12 @@ extends Node3D
 ## points / markers, and syncs networked props (doors) to late joiners.
 
 const WALK_VIEWER: PackedScene = preload("res://scenes/world/walk_viewer.tscn")
+const PEDESTRIAN: PackedScene = preload("res://prefabs/npc/pedestrian.tscn")
+const PEDESTRIAN_COUNT: int = 10
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
 @onready var spawn_points: Node3D = $Markers/SpawnPoints
+@onready var npcs: Node3D = $NPCs
 @onready var players_label: Label = %PlayersLabel
 @onready var info_label: Label = %InfoLabel
 @onready var leave_button: Button = %LeaveButton
@@ -36,6 +39,20 @@ func _ready() -> void:
 
 	if not multiplayer.is_server():
 		_request_snapshot.rpc_id(1)
+	if "--netcheck" in OS.get_cmdline_user_args():
+		_net_check()
+
+
+## Debug (--netcheck): after 12 s print what this peer sees of the synced NPCs, then quit.
+func _net_check() -> void:
+	await get_tree().create_timer(12.0).timeout
+	var parts: PackedStringArray = []
+	for npc: Node in npcs.get_children().slice(0, 3):
+		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])
+	print("[NetCheck] %s sees %d NPCs: %s" % ["host" if multiplayer.is_server() else "client", npcs.get_child_count(), ", ".join(parts)])
+	await get_tree().create_timer(1.0).timeout
+	Net.leave_game()
+	get_tree().quit()
 
 
 ## TEMPORARY until step 3: a local first-person walker on the street.
@@ -104,11 +121,10 @@ func get_spawn_point(index: int) -> Vector3:
 func _on_nav_baked() -> void:
 	var polygons: int = nav_region.navigation_mesh.get_polygon_count()
 	print("[World] Navigation mesh baked: %d polygons" % polygons)
-	_debug_check_paths.call_deferred()
+	_after_navmesh.call_deferred()
 
 
-## Prints whether NPCs can path to the key spots (visible in the Output panel).
-func _debug_check_paths() -> void:
+func _after_navmesh() -> void:
 	# The navigation server applies the new mesh asynchronously (region first,
 	# then the map), so wait until the map actually contains it.
 	var map: RID = nav_region.get_navigation_map()
@@ -118,6 +134,39 @@ func _debug_check_paths() -> void:
 				and NavigationServer3D.map_get_closest_point(map, start).distance_to(start) < 2.0:
 			break
 		await get_tree().physics_frame
+	_debug_check_paths()
+	# The self-test spawns them itself, after its door checks.
+	if multiplayer.is_server() and not "--selftest" in OS.get_cmdline_user_args():
+		var count: int = PEDESTRIAN_COUNT
+		for arg: String in OS.get_cmdline_user_args():
+			if arg.begins_with("--npcs="):
+				count = arg.trim_prefix("--npcs=").to_int()
+		spawn_pedestrians(count)
+
+
+## Host only: ambient pedestrians on random sidewalk spots (synced by NPCSpawner).
+func spawn_pedestrians(count: int) -> void:
+	var player_spawn: Vector3 = (spawn_points.get_child(0) as Node3D).global_position
+	for i: int in count:
+		var p: Vector3 = Vector3.INF
+		for attempt: int in 10:
+			p = Pedestrian.random_sidewalk_point(self)
+			if p != Vector3.INF and p.distance_to(player_spawn) > 6.0:
+				break
+		if p == Vector3.INF:
+			continue
+		var npc: Pedestrian = PEDESTRIAN.instantiate()
+		npc.variant = i % Pedestrian.VARIANTS.size()
+		npc.color_seed = randi()
+		npc.position = p
+		npc.rotation.y = randf() * TAU
+		npcs.add_child(npc, true)
+
+
+## Prints whether NPCs can path to the key spots (visible in the Output panel).
+func _debug_check_paths() -> void:
+	var map: RID = nav_region.get_navigation_map()
+	var start: Vector3 = get_marker("CustomerSpawn").global_position
 	for target_name: String in ["CustomerMeetPoint", "ContactSpot", "StoreSpot", "PotSpot", "P3"]:
 		var target: Vector3 = get_marker(target_name).global_position
 		var path: PackedVector3Array = NavigationServer3D.map_get_path(map, start, target, true)
