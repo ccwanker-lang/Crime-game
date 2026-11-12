@@ -152,3 +152,15 @@ standard_material("gun_polymer", {"uv1_scale": "Vector3(6, 6, 6)", "metallic": 1
 standard_material("gun_wood", {"uv1_scale": "Vector3(3, 3, 3)", "albedo_color": (0.62, 0.36, 0.22, 1.0), "roughness": 0.55,
                                "normal_enabled": True, "normal_scale": 0.6},
                   textures={"albedo_texture": TX + "WoodFloor041/color.jpg", "normal_texture": TX + "WoodFloor041/normal.jpg"})
+
+# --- Cars (scripts/traffic/proc_car.gd); car_paint is tinted per car (surface override) ---
+standard_material("car_paint", {"albedo_color": (0.8, 0.8, 0.8, 1.0), "metallic": 0.45, "roughness": 0.32,
+                                "clearcoat_enabled": True, "clearcoat": 0.6, "clearcoat_roughness": 0.15})
+standard_material("car_glass", {"albedo_color": (0.06, 0.08, 0.1, 1.0), "metallic": 0.6, "roughness": 0.06})
+standard_material("car_tire", {"albedo_color": (0.045, 0.045, 0.05, 1.0), "roughness": 0.9})
+standard_material("car_trim", {"albedo_color": (0.07, 0.07, 0.075, 1.0), "roughness": 0.55})
+standard_material("car_chrome", {"albedo_color": (0.75, 0.76, 0.78, 1.0), "metallic": 1.0, "roughness": 0.2})
+standard_material("car_headlight", {"albedo_color": (1.0, 0.98, 0.9, 1.0), "emission_enabled": True,
+                                    "emission": (1.0, 0.95, 0.85, 1.0), "emission_energy_multiplier": 2.5})
+standard_material("car_taillight", {"albedo_color": (0.6, 0.02, 0.02, 1.0), "emission_enabled": True,
+                                    "emission": (1.0, 0.05, 0.03, 1.0), "emission_energy_multiplier": 1.5})

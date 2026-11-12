@@ -155,3 +155,7 @@ Terrain should have real height differences (hills up, down to the river and har
   furniture (living room / bedrooms, shop shelves, warehouse storage). Rooms are open plan (no inner walls
   or doors yet); the starter room, store, hospital and gun shop are ground floor only. Private houses are
   not on the NPC navmesh (only public buildings are visited).
+- AI traffic: 8 procedural cars (sedan/hatchback/van, random paint) drive fixed right-hand routes
+  (`Traffic` routes, U-turns before the map-edge barriers). They brake for cars, pedestrians and players
+  in their lane and take junctions one car at a time (no traffic lights yet). Cars can't be entered,
+  damaged or hit people yet (they just stop); later: player cars, car garage, collisions.

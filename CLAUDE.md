@@ -89,6 +89,10 @@ Godot console exe:
 - Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
   World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
 - In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.
+- Traffic: World/Traffic (`scripts/traffic/traffic.gd`) holds the closed `TrafficRoute`s (corners + fillet radii,
+  right-hand lanes at +-1.75 m) and spawns `prefabs/vehicles/car.tscn` (`Car`, AnimatableBody3D on layer 2, mesh by
+  `ProcCar`) via World/CarSpawner. Host drives (sense boxes along the route ahead, junction reservation per square
+  in `Traffic.JUNCTIONS`), clients smooth net_pos/net_yaw. `--cars=N` changes the count; the self-test spawns its own.
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

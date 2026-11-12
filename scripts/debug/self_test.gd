@@ -47,6 +47,7 @@ func _run() -> void:
 	await _check_growing(world)
 	await _check_pedestrians(world)
 	await _check_npc_combat(world)
+	await _check_traffic(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -688,3 +689,68 @@ func _check_npc_combat(world: Node3D) -> void:
 	_report(not is_instance_valid(a) and now == count0, "dead NPC removed and a new one respawned (%d -> %d)" % [count0, now])
 	Pedestrian.corpse_time = 20.0
 	Pedestrian.respawn_time = 60.0
+
+
+# --- traffic ---------------------------------------------------------------------------
+
+func _check_traffic(world: Node3D) -> void:
+	var traffic: Traffic = world.get_node("Traffic")
+	traffic.spawn_cars(8)
+	await get_tree().physics_frame
+	var cars: Array[Node] = get_tree().get_nodes_in_group(&"cars")
+	_report(cars.size() == 8, "spawned %d cars" % cars.size())
+	var roads: Array[Node] = world.find_children("*", "RoadTile", true, false)
+	var travelled: Dictionary = {}
+	var last: Dictionary = {}
+	for c: Node in cars:
+		travelled[c] = 0.0
+		last[c] = (c as Node3D).global_position
+	var off_road: int = 0
+	var overlaps: int = 0
+	Engine.time_scale = 3.0
+	for step: int in 300:  # 60 game-seconds
+		await get_tree().create_timer(0.2).timeout
+		for i: int in cars.size():
+			var p: Vector3 = (cars[i] as Node3D).global_position
+			travelled[cars[i]] += p.distance_to(last[cars[i]])
+			last[cars[i]] = p
+			var on_road: bool = false
+			for r: Node in roads:
+				if (r as RoadTile).is_on_asphalt(p):
+					on_road = true
+					break
+			if not on_road:
+				off_road += 1
+				if off_road <= 3:
+					print("[SelfTest]   %s off the road at %s" % [cars[i].name, p])
+			for j: int in range(i + 1, cars.size()):
+				if p.distance_to((cars[j] as Node3D).global_position) < 2.0:
+					overlaps += 1
+					if overlaps <= 4:
+						print("[SelfTest]   %s (route %d, ignoring cars %.1f s) and %s (route %d) overlap at %s" % [cars[i].name,
+								cars[i].route_id, cars[i]._ignore_cars, cars[j].name, cars[j].route_id, p.snapped(Vector3.ONE * 0.1)])
+	Engine.time_scale = 1.0
+	var slow: int = 0
+	for c: Node in cars:
+		if travelled[c] < 100.0:
+			slow += 1
+			print("[SelfTest]   %s only drove %.0f m" % [c.name, travelled[c]])
+	_report(off_road == 0, "cars stay on the asphalt (%d off-road samples)" % off_road)
+	_report(slow == 0, "cars keep driving (%d of %d drove < 100 m in 60 s)" % [slow, cars.size()])
+	_report(overlaps == 0, "cars don't drive through each other (%d overlaps)" % overlaps)
+	# Braking: a person standing in the lane 14 m ahead of a car on the main road.
+	var car: Car = null
+	for c: Node in cars:
+		if (c as Car).route_id == 2:
+			car = c
+	car.progress = 30.0
+	car.speed = Car.CRUISE
+	var person: Pedestrian = world.call("_add_pedestrian", traffic.routes[2].sample(30.0 + 14.0)[0], 0)
+	person.set_physics_process(false)
+	await get_tree().create_timer(5.0).timeout
+	var gap: float = car.global_position.distance_to(person.global_position)
+	_report(car.speed < 0.1 and car.blocked_by == "person" and gap > 2.5,
+			"car stops for a person in the road (speed %.1f, %s, %.1f m away)" % [car.speed, car.blocked_by, gap])
+	person.queue_free()
+	await get_tree().create_timer(3.0).timeout
+	_report(car.speed > 2.0, "car drives on once the road is clear (speed %.1f)" % car.speed)

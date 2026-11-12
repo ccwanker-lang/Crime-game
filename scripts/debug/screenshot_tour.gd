@@ -60,6 +60,10 @@ const SHOTS: Array[Array] = [
 	["42_house_upstairs", Vector3(-13.0, 4.85, -7.0), Vector3(-16.5, 3.9, -13.5)],
 	["43_houses_night_street", Vector3(-30, 1.8, 3.5), Vector3(-15, 3, -6)],
 	["44_snackbar_door", Vector3(44.1, 1.7, -4.2), Vector3(44.1, 0.9, -9.5)],
+	# AI traffic: main road at street level, the x=30 crossing from above, a car close up.
+	["45_traffic_street", Vector3(14, 1.7, 5.2), Vector3(-8, 0.8, 0)],
+	["46_traffic_crossing", Vector3(18, 16, 14), Vector3(30, 0, -2)],
+	["47_traffic_side_street", Vector3(26.5, 1.7, -20), Vector3(30, 0.6, -40)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

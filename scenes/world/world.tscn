@@ -57,6 +57,7 @@
 [ext_resource type="PackedScene" path="res://prefabs/nature/tree_street.tscn" id="55_r"]
 [ext_resource type="PackedScene" path="res://prefabs/props/sign_post.tscn" id="56_r"]
 [ext_resource type="PackedScene" path="res://prefabs/props/aircon.tscn" id="57_r"]
+[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="58_r"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
@@ -1900,6 +1901,13 @@ no_depth_test = true
 [node name="NPCSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn")
 spawn_path = NodePath("../NPCs")
+
+[node name="Traffic" type="Node3D" parent="."]
+script = ExtResource("58_r")
+
+[node name="CarSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://prefabs/vehicles/car.tscn")
+spawn_path = NodePath("../Traffic")
 
 [node name="Players" type="Node3D" parent="."]
 

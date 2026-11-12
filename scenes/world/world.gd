@@ -139,6 +139,11 @@ func _net_check() -> void:
 	for npc: Node in npcs.get_children().slice(0, 3):
 		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])
 	print("[NetCheck] %s sees %d NPCs: %s" % ["host" if multiplayer.is_server() else "client", npcs.get_child_count(), ", ".join(parts)])
+	var cars: PackedStringArray = []
+	for car: Node in get_tree().get_nodes_in_group(&"cars").slice(0, 3):
+		cars.append("%s@%s v=%.1f" % [car.name, (car as Node3D).global_position.snapped(Vector3.ONE * 0.1), car.get("net_speed")])
+	print("[NetCheck] %s sees %d cars: %s" % ["host" if multiplayer.is_server() else "client",
+			get_tree().get_nodes_in_group(&"cars").size(), ", ".join(cars)])
 	for p: Node in players_root.get_children():
 		var pl := p as Player
 		print("[NetCheck]   player %s '%s' at %s local=%s crouch=%s move=%s" % [pl.name, pl.player_name,

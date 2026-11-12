@@ -440,6 +440,13 @@ sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
     "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn")',
     "spawn_path": 'NodePath("../NPCs")'})
 
+# --------------------------------------------------------------------------- traffic
+# AI cars (host drives them along the Traffic routes; CarSpawner replicates them).
+sc.node("Traffic", "Node3D", ".", props={"script": sc.script("res://scripts/traffic/traffic.gd")})
+sc.node("CarSpawner", "MultiplayerSpawner", ".", props={
+    "_spawnable_scenes": 'PackedStringArray("res://prefabs/vehicles/car.tscn")',
+    "spawn_path": 'NodePath("../Traffic")'})
+
 # --------------------------------------------------------------------------- players
 # Host spawns one Player per peer under Players (World._create_player is the spawn function).
 sc.node("Players", "Node3D", ".")

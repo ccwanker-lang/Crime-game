@@ -42,6 +42,8 @@ const MARK_Y: float = 0.006
 ## Asphalt without the zebra crossings (local XZ, convex parts). Pedestrians may
 ## not walk here: NavigationObstacle3D children carve it out of the navmesh.
 var blocked_areas: Array[PackedVector2Array] = []
+## All asphalt (local XZ), zebras included.
+var asphalt_areas: Array[PackedVector2Array] = []
 
 var _mesh_instance: MeshInstance3D
 var _shape: CollisionShape3D
@@ -98,6 +100,7 @@ func _build_obstacles(asphalt: Array[PackedVector2Array]) -> void:
 		if c is NavigationObstacle3D:
 			c.queue_free()
 	blocked_areas.clear()
+	asphalt_areas = asphalt.duplicate()
 	var parts: Array[PackedVector2Array] = asphalt.duplicate()
 	for zone: PackedVector2Array in _crossing_zones():
 		var next: Array[PackedVector2Array] = []
@@ -148,6 +151,15 @@ func _crossing_zones() -> Array[PackedVector2Array]:
 func is_blocked(world_pos: Vector3) -> bool:
 	var l: Vector3 = to_local(world_pos)
 	for a: PackedVector2Array in blocked_areas:
+		if Geometry2D.is_point_in_polygon(Vector2(l.x, l.z), a):
+			return true
+	return false
+
+
+## Is world_pos above the asphalt (zebras included)?
+func is_on_asphalt(world_pos: Vector3) -> bool:
+	var l: Vector3 = to_local(world_pos)
+	for a: PackedVector2Array in asphalt_areas:
 		if Geometry2D.is_point_in_polygon(Vector2(l.x, l.z), a):
 			return true
 	return false
