@@ -27,6 +27,8 @@ var hidden_by_view: bool = false
 var hidden_by_scope: bool = false
 ## 0..1 aim down sights (set by the player every frame, smoothed here).
 var aim_target: float = 0.0
+## Debug (vmpreview --adsz=): override the aim-down-sights distance.
+static var debug_ads_z: float = 0.0
 
 var _aim: float = 0.0
 var _pending: WeaponData = null  # weapon to take out once the current one is away
@@ -279,6 +281,8 @@ func update(delta: float, move: float, sprinting: bool, on_floor: bool) -> void:
 	var sight_y: float = sight.position.y if sight else gun.muzzle.position.y + 0.012
 	# Long guns sit further out than a real cheek weld, so the receiver does not fill the view.
 	var ads_z: float = -0.34 if weapon_data.vm_arm_scale > 1.0 else base.z - 0.04
+	if debug_ads_z < 0.0:
+		ads_z = debug_ads_z
 	var ads := Vector3(0.0, -sight_y - 0.008, ads_z)
 	var a: float = smoothstep(0.0, 1.0, _aim)
 	gun.position = base.lerp(ads, a)

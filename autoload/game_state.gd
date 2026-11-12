@@ -8,6 +8,9 @@ extends Node
 signal world_changed
 
 const STARTING_CASH: int = 500
+## Development: buying never costs money (until earning money works, step 7).
+## The self-test turns it off to check the real money rules.
+var infinite_cash: bool = true
 ## Carried item stacks per player (shown as the hotbar).
 const INVENTORY_SLOTS: int = 8
 
@@ -120,6 +123,8 @@ func remove_item(player_name: String, id: String, count: int) -> bool:
 
 ## Host only: changes a player's cash (negative = pay). Returns false if they can't pay.
 func add_cash(player_name: String, amount: int) -> bool:
+	if infinite_cash and amount < 0:
+		return true
 	var data: Dictionary = get_or_create_player_data(player_name)
 	if int(data["cash"]) + amount < 0:
 		return false

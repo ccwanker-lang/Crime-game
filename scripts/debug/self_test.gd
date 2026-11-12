@@ -33,6 +33,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	GameState.infinite_cash = false  # test the real money rules
 	var world: Node3D = get_parent()
 	await _wait_for_navmesh(world)
 	_check_lamps(world)

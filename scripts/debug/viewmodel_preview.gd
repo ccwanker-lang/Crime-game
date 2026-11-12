@@ -24,6 +24,8 @@ func _run() -> void:
 			weapon_id = arg.trim_prefix("--weapon=")
 		elif arg == "--aim":
 			aim = true
+		elif arg.begins_with("--adsz="):
+			Viewmodel.debug_ads_z = arg.trim_prefix("--adsz=").to_float()
 		elif arg.begins_with("--model="):
 			model = arg.trim_prefix("--model=").to_int()
 	var world := Node3D.new()
@@ -58,7 +60,7 @@ func _run() -> void:
 	var dir: String = ProjectSettings.globalize_path("res://screenshots/")
 	DirAccess.make_dir_recursive_absolute(dir)
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(dir.path_join("vm_view_%s%s.png" % [weapon_id, "_aim" if aim else ""]))
+	get_viewport().get_texture().get_image().save_png(dir.path_join("vm_view_%s%s%s.png" % [weapon_id, "_aim" if aim else "", str(Viewmodel.debug_ads_z) if Viewmodel.debug_ads_z < 0.0 else ""]))
 	# Side view: a second camera looking at the rig from the right.
 	var side := Camera3D.new()
 	side.projection = Camera3D.PROJECTION_ORTHOGONAL

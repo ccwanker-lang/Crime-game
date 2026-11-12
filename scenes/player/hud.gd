@@ -112,12 +112,12 @@ func _draw_scope() -> void:
 
 
 func set_cash(cash: int) -> void:
-	cash_label.text = "€ %d" % cash
+	cash_label.text = "€ %d%s" % [cash, "  (∞ dev)" if GameState.infinite_cash else ""]
 	if _last_cash >= 0 and cash != _last_cash:
 		toast("%s€%d" % ["+" if cash > _last_cash else "-", absi(cash - _last_cash)])
 	_last_cash = cash
 	if _shop_cash:
-		_shop_cash.text = "Your cash: €%d" % cash
+		_shop_cash.text = "Your cash: €%d%s" % [cash, "  - buying is free for now" if GameState.infinite_cash else ""]
 
 
 # --- Inventory bar ---------------------------------------------------------------
@@ -290,7 +290,7 @@ func open_shop(shop: Shopkeeper, cash: int) -> void:
 	_shop_title.text = "%s  -  %s" % [shop.npc_name, shop.shop_name]
 	_shop_greeting.text = "\"%s\"" % shop.greeting
 	_shop_msg.text = ""
-	_shop_cash.text = "Your cash: €%d" % cash
+	_shop_cash.text = "Your cash: €%d%s" % [cash, "  - buying is free for now" if GameState.infinite_cash else ""]
 	for c: Node in _shop_list.get_children():
 		c.queue_free()
 	for id: StringName in shop.stock:
