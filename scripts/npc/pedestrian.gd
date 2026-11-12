@@ -53,6 +53,11 @@ const MAX_HEALTH: int = 100
 ## Gunshots closer than this make the NPC flee.
 const HEAR_DISTANCE: float = 35.0
 const FLEE_TIME: float = 8.0
+## Customers stop walking and face a player this close.
+const CUSTOMER_STOP_DISTANCE: float = 3.5
+## Deal outcomes (host roll): runs off with the bags without paying / pays only part.
+const RIP_RUN_CHANCE: float = 0.12
+const RIP_SHORT_CHANCE: float = 0.15
 ## Seconds a dead NPC lies on the ground; a new one appears respawn_time after the death.
 static var corpse_time: float = 20.0
 static var respawn_time: float = 60.0
@@ -74,6 +79,13 @@ var anim_state: int = Anim.IDLE:
 	set(v):
 		anim_state = v
 		_apply_anim()
+## Customer (step 7): bags of product it wants to buy (0 = not a customer) and
+## what it pays for them. Synced; set by World.make_customer on the host.
+var wants: int = 0:
+	set(v):
+		wants = v
+		_customer_changed()
+var offer: int = 0
 ## The door this NPC wants to pass; NetDoor opens itself for it.
 var target_door: Node = null
 ## Host: hit points; at 0 -> dead (anim_state DEAD is what clients see).
@@ -103,6 +115,10 @@ var _trail: Array[Vector3] = []  # positions of the last seconds (to back off wh
 var _backoff: Vector3 = Vector3.INF
 var _stuck_spot: Vector3 = Vector3.INF  # where it got stuck last time
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+var _deal_label: Label3D
+## Host: customer gives up at this time (msec ticks); bags it ran off with.
+var _customer_until: int = 0
+var _stolen: int = 0
 
 
 func _ready() -> void:
@@ -127,6 +143,7 @@ func _ready() -> void:
 		rotation.y = net_yaw
 		collision.disabled = true
 	_apply_anim()
+	_customer_changed()
 
 
 func _is_host() -> bool:
@@ -165,6 +182,18 @@ func _build_model() -> void:
 			m.set_surface_override_material(s, _matte(mat, tint))
 
 	_anim = model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	if not stationary:
+		# "€" over the head of a customer.
+		_deal_label = Label3D.new()
+		_deal_label.text = "€"
+		_deal_label.font_size = 96
+		_deal_label.pixel_size = 0.004
+		_deal_label.outline_size = 18
+		_deal_label.modulate = Color(0.45, 1.0, 0.45)
+		_deal_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_deal_label.position.y = 2.15
+		_deal_label.visible = wants > 0
+		add_child(_deal_label)
 	_ragdoll = Ragdoll.new()
 	(model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D).add_child(_ragdoll)
 	# Skip animating NPCs that no camera sees (cheap CPU when many are around).
@@ -242,6 +271,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if _sitting:
 		return
+	if wants > 0:
+		_customer_tick()
 	if _moving:
 		if agent.is_navigation_finished():
 			_finish_move(true)
@@ -505,6 +536,11 @@ func _die(from: Vector3 = Vector3.INF) -> void:
 		_ragdoll_push.rpc_id(peer, impulse, at)
 	print("[NPC] %s died at %s" % [name, global_position.snapped(Vector3.ONE * 0.1)])
 	var world: Node = get_tree().current_scene
+	wants = 0
+	if _stolen > 0 and world and world.has_method("spawn_loot_bag"):
+		# The rip-off customer drops what it ran off with.
+		world.call("spawn_loot_bag", global_position, "Customer", 0, [{"id": "weed_bag", "count": _stolen}])
+		_stolen = 0
 	if world and world.has_method("respawn_pedestrian_later"):
 		world.call("respawn_pedestrian_later", respawn_time)
 	await get_tree().create_timer(corpse_time).timeout
@@ -543,7 +579,7 @@ func hear_gunshot(origin: Vector3, hit: bool = false) -> void:
 func _wander() -> void:
 	await idle(randf_range(0.5, 3.0))
 	while is_inside_tree() and ambient and not dead:
-		if is_fleeing() or _sitting:
+		if is_fleeing() or _sitting or (wants > 0 and _player_near(CUSTOMER_STOP_DISTANCE) != null):
 			await get_tree().create_timer(0.5).timeout
 			if not is_fleeing() and not _moving and not dead and not _sitting:
 				anim_state = Anim.IDLE
@@ -604,3 +640,138 @@ static func random_sidewalk_point(from: Node3D, max_tries: int = 60) -> Vector3:
 			continue  # indoors / under something
 		return ground
 	return Vector3.INF
+
+
+# --- Customers (step 7) -------------------------------------------------------------
+# A pedestrian becomes a customer for a while (World.make_customer): a "€" floats
+# over its head and any player can sell it the bags it wants with E. Selling is
+# HOST AUTHORITATIVE; the host rolls the outcome: a fair deal, paying short, or
+# running off with the bags (kill it to get them back: it drops them in a loot bag).
+
+## Tests: force the next deal's outcome ("fair", "short", "run").
+static var force_outcome: String = ""
+
+
+## Every peer: show/hide the "€" and make the body hittable by the E ray.
+func _customer_changed() -> void:
+	if _deal_label:
+		_deal_label.visible = wants > 0
+	if stationary or not is_node_ready():
+		return  # _ready calls this again
+	if wants > 0:
+		add_to_group(&"interactable")
+		add_to_group(&"customer")
+		if not _is_host():
+			collision.disabled = false  # clients only need it for the interact ray
+	else:
+		remove_from_group(&"interactable")
+		remove_from_group(&"customer")
+		if not _is_host():
+			collision.disabled = true
+
+
+## Host: make this pedestrian a customer for `seconds`.
+func become_customer(bags: int, price: int, seconds: float) -> void:
+	offer = price
+	wants = bags
+	_customer_until = Time.get_ticks_msec() + int(seconds * 1000.0)
+
+
+func _player_near(dist: float) -> Player:
+	var best: Player = null
+	var best_d: float = dist
+	for p: Node in get_tree().get_nodes_in_group(&"players"):
+		var pl := p as Player
+		if pl == null or pl.dead:
+			continue
+		var d: float = pl.global_position.distance_to(global_position)
+		if d < best_d:
+			best = pl
+			best_d = d
+	return best
+
+
+## Host, every physics frame while a customer: give up after a while, stop and
+## face a player who comes close.
+func _customer_tick() -> void:
+	if Time.get_ticks_msec() > _customer_until:
+		wants = 0
+		return
+	if is_fleeing():
+		return
+	var pl: Player = _player_near(CUSTOMER_STOP_DISTANCE)
+	if pl == null:
+		return
+	if _moving:
+		_finish_move(false)
+	var to: Vector3 = pl.global_position - global_position
+	rotation.y = lerp_angle(rotation.y, atan2(-to.x, -to.z), 0.15)
+
+
+func get_interaction_prompt() -> String:
+	var item: String = "Bag of Weed" if wants == 1 else "Bags of Weed"
+	var me: Player = _local_player()
+	var have: int = Station.carried(me, "weed_bag") if me else 0
+	if have < wants:
+		return "Customer wants %d %s for €%d (you have %d)" % [wants, item, offer, have]
+	return "Sell %d %s for €%d" % [wants, item, offer]
+
+
+func _local_player() -> Player:
+	for p: Node in get_tree().get_nodes_in_group(&"players"):
+		if (p as Player).is_local():
+			return p as Player
+	return null
+
+
+func interact() -> void:
+	if _is_host():
+		_server_sell(multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1)
+	else:
+		_request_sell.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_sell() -> void:
+	if multiplayer.is_server():
+		_server_sell(multiplayer.get_remote_sender_id())
+
+
+func _server_sell(peer: int) -> void:
+	var seller := get_tree().current_scene.get_node_or_null("Players/%d" % peer) as Player
+	if seller == null or seller.dead or dead or wants <= 0:
+		return
+	if seller.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 1.5:
+		return
+	var who: String = seller.player_name
+	var have: int = GameState.count_item(who, "weed_bag")
+	if have < wants:
+		seller.show_message("\"I need %d bag%s, you've only got %d.\"" % [wants, "" if wants == 1 else "s", have])
+		return
+	var bags: int = wants
+	GameState.remove_item(who, "weed_bag", bags)
+	var outcome: String = force_outcome
+	force_outcome = ""
+	if outcome == "":
+		var roll: float = randf()
+		outcome = "run" if roll < RIP_RUN_CHANCE else ("short" if roll < RIP_RUN_CHANCE + RIP_SHORT_CHANCE else "fair")
+	var paid: int = 0
+	var msg: String = ""
+	match outcome:
+		"run":
+			_stolen = bags
+			msg = "The customer grabbed the bags and ran! Stop them to get it back."
+		"short":
+			paid = roundi(offer * randf_range(0.35, 0.7))
+			msg = "\"Here's €%d. That's all I got, man.\" (wanted €%d)" % [paid, offer]
+		_:
+			paid = offer
+			msg = "\"Nice doing business.\" +€%d" % paid
+	if paid > 0:
+		GameState.add_cash(who, paid)
+	print("[Deal] %s sold %d bags to %s: %s, paid €%d of €%d" % [who, bags, name, outcome, paid, offer])
+	wants = 0
+	seller.send_wallet()
+	seller.show_message(msg)
+	if outcome == "run":
+		hear_gunshot(seller.global_position, true)  # run away from the seller

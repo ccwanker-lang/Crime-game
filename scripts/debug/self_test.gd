@@ -47,6 +47,7 @@ func _run() -> void:
 	await _check_growing(world)
 	await _check_pedestrians(world)
 	await _check_npc_combat(world)
+	await _check_selling(world)
 	await _check_traffic(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
@@ -754,3 +755,77 @@ func _check_traffic(world: Node3D) -> void:
 	person.queue_free()
 	await get_tree().create_timer(3.0).timeout
 	_report(car.speed > 2.0, "car drives on once the road is clear (speed %.1f)" % car.speed)
+
+
+# --- Packaging + selling (step 7) --------------------------------------------------------
+
+func _check_selling(world: Node3D) -> void:
+	var room: Node = world.find_child("StarterRoom", true, false)
+	var table: PackagingTable = room.find_child("PackagingTable", true, false) as PackagingTable
+	_report(table != null, "starter room has a packaging table")
+	if table == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Dealer"
+	var front: Vector3 = table.global_position + table.global_basis.z * 0.8 + Vector3.UP * 0.1
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Dealer")
+	GameState.give("Dealer", 0, [{"id": "weed_bud", "count": 3}, {"id": "baggie", "count": 2}])
+	p.send_wallet()
+	_report(table.prompt_for(p).begins_with("Package 2"), "packaging prompt: '%s'" % table.prompt_for(p))
+	table._server_action(1)
+	_report(GameState.count_item("Dealer", "weed_bag") == 2 and GameState.count_item("Dealer", "weed_bud") == 1
+			and GameState.count_item("Dealer", "baggie") == 0, "1 Dried Weed + 1 Baggie -> 1 Bag of Weed ('%s')" % p.last_message)
+	table._server_action(1)
+	_report(p.last_message.contains("need"), "no baggies left: '%s'" % p.last_message)
+
+	GameState.give("Dealer", 0, [{"id": "weed_bag", "count": 6}])
+	var npcs: Array[Node] = get_tree().get_nodes_in_group(&"npc")
+	var npc: Pedestrian = null
+	for n: Node in npcs:
+		if not (n as Pedestrian).dead:
+			npc = n as Pedestrian
+	world.call("make_customer", npc)
+	_report(npc.wants > 0 and npc.is_in_group(&"interactable") and npc.is_in_group(&"customer"),
+			"pedestrian becomes a customer (wants %d for €%d)" % [npc.wants, npc.offer])
+	var deal := func(bags: int, price: int, outcome: String) -> void:
+		npc.become_customer(bags, price, 60.0)
+		p.teleport(npc.global_position + Vector3(1.2, 0.1, 0))
+		Pedestrian.force_outcome = outcome
+		npc._server_sell(1)
+	var cash0: int = int(GameState.get_or_create_player_data("Dealer")["cash"])
+	deal.call(2, 150, "fair")
+	_report(int(GameState.get_or_create_player_data("Dealer")["cash"]) == cash0 + 150 and GameState.count_item("Dealer", "weed_bag") == 6
+			and npc.wants == 0 and not npc.is_in_group(&"interactable"), "fair deal: +€150 for 2 bags ('%s')" % p.last_message)
+	deal.call(9, 500, "")
+	_report(GameState.count_item("Dealer", "weed_bag") == 6 and p.last_message.contains("I need"),
+			"not enough bags: no deal ('%s')" % p.last_message)
+	cash0 = int(GameState.get_or_create_player_data("Dealer")["cash"])
+	deal.call(2, 200, "short")
+	var paid: int = int(GameState.get_or_create_player_data("Dealer")["cash"]) - cash0
+	_report(paid >= 70 and paid <= 140 and GameState.count_item("Dealer", "weed_bag") == 4,
+			"rip-off: customer pays short (€%d of €200)" % paid)
+	cash0 = int(GameState.get_or_create_player_data("Dealer")["cash"])
+	var bags_before: int = world.get_node("Loot").get_child_count()
+	deal.call(3, 200, "run")
+	_report(int(GameState.get_or_create_player_data("Dealer")["cash"]) == cash0 and GameState.count_item("Dealer", "weed_bag") == 1 and npc.is_fleeing(),
+			"rip-off: customer runs off with 3 bags ('%s')" % p.last_message)
+	npc.host_damage(500, null)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var stolen_back: bool = false
+	for bag: Node in world.get_node("Loot").get_children():
+		for it: Dictionary in (bag as LootBag).items:
+			if str(it["id"]) == "weed_bag" and int(it["count"]) == 3:
+				stolen_back = true
+	_report(world.get_node("Loot").get_child_count() == bags_before + 1 and stolen_back,
+			"killing the runner drops the stolen bags")
+	GameState.player_data.erase("Dealer")
+	p.queue_free()
+	await get_tree().physics_frame

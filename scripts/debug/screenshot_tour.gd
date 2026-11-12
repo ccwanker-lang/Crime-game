@@ -64,6 +64,9 @@ const SHOTS: Array[Array] = [
 	["45_traffic_street", Vector3(14, 1.7, 5.2), Vector3(-8, 0.8, 0)],
 	["46_traffic_crossing", Vector3(18, 16, 14), Vector3(30, 0, -2)],
 	["47_traffic_side_street", Vector3(26.5, 1.7, -20), Vector3(30, 0.6, -40)],
+	# Step 7: packaging table in the starter room, a customer ("$") on the sidewalk.
+	["48_packaging_table", Vector3(-31.0, 1.6, -9.7), Vector3(-31.0, 0.8, -11.4)],
+	["49_customer", Vector3(-17.8, 1.7, -1.2), Vector3(-17.8, 1.3, -4.6)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -182,6 +185,10 @@ func _stage(shot_name: String) -> void:
 				get_tree().current_scene.add_child(pl)
 				_staged.append(pl)
 			await get_tree().create_timer(0.7).timeout
+		"49_customer":
+			var buyer := _posed(scene, npcs, 3, Vector3(-17.8, 0.15, -4.6), 0.0)
+			await get_tree().physics_frame
+			buyer.become_customer(2, 140, 60.0)
 		"39_ragdolls":
 			# Three pedestrians (both character packs) shot dead on the sidewalk.
 			for i: int in 3:

@@ -159,3 +159,8 @@ Terrain should have real height differences (hills up, down to the river and har
   (`Traffic` routes, U-turns before the map-edge barriers). They brake for cars, pedestrians and players
   in their lane and take junctions one car at a time (no traffic lights yet). Cars can't be entered,
   damaged or hit people yet (they just stop); later: player cars, car garage, collisions.
+- Step 7 (packaging + selling): the packaging table in the starter room turns 1 Dried Weed + 1 Baggie into
+  1 Bag of Weed. Every ~35 s a random pedestrian becomes a customer (max 2, "€" over the head, gives up
+  after 5 min) wanting 1-3 bags at ~€51-78 each; E sells. Outcomes (host roll): fair 73%, pays short
+  (35-70%) 15%, runs off with the bags 12% (kill it -> loot bag with the bags). Customers find you on the
+  street for now; the phone (step 8) adds messages and meet points.

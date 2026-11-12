@@ -318,6 +318,7 @@ def starter_extra(sc):
     inst(sc, "Pot2", ST + "grow_pot.tscn", (-0.8, FLOOR, -5.2), 0)
     inst(sc, "DryingRack", ST + "drying_rack.tscn", (2.55, FLOOR, -6.0), 90)
     marker(sc, "PackagingSpot", (1.0, FLOOR, -5.4))
+    inst(sc, "PackagingTable", ST + "packaging_table.tscn", (1.0, FLOOR, -5.4), 0)
     sc.node("Property", "Node3D", ".", props={
         "transform": xform((0, 3.4, 0.25)), "script": sc.script(S["property"]),
         "property_id": '&"starter_room"', "display_name": q("Starter Room")})

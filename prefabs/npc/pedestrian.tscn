@@ -22,6 +22,12 @@ properties/3/replication_mode = 1
 properties/4/path = NodePath(".:anim_state")
 properties/4/spawn = true
 properties/4/replication_mode = 2
+properties/5/path = NodePath(".:wants")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath(".:offer")
+properties/6/spawn = true
+properties/6/replication_mode = 2
 
 [node name="Pedestrian" type="CharacterBody3D"]
 collision_layer = 4

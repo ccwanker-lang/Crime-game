@@ -86,6 +86,10 @@ Godot console exe:
   re-sends every 3 s + late-join snapshot. GrowPot (soil -> seed -> water -> grow -> harvest Fresh Weed),
   GrowLamp (boost), DryingRack (Fresh Weed -> Dried Weed `weed_bud`). Plant visual: `WeedPlant` (procedural,
   atlas from `tools/generators/gen_weed_atlas.py`). `Player.show_message()` = host -> owner toast.
+- Selling (step 7): `PackagingTable` station (weed_bud + baggie -> weed_bag). Customers are pedestrians with
+  `wants`/`offer` (synced, group `customer` + `interactable`, "€" Label3D); World `_customer_loop`/`make_customer`
+  (host), E -> `Pedestrian._server_sell` rolls fair/short/run (`Pedestrian.force_outcome` for tests). The interact
+  ray hits layer 3 (npcs) too; clients enable a customer's collision only for that ray.
 - Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
   World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
 - In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.

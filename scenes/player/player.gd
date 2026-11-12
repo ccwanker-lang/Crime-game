@@ -531,7 +531,7 @@ func _update_focus() -> void:
 	# Always from the eyes, also in third person.
 	var from: Vector3 = head.global_position
 	var to: Vector3 = from - head.global_basis.z * INTERACT_DISTANCE
-	var query := PhysicsRayQueryParameters3D.create(from, to, 1 | 2, [get_rid()])
+	var query := PhysicsRayQueryParameters3D.create(from, to, 1 | 2 | 4, [get_rid()])  # world, props, npcs (customers)
 	var hit: Dictionary = space.intersect_ray(query)
 	var found: Node = null
 	if not hit.is_empty() and not dead and shop == null:

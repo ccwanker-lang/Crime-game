@@ -142,6 +142,10 @@ func _net_check() -> void:
 	var cars: PackedStringArray = []
 	for car: Node in get_tree().get_nodes_in_group(&"cars").slice(0, 3):
 		cars.append("%s@%s v=%.1f" % [car.name, (car as Node3D).global_position.snapped(Vector3.ONE * 0.1), car.get("net_speed")])
+	var deals: PackedStringArray = []
+	for c: Node in get_tree().get_nodes_in_group(&"customer"):
+		deals.append("%s wants %d for €%d (€ visible=%s)" % [c.name, c.get("wants"), c.get("offer"), c.get("_deal_label").visible])
+	print("[NetCheck] %s sees customers: %s" % ["host" if multiplayer.is_server() else "client", ", ".join(deals)])
 	print("[NetCheck] %s sees %d cars: %s" % ["host" if multiplayer.is_server() else "client",
 			get_tree().get_nodes_in_group(&"cars").size(), ", ".join(cars)])
 	for p: Node in players_root.get_children():
@@ -324,6 +328,7 @@ func _after_navmesh() -> void:
 			if arg.begins_with("--npcs="):
 				count = arg.trim_prefix("--npcs=").to_int()
 		spawn_pedestrians(count)
+		_customer_loop()
 
 
 ## Host only: ambient pedestrians on random sidewalk spots (synced by NPCSpawner).
@@ -347,6 +352,41 @@ func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
 	npc.position = p
 	npc.rotation.y = randf() * TAU
 	npcs.add_child(npc, true)
+	return npc
+
+
+# --- Customers (step 7) ------------------------------------------------------------
+
+const CUSTOMER_INTERVAL: float = 35.0  # s between new customers (randomised)
+const MAX_CUSTOMERS: int = 2
+const CUSTOMER_TIME: float = 300.0  # s before a customer gives up
+
+
+## Host: every now and then a pedestrian becomes a customer ("€" over its head).
+func _customer_loop() -> void:
+	await get_tree().create_timer(10.0).timeout
+	while is_inside_tree():
+		if get_tree().get_nodes_in_group(&"customer").size() < MAX_CUSTOMERS:
+			make_customer()
+		await get_tree().create_timer(CUSTOMER_INTERVAL * randf_range(0.6, 1.4)).timeout
+
+
+## Host: turns `npc` (or a random free pedestrian) into a customer for 1-3 bags.
+func make_customer(npc: Pedestrian = null) -> Pedestrian:
+	if npc == null:
+		var free: Array[Pedestrian] = []
+		for n: Node in get_tree().get_nodes_in_group(&"npc"):
+			var p := n as Pedestrian
+			if p and not p.dead and p.wants == 0 and not p.is_fleeing():
+				free.append(p)
+		if free.is_empty():
+			return null
+		npc = free.pick_random()
+	var bags: int = randi_range(1, 3)
+	var item: ItemData = ItemDB.get_item(&"weed_bag")
+	var price: int = roundi(bags * item.base_price * randf_range(0.85, 1.3))
+	npc.become_customer(bags, price, CUSTOMER_TIME)
+	print("[World] %s wants %d bags for €%d" % [npc.name, bags, price])
 	return npc
 
 
