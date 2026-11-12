@@ -94,6 +94,9 @@ Godot console exe:
   Host -> owner texts via `Player.phone_message(contact, text, deal)` / `World.phone_all`; answers go back with
   `Player.phone_reply` -> `Pedestrian.answer_text`. Webshop: `Player.webshop_buy` (legal items only) ->
   `DeliveryBox.order` (station in the Starter Room, group `delivery_box`).
+- Save (step 9): `SaveManager` (JSON with `JSON.from_native` state, so ints/Vector3 survive), autosave + on Leave/
+  quit; World `capture_for_save` / `_restore_from_save`, saved player pos/health/mags applied in `_spawn_player_for`.
+  Test flags disable saving; `--save=user://x.json` (own file) + `--autosave=N` for save tests. Never touch the real save.
 - Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
   World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
 - In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.

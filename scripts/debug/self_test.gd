@@ -50,6 +50,7 @@ func _run() -> void:
 	await _check_selling(world)
 	await _check_phone(world)
 	await _check_traffic(world)
+	await _check_save(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -898,5 +899,61 @@ func _check_phone(world: Node3D) -> void:
 	_report(phone.total_unread() == 0, "reading the thread clears unread")
 	phone.queue_free()
 	GameState.player_data.erase("Caller")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Save / load (step 9) -------------------------------------------------------------------
+
+func _check_save(world: Node3D) -> void:
+	SaveManager.enabled = true
+	SaveManager.save_path = "user://selftest_save.json"
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Saver"
+	var spot := Vector3(-20.0, 0.2, -4.6)
+	p.auto_target = spot
+	world.get_node("Players").add_child(p)
+	p.global_position = spot
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Saver")
+	var rec: Dictionary = GameState.get_or_create_player_data("Saver")
+	rec["cash"] = 777
+	GameState.give("Saver", 0, [{"id": "weed_bag", "count": 3}])
+	p.health = 64
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	dn.set_hours(15.5)
+	world.call("spawn_loot_bag", Vector3(-22, 0.5, -4.6), "Ghost", 42, [{"id": "soil", "count": 2}])
+	await get_tree().physics_frame
+	var stations_before: int = (GameState.world["stations"] as Dictionary).size()
+	_report(SaveManager.save_game() and SaveManager.save_game() and SaveManager.has_save()
+			and FileAccess.file_exists(SaveManager.save_path + ".bak"), "game saves (with a .bak of the previous save)")
+	var pos_saved: Vector3 = p.global_position
+	GameState.reset()
+	_report(SaveManager.load_game(), "save loads")
+	var r: Dictionary = GameState.player_data.get("Saver", {})
+	var bag_count: int = 0
+	var int_counts: bool = true
+	for it: Dictionary in r.get("inventory", []):
+		int_counts = int_counts and typeof(it["count"]) == TYPE_INT
+		if str(it["id"]) == "weed_bag":
+			bag_count = int(it["count"])
+	_report(typeof(r.get("cash")) == TYPE_INT and int(r["cash"]) == 777 and bag_count == 3 and int_counts,
+			"player cash + items survive (ints stay ints): €%s, %d bags" % [r.get("cash"), bag_count])
+	_report(r.get("pos") is Vector3 and (r["pos"] as Vector3).distance_to(pos_saved) < 0.2 and int(r.get("health", 0)) == 64
+			and r.get("mags") is Array, "player position, health and magazines saved (%s, %s hp)" % [r.get("pos"), r.get("health")])
+	_report(absf(float(GameState.world.get("hours", 0.0)) - 15.5) < 0.05, "time of day saved (%.2f)" % float(GameState.world.get("hours", 0.0)))
+	_report((GameState.world.get("stations", {}) as Dictionary).size() == stations_before and stations_before > 0,
+			"station states saved (%d)" % stations_before)
+	var bags: Array = GameState.world.get("loot_bags", [])
+	_report(bags.size() >= 1 and str(bags[bags.size() - 1]["owner"]) == "Ghost" and bags[bags.size() - 1]["pos"] is Vector3,
+			"loot bags saved (%d)" % bags.size())
+	# Clean up: never leave test saves behind; tests don't save by default.
+	for suffix: String in ["", ".bak", ".tmp"]:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveManager.save_path + suffix))
+	SaveManager.save_path = SaveManager.SAVE_PATH
+	SaveManager.enabled = false
 	p.queue_free()
 	await get_tree().physics_frame

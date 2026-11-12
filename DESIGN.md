@@ -134,6 +134,20 @@ Top-down, north = up. Organic town, NOT a square grid; compact dense center.
 - Rival HQ: in the harbor/industrial area.
 Terrain should have real height differences (hills up, down to the river and harbor).
 
+## Roadmap
+First playable (co-op weed loop in a small test town):
+1. Project setup, autoloads, main menu with host/join - done
+2. Greybox test map with navigation - done
+3. Networked player controller (first/third person) - done
+4. Health, pistol, loot bag on death - done
+5. Inventory and buying from NPC shopkeepers - done
+6. Growing weed in the starter room (pots, grow light, drying rack) - done
+7. Packaging + selling to street customers (rip-offs) - done
+8. Phone: chat app, map, webshop with delivery - done
+9. Save/load (host, autosave, continue/new game) - done
+Extras done along the way: more weapons + gun shop, ragdolls, day/night, enterable houses, AI traffic.
+Next: ranks/XP and the garage property (rank 1), police and witnesses, the big city map (milestone 4 layout).
+
 ## Known issues / later
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into
   walls. Turn avoidance back on (and tune it) in milestone 4, with the big city map.
@@ -169,3 +183,7 @@ Terrain should have real height differences (hills up, down to the river and har
   shops, players, customers) and QuickShip, the webshop for legal items (soil, watering can) delivered to
   the delivery box in the Starter Room after 1 in-game hour. Messages live on each client (not saved yet).
   Later: dealer contacts, calling the roadside service team, more apps.
+- Step 9 (save/load): host only, `user://savegame.json` (+ `.bak`), autosave every 2 min and on Leave/quit.
+  Saves cash/inventory per player name, their position/health/loaded magazines, station states (plants,
+  rack, delivery box), time of day and loot bags. Not saved: NPCs, customers, phone messages, cars.
+  Main menu: "Host - continue" / "Host - new game" (the old save stays as backup until the next save).

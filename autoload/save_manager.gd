@@ -1,42 +1,126 @@
 extends Node
-## Saves/loads GameState as JSON in user:// (host only).
-## Autosave + save-on-quit are added in step 9.
-## Note: JSON turns all numbers into floats; convert back to int when loading.
+## Saves/loads GameState in user:// (host only). Step 9.
+##
+## - Format: JSON via JSON.from_native/to_native, so ints stay ints and
+##   Vector3s stay Vector3s (no objects allowed).
+## - Written to a .tmp file first, the previous save is kept as .bak.
+## - Autosave every AUTOSAVE_INTERVAL s while hosting a world, and on Leave/quit.
+##   Before writing, the world scene puts live data (player positions, health,
+##   loaded magazines, time of day, loot bags) into GameState (capture_for_save).
+## - Test runs (--selftest, --screenshot, --netcheck, --vmpreview) never load
+##   or write the real save (`enabled` = false). `--save=user://x.json` uses
+##   another file (and saves even in test runs), `--autosave=N` changes the interval.
 
 const SAVE_PATH: String = "user://savegame.json"
-const SAVE_VERSION: int = 1
+const SAVE_VERSION: int = 2
+const AUTOSAVE_INTERVAL: float = 120.0
+const TEST_FLAGS: Array[String] = ["--selftest", "--screenshot", "--netcheck", "--vmpreview"]
+
+var enabled: bool = true
+var save_path: String = SAVE_PATH
+var autosave_interval: float = AUTOSAVE_INTERVAL
+var _autosave_timer: float = 0.0
+
+
+func _ready() -> void:
+	var explicit_path: bool = false
+	for arg: String in OS.get_cmdline_user_args():
+		if arg in TEST_FLAGS:
+			enabled = false
+		elif arg.begins_with("--save="):
+			# Tests: own save file (never the real one); saving stays on.
+			save_path = arg.trim_prefix("--save=")
+			explicit_path = true
+		elif arg.begins_with("--autosave="):
+			autosave_interval = arg.trim_prefix("--autosave=").to_float()
+	if explicit_path:
+		enabled = true
 
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(save_path)
 
 
-func save_game() -> bool:
-	if not multiplayer.is_server():
+## "2026-11-12 21:04" of the save file, "" if none.
+func save_date() -> String:
+	if not has_save():
+		return ""
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
+	if parsed is Dictionary:
+		return str((parsed as Dictionary).get("saved_at", "")).replace("T", " ").left(16)
+	return ""
+
+
+func _hosting_world() -> bool:
+	if not multiplayer.is_server() or not (multiplayer.multiplayer_peer is ENetMultiplayerPeer):
 		return false
+	var scene: Node = get_tree().current_scene
+	return scene != null and scene.has_method("capture_for_save")
+
+
+func _process(delta: float) -> void:
+	if not enabled or not _hosting_world():
+		_autosave_timer = 0.0
+		return
+	_autosave_timer += delta
+	if _autosave_timer >= autosave_interval:
+		_autosave_timer = 0.0
+		save_game()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and enabled and _hosting_world():
+		save_game()
+
+
+## Host: writes the save. Returns true on success.
+func save_game() -> bool:
+	if not enabled or not multiplayer.is_server():
+		return false
+	var scene: Node = get_tree().current_scene
+	if scene and scene.has_method("capture_for_save"):
+		scene.call("capture_for_save")
+	# Plain header (readable, used by the menu) + the typed state.
 	var data: Dictionary = {
 		"version": SAVE_VERSION,
 		"saved_at": Time.get_datetime_string_from_system(),
-		"state": GameState.to_save_dict(),
+		"state": JSON.from_native(GameState.to_save_dict(), false),
 	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var tmp: String = save_path + ".tmp"
+	var file := FileAccess.open(tmp, FileAccess.WRITE)
 	if file == null:
-		push_error("[Save] Cannot write %s: %s" % [SAVE_PATH, error_string(FileAccess.get_open_error())])
+		push_error("[Save] Cannot write %s: %s" % [tmp, error_string(FileAccess.get_open_error())])
 		return false
 	file.store_string(JSON.stringify(data, "\t"))
-	print("[Save] Saved to %s" % ProjectSettings.globalize_path(SAVE_PATH))
+	file.close()
+	var abs_path: String = ProjectSettings.globalize_path(save_path)
+	if FileAccess.file_exists(save_path):
+		DirAccess.remove_absolute(abs_path + ".bak")
+		DirAccess.rename_absolute(abs_path, abs_path + ".bak")
+	var err: Error = DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), abs_path)
+	if err != OK:
+		push_error("[Save] Cannot move the save into place: %s" % error_string(err))
+		return false
+	print("[Save] Saved to %s" % abs_path)
 	return true
 
 
+## Host, before the world loads: puts the save into GameState.
 func load_game() -> bool:
-	if not has_save():
+	if not enabled or not has_save():
 		return false
-	var text: String = FileAccess.get_file_as_string(SAVE_PATH)
-	var parsed: Variant = JSON.parse_string(text)
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if not (parsed is Dictionary):
-		push_error("[Save] Save file is corrupt: %s" % SAVE_PATH)
+		push_error("[Save] Save file is corrupt: %s" % save_path)
 		return false
 	var data: Dictionary = parsed
-	GameState.from_save_dict(data.get("state", {}))
+	if int(data.get("version", 0)) != SAVE_VERSION:
+		push_error("[Save] Unknown save version in %s" % save_path)
+		return false
+	var state: Variant = JSON.to_native(data.get("state", {}), false)
+	if not (state is Dictionary):
+		push_error("[Save] Save file is corrupt: %s" % save_path)
+		return false
+	GameState.from_save_dict(state)
 	print("[Save] Loaded save from %s" % data.get("saved_at", "?"))
 	return true

@@ -508,6 +508,25 @@ func host_unload() -> void:
 	_h_reload_index = -1
 
 
+## Host: loaded rounds per weapon (save game).
+func host_mags() -> Array:
+	return _h_mags.duplicate()
+
+
+## Host: magazines from a save -> host truth + the owner.
+func host_set_mags(mags: Array) -> void:
+	for i: int in mini(mags.size(), _h_mags.size()):
+		_h_mags[i] = clampi(int(mags[i]), 0, weapons[i].magazine_size)
+	for i: int in weapons.size():
+		_send_ammo(i)
+
+
+## Host: re-send every weapon's ammo to the owner (when its node is ready).
+func host_send_all_ammo() -> void:
+	for i: int in weapons.size():
+		_send_ammo(i)
+
+
 ## Host, on respawn: a loaded service pistol plus its starter rounds.
 func host_refill() -> void:
 	_h_mags[0] = weapons[0].magazine_size

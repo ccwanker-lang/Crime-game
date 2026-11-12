@@ -12,6 +12,7 @@ const CONNECT_TIMEOUT_SEC: float = 10.0
 @onready var host_button: Button = %HostButton
 @onready var join_button: Button = %JoinButton
 @onready var quit_button: Button = %QuitButton
+@onready var new_game_button: Button = %NewGameButton
 @onready var status_label: Label = %StatusLabel
 
 var _connect_timer: Timer
@@ -24,6 +25,10 @@ func _ready() -> void:
 	_connect_timer.timeout.connect(_on_connect_timeout)
 	add_child(_connect_timer)
 	host_button.pressed.connect(_on_host_pressed)
+	new_game_button.pressed.connect(_on_host_pressed.bind(true))
+	var date: String = SaveManager.save_date() if SaveManager.enabled else ""
+	host_button.text = "Host - continue (saved %s)" % date if date != "" else "Host - new game"
+	new_game_button.visible = date != ""
 	join_button.pressed.connect(_on_join_pressed)
 	quit_button.pressed.connect(func() -> void: get_tree().quit())
 	Net.join_succeeded.connect(_on_join_succeeded)
@@ -35,9 +40,12 @@ func _ready() -> void:
 	_apply_cmdline_args()
 
 
-func _on_host_pressed() -> void:
+## new_game: ignore the save (it is overwritten by the next save; the old one stays as .bak).
+func _on_host_pressed(new_game: bool = false) -> void:
 	_save_settings()
-	GameState.reset()  # step 9: load the save here instead
+	GameState.reset()
+	if not new_game and SaveManager.load_game():
+		print("[Menu] Continuing the saved game")
 	var err: Error = Net.host_game(name_edit.text, _port)
 	if err != OK:
 		_set_status("Could not host on port %d (%s). Is another instance already hosting?" % [_port, error_string(err)])

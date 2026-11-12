@@ -761,6 +761,7 @@ func send_wallet() -> void:
 func _request_wallet() -> void:
 	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
 		send_wallet()
+		combat.host_send_all_ammo()  # e.g. magazines loaded from the save
 
 
 @rpc("any_peer", "call_remote", "reliable")

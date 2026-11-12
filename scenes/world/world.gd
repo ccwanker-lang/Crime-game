@@ -54,6 +54,8 @@ func _ready() -> void:
 
 	if not multiplayer.is_server():
 		_request_snapshot.rpc_id(1)
+	else:
+		_restore_from_save.call_deferred()
 	if not ("--screenshot" in OS.get_cmdline_user_args() or "--selftest" in OS.get_cmdline_user_args()
 			or "--vmpreview" in OS.get_cmdline_user_args()):
 		if multiplayer.is_server():
@@ -184,8 +186,21 @@ func _spawn_player_for(peer: int) -> void:
 	while model in used_models:
 		model += 1
 	var spawn: Node3D = spawn_points.get_child(players_root.get_child_count() % spawn_points.get_child_count())
-	player_spawner.spawn({"peer": peer, "name": Net.get_player_name(peer), "model": model,
-			"pos": spawn.global_position, "yaw": spawn.global_rotation.y})
+	var pos: Vector3 = spawn.global_position
+	var yaw: float = spawn.global_rotation.y
+	var player_name: String = Net.get_player_name(peer)
+	var saved: Dictionary = GameState.player_data.get(player_name, {})
+	if saved.get("pos") is Vector3:
+		pos = saved["pos"]  # back where this player was when the game was saved / they left
+		yaw = float(saved.get("yaw", yaw))
+	player_spawner.spawn({"peer": peer, "name": player_name, "model": model, "pos": pos, "yaw": yaw})
+	var p := players_root.get_node_or_null(str(peer)) as Player
+	if saved.get("pos") is Vector3:
+		print("[World] %s is back where they were saved: %s" % [player_name, pos.snapped(Vector3.ONE * 0.1)])
+	if p and saved.has("health"):
+		p.health = clampi(int(saved["health"]), 1, Player.MAX_HEALTH)
+	if p and saved.get("mags") is Array:
+		p.combat.host_set_mags(saved["mags"])
 
 
 func _create_player(data: Dictionary) -> Node:
@@ -232,7 +247,52 @@ func _create_loot_bag(data: Dictionary) -> Node:
 func _remove_left_players() -> void:
 	for p: Node in players_root.get_children():
 		if not Net.players.has((p as Player).peer_id):
+			_capture_player(p as Player)
 			p.queue_free()
+
+
+# --- Save / load (step 9) -------------------------------------------------------------
+
+## Host (SaveManager, before writing): live data -> GameState.
+func capture_for_save() -> void:
+	for p: Node in players_root.get_children():
+		_capture_player(p as Player)
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	if dn:
+		GameState.world["hours"] = dn.hours
+	var bags: Array = []
+	for bag: Node in loot_root.get_children():
+		var b := bag as LootBag
+		if b and not b.is_queued_for_deletion():
+			bags.append({"pos": b.global_position, "owner": b.owner_name, "cash": b.cash, "items": b.items})
+	GameState.world["loot_bags"] = bags
+
+
+## Host: a player's position, health and loaded magazines -> their save record.
+func _capture_player(p: Player) -> void:
+	if p == null or p.player_name == "" or not GameState.player_data.has(p.player_name):
+		return
+	var rec: Dictionary = GameState.player_data[p.player_name]
+	if p.dead:
+		rec.erase("pos")  # respawns normally
+		rec["health"] = Player.MAX_HEALTH
+	else:
+		rec["pos"] = p.global_position + Vector3.UP * 0.05
+		rec["yaw"] = p.rotation.y
+		rec["health"] = p.health
+	rec["mags"] = p.combat.host_mags()
+
+
+## Host, once the world is up: time of day and loot bags from the save.
+func _restore_from_save() -> void:
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	if dn and GameState.world.has("hours"):
+		dn.set_hours(float(GameState.world["hours"]))
+	for bag: Dictionary in GameState.world.get("loot_bags", []):
+		spawn_loot_bag(bag["pos"], str(bag["owner"]), int(bag["cash"]), bag["items"])
+	GameState.world["loot_bags"] = []
+	if GameState.world.has("hours"):
+		print("[World] Restored from the save: time %.1f h" % float(GameState.world["hours"]))
 
 
 ## F3 toggles debug helpers (marker labels like "MEET POINT", group "debug_only").
@@ -474,5 +534,7 @@ func _refresh_players() -> void:
 
 
 func _on_leave_pressed() -> void:
+	if multiplayer.is_server():
+		SaveManager.save_game()
 	Net.leave_game()
 	get_tree().change_scene_to_file(Net.MAIN_MENU_SCENE)
