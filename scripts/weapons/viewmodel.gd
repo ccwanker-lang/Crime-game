@@ -279,8 +279,8 @@ func update(delta: float, move: float, sprinting: bool, on_floor: bool) -> void:
 	var base: Vector3 = _base_pos()
 	var sight := gun.get_node_or_null("Sight") as Node3D
 	var sight_y: float = sight.position.y if sight else gun.muzzle.position.y + 0.012
-	# Long guns sit further out than a real cheek weld, so the receiver does not fill the view.
-	var ads_z: float = -0.34 if weapon_data.vm_arm_scale > 1.0 else base.z - 0.04
+	# Long guns: eye just behind the rear sight; the stock is behind the camera (near-plane clipped).
+	var ads_z: float = -0.14 if weapon_data.vm_arm_scale > 1.0 else base.z - 0.04
 	if debug_ads_z < 0.0:
 		ads_z = debug_ads_z
 	var ads := Vector3(0.0, -sight_y - 0.008, ads_z)

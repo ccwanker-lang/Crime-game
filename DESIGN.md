@@ -144,7 +144,7 @@ Terrain should have real height differences (hills up, down to the river and har
   works); later this should go. F6 = debug +€1000 to test buying.
 - Pedestrians die and respawn after 60 s (corpse 20 s); no ragdoll physics yet (death animation), no
   police/witnesses yet. Shopkeepers can't be shot.
-- Aiming down sights with the long guns (AK, shotgun, SMG) still looks off: the stock fills the view.
+- Aiming down sights with the long guns: the left (sleeve) arm still crosses the lower left of the view.
 - No lag compensation: the host hits what it sees (fine on LAN).
 - First-person hands wear dark gloves; the third-person body shows bare hands.
 - The starter room has 2 fixed pots, a grow light and a drying rack. Buying/placing extra stations
