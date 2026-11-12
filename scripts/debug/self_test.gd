@@ -257,24 +257,108 @@ func _check_stairs(world: Node3D) -> void:
 				furnished += 1
 				break
 	_report(furnished == houses.size(), "every walkable house has furniture (%d/%d)" % [furnished, houses.size()])
-	# Walk up the first flight of a house.
-	var h: Building = houses[0]
-	var x: float = -h.width / 2.0 + Building.WALL_T + Building.STAIR_W / 2.0
-	var z0: float = -h.depth + Building.WALL_T
-	var front: float = z0 + Building.LANDING + h._stair_run()
+	# A walker climbs every flight of every walkable house and comes back down:
+	# up the flight, round the railing to the next flight, ..., then all the way down.
 	var p: Player = WALKER.instantiate()
 	p.auto_walk = true
 	p.name = "1"
 	p.player_name = "Climber"
 	world.get_node("Players").add_child(p)
-	p.global_position = h.to_global(Vector3(x, 0.2, front + 0.6))
-	p.auto_target = h.to_global(Vector3(x, 0, z0 + 0.4))
-	for i: int in 300:
-		await get_tree().physics_frame
-	var up: float = p.global_position.y - h.global_position.y
-	_report(up > h.floor_height, "player walks up the stairs of %s to the first floor (%.2f m up)" % [h.name, up])
+	Engine.time_scale = 3.0
+	var failed: PackedStringArray = []
+	var flights: int = 0
+	for h: Building in houses:
+		var ok: bool = await _climb(p, h)
+		flights += (h.floors - 1) * 2
+		if not ok:
+			failed.append(str(h.name))
+	Engine.time_scale = 1.0
+	_report(failed.is_empty(), "player walks every stair up and down (%d flights in %d houses)%s" % [flights, houses.size(),
+			"" if failed.is_empty() else ", stuck in: " + ", ".join(failed)])
 	p.queue_free()
 	await get_tree().physics_frame
+	# NPCs: the navmesh goes up the stairs too (path from the ground floor to the top floor).
+	var map: RID = world.get_world_3d().navigation_map
+	var nav_ok: int = 0
+	for h: Building in houses:
+		var x: float = -h.width / 2.0 + Building.WALL_T + Building.STAIR_W / 2.0
+		var z0: float = -h.depth + Building.WALL_T
+		var front: float = z0 + Building.LANDING + h._stair_run()
+		var from: Vector3 = h.to_global(Vector3(x, Building.SLAB_TOP, front + 0.8))
+		var to: Vector3 = h.to_global(Vector3(x, (h.floors - 1) * h.floor_height + Building.SLAB_TOP, z0 + 0.5))
+		var path: PackedVector3Array = NavigationServer3D.map_get_path(map, from, to, true)
+		if path.size() > 1 and path[path.size() - 1].distance_to(to) < 0.6:
+			nav_ok += 1
+		else:
+			print("[SelfTest]   no NPC path up the stairs of %s (%s)" % [h.name, path[path.size() - 1] if path.size() > 0 else "none"])
+	_report(nav_ok == houses.size(), "NPC navmesh reaches the top floor of every house (%d/%d)" % [nav_ok, houses.size()])
+
+
+## Walks `target` (local to the house) with the auto-walker; false if it doesn't get there.
+func _walk(p: Player, h: Building, target: Vector3, timeout: float = 6.0) -> bool:
+	var t: Vector3 = h.to_global(target)
+	p.auto_target = t
+	var waited: float = 0.0
+	while waited < timeout:
+		await get_tree().physics_frame
+		waited += get_physics_process_delta_time()
+		var d := Vector2(p.global_position.x - t.x, p.global_position.z - t.z)
+		if d.length() < 0.3:
+			return true
+	return false
+
+
+func _climb(p: Player, h: Building) -> bool:
+	var x: float = -h.width / 2.0 + Building.WALL_T + Building.STAIR_W / 2.0
+	var sx: float = -h.width / 2.0 + Building.WALL_T + Building.STAIR_W
+	var z0: float = -h.depth + Building.WALL_T
+	var front: float = z0 + Building.LANDING + h._stair_run()
+	var side: float = sx + 0.45  # beside the stairwell (outside the railing)
+	p.auto_target = h.to_global(Vector3(x, 0.3, front + 0.8))
+	p.teleport(p.auto_target)
+	for i: int in 5:
+		await get_tree().physics_frame
+	if h.name in ["RowHouseC2", "RowHouseB2"]:
+		print("[SelfTest]     start %s -> local %s" % [h.name, h.to_local(p.global_position)])
+	var levels: int = h.floors - 1
+	# Up.
+	for f: int in levels:
+		if f > 0:
+			# From the back landing round the railing to the front of the next flight.
+			if not (await _walk(p, h, Vector3(side, 0, z0 + 0.5)) and await _walk(p, h, Vector3(side, 0, front + 0.8))
+					and await _walk(p, h, Vector3(x, 0, front + 0.8))):
+				print("[SelfTest]   %s: can't get round to flight %d (at %s)" % [h.name, f + 1, h.to_local(p.global_position)])
+				return false
+		if not await _walk(p, h, Vector3(x, 0, z0 + 0.4)):
+			print("[SelfTest]   %s: stuck going up flight %d at %s" % [h.name, f + 1, h.to_local(p.global_position)])
+			print("[SelfTest]     w=%.2f d=%.2f floors=%d fh=%.2f x=%.2f front=%.2f" % [h.width, h.depth, h.floors, h.floor_height, x, front])
+			for c: Node in h.get_children():
+				if c.name.begins_with("Television"):
+					print("[SelfTest]     TV at %s" % (c as Node3D).position)
+			for i: int in p.get_slide_collision_count():
+				var c: KinematicCollision3D = p.get_slide_collision(i)
+				print("[SelfTest]     hits %s/%s at %s normal %s" % [(c.get_collider() as Node).get_parent().name, (c.get_collider() as Node).name,
+						h.to_local(c.get_position()), c.get_normal().snapped(Vector3.ONE * 0.01)])
+			return false
+		var up: float = h.to_local(p.global_position).y
+		if absf(up - ((f + 1) * h.floor_height + Building.SLAB_TOP)) > 0.25:
+			print("[SelfTest]   %s: flight %d ends at height %.2f" % [h.name, f + 1, up])
+			return false
+	# Down.
+	for f: int in range(levels - 1, -1, -1):
+		if not await _walk(p, h, Vector3(x, 0, front + 0.8)):
+			print("[SelfTest]   %s: stuck going down flight %d at %s" % [h.name, f + 1, h.to_local(p.global_position)])
+			return false
+		var down: float = h.to_local(p.global_position).y
+		if absf(down - (f * h.floor_height + Building.SLAB_TOP)) > 0.25:
+			print("[SelfTest]   %s: went down flight %d to height %.2f" % [h.name, f + 1, down])
+			return false
+		if f > 0:
+			if not (await _walk(p, h, Vector3(side, 0, front + 0.8)) and await _walk(p, h, Vector3(side, 0, z0 + 0.5))
+					and await _walk(p, h, Vector3(x, 0, z0 + 0.4))):
+				print("[SelfTest]   %s: can't get back to flight %d (at %s)" % [h.name, f, h.to_local(p.global_position)])
+				return false
+	return true
 
 
 # --- Combat ---------------------------------------------------------------------

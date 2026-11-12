@@ -789,6 +789,18 @@ func _flight(b: MeshBuilder, y: float, x0: float, z0: float) -> void:
 		var zf: float = front - i * STAIR_TREAD
 		b.box_mm(key, Vector3(x0, top - 0.06, zf - STAIR_TREAD - 0.02), Vector3(x0 + STAIR_W, top, zf), 0.01)
 	b.collide = false
+	# Invisible ramp over the step nosings (36 deg): players and the navmesh walk
+	# up a smooth slope instead of catching on the open treads.
+	var base := Vector3(0, y + SLAB_TOP, front + STAIR_TREAD)
+	var top_pt := Vector3(0, y + SLAB_TOP + floor_height, front - (n - 1) * STAIR_TREAD)
+	var along: Vector3 = top_pt - base
+	var slope_len: float = along.length()
+	var tilt: float = atan2(along.y, -along.z)  # pitch up towards -Z
+	var basis := Basis(Vector3.RIGHT, tilt)
+	var thick: float = 0.1
+	var centre: Vector3 = (base + top_pt) * 0.5 - basis.y * (thick * 0.5)
+	centre.x = x0 + STAIR_W * 0.5
+	b.collision_boxes.append({"xform": b.xform * Transform3D(basis, centre), "size": Vector3(STAIR_W, thick, slope_len)})
 	# Stringer along the open side (visual only).
 	var sx: float = x0 + STAIR_W
 	for i: int in n:
@@ -805,6 +817,8 @@ func _walkable(f: int) -> bool:
 # --- Furniture -----------------------------------------------------------------------
 
 var _furn_rng := RandomNumberGenerator.new()
+## Floor areas (local xz) where _put places nothing: the way onto, around and off the stairs.
+var _keep_free: Array[Rect2] = []
 
 
 func _furnish() -> void:
@@ -820,6 +834,16 @@ func _furnish() -> void:
 	var stair_front: float = z0 + LANDING + _stair_run() + 0.9 if stairs else z0
 	for f: int in range(furnish_from_floor, walk_floors):
 		var y: float = f * floor_height + SLAB_TOP
+		_keep_free.clear()
+		if stairs:
+			var sx: float = x0 + STAIR_W
+			var hz1: float = z0 + LANDING + _stair_run()
+			if f < walk_floors - 1:
+				_keep_free.append(Rect2(x0, hz1, sx + 0.6 - x0, 1.6))  # in front of the next flight
+			if f > 0:
+				_keep_free.append(Rect2(sx, z0, 1.0, LANDING + 0.4))  # stepping off the landing
+			if f > 0 and f < walk_floors - 1:
+				_keep_free.append(Rect2(sx, z0, 1.0, hz1 + 1.6 - z0))  # round the railing
 		_ceiling_light(Vector3((xa + x1) / 2.0, (f + 1) * floor_height - 0.05, (z0 + z1) / 2.0))
 		if furnish == "storage":
 			_furnish_storage(y, xa, x1, z0, z1)
@@ -832,6 +856,9 @@ func _furnish() -> void:
 
 
 func _put(scene: String, pos: Vector3, rot_deg: float) -> void:
+	for r: Rect2 in _keep_free:
+		if r.grow(0.55).has_point(Vector2(pos.x, pos.z)):
+			return
 	# Keep the way in from the front door free (ground floor).
 	if pos.y < floor_height * 0.5 and door_bay >= 0:
 		var bay_count: int = bays if bays > 0 else maxi(1, roundi(width / 2.4))
