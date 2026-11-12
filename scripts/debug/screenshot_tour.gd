@@ -84,6 +84,10 @@ const SHOTS: Array[Array] = [
 	["59_place_ghost", Vector3(-31.5, 1.7, -6.0), Vector3(-31.5, 0.2, -8.5)],
 	["60_place_ghost_bad", Vector3(-31.5, 1.7, -6.0), Vector3(-31.5, 0.2, -8.5)],
 	["61_locker_window", Vector3(-31.5, 1.7, -6.0), Vector3(-31.5, 1.0, -8.5)],
+	# Point 7: the garage, its workshop with the locked fence, the black market at night.
+	["62_garage_outside", Vector3(33, 2.2, 53), Vector3(24, 2.5, 44)],
+	["63_garage_workshop", Vector3(23.0, 1.85, 48.6), Vector3(16.4, 1.2, 45.0)],
+	["64_black_market_night", Vector3(16.0, 1.85, 46.0), Vector3(13.4, 1.3, 42.4)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -127,7 +131,13 @@ func _run() -> void:
 	for shot: Array in SHOTS:
 		if only != "" and not (shot[0] as String).substr(0, 2) in only.split(","):
 			continue
+		var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+		if dn:
+			dn.set_hours(23.0 if (shot[0] as String).contains("night") else 10.0)
 		await _stage(shot[0])
+		if (shot[0] as String) == "64_black_market_night":
+			for gate: Node in get_tree().current_scene.find_children("*", "NightGate", true, false):
+				(gate as NightGate)._set_open(true)
 		if (shot[0] as String).ends_with("door_open"):
 			for door: Node in get_tree().current_scene.find_children("*", "NetDoor", true, false):
 				(door as NetDoor)._set_open(true)

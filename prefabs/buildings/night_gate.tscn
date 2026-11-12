@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/interaction/night_gate.gd" id="1_g"]
+
+[node name="NightGate" type="Node3D"]
+script = ExtResource("1_g")
+width = 2.0
+height = 2.2
+open_angle = 95.0

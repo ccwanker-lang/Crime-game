@@ -11,3 +11,4 @@ One line per finished part.
 - Point 4 (E): item models (ProcItem) and rendered icons in the hotbar.
 - Point 5: held items in the hand (first + third person, synced); netcheck: longer ENet timeout while a peer loads.
 - Points 6/17/18: placement mode for stations + furniture (ghost, grid, rotate, hold E to pick up), empty Starter Room with movable furniture, Resell phone app, storage lockers.
+- Point 7: the garage with the black market (chain-link gate locked by day, Rook sells only at night).

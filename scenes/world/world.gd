@@ -555,6 +555,7 @@ func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
 const PLACE_NAMES: Dictionary = {
 	"StarterRoom": "your Starter Room", "Store": "the Store", "Hospital": "the hospital",
 	"GunShop": "Vince's gun shop", "ContactHideout": "Dries' place", "Warehouse": "the warehouse",
+	"Garage": "the garage",
 }
 
 

@@ -194,7 +194,7 @@ the start for now; rank gates (see Progression) come later.
 4. Item icons (renders of the 3D models) with counts in hotbar/inventory (asked again as E) - done
 5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - done
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - done
-7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - todo
+7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - done
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - todo
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - todo
 10. Police station + patrolling police (foot / car) reacting to gunfire and murder - todo
@@ -227,6 +227,10 @@ Choices made while working autonomously (what + why).
 - Point 17: selling furniture/stations happens in the phone app "Resell" for 50% of the price (pick it up first).
   Why: works anywhere, no extra NPC needed; storing = keep it in your pockets or put it in a storage locker.
 - Point 18: a storage locker holds 16 stacks and is shared by the whole crew (like all owned things in co-op).
+- Point 7: the garage stands on the side street (x 30, south); "night" = while the street lights are on
+  (DayNight.is_night, about 20:15-07:00), so the market follows the lamps players see. The gate always opens
+  from the market side (nobody gets locked in) and closes by itself at dawn. Rook sells 10% below the store
+  price: seeds, baggies and all current stations; meth/cocaine supplies are added there in milestone 3.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "placement", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -742,6 +742,73 @@ func _check_gun_shop(world: Node3D) -> void:
 	await get_tree().physics_frame
 
 
+# --- Black market (point 7) ----------------------------------------------------------
+
+func _check_black_market(world: Node3D) -> void:
+	var garage := world.find_child("Garage", true, false) as Building
+	var gate: NightGate = garage.find_child("MarketGate", true, false) as NightGate if garage else null
+	var rook: Shopkeeper = garage.find_child("BlackMarket", true, false) as Shopkeeper if garage else null
+	_report(gate != null and rook != null and rook.night_only, "garage with a locked gate and Rook (night only)")
+	if gate == null or rook == null:
+		return
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Night"
+	var outside: Vector3 = gate.to_global(Vector3(1.0, 0.1, 1.0))
+	p.auto_target = outside
+	world.get_node("Players").add_child(p)
+	p.global_position = outside
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Night")
+	GameState.get_or_create_player_data("Night")["cash"] = 1000
+	dn.set_hours(12.0)
+	dn._refresh_lights()
+	await get_tree().physics_frame
+	gate._gate_toggle(1)
+	await get_tree().create_timer(0.1).timeout
+	_report(not gate.is_open and p.last_message.contains("locked"), "by day the gate stays locked ('%s')" % p.last_message)
+	dn.set_hours(23.0)
+	dn._refresh_lights()
+	await get_tree().physics_frame
+	gate._gate_toggle(1)
+	await get_tree().create_timer(0.6).timeout
+	_report(gate.is_open, "at night the gate opens")
+	# Through the gate to Rook, buy seeds.
+	var through: Vector3 = gate.to_global(Vector3(1.0, 0.1, -1.0))
+	var walked: bool = await _walk_to(p, through, 8.0)
+	_report(walked, "walk through the open gate (at %s)" % p.global_position.snapped(Vector3.ONE * 0.1))
+	var front: Vector3 = rook.global_position - rook.global_basis.z * 2.3
+	p.global_position = front  # the rest only needs to stand there
+	var answers: Array = []
+	var cb := func(ok: bool, msg: String) -> void: answers.append([ok, msg])
+	rook.buy_result.connect(cb)
+	rook.request_buy(&"weed_seed", 5)
+	await get_tree().process_frame
+	_report(answers.size() == 1 and answers[0][0] and GameState.count_item("Night", "weed_seed") == 5,
+			"Rook sells seeds at night (%s)" % [answers[0] if answers.size() > 0 else "no answer"])
+	# Dawn: the gate closes, Rook stops selling; from inside the gate still opens.
+	dn.set_hours(9.0)
+	dn._refresh_lights()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	_report(not gate.is_open, "at dawn the gate closes")
+	rook.request_buy(&"weed_seed", 1)
+	await get_tree().process_frame
+	_report(answers.size() == 2 and not answers[1][0], "by day Rook doesn't sell (%s)" % [answers[1] if answers.size() > 1 else "no answer"])
+	gate._gate_toggle(1)
+	await get_tree().create_timer(0.1).timeout
+	_report(gate.is_open, "from the market side the gate always opens (nobody gets locked in)")
+	gate._set_open(false)
+	rook.buy_result.disconnect(cb)
+	dn.set_hours(10.0)
+	GameState.player_data.erase("Night")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
 # --- Placement (point 6), furniture (17), storage lockers (18) ------------------------
 
 func _check_placement(world: Node3D) -> void:
@@ -1163,18 +1230,24 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 		if c is Car and (c as Car).route_id == 2:
 			on_main.append(c as Car)
 	var car: Car = on_main[0]
-	# Clear stretch of the main road for the test car, others half a lap away.
-	car.progress = 20.0
-	car.speed = Car.CRUISE
-	for i: int in range(1, on_main.size()):
-		on_main[i].progress = 20.0 + traffic.routes[2].length * 0.5 + i * 15.0
-	await get_tree().create_timer(0.5).timeout
-	Car.force_reaction = "panic"
-	car.hear_gunshot(car.global_position + Vector3(0, 0, 20))
 	var top: float = 0.0
-	for i: int in 120:
-		await get_tree().physics_frame
-		top = maxf(top, car.speed)
+	# Clear stretch of the main road for the test car, others half a lap away. A pedestrian or a
+	# junction can hold it up: up to 3 tries on other stretches.
+	for attempt: int in 3:
+		car.progress = 20.0 + attempt * 45.0
+		car.speed = Car.CRUISE
+		car.panic = 0.0
+		for i: int in range(1, on_main.size()):
+			on_main[i].progress = car.progress + traffic.routes[2].length * 0.5 + i * 15.0
+		await get_tree().create_timer(0.5).timeout
+		Car.force_reaction = "panic"
+		car.hear_gunshot(car.global_position + Vector3(0, 0, 20))
+		top = 0.0
+		for i: int in 120:
+			await get_tree().physics_frame
+			top = maxf(top, car.speed)
+		if top > Car.CRUISE + 1.0:
+			break
 	_report(car.panic > 0.0 and top > Car.CRUISE + 1.0 and not car.abandoned,
 			"gunshot nearby: the car panics and speeds up (%.1f m/s)" % top)
 	await get_tree().create_timer(Car.PANIC_TIME).timeout

@@ -19,6 +19,8 @@ extends Node3D
 ## Look of the NPC (Pedestrian variants).
 @export var variant: int = 0
 @export var color_seed: int = 0
+## Black market (point 7): only sells at night (DayNight.is_night, street lights on).
+@export var night_only: bool = false
 
 const MAX_PER_BUY: int = 20
 
@@ -41,6 +43,11 @@ func _ready() -> void:
 
 func get_interaction_prompt() -> String:
 	return "Talk to %s (%s)" % [npc_name, shop_name]
+
+
+## Open right now? (night_only shops close during the day)
+func is_open() -> bool:
+	return not night_only or NightGate.night_now(get_tree())
 
 
 func interact() -> void:
@@ -76,6 +83,8 @@ func _server_buy(peer: int, id: StringName, count: int) -> void:
 	var item: ItemData = ItemDB.get_item(id)
 	if buyer.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 2.0:
 		msg = "You walked away."
+	elif not is_open():
+		msg = "\"Not now. Come back when it's dark.\""
 	elif item == null or not id in stock or count < 1 or count > MAX_PER_BUY:
 		msg = "\"I don't sell that.\""
 	else:

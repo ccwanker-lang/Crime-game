@@ -308,6 +308,12 @@ put("props/planter_box.tscn", (7.0, 0.15, 5.4))
 put("props/planter_box.tscn", (14.8, 0.15, 5.4))
 grass(14, 25, 20, 14, 7)
 
+# Point 7: the garage on the side street (front faces the road at x 30), black market inside.
+put("buildings/garage.tscn", (24, 0, 44), 90, name="Garage")
+sc.node("GarageApron", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((22.5, 0, 44)),
+    "size": "Vector2(3, 14)", "surface": q("asphalt"), "height": "0.02"})
+
 # Block E: Rival Turf (The Black Crows).
 sc.node("TurfYard", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((50, 0, 27)),

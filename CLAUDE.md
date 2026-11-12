@@ -118,6 +118,9 @@ Godot console exe:
   `GameState.world["placed"]` records (`World.host_place`/`host_remove_placed`); placed stations use station_id
   `placed/<uid>`, furniture sits in a `PlacedFurniture`. Owned properties adopt their building's furniture
   (`Property.host_adopt_furniture`). `StorageLocker` station + HUD storage window. Tests: `World.debug_weed_corner()`.
+- Black market (point 7): `prefabs/buildings/garage.tscn` (gen_prefabs `garage_extra`), `NightGate` (NetDoor subclass,
+  locked by day from the workshop side) + Shopkeeper `night_only` (Rook). "Night" = `DayNight.is_night()` (lights on).
+  The screenshot tour sets 23:00 for shots whose name contains "night".
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

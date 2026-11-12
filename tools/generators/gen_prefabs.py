@@ -311,12 +311,13 @@ def inst(sc, name, rel, pos, rot=0.0, props=None):
 FLOOR = 0.15
 
 
-def shopkeeper(sc, name, pos, npc_name, shop_name, greeting, stock, variant, color_seed):
+def shopkeeper(sc, name, pos, npc_name, shop_name, greeting, stock, variant, color_seed, extra=None):
     """NPC who sells `stock` (item ids), standing at `pos` facing the room (+Z)."""
-    inst(sc, name, "prefabs/npc/shopkeeper.tscn", pos, 180, {
-        "npc_name": q(npc_name), "shop_name": q(shop_name), "greeting": q(greeting),
-        "stock": "Array[StringName]([" + ", ".join(f'&"{i}"' for i in stock) + "])",
-        "variant": str(variant), "color_seed": str(color_seed)})
+    props = {"npc_name": q(npc_name), "shop_name": q(shop_name), "greeting": q(greeting),
+             "stock": "Array[StringName]([" + ", ".join(f'&"{i}"' for i in stock) + "])",
+             "variant": str(variant), "color_seed": str(color_seed)}
+    props.update(extra or {})
+    inst(sc, name, "prefabs/npc/shopkeeper.tscn", pos, 180, props)
 
 
 # Starter Room: the players' first property. Station spots stay free for step 6.
@@ -473,6 +474,57 @@ building(B + "contact_hideout.tscn", {
     "wall_material": q("brick_old"), "wall_tint": col(0.8, 0.78, 0.76), "roof_type": q("flat"),
     "door_bay": "0", "door_color": col(0.2, 0.2, 0.2), "string_courses": "false", "enterable": "true",
     "floor_material": q("concrete"), "lit_windows": "0.0", "variation_seed": "13"}, contact_extra)
+
+
+# Point 7: the garage. Workshop in front, the black market behind a chain-link fence at the
+# back (gate locked during the day, Rook only sells at night).
+GARAGE_W = 12.6  # interior 12 m: 5 fence panels of 2 m + a 2 m gate
+
+
+def garage_extra(sc):
+    fz = -7.6  # the fence line (market behind it)
+    # Front: big GARAGE letters over the door and a closed roller shutter over the right two bays.
+    sc.node("Sign", "Label3D", ".", props={
+        "transform": xform((2.1, 4.05, 0.08)), "text": q("GARAGE"), "font_size": "120", "pixel_size": "0.007",
+        "outline_size": "12", "modulate": col(0.95, 0.85, 0.3), "double_sided": "false"})
+    sc.node("Shutter", "StaticBody3D", ".", props={
+        "script": sc.script("res://scripts/procgen/roller_shutter.gd"), "transform": xform((2.1, 0.0, 0.02)),
+        "size": "Vector2(7.2, 3.3)"})
+    # Workshop: covered car on the lift spot, tools, racks, tyres (barrels), oil stain crates.
+    inst(sc, "CoveredCar", P + "covered_car.tscn", (1.6, FLOOR, -4.0), 90)
+    inst(sc, "ToolCart", I + "tool_cart.tscn", (-1.4, FLOOR, -3.2), -20)
+    inst(sc, "Rack1", I + "metal_rack.tscn", (5.6, FLOOR, -2.2), -90)
+    inst(sc, "Rack2", I + "steel_shelves.tscn", (5.6, FLOOR, -4.6), -90)
+    inst(sc, "Barrel1", P + "barrel.tscn", (4.9, FLOOR, -6.6))
+    inst(sc, "Barrel2", P + "barrel.tscn", (4.3, FLOOR, -6.9))
+    inst(sc, "Crate1", P + "crate_long.tscn", (-5.2, FLOOR, -6.5), 90)
+    inst(sc, "Lamp1", I + "hanging_lamp.tscn", (-2.5, 4.35, -3.5))
+    inst(sc, "Lamp2", I + "hanging_lamp.tscn", (2.5, 4.35, -3.5))
+    # Fence across the hall with the night gate (x -2..0).
+    for i, x in enumerate([-6.0, -4.0, 0.0, 2.0, 4.0]):
+        inst(sc, f"Fence{i + 1}", P + "chainlink_fence.tscn", (x, FLOOR, fz), 0)
+    sc.node("MarketGate", None, ".", instance="res://prefabs/buildings/night_gate.tscn",
+            props={"transform": xform((-2.0, FLOOR, fz), 0)})
+    # The market: Rook behind a table of crates.
+    inst(sc, "MarketTable", I + "dining_table.tscn", (1.6, FLOOR, -9.4), 0)
+    inst(sc, "MarketCrate1", P + "crate_long.tscn", (-4.6, FLOOR, -10.9), 0)
+    inst(sc, "MarketCrate2", P + "crate_flat.tscn", (-4.6, FLOOR + 0.46, -10.9), 6)
+    inst(sc, "MarketCrate3", P + "crate_long.tscn", (4.9, FLOOR, -10.9), 90)
+    inst(sc, "MarketBox", I + "cardboard_box.tscn", (1.2, FLOOR + 0.88, -9.4), 20)
+    inst(sc, "MarketLamp", I + "hanging_lamp.tscn", (1.6, 4.35, -9.6))
+    marker(sc, "BlackMarketSpot", (1.6, FLOOR, -10.6), 0)
+    shopkeeper(sc, "BlackMarket", (1.6, FLOOR, -10.6), "Rook", "Black Market",
+               "Keep your voice down. Seeds, gear, anything you need to get started. Cash.",
+               ["weed_seed", "baggie", "grow_pot", "grow_lamp", "drying_rack", "packaging_table", "storage_locker"],
+               5, 11, {"night_only": "true", "price_factor": "0.9"})
+
+
+building(B + "garage.tscn", {
+    "width": str(GARAGE_W), "depth": "12.0", "floors": "1", "floor_height": "4.5", "bays": "3",
+    "wall_material": q("brick_mixed"), "wall_tint": col(0.82, 0.8, 0.78), "roof_type": q("flat"),
+    "door_bay": "0", "door_color": col(0.25, 0.27, 0.3), "string_courses": "false", "enterable": "true",
+    "public_building": "true", "shop_sign": q("GARAGE"), "floor_material": q("concrete"), "chimney": q("none"),
+    "lit_windows": "0.0", "variation_seed": "41"}, garage_extra)
 
 
 # --------------------------------------------------------------------------- items

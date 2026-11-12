@@ -7,7 +7,7 @@ extends Control
 const BOUNDS := Rect2(-76, -58, 152, 128)  # world x, z
 const LANDMARKS: Dictionary = {
 	"StarterRoom": "Your room", "Store": "Store", "Hospital": "Hospital",
-	"GunShop": "Guns", "ContactHideout": "Dries",
+	"GunShop": "Guns", "ContactHideout": "Dries", "Garage": "Garage",
 }
 
 var _roads: Array[PackedVector2Array] = []

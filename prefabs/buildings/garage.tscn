@@ -1,0 +1,129 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+[ext_resource type="Script" path="res://scripts/procgen/roller_shutter.gd" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/covered_car.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/tool_cart.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/metal_rack.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/steel_shelves.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/barrel.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_long.tscn" id="8_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/hanging_lamp.tscn" id="9_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/chainlink_fence.tscn" id="10_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/night_gate.tscn" id="11_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/dining_table.tscn" id="12_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_flat.tscn" id="13_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/cardboard_box.tscn" id="14_r"]
+[ext_resource type="PackedScene" path="res://prefabs/npc/shopkeeper.tscn" id="15_r"]
+
+[node name="Garage" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 12.6
+depth = 12.0
+floors = 1
+floor_height = 4.5
+bays = 3
+wall_material = "brick_mixed"
+wall_tint = Color(0.82, 0.8, 0.78, 1)
+roof_type = "flat"
+door_bay = 0
+door_color = Color(0.25, 0.27, 0.3, 1)
+string_courses = false
+enterable = true
+public_building = true
+shop_sign = "GARAGE"
+floor_material = "concrete"
+chimney = "none"
+lit_windows = 0.0
+variation_seed = 41
+
+[node name="Sign" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.1, 4.05, 0.08)
+text = "GARAGE"
+font_size = 120
+pixel_size = 0.007
+outline_size = 12
+modulate = Color(0.95, 0.85, 0.3, 1)
+double_sided = false
+
+[node name="Shutter" type="StaticBody3D" parent="."]
+script = ExtResource("2_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.1, 0, 0.02)
+size = Vector2(7.2, 3.3)
+
+[node name="CoveredCar" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 1.6, 0.15, -4)
+
+[node name="ToolCart" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(0.939693, 0, -0.34202, 0, 1, 0, 0.34202, 0, 0.939693, -1.4, 0.15, -3.2)
+
+[node name="Rack1" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 5.6, 0.15, -2.2)
+
+[node name="Rack2" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 5.6, 0.15, -4.6)
+
+[node name="Barrel1" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.9, 0.15, -6.6)
+
+[node name="Barrel2" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.3, 0.15, -6.9)
+
+[node name="Crate1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -5.2, 0.15, -6.5)
+
+[node name="Lamp1" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.5, 4.35, -3.5)
+
+[node name="Lamp2" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.5, 4.35, -3.5)
+
+[node name="Fence1" parent="." instance=ExtResource("10_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6, 0.15, -7.6)
+
+[node name="Fence2" parent="." instance=ExtResource("10_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0.15, -7.6)
+
+[node name="Fence3" parent="." instance=ExtResource("10_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.15, -7.6)
+
+[node name="Fence4" parent="." instance=ExtResource("10_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 0.15, -7.6)
+
+[node name="Fence5" parent="." instance=ExtResource("10_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4, 0.15, -7.6)
+
+[node name="MarketGate" parent="." instance=ExtResource("11_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 0.15, -7.6)
+
+[node name="MarketTable" parent="." instance=ExtResource("12_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.6, 0.15, -9.4)
+
+[node name="MarketCrate1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4.6, 0.15, -10.9)
+
+[node name="MarketCrate2" parent="." instance=ExtResource("13_r")]
+transform = Transform3D(0.994522, 0, 0.104528, 0, 1, 0, -0.104528, 0, 0.994522, -4.6, 0.61, -10.9)
+
+[node name="MarketCrate3" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 4.9, 0.15, -10.9)
+
+[node name="MarketBox" parent="." instance=ExtResource("14_r")]
+transform = Transform3D(0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.939693, 1.2, 1.03, -9.4)
+
+[node name="MarketLamp" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.6, 4.35, -9.6)
+
+[node name="BlackMarketSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.6, 0.15, -10.6)
+
+[node name="BlackMarket" parent="." instance=ExtResource("15_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 1.6, 0.15, -10.6)
+npc_name = "Rook"
+shop_name = "Black Market"
+greeting = "Keep your voice down. Seeds, gear, anything you need to get started. Cash."
+stock = Array[StringName]([&"weed_seed", &"baggie", &"grow_pot", &"grow_lamp", &"drying_rack", &"packaging_table", &"storage_locker"])
+variant = 5
+color_seed = 11
+night_only = true
+price_factor = 0.9
