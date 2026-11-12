@@ -91,14 +91,18 @@ const SHOTS: Array[Array] = [
 	# Point 8: South Street with the properties for sale and the real estate agent (window open).
 	["65_south_street", Vector3(8, 2.2, 63), Vector3(-30, 3.0, 52)],
 	["66_estate_window", Vector3(-19.2, 1.7, 50.5), Vector3(-19.2, 1.3, 46.7)],
-	["67_front_businesses", Vector3(-1, 2.2, 63), Vector3(-12, 3.0, 52)],
+	["67_laundromat_west_end", Vector3(-49, 2.2, 3.5), Vector3(-56, 3.0, -6)],
 	["68_bakery_inside", Vector3(39.5, 1.7, -6.9), Vector3(40.4, 1.0, -13.5)],
-	["69_barber_inside", Vector3(-10.6, 1.7, 53.0), Vector3(-14.5, 1.0, 48.0)],
-	["70_laundromat_inside", Vector3(-3.0, 1.7, 53.0), Vector3(-8.5, 0.8, 47.5)],
+	["69_barber_inside", Vector3(1.1, 1.7, -41.0), Vector3(5.0, 1.0, -36.0)],
+	["70_laundromat_inside", Vector3(-53.5, 1.7, -7.0), Vector3(-59.0, 0.8, -12.5)],
 	# Point 10: police station, an officer aiming next to a patrol car (light bar on).
 	["71_police_station", Vector3(16, 2.2, 64), Vector3(3, 3.0, 52)],
 	["72_police_officer", Vector3(3.6, 1.6, 59.6), Vector3(1.6, 1.1, 56.4)],
 	["73_police_car_night", Vector3(10.5, 2.0, 63.0), Vector3(4.0, 0.8, 57.5)],
+	# Point 26: the properties in their neighbourhoods.
+	["74_small_house_square", Vector3(-10, 2.2, -2.5), Vector3(-17, 3.0, 6)],
+	["75_barber_north_road", Vector3(10, 2.2, -50), Vector3(3, 3.0, -42)],
+	["76_family_house_east", Vector3(60, 2.2, -50.5), Vector3(68, 3.0, -42)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

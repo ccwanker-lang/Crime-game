@@ -8,7 +8,10 @@ extends Pedestrian
 ##   SIGHT_RANGE) it stops, aims and shoots until the culprit is dead or gone.
 ## - Not seen for SEARCH_TIME seconds: it gives up and patrols again.
 ## - Shooting at an officer makes you its target as well.
-## Later (heat system): wanted levels, arrests, bribes.
+## Point 25: a culprit who doesn't resist (weapon away, no shots for a few seconds, not
+## running off) is not shot but cuffed: the officer walks up and arrests them
+## (Player.host_arrest). Officers from a patrol car never go further than LEASH from it.
+## Later (heat system): wanted levels, bribes.
 
 const UNIFORM: Dictionary = {
 	"White": Color(0.55, 0.68, 0.85),       # shirt: light blue
@@ -20,6 +23,13 @@ const VARIANT: int = 7  # man_longsleeve (CharacterArmature: gun animations)
 const HEAR_RANGE: float = 45.0
 const MURDER_RANGE: float = 70.0
 const SEARCH_TIME: float = 25.0
+## Arrest (point 25).
+const WARN_TIME: float = 2.5        # after "put your weapon away!" before it counts as resisting
+const SHOT_MEMORY: float = 3.0      # fired this recently = resisting
+const FLEE_SPEED: float = 4.6       # running off faster than this = resisting
+const ARREST_DISTANCE: float = 2.6  # (the navmesh stops ~2.3 m from a player)
+const CUFF_TIME: float = 2.0
+const LEASH: float = 60.0           # car crews don't chase further than this from their car
 const PATROL_RADIUS: float = 45.0
 ## Point 21: aim, reaction time, damage, fire rate, bursts (tune data/npc/police_combat.tres).
 const DEFAULT_PROFILE: NpcCombatProfile = preload("res://data/npc/police_combat.tres")
@@ -47,6 +57,11 @@ var _burst_left: int = 0
 var profile: NpcCombatProfile = DEFAULT_PROFILE
 var _seen: bool = false
 var _seen_now: bool = false  # had the target in sight on the last think
+var _warned_at: float = -1.0
+var _cuff_time: float = 0.0
+var _hostile: Dictionary = {}  # Player -> true: shot at the police, never arrested, always shot
+var _last_target_pos: Vector3 = Vector3.INF
+var _target_speed: float = 0.0
 var _pistol: WeaponData
 
 
@@ -161,6 +176,9 @@ func _alert(culprit: Player, at: Vector3) -> void:
 		print("[Police] %s goes after %s" % [name, culprit.player_name])
 		_next_shot = _now() + profile.reaction_time
 		_burst_left = profile.burst_size
+		_warned_at = -1.0
+		_cuff_time = 0.0
+		_last_target_pos = Vector3.INF
 	target = culprit
 	last_known = at
 	_search_until = _now() + SEARCH_TIME
@@ -175,6 +193,7 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 		return false
 	health = maxi(0, health - amount)
 	if attacker is Player:
+		_hostile[attacker] = true
 		_alert(attacker as Player, (attacker as Player).global_position)
 	if health > 0:
 		return false
@@ -215,9 +234,17 @@ func _think() -> void:
 	if target == null:
 		_patrol()
 		return
+	if from_car != null and is_instance_valid(from_car) and last_known.distance_to(from_car.global_position) > LEASH:
+		print("[Police] %s: %s got away" % [name, target.player_name])
+		_drop_target()
+		return
 	var sees: bool = can_see(target)
 	if not sees:
 		_seen_now = false
+	_update_target_speed()
+	if sees and not resisting(target):
+		_try_arrest()
+		return
 	if sees:
 		_seen = true
 		last_known = target.global_position
@@ -243,9 +270,7 @@ func _think() -> void:
 		return
 	if _now() > _search_until:
 		print("[Police] %s lost %s" % [name, target.player_name])
-		target = null
-		_seen = false
-		anim_state = Anim.IDLE
+		_drop_target()
 		return
 	# Run to where the culprit was last seen / heard.
 	if global_position.distance_to(last_known) > 1.5:
@@ -255,6 +280,75 @@ func _think() -> void:
 		anim_state = Anim.AIM
 		rotation.y += 0.8  # look around
 		net_yaw = rotation.y
+
+
+func _drop_target() -> void:
+	target = null
+	_seen = false
+	_seen_now = false
+	if _moving:
+		_finish_move(false)
+	anim_state = Anim.IDLE
+
+
+func _update_target_speed() -> void:
+	var p: Vector3 = target.global_position
+	if _last_target_pos != Vector3.INF:
+		_target_speed = Vector2(p.x - _last_target_pos.x, p.z - _last_target_pos.z).length() / 0.2
+	_last_target_pos = p
+
+
+## Host: does `p` resist arrest (then the police shoot)?
+func resisting(p: Player) -> bool:
+	if _hostile.has(p):
+		return true
+	if _now() - p.host_last_shot < SHOT_MEMORY:
+		return true
+	if p.net_weapon != 0 and _warned_at >= 0.0 and _now() - _warned_at > WARN_TIME:
+		return true
+	if _target_speed > FLEE_SPEED and global_position.distance_to(p.global_position) > 4.0:
+		return true
+	return false
+
+
+## Host: walk up to a culprit who gives up, and cuff them.
+func _try_arrest() -> void:
+	var p: Player = target
+	_seen = true
+	_seen_now = true
+	last_known = p.global_position
+	_search_until = _now() + SEARCH_TIME
+	if _warned_at < 0.0:
+		_warned_at = _now()
+		p.show_message("POLICE! Put your weapon away and don't move!")
+	var d: float = global_position.distance_to(p.global_position)
+	if d > ARREST_DISTANCE:
+		_cuff_time = 0.0
+		if not _moving or agent.target_position.distance_to(p.global_position) > 1.0:
+			_go(p.global_position, Anim.RUN_GUN if d > 6.0 else Anim.WALK)
+		return
+	if _moving:
+		_finish_move(false)
+	anim_state = Anim.AIM
+	var dir: Vector3 = p.global_position - global_position
+	rotation.y = atan2(-dir.x, -dir.z)
+	net_yaw = rotation.y
+	if p.net_weapon != 0:
+		_cuff_time = 0.0  # weapon still in hand: keep aiming, no cuffs (resisting after WARN_TIME)
+		return
+	if _cuff_time == 0.0:
+		p.show_message("You're under arrest. Hands behind your back...")
+	_cuff_time += 0.2
+	if _cuff_time >= CUFF_TIME:
+		print("[Police] %s arrests %s" % [name, p.player_name])
+		p.host_arrest(self)
+
+
+## Host (group "police"): `p` was arrested by someone: stop chasing them.
+func on_arrested(p: Player) -> void:
+	_hostile.erase(p)
+	if target == p:
+		_drop_target()
 
 
 func _patrol() -> void:
@@ -277,7 +371,7 @@ func _patrol() -> void:
 func _shoot_at(p: Player) -> void:
 	var origin: Vector3 = global_position + Vector3.UP * 1.45 - global_basis.z * 0.45
 	var aim: Vector3 = p.global_position + Vector3.UP * randf_range(0.9, 1.5)
-	var speed: float = Vector2(p.velocity.x, p.velocity.z).length()
+	var speed: float = _target_speed if p == target else Vector2(p.velocity.x, p.velocity.z).length()
 	var dir: Vector3 = PlayerCombat._cone((aim - origin).normalized(), profile.spread(origin.distance_to(aim), speed))
 	var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * 80.0, HIT_MASK, [get_rid()])
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)

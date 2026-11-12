@@ -26,7 +26,8 @@ func _ready() -> void:
 			if arg.begins_with("--cars="):
 				count = arg.trim_prefix("--cars=").to_int()
 		spawn_cars.call_deferred(count)
-		var police_cars: int = 1
+		# (The network check stays deterministic: no patrols that arrest its client mid-walk.)
+		var police_cars: int = 0 if "--netcheck" in OS.get_cmdline_user_args() else 2
 		for arg: String in OS.get_cmdline_user_args():
 			if arg.begins_with("--police-cars="):
 				police_cars = arg.trim_prefix("--police-cars=").to_int()

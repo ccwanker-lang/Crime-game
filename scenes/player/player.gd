@@ -79,6 +79,12 @@ var net_held: StringName = &""
 @export var regen_delay: float = 8.0
 @export var regen_per_second: float = 4.0
 var _last_damage: float = -1000.0  # host
+## Host (point 25): when this player last fired (seconds, Time ticks) - resisting arrest.
+var host_last_shot: float = -1000.0
+## Arrest: fine = FINE_SHARE of all money, between FINE_MIN and FINE_MAX.
+const FINE_SHARE: float = 0.1
+const FINE_MIN: int = 200
+const FINE_MAX: int = 5000
 var _regen_acc: float = 0.0  # host
 
 # --- Synced from the host (HostSync) --------------------------------------------
@@ -858,6 +864,40 @@ func _host_die(attacker: Player, from: Vector3 = Vector3.INF) -> void:
 	dead = false
 	combat.host_refill()
 	print("[Player] %s respawned at the hospital %s" % [player_name, spawn.snapped(Vector3.ONE * 0.1)])
+
+
+## Host (point 25): the police cuffed this player. Illegal items are confiscated
+## (loaded rounds first go back into the pockets), a fine is paid (clean money
+## first, as much as there is) and the player is released at the police station.
+func host_arrest(by: Node) -> void:
+	if not multiplayer.is_server() or dead:
+		return
+	combat.host_unload()
+	var data: Dictionary = GameState.get_or_create_player_data(player_name)
+	var inv: Array = data["inventory"]
+	var taken: PackedStringArray = []
+	for i: int in range(inv.size() - 1, -1, -1):
+		var it: Dictionary = inv[i]
+		var item: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
+		if item and not item.is_legal:
+			taken.append("%dx %s" % [int(it.get("count", 1)), item.display_name])
+			inv.remove_at(i)
+	var total: int = GameState.total_money(player_name)
+	var fine: int = mini(total, clampi(roundi(total * FINE_SHARE), FINE_MIN, FINE_MAX))
+	if fine > 0:
+		GameState.add_cash(player_name, -fine, true)
+	health = MAX_HEALTH
+	var world: Node = get_tree().current_scene
+	var spot: Node3D = world.call("get_marker", "ReleaseSpot") if world.has_method("get_marker") else null
+	if spot:
+		teleport(spot.global_position)
+	send_wallet()
+	combat.host_send_all_ammo()
+	get_tree().call_group(&"police", "on_arrested", self)
+	var what: String = ", ".join(taken) if not taken.is_empty() else "nothing"
+	print("[Police] %s arrested by %s: confiscated %s, fine €%d" % [player_name, by.name if by else "?", what, fine])
+	show_message("ARRESTED. Confiscated: %s. Fine: €%d. You're free to go." % [what, fine])
+	phone_message("Police", "You were arrested and released on a €%d fine. Confiscated: %s." % [fine, what], "")
 
 
 ## Every peer: health changed (HostSync). Owner: HUD + damage flash.

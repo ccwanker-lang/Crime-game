@@ -126,16 +126,21 @@ Godot console exe:
   The screenshot tour sets 23:00 for shots whose name contains "night".
 - Real estate (point 8): `Property` (`for_sale`, `price`, `description`; `host_set_owned` adopts the furniture and tells
   every peer) inside buildings; `EstateAgent` (Shopkeeper subclass, `prefabs/buildings/real_estate.tscn`) lists them in
-  the shop window. South Street (z 60) holds the milestone 2 buildings; gen_world `property_node(...)` adds one.
+  the shop window. South Street (z 60) holds the agent, warehouse and police; the other properties sit in
+  their own neighbourhoods (point 26); gen_world `property_node(...)` adds one. Moving a property later: add its old
+  spot to `World.OLD_PROPERTY_SPOTS` and bump `LAYOUT_VERSION` (`migrate_layout` carries old saves along).
 - Laundering (point 9): player_data "cash" = dirty, "clean" = laundered (`GameState.add_cash(name, -x, legal)` pays
   from both pots, legal = clean first; `add_clean`; death drops only dirty). `LaunderSafe` station
   (`prefabs/stations/launder_safe.tscn`, `daily_max`) in `prefabs/buildings/bakery|barber|laundromat.tscn`; its
   `property()` = the building's Property (must be crew owned). HUD shows "€ dirty   clean € x".
-- Police (point 10): `PoliceOfficer` (Pedestrian subclass, `prefabs/npc/police_officer.tscn`, Anim AIM/RUN_GUN, cap +
+- Police (points 10/25): `PoliceOfficer` (Pedestrian subclass, `prefabs/npc/police_officer.tscn`, Anim AIM/RUN_GUN, cap +
   pistol in the fist) spawned by `World.spawn_police`/`add_officer` at `PoliceStation` OfficerSpawn markers (`--police=N`).
   Crimes: group call `report_crime(player, pos, murder)` on "police" from PlayerCombat (every shot, every kill).
   Patrol car = `Car.police` (+ synced `siren`), `Traffic.spawn_police_car` (`--police-cars=N`). NPCs can damage players:
-  `Player.host_damage(amount, attacker: Node, from)`.
+  `Player.host_damage(amount, attacker: Node, from)`. Default: no foot patrols, 2 patrol cars (none with --netcheck)
+  with `crew_size` 2 (`Car.crew_out`, `_police_come_back`); officers have `from_car` (LEASH 60 m). Arrest:
+  `PoliceOfficer.resisting(p)` (`_hostile`, `Player.host_last_shot`, weapon drawn after warning, running) else
+  `_try_arrest` -> `Player.host_arrest(by)` (confiscate illegal, fine, `ReleaseSpot` marker), group call `on_arrested`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;
   `abandon()` only for wrecks/tests; `honk` is rate-limited town-wide (`_last_honk_ms`). `Car.force_reaction` "panic"/"uturn".
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner

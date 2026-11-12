@@ -631,6 +631,8 @@ def police_extra(sc):
     inst(sc, "Cabinet", I + "drawer_cabinet.tscn", (-5.0, FLOOR, -9.3), 0)
     for i, x in enumerate([-1.0, 0.0, 1.0]):
         marker(sc, f"OfficerSpawn{i + 1}", (x, FLOOR, -2.0), 0)
+    # Point 25: arrested players are released here (on the pavement by the door).
+    marker(sc, "ReleaseSpot", (-2.5, 0.25, 1.6), 0)
     for i, x in enumerate([-3.0, 0.0, 3.0]):
         inst(sc, f"Lamp{i}", I + "ceiling_lamp.tscn", (x, 2.98, -5.0))
     # Blue lamp over the door.

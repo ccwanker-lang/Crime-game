@@ -220,9 +220,9 @@ Feedback round 2 (MUST first, then balance, traffic, police, map):
     route), then go back to their normal route; no abandoned cars left on the street (replaces part of point 3) - done
 25. Police and their car: officers get out to shoot or arrest, never leave the car behind, walk back and patrol on
     when it's over (dead / arrested / escaped). Arrest: a player who doesn't resist and is close gets cuffed
-    instead of shot -> illegal items confiscated + fine, released at the police station - todo
+    instead of shot -> illegal items confiscated + fine, released at the police station - done
 26. Spread the properties for sale over the map: at least a street apart, different neighbourhoods, not next to
-    the police station; agent list + existing saves follow (owned property moves with its contents) - todo
+    the police station; agent list + existing saves follow (owned property moves with its contents) - done
 Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; heat, lawyer, bribes;
 rival territories, lab raids, story missions (acts 1-5); the full city (Map layout); roadside team, fuel station, garage.
 
@@ -279,6 +279,22 @@ Choices made while working autonomously (what + why).
   away, Traffic.find_escape) and speeds off; otherwise it just speeds off. A hit car does the same. Only a wreck
   stops; it is towed after 20 s and replaced. After the panic the car follows whatever route it is on now.
 - Point 22: health regenerates 4 HP/s after 8 s without damage (Player exports regen_delay/regen_per_second).
+- Point 25: no foot patrols by default any more (`--police=N` still adds them): all police come from 2 patrol
+  cars with a crew of 2. A crime within hearing range stops the car (siren), both officers get out and go after the
+  culprit, but never further than 60 m from their car. When nobody of the crew has a target any more they walk
+  back to the doors, get in and the car patrols on; a crew that is all dead -> the car is towed after 20 s.
+  Resisting = shot at the police, fired in the last 3 s, running off (> 4.6 m/s), or weapon still drawn 2.5 s
+  after "Put your weapon away!". Otherwise the officer walks up and cuffs (2 s within 2.6 m, only with the weapon
+  away). Arrest: loaded rounds go back into the pockets, then every illegal item is confiscated (weapons, ammo,
+  drugs, production gear), fine = 10% of all money (min €200, max €5000, never more than you have, clean money
+  first), full health, released at the station's ReleaseSpot. Why: being caught should hurt but not end a run,
+  and weapons are illegal items anyway. Officers are never drug customers.
+- Point 26: properties per neighbourhood - Laundromat: West End (main road north, x -60); Small House: Old Town on
+  the square (south side of the main road, x -20); Barber: North Road behind the hospital (x 0); Family House: East
+  End at the top road (x 65); Bakery: shop row (main road east); Warehouse: South Street west end (40+ m from the
+  police). South Street is now ordinary row houses + the agent + the police station. Old saves (World.migrate_layout,
+  world["layout"] 1 -> 2): placed things, loot bags and saved player positions inside a moved building's old
+  footprint move along with the same offset/rotation, so an owned property keeps its contents.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

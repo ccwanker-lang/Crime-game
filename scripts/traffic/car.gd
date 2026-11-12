@@ -96,6 +96,9 @@ var _steer_pivots: Array[Node3D] = []
 var _hold: float = 0.0  # stay stopped this long after the way is clear (no creeping)
 var _sense_shape := BoxShape3D.new()
 var _bar_lights: Array[OmniLight3D] = []
+## Host (police car): officers in the car, and the ones out on a call.
+var crew_size: int = 2
+var crew_out: Array[PoliceOfficer] = []
 var _bar_meshes: Array[MeshInstance3D] = []
 var _flash_t: float = 0.0
 
@@ -497,10 +500,11 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 	return false
 
 
-## Host (group "police"): a crime nearby. The car stops, the officer gets out and
-## goes after the culprit; when that's over it walks back and the car drives on.
+## Host (group "police"): a crime nearby. The car stops, its crew (point 25: officers
+## belong to their car) gets out and goes after the culprit: shoot or arrest. When it's
+## over (culprit dead / arrested / escaped) they walk back, get in and patrol on.
 func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
-	if not _is_host() or not police or abandoned or wrecked or culprit == null or culprit.dead:
+	if not _is_host() or not police or abandoned or wrecked or culprit == null or culprit.dead or crew_size <= 0:
 		return
 	if global_position.distance_to(origin) > (PoliceOfficer.MURDER_RANGE if murder else PoliceOfficer.HEAR_RANGE):
 		return
@@ -511,41 +515,72 @@ func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
 	panic = 0.0
 	_swerve = 0.0
 	siren = true
-	var side: Vector3 = global_position + global_basis.x * 1.4
-	side.y = global_position.y + 0.1
-	var cop: PoliceOfficer = world.call("add_officer", side, global_position, self)
-	cop._alert(culprit, origin)
-	_driver = cop
-	print("[Police] patrol car %s stops, officer out after %s" % [name, culprit.player_name])
+	crew_out.clear()
+	for i: int in crew_size:
+		var side: Vector3 = global_position + global_basis.x * (1.4 if i == 0 else -1.4)
+		side.y = global_position.y + 0.1
+		var cop: PoliceOfficer = world.call("add_officer", side, global_position, self)
+		cop._alert(culprit, origin)
+		crew_out.append(cop)
+	_driver = crew_out[0]
+	print("[Police] patrol car %s stops, %d officer(s) out after %s" % [name, crew_out.size(), culprit.player_name])
 	_police_come_back()
 
 
+## Host: the crew members that are still alive.
+func _crew_alive() -> Array[PoliceOfficer]:
+	var out: Array[PoliceOfficer] = []
+	for c: PoliceOfficer in crew_out:
+		if is_instance_valid(c) and not c.dead:
+			out.append(c)
+	return out
+
+
+func _crew_busy() -> bool:
+	for c: PoliceOfficer in _crew_alive():
+		if c.target != null:
+			return true
+	return false
+
+
 func _police_come_back() -> void:
-	# Wait until the officer is done (culprit dead / lost), then it walks back and gets in.
-	while is_inside_tree() and is_instance_valid(_driver) and not (_driver as Pedestrian).dead and (_driver as PoliceOfficer).target != null:
+	# Wait until every officer is done, then they walk back and get in.
+	while is_inside_tree() and _crew_busy():
 		await get_tree().create_timer(1.0).timeout
 	if not is_inside_tree():
 		return
-	if not is_instance_valid(_driver) or (_driver as Pedestrian).dead:
+	var alive: Array[PoliceOfficer] = _crew_alive()
+	crew_size = alive.size()
+	if alive.is_empty():
+		# The whole crew is down: the car is towed and a new patrol turns up.
 		await get_tree().create_timer(WRECK_TIME).timeout
-		_remove_driver()
 		if is_inside_tree():
 			(get_parent() as Traffic).replace_car(self)
 		return
-	await get_tree().create_timer(2.0).timeout
-	var door: Vector3 = global_position + global_basis.x * 1.4
+	await get_tree().create_timer(1.5).timeout
 	for attempt: int in 3:
-		if not is_instance_valid(_driver) or (_driver as Pedestrian).dead or (_driver as PoliceOfficer).target != null:
+		var walking: Array = []
+		for i: int in alive.size():
+			var c: PoliceOfficer = alive[i]
+			if is_instance_valid(c) and not c.dead and c.target == null:
+				var door: Vector3 = global_position + global_basis.x * (1.4 if i == 0 else -1.4)
+				if c.global_position.distance_to(door) > 2.5:
+					walking.append(c)
+					c.walk_to(door)
+		if walking.is_empty():
 			break
-		await (_driver as Pedestrian).walk_to(door)
-		if is_instance_valid(_driver) and (_driver as Node3D).global_position.distance_to(door) < 3.0:
-			break
+		await get_tree().create_timer(1.0).timeout
+		while is_inside_tree() and walking.any(func(c: Variant) -> bool: return is_instance_valid(c) and (c as PoliceOfficer)._moving):
+			await get_tree().create_timer(0.5).timeout
 	if not is_inside_tree():
 		return
-	if is_instance_valid(_driver) and not (_driver as Pedestrian).dead and (_driver as PoliceOfficer).target != null:
+	if _crew_busy():
 		_police_come_back()  # a new call came in on the way back
 		return
-	_remove_driver()
+	for c: PoliceOfficer in _crew_alive():
+		c.queue_free()
+	crew_out.clear()
+	_driver = null
 	siren = false
 	abandoned = false
 

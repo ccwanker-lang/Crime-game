@@ -191,9 +191,25 @@ def grass(cx, cz, sx, sz, seed):
             sc.node(uname("Grass"), None, ".", instance=PF + "nature/grass_field.tscn", props=props)
 
 
+# Properties for sale (point 26: spread over the neighbourhoods, never next to the police station).
+def property_node(building, pid, title, price, desc, label_x=0.0, label_y=3.4):
+    """A Property (for sale) inside an instanced building: ownership, furnishing area, sign."""
+    sc.node("Property", "Node3D", NAV + "/" + building, props={
+        "transform": xform((label_x, label_y, 0.25)), "script": sc.script("res://scenes/world/property.gd"),
+        "property_id": f'&"{pid}"', "display_name": q(title), "for_sale": "true", "price": str(price),
+        "description": q(desc)})
+    sc.node("Label3D", "Label3D", NAV + "/" + building + "/Property", props={
+        "text": q("FOR SALE"), "font_size": "40", "pixel_size": "0.006", "outline_size": "8",
+        "modulate": col(1, 0.75, 0.35), "billboard": "0", "double_sided": "false"})
+
+
 # Block A: north of the main road, west of the side street.
 gA = []
-row(-72, -35, -6, True, gA)
+row(-72, -60, -6, True, gA)
+fixed("buildings/laundromat.tscn", -60, 7.5, -6, True, gA, name="Laundromat")
+property_node("Laundromat", "laundromat", "Laundromat", 35000,
+              "West End, on the main road. Front business: launders up to €4,000 dirty cash a day (10% fee).", 0.0, 4.6)
+row(-52.5, -35, -6, True, gA)
 fixed("buildings/starter_room.tscn", -35, 6, -6, True, gA, name="StarterRoom")
 row(-29, -19.5, -6, True, gA)
 fixed("buildings/corner_house.tscn", -19.5, 7.5, -6, True, gA)
@@ -227,7 +243,11 @@ for x in [4.0, 7.0, 10.0, 13.0, 16.0, 19.0]:
 gB2 = []
 x = 0.5
 last_type[0] = None
-row(0, 24, -42, False, gB2)
+fixed("buildings/barber.tscn", 0, 6.5, -42, False, gB2, name="Barber")
+property_node("Barber", "barber", "Barber Shop", 20000,
+              "North Road, behind the hospital. Front business: launders up to €2,500 dirty cash a day (10% fee).",
+              0.0, 4.6)
+row(6.5, 24, -42, False, gB2)
 
 # Block C: shops on the main road, houses behind.
 gC = []
@@ -245,7 +265,11 @@ for i, (name, c, wm) in list(enumerate(SHOPS))[1:]:
 x = fixed("buildings/gun_shop.tscn", x, 7, -6, True, gC, name="GunShop")
 row(x, 72, -6, True, gC)
 gC2 = []
-row(36, 72, -42, False, gC2)
+row(36, 64.5, -42, False, gC2)
+fixed("buildings/corner_house.tscn", 64.5, 7.5, -42, False, gC2, name="FamilyHouse",
+      props={"wall_material": q("brick_white"), "variation_seed": "777"})
+property_node("FamilyHouse", "family_house", "Family House", 20000,
+              "East End, quiet street at the top of town. Three floors, furnished, big rooms.")
 garden_fences(gC, -16, -26, back_fence=False)
 grass(54, -24, 36, 16, 4)
 for x in (40, 52, 64):
@@ -256,7 +280,11 @@ for x in (40, 52, 64):
 gD1 = []
 row(-72, -36, 6, False, gD1)
 gD2 = []
-row(-33, -14, 6, False, gD2)
+row(-33, -20, 6, False, gD2)
+fixed("buildings/row_house_b.tscn", -20, 6.0, 6, False, gD2, name="SmallHouse",
+      props={"width": "6.0", "floors": "2", "variation_seed": "4242", "door_color": col(0.45, 0.1, 0.1)})
+property_node("SmallHouse", "small_house", "Small House", 8000,
+              "Old Town, on the square. Two floors, furnished. A step up from the Starter Room.")
 garden_fences(gD1, 15.5, 30)
 garden_fences(gD2, 15.5, 30)
 garden_dressing(gD1, 15.5, 30)
@@ -319,38 +347,16 @@ sc.node("GarageApron", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((22.5, 0, 44)),
     "size": "Vector2(3, 14)", "surface": q("asphalt"), "height": "0.02"})
 
-# South Street, north side (fronts face south at z 54): properties for sale + the real estate agent.
-def property_node(building, pid, title, price, desc, label_x=0.0, label_y=3.4):
-    """A Property (for sale) inside an instanced building: ownership, furnishing area, sign."""
-    sc.node("Property", "Node3D", NAV + "/" + building, props={
-        "transform": xform((label_x, label_y, 0.25)), "script": sc.script("res://scenes/world/property.gd"),
-        "property_id": f'&"{pid}"', "display_name": q(title), "for_sale": "true", "price": str(price),
-        "description": q(desc)})
-    sc.node("Label3D", "Label3D", NAV + "/" + building + "/Property", props={
-        "text": q("FOR SALE"), "font_size": "40", "pixel_size": "0.006", "outline_size": "8",
-        "modulate": col(1, 0.75, 0.35), "billboard": "0", "double_sided": "false"})
-
-
 gS = []
 fixed("buildings/warehouse.tscn", -58, 16, 54, True, gS, name="SouthWarehouse")
 property_node("SouthWarehouse", "south_warehouse", "Warehouse", 45000,
-              "16 x 12 m hall, 5.5 m high. Room for a big lab.", 0.0, 4.2)
-fixed("buildings/row_house_b.tscn", -40, 6.0, 54, True, gS, name="SmallHouse",
-      props={"width": "6.0", "floors": "2", "variation_seed": "4242", "door_color": col(0.45, 0.1, 0.1)})
-property_node("SmallHouse", "small_house", "Small House", 8000, "Two floors, furnished. A step up from the Starter Room.")
-fixed("buildings/corner_house.tscn", -33, 7.5, 54, True, gS, name="FamilyHouse",
-      props={"wall_material": q("brick_white"), "variation_seed": "777"})
-property_node("FamilyHouse", "family_house", "Family House", 20000, "Three floors, furnished, big rooms.")
+              "South Street, west end. 16 x 12 m hall, 5.5 m high. Room for a big lab.", 0.0, 4.2)
+last_type[0] = None
+row(-42, -24, 54, True, gS)
 fixed("buildings/real_estate.tscn", -24, 8.0, 54, True, gS, name="RealEstate")
 property_node("Bakery", "bakery", "Bakery", 12000,
-              "Front business on the main road. Launders up to €1,500 dirty cash a day (10% fee).", 0.0, 4.6)
-# Point 9: front businesses next to the agent (the bakery is on the main road, see block C).
-fixed("buildings/barber.tscn", -16, 6.5, 54, True, gS, name="Barber")
-property_node("Barber", "barber", "Barber Shop", 20000,
-              "Front business. Launders up to €2,500 dirty cash a day (10% fee).", 0.0, 4.6)
-fixed("buildings/laundromat.tscn", -9.5, 7.5, 54, True, gS, name="Laundromat")
-property_node("Laundromat", "laundromat", "Laundromat", 35000,
-              "Front business. Launders up to €4,000 dirty cash a day (10% fee).", 0.0, 4.6)
+              "Shop row on the main road. Front business: launders up to €1,500 dirty cash a day (10% fee).", 0.0, 4.6)
+row(-16, -1.5, 54, True, gS)
 # Point 10: the police station (officers patrol from here; the patrol car drives route 3).
 fixed("buildings/police_station.tscn", -1.5, 12.0, 54, True, gS, name="PoliceStation")
 for x in (-50, -26, -2, 22):
@@ -400,8 +406,11 @@ for x in (-60, -36, -12, 12, 42, 60):
     put("props/street_lamp.tscn", (x, 0.15, -3.95), 180)
 for x in (-48, -24, 24, 48):
     put("props/street_lamp.tscn", (x, 0.15, 3.95), 0)
+# Street trees on the party walls between two houses (never in front of a front door).
+_walls = sorted({e for g in (gD1, gD2) for (a, b) in g for e in (a, b)})
 for x in (-66, -54, -18):
-    put("nature/tree_street.tscn", (x, 0.15, 4.9), rng.uniform(0, 360), props={"tree_seed": str(500 + x)})
+    tx = min(_walls, key=lambda e: abs(e - x))
+    put("nature/tree_street.tscn", (tx, 0.15, 4.9), rng.uniform(0, 360), props={"tree_seed": str(500 + x)})
 for z in (-18, -30):
     put("props/street_lamp.tscn", (-9.95, 0.15, z), 90)
     put("props/street_lamp.tscn", (26.05, 0.15, z), 90)

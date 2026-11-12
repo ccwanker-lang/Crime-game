@@ -18,3 +18,5 @@ One line per finished part.
 - Point 20: storage window with slot grids (click one, Shift/drag stack), free locker in the Starter Room, drop items with G / right click and pick them up again.
 - Points 21+22: weaker, tunable police (NpcCombatProfile: reaction time, spread by range/movement, bursts, 7 damage) and health regeneration after 8 s.
 - Points 23+24: quieter, shorter, rarer horns; drivers no longer get out at gunfire - cars turn round or speed away and drive on, wrecks are towed after 20 s.
+- Point 25: police belong to their patrol car (crew of 2 gets out, stays within 60 m, walks back and drives on); a player who doesn't resist is cuffed instead of shot: illegal items confiscated, fine, released at the police station.
+- Point 26: the properties for sale are spread over four neighbourhoods (none next to the police station); old saves carry the contents of an owned property along.

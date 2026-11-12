@@ -421,6 +421,7 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 		return
 	_h_mags[index] -= 1
 	_h_last_fire = now
+	player.host_last_shot = Time.get_ticks_msec() / 1000.0  # police: fired = resisting arrest
 	dir = dir.normalized()
 	var ends := PackedVector3Array()
 	var normals := PackedVector3Array()

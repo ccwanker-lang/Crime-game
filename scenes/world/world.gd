@@ -58,6 +58,7 @@ func _ready() -> void:
 	if not multiplayer.is_server():
 		_request_snapshot.rpc_id(1)
 	else:
+		migrate_layout()  # (before the host's player spawns at its saved spot)
 		_restore_from_save.call_deferred()
 	if not ("--screenshot" in OS.get_cmdline_user_args() or "--selftest" in OS.get_cmdline_user_args()
 			or "--vmpreview" in OS.get_cmdline_user_args()):
@@ -416,6 +417,58 @@ func _capture_player(p: Player) -> void:
 	rec["mags"] = p.combat.host_mags()
 
 
+## Point 26: the properties for sale moved from South Street into other neighbourhoods.
+## Where their buildings stood before (front centre, facing south), per property_id.
+const LAYOUT_VERSION: int = 2
+const OLD_PROPERTY_SPOTS: Dictionary = {
+	"small_house": Vector3(-37, 0, 54), "family_house": Vector3(-29.25, 0, 54),
+	"barber": Vector3(-12.75, 0, 54), "laundromat": Vector3(-5.75, 0, 54)}
+
+
+## Host: a save from before the move carries everything that was inside a moved building
+## (placed stations/furniture, loot bags, players standing there) along to its new spot.
+## Returns how many things moved.
+func migrate_layout() -> int:
+	var w: Dictionary = GameState.world
+	if int(w.get("layout", 1)) >= LAYOUT_VERSION or not w.has("hours"):
+		w["layout"] = LAYOUT_VERSION  # new game (or already moved)
+		return 0
+	var moved: int = 0
+	for n: Node in get_tree().get_nodes_in_group(&"properties"):
+		var prop := n as Property
+		if prop == null or not OLD_PROPERTY_SPOTS.has(str(prop.property_id)) or prop.building() == null:
+			continue
+		var b: Building = prop.building()
+		var old: Vector3 = OLD_PROPERTY_SPOTS[str(prop.property_id)]
+		var carry := func(pos: Vector3) -> Variant:
+			var local: Vector3 = pos - old
+			if absf(local.x) < b.width * 0.5 and local.z < 0.3 and local.z > -b.depth \
+					and local.y > -0.5 and local.y < b.get_height():
+				return b.global_transform * local
+			return null
+		for rec: Dictionary in (w.get("placed", {}) as Dictionary).values():
+			var to: Variant = carry.call(rec["pos"])
+			if to != null:
+				rec["pos"] = to
+				rec["yaw"] = float(rec["yaw"]) + b.global_rotation.y
+				moved += 1
+		for bag: Dictionary in w.get("loot_bags", []):
+			var to: Variant = carry.call(bag["pos"])
+			if to != null:
+				bag["pos"] = to
+				moved += 1
+		for rec: Dictionary in GameState.player_data.values():
+			if rec.has("pos"):
+				var to: Variant = carry.call(rec["pos"])
+				if to != null:
+					rec["pos"] = to
+					rec["yaw"] = float(rec.get("yaw", 0.0)) + b.global_rotation.y
+					moved += 1
+	w["layout"] = LAYOUT_VERSION
+	print("[World] Properties moved to their new neighbourhoods: %d things carried along" % moved)
+	return moved
+
+
 ## Host, once the world is up: time of day and loot bags from the save.
 func _restore_from_save() -> void:
 	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
@@ -571,7 +624,9 @@ func spawn_pedestrians(count: int) -> void:
 # --- Police (point 10, host) -------------------------------------------------------------
 
 const POLICE_OFFICER := preload("res://prefabs/npc/police_officer.tscn")
-const POLICE_COUNT: int = 2
+## Point 25: officers belong to a patrol car (Traffic.spawn_police_cars); no foot patrols
+## by default (`--police=N` still adds foot officers at the station, e.g. for tests).
+const POLICE_COUNT: int = 0
 
 
 ## Host: `count` officers on foot, starting at the police station's spawn markers.
@@ -673,7 +728,7 @@ func make_customer(npc: Pedestrian = null) -> Pedestrian:
 		var free: Array[Pedestrian] = []
 		for n: Node in get_tree().get_nodes_in_group(&"npc"):
 			var p := n as Pedestrian
-			if p and not p.dead and p.wants == 0 and not p.is_fleeing():
+			if p and not p.dead and p.wants == 0 and not p.is_fleeing() and not p is PoliceOfficer:
 				free.append(p)
 		if free.is_empty():
 			return null

@@ -1006,6 +1006,32 @@ func _check_real_estate(world: Node3D) -> void:
 	GameState.player_data.erase("Buyer")
 	p.queue_free()
 	await get_tree().physics_frame
+	# Point 26: spread over the map - far apart, none next to the police station.
+	var station: Node3D = world.find_child("PoliceStation", true, false) as Node3D
+	var closest: float = 1000.0
+	var to_police: float = 1000.0
+	var homes: Array = agent.listings().filter(func(q: Property) -> bool: return q.property_id != &"south_warehouse")
+	for i: int in homes.size():
+		var bi: Node3D = (homes[i] as Property).building()
+		to_police = minf(to_police, bi.global_position.distance_to(station.global_position))
+		for j: int in range(i + 1, homes.size()):
+			closest = minf(closest, bi.global_position.distance_to((homes[j] as Property).building().global_position))
+	_report(homes.size() >= 5 and closest > 25.0 and to_police > 40.0,
+			"%d properties spread out: at least %.0f m apart, %.0f m or more from the police station" % [homes.size(), closest, to_police])
+	# An old save (all on South Street) carries what stood inside along to the new spot.
+	var keep: Dictionary = GameState.world
+	GameState.world = {"hours": 12.0, "placed": {"t1": {"item": "sofa", "pos": Vector3(-37.5, 0.15, 50.0), "yaw": 0.5},
+			"t2": {"item": "sofa", "pos": Vector3(-37.5, 0.15, 58.0), "yaw": 0.0}}, "loot_bags": []}
+	GameState.get_or_create_player_data("Mover")["pos"] = Vector3(-36.0, 0.2, 51.0)
+	var n_moved: int = world.migrate_layout()
+	var rec: Dictionary = GameState.world["placed"]["t1"]
+	var outside: Dictionary = GameState.world["placed"]["t2"]
+	_report(n_moved == 2 and house.contains(rec["pos"]) and house.contains(GameState.player_data["Mover"]["pos"])
+			and outside["pos"] == Vector3(-37.5, 0.15, 58.0) and absf(absf(float(rec["yaw"]) - 0.5) - PI) < 0.01,
+			"an old save: the sofa and the player inside the Small House move along to %s" % (rec["pos"] as Vector3).snapped(Vector3.ONE * 0.1))
+	_report(world.migrate_layout() == 0, "the move runs only once per save")
+	GameState.world = keep
+	GameState.player_data.erase("Mover")
 
 
 # --- Storage + dropping (point 20) ------------------------------------------------------
@@ -1404,6 +1430,8 @@ func _check_police(world: Node3D) -> void:
 	_report(hits < 28, "at 12 m the police miss a lot (%d of 40 shots hit)" % hits)
 	p.health = Player.MAX_HEALTH
 	var health0: int = p.health
+	p.host_last_shot = Time.get_ticks_msec() / 1000.0
+	cop._hostile[p] = true  # (fired at the police: no arrest, always shot)
 	get_tree().call_group(&"police", "report_crime", p, p.global_position, false)
 	_report(cop.target == p, "a gunshot nearby: the officer goes after the shooter")
 	await get_tree().create_timer(0.5).timeout
@@ -1451,6 +1479,55 @@ func _check_police(world: Node3D) -> void:
 	cop._search_until = cop._now() + 1.0
 	await get_tree().create_timer(2.0).timeout
 	_report(cop.target == null, "culprit gone for a while: the officer gives up")
+	# Point 25: a culprit who doesn't resist (weapon away, no shots) is cuffed, not shot.
+	var r: Player = WALKER.instantiate()
+	r.auto_walk = true
+	r.name = "2"
+	r.player_name = "Cuffed"
+	var rspot: Vector3 = spot + station.global_basis.x * 3.0
+	r.auto_target = rspot
+	world.get_node("Players").add_child(r)
+	r.global_position = rspot
+	await get_tree().physics_frame
+	r.net_weapon = 0
+	GameState.get_or_create_player_data("Cuffed")["cash"] = 1000
+	GameState.give("Cuffed", 0, [{"id": "weed_bag", "count": 3}, {"id": "soil", "count": 2}])
+	var cop2: PoliceOfficer = world.add_officer(rspot - station.global_basis.x * 8.0, rspot)
+	await get_tree().create_timer(0.5).timeout
+	var health_r: int = r.health
+	cop2._alert(r, rspot)
+	var release: Node3D = world.get_marker("ReleaseSpot")
+	var released: bool = false
+	for i: int in 160:
+		if r.global_position.distance_to(release.global_position) < 1.5:
+			released = true
+			r.auto_target = release.global_position  # (the test walker would walk back)
+			break
+		await get_tree().physics_frame
+		await get_tree().create_timer(0.1).timeout
+	var rdata: Dictionary = GameState.get_or_create_player_data("Cuffed")
+	var ids: Array = (rdata["inventory"] as Array).map(func(it: Dictionary) -> String: return str(it.get("id", "")))
+	_report(r.health == health_r and released,
+			"a culprit who doesn't resist is cuffed (not shot) and released at the police station")
+	_report(not ids.has("weed_bag") and ids.has("soil") and int(rdata["cash"]) == 800,
+			"arrest: illegal items confiscated, legal ones kept, minimum fine paid (cash %d, items %s)" % [int(rdata["cash"]), ids])
+	await get_tree().create_timer(0.5).timeout
+	_report(cop2.target == null, "after the arrest the officer stops")
+	# Weapon drawn and not put away after the warning: resisting -> shot.
+	r.teleport(rspot)
+	r.auto_target = rspot
+	r.net_weapon = 1
+	cop2.profile = sharp
+	await get_tree().create_timer(0.5).timeout
+	cop2._alert(r, rspot)
+	for i: int in 20:
+		if r.health < health_r:
+			break
+		await get_tree().create_timer(0.5).timeout
+	_report(r.health < health_r and cop2.resisting(r), "weapon still drawn after the warning: resisting, the officer shoots")
+	cop2.queue_free()
+	r.queue_free()
+	GameState.player_data.erase("Cuffed")
 	# Patrol car: a crime nearby stops it and the officer gets out.
 	var traffic: Traffic = world.get_node("Traffic")
 	var car: Car = traffic.spawn_police_car(3, 10.0)
@@ -1466,16 +1543,24 @@ func _check_police(world: Node3D) -> void:
 	await get_tree().create_timer(0.5).timeout
 	var out: PoliceOfficer = car._driver as PoliceOfficer
 	_report(car.abandoned and car.siren and out != null and out.target == q and out.from_car == car,
-			"a crime near the patrol car: it stops (siren) and an officer gets out")
-	_report(get_tree().get_nodes_in_group(&"police").size() >= cops0 + 1, "the officer from the car is on the street")
-	# Called off: walks back, the car drives on.
-	out.target = null
+			"a crime near the patrol car: it stops (siren) and its officers get out")
+	_report(car.crew_out.size() == 2 and get_tree().get_nodes_in_group(&"police").size() >= cops0 + 2,
+			"the patrol car's crew of %d is on the street" % car.crew_out.size())
+	# Point 25: the crew never chases further than LEASH from its car.
+	var mate: PoliceOfficer = car.crew_out[1]
+	mate.last_known = car.global_position + Vector3(PoliceOfficer.LEASH + 10.0, 0, 0)
+	await get_tree().create_timer(1.8).timeout  # (the brain starts up to 1.5 s after spawning)
+	_report(mate.target == null, "an officer doesn't go further than %d m from the car" % int(PoliceOfficer.LEASH))
+	# Called off: they walk back, get in, the car drives on.
+	var crew: Array = car.crew_out.duplicate()
+	for c: PoliceOfficer in crew:
+		c._drop_target()
 	for i: int in 30:
 		if not car.abandoned:
 			break
 		await get_tree().create_timer(0.5).timeout
-	_report(not car.abandoned and not car.siren and not is_instance_valid(out),
-			"after the call the officer gets back in and the car drives on")
+	_report(not car.abandoned and not car.siren and crew.all(func(c: Variant) -> bool: return not is_instance_valid(c)),
+			"after the call the officers get back in and the car drives on")
 	car.queue_free()
 	if is_instance_valid(cop):
 		cop.queue_free()
@@ -1609,13 +1694,22 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 	await get_tree().create_timer(Car.PANIC_TIME).timeout
 	# Point 24: a shot ahead -> the car turns round and drives away; nobody gets out.
 	var peds0: int = get_tree().get_nodes_in_group(&"npc").size()
+	# (Back on the straight test stretch: after the panic it can be anywhere, e.g. in a bend.)
+	car.route_id = 2
+	car.progress = 20.0
+	car.speed = Car.CRUISE
+	await get_tree().create_timer(0.5).timeout
 	var shot_from: Vector3 = car.global_position - car.global_basis.z * 15.0
 	var d0: float = car.global_position.distance_to(shot_from)
 	Car.force_reaction = "uturn"
 	car.hear_gunshot(shot_from)
 	Car.force_reaction = ""
 	_report(not car._uturn.is_empty(), "gunshot ahead: the car turns round")
-	await get_tree().create_timer(Car.UTURN_TIME + 2.5).timeout
+	# (Up to 2 s more: on the other lane it may have to follow a car through a junction.)
+	for i: int in 8:
+		await get_tree().create_timer(0.5 if i > 0 else Car.UTURN_TIME + 2.5).timeout
+		if car.global_position.distance_to(shot_from) > d0 + 5.0:
+			break
 	var heading_away: bool = (car.global_position - shot_from).dot(-car.global_basis.z) > 0.0
 	var d1: float = car.global_position.distance_to(shot_from)
 	_report(car._uturn.is_empty() and heading_away and d1 > d0 + 5.0 and not car.abandoned,
@@ -1628,7 +1722,10 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 	_report(not car.abandoned and car.panic > 0.0, "a car that is hit speeds off (doesn't stop)")
 	await get_tree().create_timer(Car.PANIC_TIME).timeout
 	var prog0: float = car.progress
-	await get_tree().create_timer(3.0).timeout
+	for i: int in 10:  # (it may wait at a junction / behind another car for a while)
+		await get_tree().create_timer(1.0).timeout
+		if absf(car.progress - prog0) > 2.0:
+			break
 	_report(car.panic == 0.0 and not car.abandoned and car._uturn.is_empty() and car.progress != prog0,
 			"after the panic it drives its route again (route %d)" % car.route_id)
 	# Back onto the main road for the next checks.
