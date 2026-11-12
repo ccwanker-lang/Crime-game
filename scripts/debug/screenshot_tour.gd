@@ -54,6 +54,12 @@ const SHOTS: Array[Array] = [
 	["37_gun_shop_outside", Vector3(53, 1.8, 3.0), Vector3(53, 2.6, -6)],
 	["38_gun_shop_inside", Vector3(51.6, 1.7, -7.2), Vector3(53.4, 1.4, -15.7)],
 	["39_ragdolls", Vector3(-17.8, 1.6, -1.6), Vector3(-17.8, 0.2, -4.6)],
+	# Corner house (x -19.5..-12, front z -6): living room, stairwell, upstairs bedroom.
+	["40_house_living", Vector3(-13.0, 1.7, -7.0), Vector3(-16.5, 0.9, -13.5)],
+	["41_house_stairs", Vector3(-14.6, 1.7, -6.8), Vector3(-18.7, 2.2, -11.5)],
+	["42_house_upstairs", Vector3(-13.0, 4.85, -7.0), Vector3(-16.5, 3.9, -13.5)],
+	["43_houses_night_street", Vector3(-30, 1.8, 3.5), Vector3(-15, 3, -6)],
+	["44_snackbar_door", Vector3(44.1, 1.7, -4.2), Vector3(44.1, 0.9, -9.5)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

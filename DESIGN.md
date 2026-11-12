@@ -151,3 +151,7 @@ Terrain should have real height differences (hills up, down to the river and har
 - The starter room has 2 fixed pots, a grow light and a drying rack. Buying/placing extra stations
   (and pots as items) comes with the bigger properties.
 - The pedestrian self-test "activities" check is random and fails now and then (nobody sat/visited).
+- Houses: every floor walkable with an open-step stairwell along the left wall and simple procedural
+  furniture (living room / bedrooms, shop shelves, warehouse storage). Rooms are open plan (no inner walls
+  or doors yet); the starter room, store, hospital and gun shop are ground floor only. Private houses are
+  not on the NPC navmesh (only public buildings are visited).

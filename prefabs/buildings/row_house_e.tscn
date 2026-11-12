@@ -19,3 +19,6 @@ corner_quoins = true
 chimney = "none"
 door_color = Color(0.05, 0.25, 0.3, 1)
 variation_seed = 55
+enterable = true
+upper_floors = true
+furnish = "home"

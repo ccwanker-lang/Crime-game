@@ -142,6 +142,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 
 func _on_connected_to_server() -> void:
+	print("[Net] Connected, registering as '%s'" % local_name)
 	_register_player.rpc_id(1, local_name)
 
 
@@ -182,6 +183,7 @@ func _sync_players(all_players: Dictionary) -> void:
 	players = all_players
 	players_changed.emit()
 	if not _joined:
+		print("[Net] Joined (%d players)" % players.size())
 		_joined = true
 		join_succeeded.emit()
 

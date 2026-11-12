@@ -18,3 +18,6 @@ bay_window_bay = 2
 chimney = "none"
 door_color = Color(0.1, 0.15, 0.12, 1)
 variation_seed = 77
+enterable = true
+upper_floors = true
+furnish = "home"

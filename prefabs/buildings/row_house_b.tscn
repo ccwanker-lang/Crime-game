@@ -17,3 +17,6 @@ dormer = true
 chimney = "right"
 door_color = Color(0.45, 0.1, 0.1, 1)
 variation_seed = 22
+enterable = true
+upper_floors = true
+furnish = "home"

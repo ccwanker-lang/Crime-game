@@ -72,6 +72,7 @@ func _on_join_succeeded() -> void:
 
 
 func _on_join_failed(reason: String) -> void:
+	print("[Menu] Join failed: %s" % reason)
 	_connect_timer.stop()
 	_set_busy(false)
 	_set_status(reason)

@@ -17,3 +17,6 @@ string_courses = false
 chimney = "left"
 door_color = Color(0.35, 0.22, 0.12, 1)
 variation_seed = 66
+enterable = true
+upper_floors = true
+furnish = "home"

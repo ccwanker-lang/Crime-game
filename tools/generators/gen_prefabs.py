@@ -264,14 +264,17 @@ HOUSES = {
              "awning": "true", "awning_color": col(0.12, 0.3, 0.2), "balcony_bay": "1", "chimney": q("right"),
              "variation_seed": "88"},
 }
+# Every house can be entered: all floors, stairwell, procedural furniture and lights.
+WALK_IN = {"enterable": "true", "upper_floors": "true", "furnish": q("home")}
 for name, props in HOUSES.items():
-    building(B + name + ".tscn", props)
+    building(B + name + ".tscn", {**props, **WALK_IN})
 
 building(B + "warehouse.tscn", {
     "width": "16.0", "depth": "12.0", "floors": "1", "floor_height": "5.5", "bays": "4",
     "wall_material": q("corrugated"), "wall_tint": col(0.55, 0.6, 0.62), "roof_material": q("roof_dark"),
     "roof_type": q("gable"), "roof_pitch": "15.0", "string_courses": "false", "chimney": q("none"),
-    "door_bay": "1", "lit_windows": "0.0", "variation_seed": "99"})
+    "door_bay": "1", "lit_windows": "0.0", "variation_seed": "99",
+    "enterable": "true", "furnish": q("storage"), "floor_material": q("concrete")})
 
 
 def marker(sc, name, pos, rot=0.0):

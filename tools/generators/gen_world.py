@@ -364,8 +364,9 @@ put("props/sign_post.tscn", (23.5, 0.15, -3.72), 0, props={"sign_text": q("STATI
 put("props/sign_post.tscn", (-0.6, 0.15, -3.72), 180, props={"sign_text": q("MAIN STREET")})
 put("props/utility_box.tscn", (-11.2, 0.15, -5.4), 0)
 put("props/utility_box.tscn", (25.0, 0.15, 5.4), 180)
-for x in (36.6, 43.4, 50.0):
-    put("props/bike_rack.tscn" if x == 43.4 else "props/trash_can.tscn", (x, 0.15, -5.2), 0)
+# Between the shop doors (bakery door x 37.2, snack bar 44.1, gun shop 53).
+for x in (39.8, 41.6, 50.0):
+    put("props/bike_rack.tscn" if x == 41.6 else "props/trash_can.tscn", (x, 0.15, -5.2), 0)
 put("props/bench.tscn", (56, 0.15, -5.45), 0)  # faces the street
 for x in (2.0, 4.0, 20.0, 22.0):
     put("props/bollard.tscn", (x, 0.15, -3.8))

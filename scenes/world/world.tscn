@@ -1469,10 +1469,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -11.2, 0.15, -5.4)
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 25, 0.15, 5.4)
 
 [node name="TrashCan3" parent="NavRegion" instance=ExtResource("39_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 36.6, 0.15, -5.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 39.8, 0.15, -5.2)
 
 [node name="BikeRack2" parent="NavRegion" instance=ExtResource("42_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 43.4, 0.15, -5.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 41.6, 0.15, -5.2)
 
 [node name="TrashCan4" parent="NavRegion" instance=ExtResource("39_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0.15, -5.2)

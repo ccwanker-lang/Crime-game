@@ -33,8 +33,11 @@ func _ready() -> void:
 	loot_spawner.spawn_function = _create_loot_bag
 	leave_button.pressed.connect(_on_leave_pressed)
 
-	nav_region.bake_finished.connect(_on_nav_baked)
-	nav_region.bake_navigation_mesh(false)  # false = bake right now, not on a thread
+	# Only the host runs NPC AI; clients skip the (slow) bake, which would also
+	# stall their connection right after joining.
+	if multiplayer.is_server():
+		nav_region.bake_finished.connect(_on_nav_baked)
+		nav_region.bake_navigation_mesh(false)  # false = bake right now, not on a thread
 
 	var role: String = "HOST" if Net.is_host() else "CLIENT (peer %d)" % multiplayer.get_unique_id()
 	info_label.text = "You are the %s" % role
@@ -57,12 +60,23 @@ func _ready() -> void:
 			Net.players_changed.connect(_remove_left_players)
 			_spawn_player_for(1)
 		else:
-			_client_world_ready.rpc_id(1)  # the world is loaded here: ask the host for a body
+			_ask_for_body()  # the world is loaded here: ask the host for a body
 	if "--netcheck" in OS.get_cmdline_user_args():
 		_net_check()
 
 
 ## Debug (--netcheck): after 12 s print what this peer sees of the synced NPCs, then quit.
+## Client: tell the host our world is loaded, again every 2 s until our player
+## exists (the first message can get lost when either side is busy loading).
+func _ask_for_body() -> void:
+	var me: String = str(multiplayer.get_unique_id())
+	for attempt: int in 30:
+		if not is_inside_tree() or players_root.has_node(me) or not Net.is_online():
+			return
+		_client_world_ready.rpc_id(1)
+		await get_tree().create_timer(2.0).timeout
+
+
 func _net_check() -> void:
 	if not multiplayer.is_server():
 		await get_tree().create_timer(4.0).timeout
@@ -286,6 +300,8 @@ func _on_nav_baked() -> void:
 
 
 func _after_navmesh() -> void:
+	if not multiplayer.is_server():
+		return  # clients have no navmesh (see _ready)
 	# The navigation server applies the new mesh asynchronously (region first,
 	# then the map), so wait until the map actually contains it.
 	var map: RID = nav_region.get_navigation_map()

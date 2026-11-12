@@ -15,6 +15,14 @@ extends StaticBody3D
 const WALL_T: float = 0.3
 const LINING: float = 0.02
 const DOOR_SCENE: String = "res://prefabs/buildings/door.tscn"
+const FURNITURE_DIR: String = "res://prefabs/interiors/"
+const PROPS_DIR: String = "res://prefabs/props/"
+## Stairwell: open steps along the left wall, every flight stacked on the one below.
+const STAIR_W: float = 0.95
+const STAIR_RISE: float = 0.19
+const STAIR_TREAD: float = 0.26
+const LANDING: float = 1.0
+const SLAB_TOP: float = 0.15  # floor surface above each storey's base height
 const ROOM_COLORS: Array[Color] = [
 	Color(0.85, 0.8, 0.68), Color(0.75, 0.8, 0.82), Color(0.8, 0.84, 0.74),
 	Color(0.88, 0.86, 0.82), Color(0.82, 0.72, 0.62), Color(0.7, 0.68, 0.72)]
@@ -91,6 +99,15 @@ const ROOM_COLORS: Array[Color] = [
 	set(v): public_building = v; _queue_rebuild()
 @export_enum("wood_floor", "floor_tiles", "concrete") var floor_material: String = "wood_floor":
 	set(v): floor_material = v; _queue_rebuild()
+## Every floor can be walked (floor slabs, a stairwell along the left wall), not just the ground floor.
+@export var upper_floors: bool = false:
+	set(v): upper_floors = v; _queue_rebuild()
+## Procedural furniture + a ceiling light per floor ("none" = hand-placed in the prefab).
+@export_enum("none", "home", "storage") var furnish: String = "none":
+	set(v): furnish = v; _queue_rebuild()
+## Floors below this one are furnished by hand (shops, starter room); only used with `furnish`.
+@export var furnish_from_floor: int = 0:
+	set(v): furnish_from_floor = v; _queue_rebuild()
 
 @export_group("Variation")
 @export var variation_seed: int = 1:
@@ -166,6 +183,8 @@ func _rebuild() -> void:
 
 	_build_collision(b)
 	_spawn_doors()
+	if enterable and furnish != "none":
+		_furnish()
 
 
 func _add_generated(n: Node) -> void:
@@ -189,8 +208,8 @@ func _build_collision(b: MeshBuilder) -> void:
 	var boxes: Array[Dictionary] = []
 	if enterable:
 		boxes = b.collision_boxes.duplicate()
-		# Upper floors as one solid block.
-		if floors > 1:
+		# Upper floors as one solid block (unless they can be walked).
+		if floors > 1 and not upper_floors:
 			boxes.append({"xform": Transform3D(Basis.IDENTITY, Vector3(0, (floor_height + _H) / 2.0, -depth / 2.0)),
 					"size": Vector3(width, _H - floor_height, depth)})
 	else:
@@ -234,8 +253,8 @@ func _facade(b: MeshBuilder, frame: Transform3D, length: float, bay_count: int, 
 	for f: int in floors:
 		var y0: float = f * floor_height
 		var y1: float = y0 + floor_height
-		var lining: bool = enterable and f == 0
-		b.collide = enterable and f == 0
+		var lining: bool = _walkable(f)
+		b.collide = lining
 		if blind:
 			_wall(b, -half, half, y0, y1, lining)
 		else:
@@ -247,10 +266,10 @@ func _facade(b: MeshBuilder, frame: Transform3D, length: float, bay_count: int, 
 				elif is_front and f == 0 and ground_floor == "shop":
 					_shop_cell(b, x0, x1, y0, y1, lining)
 				elif is_front and f == 1 and i == bay_window_bay:
-					_wall(b, x0, x1, y0, y1, false)
+					_wall(b, x0, x1, y0, y1, lining)
 					_bay_window(b, x0, x1, y0, y1)
 				elif is_front and f == 1 and i == balcony_bay:
-					_balcony_cell(b, x0, x1, y0, y1)
+					_balcony_cell(b, x0, x1, y0, y1, lining)
 				else:
 					_window_cell(b, x0, x1, y0, y1, f, lining)
 		b.collide = false
@@ -489,17 +508,19 @@ func _bay_window(b: MeshBuilder, x0: float, x1: float, y0: float, y1: float) -> 
 	b.color = Color.WHITE
 
 
-func _balcony_cell(b: MeshBuilder, x0: float, x1: float, y0: float, y1: float) -> void:
+func _balcony_cell(b: MeshBuilder, x0: float, x1: float, y0: float, y1: float, lining: bool = false) -> void:
 	var ww: float = clampf((x1 - x0) - 0.9, 0.8, 1.4)
 	var cx: float = (x0 + x1) / 2.0
 	var wx0: float = cx - ww / 2.0
 	var wx1: float = cx + ww / 2.0
 	var wy0: float = y0 + 0.05
 	var wy1: float = minf(y0 + 2.4, y1 - 0.3)
-	_wall(b, x0, wx0, y0, y1, false)
-	_wall(b, wx1, x1, y0, y1, false)
-	_wall(b, wx0, wx1, wy1, y1, false)
-	_window(b, wx0, wx1, wy0, wy1, &"glass_interior", true, false)
+	_wall(b, x0, wx0, y0, y1, lining)
+	_wall(b, wx1, x1, y0, y1, lining)
+	_wall(b, wx0, wx1, wy1, y1, lining)
+	_window(b, wx0, wx1, wy0, wy1, &"glass_clear" if lining else &"glass_interior", true, false)
+	if lining:  # balcony door glass: not walkable
+		b.add_collision_box(Vector3(cx, (wy0 + wy1) / 2.0, -0.15), Vector3(ww, wy1 - wy0, 0.1))
 	# Slab and railing.
 	var bx0: float = x0 + 0.15
 	var bx1: float = x1 - 0.15
@@ -702,9 +723,211 @@ func _interior(b: MeshBuilder) -> void:
 	b.collide = true
 	b.box_mm(StringName(floor_material), Vector3(x0, -0.1, z0), Vector3(x1, 0.15, z1))
 	b.collide = false
-	b.quad(&"interior_plaster", Vector3(x0, fh - 0.02, z0), Vector3(x1, fh - 0.02, z0),
-			Vector3(x1, fh - 0.02, z1), Vector3(x0, fh - 0.02, z1), Vector3.DOWN)
-	# Skirting boards.
-	b.box_mm(&"trim_paint", Vector3(x0, 0.15, z0), Vector3(x1, 0.27, z0 + 0.02))
-	b.box_mm(&"trim_paint", Vector3(x0, 0.15, z0), Vector3(x0 + 0.02, 0.27, z1))
-	b.box_mm(&"trim_paint", Vector3(x1 - 0.02, 0.15, z0), Vector3(x1, 0.27, z1))
+	var walk_floors: int = floors if upper_floors else 1
+	for f: int in walk_floors:
+		var y: float = f * fh
+		if f > 0:
+			_slab(b, y, x0, x1, z0, z1)
+		# Skirting boards.
+		var fy: float = y + SLAB_TOP
+		b.box_mm(&"trim_paint", Vector3(x0, fy, z0), Vector3(x1, fy + 0.12, z0 + 0.02))
+		b.box_mm(&"trim_paint", Vector3(x0, fy, z0), Vector3(x0 + 0.02, fy + 0.12, z1))
+		b.box_mm(&"trim_paint", Vector3(x1 - 0.02, fy, z0), Vector3(x1, fy + 0.12, z1))
+		if f < walk_floors - 1:
+			_flight(b, y, x0, z0)
+	var top: float = walk_floors * fh - 0.02
+	b.quad(&"interior_plaster", Vector3(x0, top, z0), Vector3(x1, top, z0),
+			Vector3(x1, top, z1), Vector3(x0, top, z1), Vector3.DOWN)
+
+
+## Stairwell footprint along the left wall: z from z0 + LANDING to the returned value.
+func _stair_run() -> float:
+	return ceili(floor_height / STAIR_RISE) * STAIR_TREAD
+
+
+## Floor of storey at height `y`, with the stair opening (covered by the next flight)
+## and a railing beside it.
+func _slab(b: MeshBuilder, y: float, x0: float, x1: float, z0: float, z1: float) -> void:
+	var sx: float = x0 + STAIR_W
+	var hz0: float = z0 + LANDING
+	var hz1: float = hz0 + _stair_run()
+	var key := StringName(floor_material)
+	var rects: Array[Rect2] = [
+		Rect2(sx, z0, x1 - sx, z1 - z0),          # beside the stairwell
+		Rect2(x0, z0, STAIR_W, LANDING),          # landing at the back
+		Rect2(x0, hz1, STAIR_W, z1 - hz1),        # in front of the stairwell
+	]
+	for r: Rect2 in rects:
+		if r.size.x <= 0.01 or r.size.y <= 0.01:
+			continue
+		b.collide = true
+		b.box_mm(key, Vector3(r.position.x, y - 0.02, r.position.y), Vector3(r.end.x, y + SLAB_TOP, r.end.y))
+		b.collide = false
+		var u: float = y - 0.025
+		b.quad(&"interior_plaster", Vector3(r.position.x, u, r.position.y), Vector3(r.end.x, u, r.position.y),
+				Vector3(r.end.x, u, r.end.y), Vector3(r.position.x, u, r.end.y), Vector3.DOWN)
+	# Railing along the opening (people come up at the back landing).
+	var ry: float = y + SLAB_TOP
+	b.add_collision_box(Vector3(sx + 0.025, ry + 0.5, (hz0 + hz1) / 2.0), Vector3(0.05, 1.0, hz1 - hz0 - 0.1))
+	b.box_mm(&"metal_dark", Vector3(sx, ry + 0.95, hz0 + 0.05), Vector3(sx + 0.05, ry + 1.0, hz1 - 0.05), 0.005)
+	b.box_mm(&"metal_dark", Vector3(sx + 0.01, ry + 0.1, hz0 + 0.05), Vector3(sx + 0.04, ry + 0.13, hz1 - 0.05))
+	var z: float = hz0 + 0.06
+	while z < hz1 - 0.04:
+		b.box_mm(&"metal_dark", Vector3(sx + 0.015, ry, z - 0.01), Vector3(sx + 0.035, ry + 0.95, z + 0.01))
+		z += 0.13
+
+
+## Open steps from storey height `y` to the next storey, climbing towards the back.
+func _flight(b: MeshBuilder, y: float, x0: float, z0: float) -> void:
+	var n: int = ceili(floor_height / STAIR_RISE)
+	var rise: float = floor_height / n
+	var front: float = z0 + LANDING + n * STAIR_TREAD
+	var key := StringName(floor_material) if floor_material == "wood_floor" else &"planks"
+	b.collide = true
+	for i: int in n:
+		var top: float = y + SLAB_TOP + rise * (i + 1)
+		var zf: float = front - i * STAIR_TREAD
+		b.box_mm(key, Vector3(x0, top - 0.06, zf - STAIR_TREAD - 0.02), Vector3(x0 + STAIR_W, top, zf), 0.01)
+	b.collide = false
+	# Stringer along the open side (visual only).
+	var sx: float = x0 + STAIR_W
+	for i: int in n:
+		var top: float = y + SLAB_TOP + rise * (i + 1)
+		var zf: float = front - i * STAIR_TREAD
+		b.box_mm(&"trim_paint", Vector3(sx - 0.04, top - 0.25, zf - STAIR_TREAD), Vector3(sx, top - 0.05, zf))
+
+
+## Storey `f` can be walked.
+func _walkable(f: int) -> bool:
+	return enterable and (f == 0 or upper_floors)
+
+
+# --- Furniture -----------------------------------------------------------------------
+
+var _furn_rng := RandomNumberGenerator.new()
+
+
+func _furnish() -> void:
+	_furn_rng.seed = variation_seed * 31 + 7
+	var x0: float = -width / 2.0 + WALL_T
+	var x1: float = width / 2.0 - WALL_T
+	var z0: float = -depth + WALL_T
+	var z1: float = -WALL_T
+	var walk_floors: int = floors if upper_floors else 1
+	var stairs: bool = walk_floors > 1
+	# Left of xa is the stairwell (from the back wall to just past the bottom step).
+	var xa: float = x0 + STAIR_W + 0.15 if stairs else x0
+	var stair_front: float = z0 + LANDING + _stair_run() + 0.9 if stairs else z0
+	for f: int in range(furnish_from_floor, walk_floors):
+		var y: float = f * floor_height + SLAB_TOP
+		_ceiling_light(Vector3((xa + x1) / 2.0, (f + 1) * floor_height - 0.05, (z0 + z1) / 2.0))
+		if furnish == "storage":
+			_furnish_storage(y, xa, x1, z0, z1)
+		elif f == 0 and ground_floor == "shop":
+			_furnish_shop(y, xa, x1, z0, z1)
+		elif f == 0:
+			_furnish_living(y, xa, x1, z0, z1, stair_front)
+		else:
+			_furnish_bedroom(y, xa, x1, z0, z1, stair_front)
+
+
+func _put(scene: String, pos: Vector3, rot_deg: float) -> void:
+	# Keep the way in from the front door free (ground floor).
+	if pos.y < floor_height * 0.5 and door_bay >= 0:
+		var bay_count: int = bays if bays > 0 else maxi(1, roundi(width / 2.4))
+		var door_x: float = -width / 2.0 + (door_bay + 0.5) * width / bay_count
+		if absf(pos.x - door_x) < 1.6 and pos.z > -3.6:
+			return
+	var path: String = scene if scene.begins_with("res://") else FURNITURE_DIR + scene + ".tscn"
+	if not ResourceLoader.exists(path):
+		return
+	var n := (load(path) as PackedScene).instantiate() as Node3D
+	n.position = pos
+	n.rotation.y = deg_to_rad(rot_deg)
+	_add_generated(n)
+
+
+func _ceiling_light(pos: Vector3) -> void:
+	var light := OmniLight3D.new()
+	light.position = pos + Vector3.DOWN * 0.3
+	light.light_color = Color(1.0, 0.86, 0.68)
+	light.light_energy = 0.9
+	light.omni_range = maxf(width, depth) * 0.6
+	light.omni_attenuation = 1.2
+	light.shadow_enabled = false
+	light.distance_fade_enabled = true
+	light.distance_fade_begin = 28.0
+	light.distance_fade_length = 8.0
+	_add_generated(light)
+	var lamp := MeshInstance3D.new()
+	var m := CylinderMesh.new()
+	m.top_radius = 0.16
+	m.bottom_radius = 0.2
+	m.height = 0.08
+	lamp.mesh = m
+	lamp.position = pos
+	lamp.visibility_range_end = 35.0
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1, 0.97, 0.9)
+	mat.emission_enabled = true
+	mat.emission = Color(1, 0.9, 0.75)
+	mat.emission_energy_multiplier = 2.0
+	lamp.material_override = mat
+	_add_generated(lamp)
+
+
+## Ground floor: sofa against the right wall, coffee table, TV across, bookshelf, plant.
+func _furnish_living(y: float, xa: float, x1: float, z0: float, z1: float, stair_front: float) -> void:
+	var room_w: float = x1 - xa
+	var zc: float = lerpf(z0, z1, 0.45)
+	_put("sofa", Vector3(x1 - 0.36, y, zc), -90)
+	if room_w > 2.6:
+		_put("coffee_table", Vector3(x1 - 1.3, y, zc), 90)
+	if room_w > 3.3:
+		_put("cardboard_box", Vector3(xa + 0.3, y, zc), 90)
+		_put("television", Vector3(xa + 0.3, y + 0.34, zc), 90)
+	_put("bookshelf", Vector3(x1 - 0.85, y, z0 + 0.32), 0)
+	if _furn_rng.randf() < 0.7:
+		_put("armchair", Vector3(xa + 0.5, y, z0 + 0.55), 135)
+	_put("potted_plant", Vector3(x1 - 0.35, y, z1 - 0.4 if door_bay > 0 else zc + 1.3), 0)
+	if stair_front < z1 - 1.2 and _furn_rng.randf() < 0.6:
+		_put("cardboard_box", Vector3(-width / 2.0 + WALL_T + 0.35, y, z1 - 0.5), _furn_rng.randf_range(-20, 20))
+
+
+## Upper floors: bed against the back wall, a cupboard, a desk under the front windows.
+func _furnish_bedroom(y: float, xa: float, x1: float, z0: float, z1: float, _stair_front: float) -> void:
+	var room_w: float = x1 - xa
+	_put("bed", Vector3(x1 - 0.65, y, z0 + 1.05), 0)
+	if room_w > 2.4 and _furn_rng.randf() < 0.75:
+		_put("armchair", Vector3(x1 - 1.75, y, z0 + 0.6), 160)
+	if _furn_rng.randf() < 0.5:
+		_put("bookshelf", Vector3(x1 - 0.32, y, lerpf(z0, z1, 0.62)), -90)
+	else:
+		_put("steel_shelves", Vector3(x1 - 0.28, y, lerpf(z0, z1, 0.62)), -90)
+	if room_w > 2.8:
+		_put("office_desk", Vector3(xa + 1.15, y, z1 - 0.55), 180)
+	for i: int in _furn_rng.randi_range(0, 2):
+		_put("cardboard_box", Vector3(xa + 0.3 + i * 0.45, y, lerpf(z0, z1, 0.5)), _furn_rng.randf_range(-30, 30))
+
+
+## Shop ground floor: shelves along the right wall, counter with a till at the back.
+func _furnish_shop(y: float, xa: float, x1: float, z0: float, z1: float) -> void:
+	var z: float = z1 - 1.4
+	while z > z0 + 2.6:
+		_put("steel_shelves", Vector3(x1 - 0.28, y, z), -90)
+		z -= 1.2
+	_put("office_desk", Vector3((xa + x1) / 2.0, y, z0 + 1.3), 180)
+	_put("cash_register", Vector3((xa + x1) / 2.0 + 0.5, y + 0.79, z0 + 1.3), 0)
+	_put("cardboard_box", Vector3(x1 - 0.4, y, z0 + 0.4), 10)
+
+
+## Warehouses: shelving along the back, crates and barrels.
+func _furnish_storage(y: float, xa: float, x1: float, z0: float, z1: float) -> void:
+	var x: float = xa + 0.7
+	while x < x1 - 0.6:
+		_put("steel_shelves", Vector3(x, y, z0 + 0.3), 0)
+		x += 1.25
+	for i: int in 6:
+		var p := Vector3(_furn_rng.randf_range(xa + 0.8, x1 - 0.8), y, _furn_rng.randf_range(z0 + 1.6, z1 - 2.0))
+		var kind: String = ["crate_long", "crate_flat", "barrel"][i % 3]
+		_put(PROPS_DIR + kind + ".tscn", p, _furn_rng.randf_range(0, 360))

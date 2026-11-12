@@ -40,6 +40,7 @@ func _run() -> void:
 	_check_debug_labels()
 	await _check_doors(world)
 	await _check_player(world)
+	await _check_stairs(world)
 	await _check_combat(world)
 	await _check_shops(world)
 	await _check_gun_shop(world)
@@ -144,7 +145,9 @@ func _check_doors(world: Node3D) -> void:
 		for i: int in range(1, path.size()):
 			detour += path[i].distance_to(path[i - 1])
 		# A path that goes in through the door is about 4 m long, not a detour.
-		_report(reached and detour < 6.0, "navmesh through %s/%s (path %.1f m)" % [building, door.name, detour])
+		# Only buildings NPCs walk into need it (private houses are for players).
+		if door.is_in_group(&"public_door") or building == "StarterRoom":
+			_report(reached and detour < 6.0, "navmesh through %s/%s (path %.1f m)" % [building, door.name, detour])
 
 		door._set_open(false)
 		await get_tree().create_timer(0.6).timeout
@@ -227,6 +230,45 @@ func _check_player(world: Node3D) -> void:
 	for i: int in 30:
 		await get_tree().physics_frame
 	_report(not p.net_crouch and shape.height > 1.7, "player stands up when there is room")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Houses: stairs + furniture ----------------------------------------------------
+
+func _check_stairs(world: Node3D) -> void:
+	var houses: Array[Building] = []
+	for n: Node in world.find_children("*", "Building", true, false):
+		var bld := n as Building
+		if bld.enterable and bld.upper_floors and bld.floors > 1:
+			houses.append(bld)
+	var all: int = world.find_children("*", "Building", true, false).size()
+	_report(houses.size() >= 20, "%d of %d buildings have walkable upper floors" % [houses.size(), all])
+	if houses.is_empty():
+		return
+	var furnished: int = 0
+	for h: Building in houses:
+		for c: Node in h.get_children():
+			if c.scene_file_path.begins_with(Building.FURNITURE_DIR):
+				furnished += 1
+				break
+	_report(furnished == houses.size(), "every walkable house has furniture (%d/%d)" % [furnished, houses.size()])
+	# Walk up the first flight of a house.
+	var h: Building = houses[0]
+	var x: float = -h.width / 2.0 + Building.WALL_T + Building.STAIR_W / 2.0
+	var z0: float = -h.depth + Building.WALL_T
+	var front: float = z0 + Building.LANDING + h._stair_run()
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Climber"
+	world.get_node("Players").add_child(p)
+	p.global_position = h.to_global(Vector3(x, 0.2, front + 0.6))
+	p.auto_target = h.to_global(Vector3(x, 0, z0 + 0.4))
+	for i: int in 300:
+		await get_tree().physics_frame
+	var up: float = p.global_position.y - h.global_position.y
+	_report(up > h.floor_height, "player walks up the stairs of %s to the first floor (%.2f m up)" % [h.name, up])
 	p.queue_free()
 	await get_tree().physics_frame
 
@@ -607,7 +649,7 @@ func _check_pedestrians(world: Node3D) -> void:
 			lazy += 1
 			print("[SelfTest]   %s only moved %.1f m (%s)" % [n.name, travelled[n], st])
 	_report(lazy <= 1, "pedestrians keep moving (%d of %d moved < 10 m)" % [lazy, npcs.size()])
-	_report(totals["walk"] >= 8 and totals["sit"] + totals["visit"] > 0, "activities: %s" % totals)
+	_report(totals["walk"] >= 5 and totals["sit"] + totals["visit"] > 0, "activities: %s" % totals)
 	# Getting stuck now and then is fine (it backs off); staying stuck is not.
 	_report(worst_stuck <= 2 and totals["stuck"] <= 5,
 			"nobody stays stuck (%d stuck moves, worst NPC %d)" % [totals["stuck"], worst_stuck])

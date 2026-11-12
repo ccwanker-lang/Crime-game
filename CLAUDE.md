@@ -30,6 +30,10 @@ Godot console exe:
   Look at them with the Read tool after map/visual changes.
 - Optional `--shots=02,05` limits the tour to those shots. The tour also prints FPS + draw calls.
   `--npcs=N` changes the pedestrian count; `--env:ssil_enabled=false` overrides an Environment property.
+- Houses: `Building.upper_floors` (slabs + stacked open-step stairwell along the left wall + railing) and
+  `furnish` ("home"/"storage", `furnish_from_floor`) instance furniture from `prefabs/interiors/` + a ceiling light per
+  floor; the zone behind the front door stays free. Hand-furnished buildings (starter room, store, hospital, gun shop)
+  keep `upper_floors` off (the stairwell would cut through their furniture).
 - Map self-test (headless): `--headless --path . -- --selftest --port=7791` (`scripts/debug/self_test.gd`):
   lamps on poles, walk + navmesh through every door, debug labels hidden, pedestrians stay off the
   road (except zebras) and keep moving, player jump/speed/crouch, combat (ammo, reload, damage, death,
@@ -38,7 +42,8 @@ Godot console exe:
 - Network check (headless): `-- --host --port=7792 --netcheck --name=Host`, then 4 s later
   `-- --join=127.0.0.1 --port=7792 --netcheck --name=B`: the client shoots the host dead, takes the loot bag,
   sees the respawn, then walks crouched 5 m; both print what they see. The host runs ~40 s: wait for it to
-  quit before starting another run on the same port.
+  quit before starting another run on the same port. Clients don't bake the navmesh (host-only AI). Under heavy CPU load
+  (e.g. the user's game open) the client can load too late for the host's 40 s window: rerun before debugging.
 - Viewmodel check (window): `-- --vmpreview --port=7790 [--reload=0.5] [--fire] [--model=1]` saves
   `screenshots/vm_view.png` (player view) + `vm_side.png` (side view) of the first-person arms + weapon.
   `--script res://scripts/debug/model_preview.gd -- --scene=res://... --size=0.3` renders any scene (no autoloads).

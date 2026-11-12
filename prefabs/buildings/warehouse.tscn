@@ -19,3 +19,6 @@ chimney = "none"
 door_bay = 1
 lit_windows = 0.0
 variation_seed = 99
+enterable = true
+furnish = "storage"
+floor_material = "concrete"
