@@ -203,11 +203,11 @@ the start for now; rank gates (see Progression) come later.
 13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
 14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
 Added after playing (A-F; E = point 4, C extends point 6):
-15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - todo
-16. (B) Every house is furnished by the interior generator (no empty houses) - todo
+15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - done
+16. (B) Every house is furnished by the interior generator (no empty houses): dining corner, nightstands, wardrobes, study floors, footprint check - done
 17. (C) Own properties: ALL furniture can be picked up, moved, rotated, sold or stored (placement system of point 6) - todo
 18. (D) Storage lockers: buy + place in a property, own inventory (put in / take out), several allowed, saved, shared in co-op - todo
-19. (F) Balconies: a door (E opens) onto every balcony, walkable, solid railing without gaps - todo
+19. (F) Balconies: a door (E opens) onto every balcony, walkable, solid railing without gaps (1.6 m collision wall) - done
 Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; heat, lawyer, bribes;
 rival territories, lab raids, story missions (acts 1-5); the full city (Map layout); roadside team, fuel station, garage.
 

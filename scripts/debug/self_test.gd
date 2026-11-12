@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["lamps", "debug_labels", "doors", "player", "stairs", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["lamps", "debug_labels", "doors", "player", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 
@@ -111,6 +111,8 @@ func _check_doors(world: Node3D) -> void:
 	var map: RID = (world.get_node("NavRegion") as NavigationRegion3D).get_navigation_map()
 	for d: Node in doors:
 		var door := d as NetDoor
+		if door.name.begins_with("BalconyDoor"):
+			continue  # upstairs, see _check_balconies
 		var building: String = door.get_parent().name
 		door._set_open(true)
 		await get_tree().create_timer(0.7).timeout
@@ -293,6 +295,97 @@ func _check_stairs(world: Node3D) -> void:
 				print("[SelfTest]     floor %d: path end local %s, closest navmesh %s" % [f,
 						h.to_local(pp[pp.size() - 1]) if pp.size() > 0 else "none", h.to_local(near)])
 	_report(nav_ok == houses.size(), "NPC navmesh reaches the top floor of every house (%d/%d)" % [nav_ok, houses.size()])
+
+
+## Balconies: the door opens (E), a walker steps out onto the balcony, can't get off it
+## (front or sides) and walks back in; the closed door blocks.
+func _check_balconies(world: Node3D) -> void:
+	var doors: Array[NetDoor] = []
+	for d: Node in world.find_children("BalconyDoor*", "NetDoor", true, false):
+		doors.append(d as NetDoor)
+	_report(doors.size() >= 3, "found %d balcony doors" % doors.size())
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Balcony"
+	world.get_node("Players").add_child(p)
+	var bad: PackedStringArray = []
+	for door: NetDoor in doors:
+		var h: String = door.get_parent().name
+		door._set_open(true)
+		await get_tree().create_timer(0.7).timeout
+		var out: Vector3 = door.global_basis.z.normalized()
+		var side: Vector3 = door.global_basis.x.normalized()
+		var centre: Vector3 = door.global_position + side * door.width / 2.0
+		var floor_y: float = door.global_position.y
+		var inside: Vector3 = centre - out * 1.3
+		var on_balcony: Vector3 = centre + out * 0.75
+		p.teleport(inside + Vector3.UP * 0.1)
+		for i: int in 5:
+			await get_tree().physics_frame
+		if not await _walk_to(p, on_balcony, 5.0):
+			bad.append("%s: can't step out (at %s)" % [h, p.global_position.snapped(Vector3.ONE * 0.01)])
+			door._set_open(false)
+			continue
+		var off: bool = false
+		for target: Vector3 in [centre + out * 4.0, on_balcony + side * 4.0, on_balcony - side * 4.0]:
+			await _walk_to(p, target, 2.5)
+			var rel: Vector3 = p.global_position - centre
+			if p.global_position.y < floor_y - 0.5 or rel.dot(out) > 1.05:
+				off = true
+				bad.append("%s: walker got off the balcony at %s" % [h, p.global_position.snapped(Vector3.ONE * 0.01)])
+				break
+		if off:
+			door._set_open(false)
+			continue
+		if not await _walk_to(p, inside, 5.0):
+			bad.append("%s: can't walk back in" % h)
+		door._set_open(false)
+		await get_tree().create_timer(0.7).timeout
+		await _walk_to(p, on_balcony, 2.5)
+		if (p.global_position - centre).dot(out) > -0.1:
+			bad.append("%s: closed balcony door doesn't block" % h)
+	p.queue_free()
+	await get_tree().physics_frame
+	_report(bad.is_empty(), "balconies: step out, can't fall off, back in, closed door blocks (%d)%s" % [doors.size(),
+			"" if bad.is_empty() else ": " + "; ".join(bad)])
+
+
+## Walks the auto-walker to the global point `t` (xz); false if it doesn't get there in time.
+func _walk_to(p: Player, t: Vector3, timeout: float) -> bool:
+	p.auto_target = t
+	var waited: float = 0.0
+	while waited < timeout:
+		await get_tree().physics_frame
+		waited += get_physics_process_delta_time()
+		if Vector2(p.global_position.x - t.x, p.global_position.z - t.z).length() < 0.3:
+			return true
+	return false
+
+
+## Every walkable floor of every enterable building has some furniture (no empty rooms).
+func _check_furniture(world: Node3D) -> void:
+	var empty: PackedStringArray = []
+	var total: int = 0
+	for n: Node in world.find_children("*", "Building", true, false):
+		var h := n as Building
+		if not h.enterable:
+			continue
+		var levels: int = h.floors if h.upper_floors else 1
+		var counts: Array[int] = []
+		counts.resize(levels)
+		counts.fill(0)
+		for c: Node in h.get_children():
+			if c is Node3D and (c.scene_file_path.begins_with(Building.FURNITURE_DIR) or c.scene_file_path.begins_with(Building.PROPS_DIR)
+					or c.scene_file_path.begins_with("res://prefabs/stations/")):
+				var f: int = clampi(floori(((c as Node3D).position.y + 0.2) / h.floor_height), 0, levels - 1)
+				counts[f] += 1
+		for f: int in levels:
+			total += 1
+			if counts[f] < (6 if h.furnish == "home" else 3):
+				empty.append("%s floor %d (%d pieces)" % [h.name, f, counts[f]])
+	_report(empty.is_empty(), "every walkable floor has furniture (%d floors)%s" % [total,
+			"" if empty.is_empty() else ", nearly empty: " + ", ".join(empty)])
 
 
 ## Walks `target` (local to the house) with the auto-walker; false if it doesn't get there.

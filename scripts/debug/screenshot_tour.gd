@@ -70,6 +70,12 @@ const SHOTS: Array[Array] = [
 	# Step 8: the phone (staged local player): chat thread and map.
 	["50_phone_chat", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["51_phone_map", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
+	# Corner house top floor: railing round the stairwell opening; second floor seen from the stairs.
+	["52_house_top_railing", Vector3(-15.0, 7.85, -7.0), Vector3(-18.7, 6.6, -11.0)],
+	["53_house_floor2_back", Vector3(-17.0, 4.85, -7.0), Vector3(-13.0, 3.6, -14.0)],
+	# Balcony of RowHouseB1 (x -58, front z -6): open door from inside, then from the street.
+	["54_balcony_door_open", Vector3(-59.0, 4.65, -9.0), Vector3(-59.3, 3.9, -4.0)],
+	["55_balcony_outside_door_open", Vector3(-57.0, 2.0, 2.5), Vector3(-59.3, 3.9, -6.0)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

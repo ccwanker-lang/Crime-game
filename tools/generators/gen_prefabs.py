@@ -173,9 +173,9 @@ script_prefab(P + "picket_fence.tscn", "StaticBody3D", "fence",
 I = "prefabs/interiors/"
 
 
-def furn(name, model, size, center_y=None, parts=None, scale=1.0):
+def furn(name, model, size, center_y=None, parts=None, scale=1.0, center=None):
     cy = size[1] / 2 if center_y is None else center_y
-    model_prefab(I + name + ".tscn", model, parts, ("box", size, (0, cy, 0)), scale=scale, vis_end=40)
+    model_prefab(I + name + ".tscn", model, parts, ("box", size, center or (0, cy, 0)), scale=scale, vis_end=40)
 
 
 furn("sofa", "Sofa_01", (1.57, 0.8, 0.66))
@@ -189,6 +189,26 @@ furn("cash_register", "CashRegister_01", (0.6, 0.62, 0.44))
 furn("bed", "old_bed_frame", (0.9, 1.2, 2.0), center_y=0.3)
 furn("wheelchair", "wheelchair_01", (0.82, 1.1, 1.09))
 furn("office_desk", "metal_office_desk", (2.0, 0.79, 0.95))
+# Extra home/business furniture (Poly Haven CC0, fetched with tools/fetch_polyhaven.py). Front = +Z.
+furn("dining_table", "dining_table", (2.2, 0.88, 1.35), center=(0, 0.44, 0.02))
+furn("dining_chair", "dining_chair_02", (0.43, 0.97, 0.5), center=(0, 0.49, -0.04))
+furn("nightstand", "ClassicNightstand_01", (0.57, 0.7, 0.42))
+furn("drawer_cabinet", "drawer_cabinet", (1.14, 1.88, 0.49))
+furn("low_cabinet", "modern_wooden_cabinet", (2.44, 0.68, 0.52), parts=["modern_wooden_cabinet_body",
+     "modern_wooden_cabinet_door_l", "modern_wooden_cabinet_door_r"])
+furn("sofa_modern", "sofa_02", (1.81, 0.71, 0.8), center=(0, 0.35, -0.07))
+furn("round_coffee_table", "coffee_table_round_01", (1.25, 0.49, 1.25))
+furn("side_table", "side_table_01", (0.55, 0.55, 0.45))
+furn("wardrobe", "vintage_cabinet_01", (2.0, 2.24, 0.62), center=(0, 1.12, 0.06))
+furn("wall_shelf", "Shelf_01", (1.0, 2.08, 0.26), center=(0, 1.04, 0.13))
+furn("rocking_chair", "Rockingchair_01", (0.7, 0.99, 0.8), center=(0, 0.5, 0.06))
+furn("barber_chair", "BarberShopChair_01", (0.76, 1.49, 1.2), center=(-0.02, 0.74, 0.22))
+furn("tool_cart", "tool_cart", (1.25, 0.96, 0.75))
+furn("metal_rack", "worn_metal_rack", (0.92, 1.9, 0.6))
+furn("stool", "metal_stool_01", (0.35, 0.88, 0.35))
+furn("plastic_chair", "plastic_monobloc_chair_01", (0.62, 0.88, 0.6))
+furn("picnic_table", "wooden_picnic_table", (2.2, 0.75, 3.0))
+furn("painted_bench", "painted_wooden_bench", (1.16, 0.89, 0.5))
 model_prefab(I + "potted_plant.tscn", "potted_plant_01", None, ("cyl", 0.25, 0.55), vis_end=30)
 
 

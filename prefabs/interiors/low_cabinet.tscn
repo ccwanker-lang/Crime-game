@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://assets/polyhaven/modern_wooden_cabinet/modern_wooden_cabinet.gltf" id="2_r"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(2.44, 0.68, 0.52)
+
+[node name="LowCabinet" type="StaticBody3D"]
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("1_r")
+model = ExtResource("2_r")
+parts = PackedStringArray("modern_wooden_cabinet_body", "modern_wooden_cabinet_door_l", "modern_wooden_cabinet_door_r")
+visibility_end = 40
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.34, 0)
+shape = SubResource("BoxShape3D_1")
