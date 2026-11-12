@@ -48,6 +48,13 @@ func _build_routes() -> void:
 			[1.75, 2.5, 1.75, 1.75, 5.0, 1.75]))
 	for r: TrafficRoute in routes:
 		r.mark_junctions(JUNCTIONS, JUNCTION_HALF)
+		# The driving line as a Path3D (debug: F3 shows it).
+		var path := Path3D.new()
+		path.name = "Route%d" % (routes.find(r))
+		path.curve = r.curve
+		path.add_to_group(&"debug_only")
+		path.visible = false
+		add_child(path)
 
 
 ## Host: may `car` drive into junction j? Grants it if nobody else holds it.

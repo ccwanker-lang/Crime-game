@@ -92,10 +92,19 @@ static func build(parent: Node3D, kind: int, paint: Color) -> MeshInstance3D:
 			var w := MeshInstance3D.new()
 			w.name = "Wheel%d" % i
 			w.mesh = wheel_mesh
-			w.position = Vector3(side * (hw - WHEEL_W / 2.0 + 0.02), WHEEL_R, z)
 			w.rotation.y = PI if side < 0 else 0.0  # hub faces outwards
 			w.visibility_range_end = 90.0
-			parent.add_child(w)
+			var at := Vector3(side * (hw - WHEEL_W / 2.0 + 0.02), WHEEL_R, z)
+			if z < 0.0:
+				# Front wheel: inside a pivot that steers around Y.
+				var pivot := Node3D.new()
+				pivot.name = "Steer%d" % i
+				pivot.position = at
+				parent.add_child(pivot)
+				pivot.add_child(w)
+			else:
+				w.position = at
+				parent.add_child(w)
 			i += 1
 	return mi
 

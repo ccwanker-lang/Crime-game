@@ -757,6 +757,28 @@ func _check_traffic(world: Node3D) -> void:
 	person.queue_free()
 	await get_tree().create_timer(3.0).timeout
 	_report(car.speed > 2.0, "car drives on once the road is clear (speed %.1f)" % car.speed)
+	# Smooth bends: a car on the inner loop (tight right turns) through a whole lap,
+	# watched every physics frame: no heading jumps, slow in the bend, fast on the straight.
+	var bender: Car = null
+	for c: Node in cars:
+		if (c as Car).route_id == 1:
+			bender = c
+	var max_step: float = 0.0
+	var bend_speed: float = 0.0
+	var straight_speed: float = 0.0
+	var yaw0: float = bender.rotation.y
+	for f: int in 60 * 25:
+		await get_tree().physics_frame
+		max_step = maxf(max_step, absf(angle_difference(yaw0, bender.rotation.y)))
+		yaw0 = bender.rotation.y
+		var k: float = absf(traffic.routes[1].curvature(bender.progress))
+		if k > 0.3:
+			bend_speed = maxf(bend_speed, bender.speed)
+		elif k < 0.001:
+			straight_speed = maxf(straight_speed, bender.speed)
+	_report(rad_to_deg(max_step) < 2.5, "cars turn smoothly (max %.2f deg per frame)" % rad_to_deg(max_step))
+	_report(bend_speed > 0.5 and bend_speed < 3.5 and straight_speed > 6.0,
+			"slow in tight bends (%.1f m/s), fast on straights (%.1f m/s)" % [bend_speed, straight_speed])
 
 
 # --- Packaging + selling (step 7) --------------------------------------------------------

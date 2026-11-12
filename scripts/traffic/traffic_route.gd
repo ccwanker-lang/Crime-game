@@ -1,13 +1,15 @@
 class_name TrafficRoute
 extends RefCounted
 ## A closed driving line for AI cars: corner points joined by straight lines,
-## each corner rounded with its own radius. Sampled by distance along the line.
+## each corner rounded with its own radius (fillet arcs), stored as a smooth
+## baked Curve3D (`curve`, also shown as a debug Path3D). Sampled by distance.
 
-const STEP: float = 0.5  # arc sampling (m)
+const STEP: float = 0.25  # arc sampling (m)
 
 var length: float = 0.0
 ## Stretches of this route inside a junction: [start, end, junction index].
 var junctions: Array[Array] = []
+var curve := Curve3D.new()
 var _points := PackedVector3Array()
 var _dist := PackedFloat32Array()  # distance along the line at each point
 
@@ -37,7 +39,10 @@ func _init(corners: Array[Vector2], radii: Array[float]) -> void:
 			_add(centre + Vector2.from_angle(a0 + turn * float(s) / steps) * r)
 	# Close the loop.
 	_add(Vector2(_points[0].x, _points[0].z))
-	length = _dist[_dist.size() - 1]
+	curve.bake_interval = 0.1
+	for p: Vector3 in _points:
+		curve.add_point(p)
+	length = curve.get_baked_length()
 
 
 func _add(p: Vector2) -> void:
@@ -53,30 +58,23 @@ func _add(p: Vector2) -> void:
 
 
 ## [position: Vector3, direction: Vector3] at distance d (wraps around).
+## Position from the smooth (cubic) Curve3D; direction = tangent over 1.2 m.
 func sample(d: float) -> Array:
-	d = fposmod(d, length)
-	var lo: int = 0
-	var hi: int = _dist.size() - 1
-	while hi - lo > 1:
-		var mid: int = (lo + hi) / 2
-		if _dist[mid] <= d:
-			lo = mid
-		else:
-			hi = mid
-	var a: Vector3 = _points[lo]
-	var b: Vector3 = _points[hi]
-	var seg: float = _dist[hi] - _dist[lo]
-	var f: float = (d - _dist[lo]) / seg if seg > 0.0 else 0.0
-	return [a.lerp(b, f), (b - a).normalized()]
+	var pos: Vector3 = _at(d)
+	var dir: Vector3 = _at(d + 0.6) - _at(d - 0.6)
+	return [pos, dir.normalized() if dir.length() > 0.0001 else Vector3.FORWARD]
 
 
-## Largest heading change (radians) between d and the next `ahead` metres.
-func turn_ahead(d: float, ahead: float) -> float:
-	var dir0: Vector3 = sample(d)[1]
-	var best: float = 0.0
-	for k: float in [ahead / 3.0, ahead * 2.0 / 3.0, ahead]:
-		best = maxf(best, dir0.angle_to(sample(d + k)[1]))
-	return best
+func _at(d: float) -> Vector3:
+	return curve.sample_baked(fposmod(d, length), true)
+
+
+## Signed curvature at d (1/m; + = bending to the left, seen from above).
+func curvature(d: float) -> float:
+	var a: Vector3 = sample(d - 1.0)[1]
+	var b: Vector3 = sample(d + 1.0)[1]
+	var ang: float = Vector2(a.x, a.z).angle_to(Vector2(b.x, b.z))
+	return -ang / 2.0
 
 
 ## Finds where this route runs through the junction squares (centre, half size).

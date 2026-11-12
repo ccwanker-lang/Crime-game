@@ -188,7 +188,7 @@ Extras done along the way: more weapons + gun shop, ragdolls, day/night, enterab
 
 Milestone 2 (feedback after playing milestone 1). Ranks don't exist yet: everything below is available from
 the start for now; rank gates (see Progression) come later.
-1. Smooth car curves (path curves, interpolated heading, brake before / accelerate after bends) - todo
+1. Smooth car curves (Curve3D routes, heading along the axles, steered front wheels, brake before / accelerate after bends) - done
 2. Stairs work for players and NPCs (ramp collision / step-up, tested by a walker on every stair) - todo
 3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees; shot car stops) - todo
 4. Item icons (renders of the 3D models) with counts in hotbar/inventory - todo

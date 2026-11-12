@@ -8,7 +8,10 @@ extends AnimatableBody3D
 ## layer 2 (solid for players, hit by bullets, not baked into the navmesh).
 
 const CRUISE: float = 8.5         # m/s (~30 km/h)
-const CORNER_SPEED: float = 4.5
+## Sideways grip in bends (m/s2): bend speed = sqrt(LAT_ACCEL * radius).
+const LAT_ACCEL: float = 2.4
+## Comfortable braking towards a bend (m/s2).
+const BEND_BRAKE: float = 2.8
 const ACCEL: float = 2.5
 const BRAKE: float = 9.0
 const SENSE_MASK: int = 2 | 4 | 8  # cars/props, npcs, players
@@ -37,6 +40,8 @@ var _wheels: Array[Node3D] = []
 var _wheel_sign: Array[float] = []  # left wheels face the other way
 var _wait_car: float = 0.0
 var _ignore_cars: float = 0.0
+var _steer: float = 0.0  # front wheel angle (rad, + = left)
+var _steer_pivots: Array[Node3D] = []
 var _hold: float = 0.0  # stay stopped this long after the way is clear (no creeping)
 var _sense_shape := BoxShape3D.new()
 
@@ -50,10 +55,12 @@ func _ready() -> void:
 	rng.seed = color_seed
 	var paint: Color = ProcCar.PAINTS[rng.randi() % ProcCar.PAINTS.size()]
 	ProcCar.build(self, kind, paint)
-	for c: Node in get_children():
-		if c.name.begins_with("Wheel"):
-			_wheels.append(c as Node3D)
-			_wheel_sign.append(1.0 if (c as Node3D).position.x > 0.0 else -1.0)
+	for c: Node in find_children("Wheel*", "", true, false):
+		var w := c as Node3D
+		_wheels.append(w)
+		_wheel_sign.append(1.0 if w.rotation.y == 0.0 else -1.0)  # left wheels are turned around
+	for c: Node in find_children("Steer*", "", true, false):
+		_steer_pivots.append(c as Node3D)
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = ProcCar.collision_size(kind)
@@ -62,7 +69,7 @@ func _ready() -> void:
 	add_child(shape)
 	Net.limit_sync_to_world($Sync)
 	if _is_host():
-		_place(_route().sample(progress))
+		_place_on(_route())
 		net_pos = global_position
 		net_yaw = rotation.y
 	else:
@@ -84,14 +91,19 @@ func _physics_process(delta: float) -> void:
 			global_position = net_pos
 		else:
 			global_position = global_position.lerp(net_pos, minf(1.0, 10.0 * delta))
+		var yaw0: float = rotation.y
 		rotation.y = lerp_angle(rotation.y, net_yaw, minf(1.0, 10.0 * delta))
+		# Steering from the turn rate: angle = atan(wheelbase * yaw rate / speed).
+		var rate: float = angle_difference(yaw0, rotation.y) / maxf(delta, 0.001)
+		var base: float = float(ProcCar.SPECS[kind]["base"])
+		var want: float = atan(base * rate / net_speed) if net_speed > 0.5 else _steer
+		_steer = lerpf(_steer, clampf(want, -0.6, 0.6), minf(1.0, 8.0 * delta))
 		_spin_wheels(net_speed, delta)
 		return
 	var route: TrafficRoute = _route()
 	# Slow down for corners ahead, stop for anything in the way.
 	var target: float = CRUISE
-	if route.turn_ahead(progress, 9.0) > 0.35:
-		target = CORNER_SPEED
+	target = minf(target, _bend_speed(route))
 	# Something in the lane: slow down by its distance, stop when it's close.
 	var seen: Array = _sense(route)
 	var blocker: String = seen[0] if seen[1] == 0 else ""
@@ -114,7 +126,7 @@ func _physics_process(delta: float) -> void:
 	_ignore_cars = maxf(0.0, _ignore_cars - delta)
 	speed = move_toward(speed, target, (ACCEL if target > speed else BRAKE) * delta)
 	progress = fposmod(progress + speed * delta, route.length)
-	_place(route.sample(progress))
+	_place_on(route)
 	_spin_wheels(speed, delta)
 	net_pos = global_position
 	net_yaw = rotation.y
@@ -158,12 +170,31 @@ func _exit_tree() -> void:
 			traffic.release_junction(j, self)
 
 
-## Car transform from a route sample [position, direction].
-func _place(sample: Array) -> void:
-	var pos: Vector3 = sample[0]
-	var dir: Vector3 = sample[1]
-	global_position = pos
+## Host: fastest speed that still lets the car brake gently for every bend in
+## the next 30 m and take it at sqrt(LAT_ACCEL * radius).
+func _bend_speed(route: TrafficRoute) -> float:
+	var limit: float = CRUISE
+	var x: float = 0.0
+	while x <= 30.0:
+		var k: float = absf(route.curvature(progress + x))
+		if k > 0.01:
+			var v_bend: float = sqrt(LAT_ACCEL / k)
+			limit = minf(limit, sqrt(v_bend * v_bend + 2.0 * BEND_BRAKE * maxf(0.0, x - 1.0)))
+		x += 1.5
+	return limit
+
+
+## Host: puts the car on the route at `progress`: body between the axles, heading
+## along the chord from the rear to the front axle (like a real car), front
+## wheels steered into the bend.
+func _place_on(route: TrafficRoute) -> void:
+	var half_base: float = float(ProcCar.SPECS[kind]["base"]) / 2.0
+	var front: Vector3 = route.sample(progress + half_base)[0]
+	var rear: Vector3 = route.sample(progress - half_base)[0]
+	global_position = (front + rear) * 0.5
+	var dir: Vector3 = front - rear
 	rotation.y = atan2(-dir.x, -dir.z)
+	_steer = atan(2.0 * half_base * route.curvature(progress + half_base * 0.5))
 
 
 ## Host: what is in the lane ahead? Checks SENSE_SEGMENTS boxes following the
@@ -194,6 +225,8 @@ func _sense(route: TrafficRoute) -> Array:
 
 
 func _spin_wheels(v: float, delta: float) -> void:
+	for p: Node3D in _steer_pivots:
+		p.rotation.y = _steer
 	var turn: float = -v * delta / ProcCar.WHEEL_R
 	for i: int in _wheels.size():
 		_wheels[i].rotate_object_local(Vector3.RIGHT, turn * _wheel_sign[i])
