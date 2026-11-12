@@ -1919,6 +1919,11 @@ spawn_path = NodePath("../Players")
 [node name="LootSpawner" type="MultiplayerSpawner" parent="."]
 spawn_path = NodePath("../Loot")
 
+[node name="Placed" type="Node3D" parent="."]
+
+[node name="PlacedSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Placed")
+
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="Panel" type="PanelContainer" parent="HUD"]

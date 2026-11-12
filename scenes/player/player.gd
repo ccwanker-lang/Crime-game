@@ -106,6 +106,10 @@ var cash: int = 0  # owner: last value sent by the host
 var inventory: Array = []
 ## Owner: the shop window that is open (null = none).
 var shop: Shopkeeper = null
+## Owner: the storage locker window that is open (null = none).
+var locker: StorageLocker = null
+## Owner: placement mode + hold E to pick up (point 6).
+var placement: PlayerPlacement = null
 var _base_fov: float = 75.0
 ## Owner: last message from the host (show_message), also for tests.
 var last_message: String = ""
@@ -158,6 +162,10 @@ func _ready() -> void:
 		var v: Dictionary = MODELS[model_index % MODELS.size()]
 		vm.setup(MODEL_DIR % v["model"], float(v["scale"]), combat.weapon)
 		combat.viewmodel = vm
+		placement = PlayerPlacement.new()
+		placement.name = "Placement"
+		placement.player = self
+		add_child(placement)
 		if auto_walk:
 			ui.visible = false
 		else:
@@ -386,6 +394,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			close_shop()
 			get_viewport().set_input_as_handled()
 		return
+	if locker != null:
+		if event.is_action_pressed("release_mouse") or event.is_action_pressed("interact"):
+			close_locker()
+			get_viewport().set_input_as_handled()
+		return
 	var captured: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and captured:
 		if dead:
@@ -411,6 +424,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		combat.aiming = false
 	elif not captured:
 		return
+	elif placement and placement.handle_input(event):
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("fire"):
 		combat.trigger_held = true
 		combat.try_fire()
@@ -433,7 +448,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("phone") and not dead and ui:
 		open_phone()
 	elif event.is_action_pressed("interact") and _focused != null and not dead:
-		_focused.call("interact")
+		if placement == null or not placement.begin_interact(_focused):
+			_focused.call("interact")
 	elif event is InputEventKey and not event.echo and (event as InputEventKey).physical_keycode == KEY_F7:
 		# Debug: fast-forward the day/night clock while held.
 		var dn := get_tree().get_first_node_in_group("day_night") as DayNight
@@ -657,6 +673,11 @@ func _update_focus() -> void:
 	_focused = found
 	if prompt_label:
 		prompt_label.text = "[E] %s" % _focused.call("get_interaction_prompt") if _focused else ""
+		if placement and placement.hold_progress() > 0.0:
+			var n: int = int(placement.hold_progress() * 10.0)
+			prompt_label.text = "Picking up  [%s%s]" % ["#".repeat(n), "-".repeat(10 - n)]
+		elif placement and placement.is_active():
+			prompt_label.text = placement.prompt_text()
 
 
 ## Owner: opens the buy window of a shopkeeper (frees the mouse).
@@ -682,6 +703,25 @@ func open_phone() -> void:
 func close_phone() -> void:
 	if ui:
 		ui.phone.close()
+	if not auto_walk:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Owner: the storage window of a locker (frees the mouse).
+func open_locker(l: StorageLocker) -> void:
+	if ui == null or dead or shop != null:
+		return
+	locker = l
+	ui.open_locker(l, self)
+	if not ui.close_requested.is_connected(close_locker):
+		ui.close_requested.connect(close_locker)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_locker() -> void:
+	locker = null
+	if ui:
+		ui.close_locker()
 	if not auto_walk:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -950,6 +990,118 @@ func _host_webshop_buy(id: StringName, count: int) -> void:
 	box.order(str(id), count * item.pack_size)
 	send_wallet()
 	show_message("Ordered %d %s for €%d. Delivery to your Starter Room in about an hour." % [count, item.display_name, cost])
+
+
+# --- Placing + picking up (point 6) -----------------------------------------------
+
+## Owner: place the item `id` (one from the inventory) at `pos` turned by `yaw`.
+func request_place(id: String, pos: Vector3, yaw: float) -> void:
+	if multiplayer.is_server():
+		var msg: String = _host_place(id, pos, yaw)
+		if msg != "":
+			show_message(msg)
+	else:
+		_request_place.rpc_id(1, id, pos, yaw)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_place(id: String, pos: Vector3, yaw: float) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		var msg: String = _host_place(id, pos, yaw)
+		if msg != "":
+			show_message(msg)
+
+
+## Host: checks + places. Returns "" when placed, otherwise why not.
+func _host_place(id: String, pos: Vector3, yaw: float) -> String:
+	var item: ItemData = ItemDB.get_item(StringName(id))
+	if item == null or item.place_scene == null or dead:
+		return "You can't place that."
+	if GameState.count_item(player_name, id) < 1:
+		return "You don't have a %s." % item.display_name
+	if global_position.distance_to(pos) > Placement.MAX_REACH + 1.5:
+		return "That's too far away."
+	var reason: String = Placement.check(get_world_3d(), get_tree(), item, pos, yaw, [get_rid()])
+	if reason != "":
+		return reason
+	GameState.remove_item(player_name, id, 1)
+	get_tree().current_scene.call("host_place", id, pos, yaw)
+	send_wallet()
+	return ""
+
+
+## Owner: pick up the placed station / furniture `uid` (back into the inventory).
+func request_pick_up(uid: String) -> void:
+	if multiplayer.is_server():
+		var msg: String = _host_pick_up(uid)
+		if msg != "":
+			show_message(msg)
+	else:
+		_request_pick_up.rpc_id(1, uid)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_pick_up(uid: String) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		var msg: String = _host_pick_up(uid)
+		if msg != "":
+			show_message(msg)
+
+
+## Host: checks + picks up. Returns "" when done, otherwise why not.
+func _host_pick_up(uid: String) -> String:
+	var world: Node = get_tree().current_scene
+	var n: Node3D = world.call("get_placed", uid)
+	if n == null or dead:
+		return ""
+	if global_position.distance_to(n.global_position) > INTERACT_DISTANCE + 2.0:
+		return "That's too far away."
+	var prop: Property = Placement.property_at(get_tree(), n.global_position)
+	if prop != null and not prop.is_crew_owned():
+		return "This isn't your property."
+	var refund: Array = []
+	if n is Station:
+		var blocker: String = (n as Station).pick_up_blocker()
+		if blocker != "":
+			return blocker
+		refund = (n as Station).refund_items()
+	var id: String = str(n.get_meta(&"placed_item", ""))
+	if GameState.space_for(player_name, id) < 1:
+		return "Your pockets are full."
+	GameState.give(player_name, 0, [{"id": id, "count": 1}] + refund)
+	world.call("host_remove_placed", uid)
+	send_wallet()
+	return ""
+
+
+## Half the price back for furniture / stations (phone Resell app).
+static func resell_price(item: ItemData) -> int:
+	return int(floor(item.base_price * 0.5))
+
+
+## Owner: sell one carried furniture piece / station.
+func resell(id: StringName) -> void:
+	if multiplayer.is_server():
+		_host_resell(id)
+	else:
+		_request_resell.rpc_id(1, id)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_resell(id: StringName) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		_host_resell(id)
+
+
+func _host_resell(id: StringName) -> void:
+	var item: ItemData = ItemDB.get_item(id)
+	if item == null or item.place_scene == null or not GameState.remove_item(player_name, String(id), 1):
+		show_message("You can't sell that.")
+		return
+	var price: int = resell_price(item)
+	GameState.add_cash(player_name, price)
+	send_wallet()
+	show_message("Sold a %s for €%d." % [item.display_name, price])
 
 
 ## Host: short message on the owner's screen (station results, errors).

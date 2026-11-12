@@ -153,6 +153,9 @@ func update_held() -> void:
 	var id: StringName = &""
 	if not equipped and selected_slot >= 0 and selected_slot < player.inventory.size() and weapon_in_slot(selected_slot) < 0:
 		id = StringName(str((player.inventory[selected_slot] as Dictionary).get("id", "")))
+		var item: ItemData = ItemDB.get_item(id)
+		if item and item.place_scene:
+			id = &""  # furniture / stations: the placement ghost shows it, not the hand
 	player.net_held = id
 
 

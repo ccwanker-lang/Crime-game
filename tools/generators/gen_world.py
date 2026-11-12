@@ -458,6 +458,11 @@ sc.node("PlayerSpawner", "MultiplayerSpawner", ".", props={"spawn_path": 'NodePa
 sc.node("Loot", "Node3D", ".")
 sc.node("LootSpawner", "MultiplayerSpawner", ".", props={"spawn_path": 'NodePath("../Loot")'})
 
+# --------------------------------------------------------------------------- placed stations + furniture
+# Point 6: things the crew placed in their properties (World._create_placed is the spawn function).
+sc.node("Placed", "Node3D", ".")
+sc.node("PlacedSpawner", "MultiplayerSpawner", ".", props={"spawn_path": 'NodePath("../Placed")'})
+
 # --------------------------------------------------------------------------- HUD
 sc.node("HUD", "CanvasLayer", ".")
 sc.node("Panel", "PanelContainer", "HUD", props={

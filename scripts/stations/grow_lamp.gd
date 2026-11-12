@@ -19,7 +19,8 @@ func default_state() -> Dictionary:
 
 
 func _ready() -> void:
-	add_to_group(&"grow_lamps")
+	if not ghost:
+		add_to_group(&"grow_lamps")
 	super()
 
 

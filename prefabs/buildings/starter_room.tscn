@@ -10,12 +10,8 @@
 [ext_resource type="PackedScene" path="res://prefabs/interiors/bookshelf.tscn" id="8_r"]
 [ext_resource type="PackedScene" path="res://prefabs/interiors/potted_plant.tscn" id="9_r"]
 [ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="10_r"]
-[ext_resource type="PackedScene" path="res://prefabs/stations/grow_lamp.tscn" id="11_r"]
-[ext_resource type="PackedScene" path="res://prefabs/stations/grow_pot.tscn" id="12_r"]
-[ext_resource type="PackedScene" path="res://prefabs/stations/drying_rack.tscn" id="13_r"]
-[ext_resource type="PackedScene" path="res://prefabs/stations/packaging_table.tscn" id="14_r"]
-[ext_resource type="PackedScene" path="res://prefabs/stations/delivery_box.tscn" id="15_r"]
-[ext_resource type="Script" path="res://scenes/world/property.gd" id="16_r"]
+[ext_resource type="PackedScene" path="res://prefabs/stations/delivery_box.tscn" id="11_r"]
+[ext_resource type="Script" path="res://scenes/world/property.gd" id="12_r"]
 
 [node name="StarterRoom" type="StaticBody3D"]
 script = ExtResource("1_r")
@@ -67,30 +63,27 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -4.5)
 [node name="PotSpot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.2, 0.15, -5.2)
 
-[node name="GrowLamp" parent="." instance=ExtResource("11_r")]
+[node name="LampSpot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.2, 0.15, -5.2)
 
-[node name="Pot1" parent="." instance=ExtResource("12_r")]
+[node name="Pot1Spot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -1.6, 0.15, -5.2)
 
-[node name="Pot2" parent="." instance=ExtResource("12_r")]
+[node name="Pot2Spot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -0.8, 0.15, -5.2)
 
-[node name="DryingRack" parent="." instance=ExtResource("13_r")]
+[node name="RackSpot" type="Marker3D" parent="."]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 2.55, 0.15, -6)
 
 [node name="PackagingSpot" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1, 0.15, -5.4)
 
-[node name="PackagingTable" parent="." instance=ExtResource("14_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1, 0.15, -5.4)
-
-[node name="DeliveryBox" parent="." instance=ExtResource("15_r")]
+[node name="DeliveryBox" parent="." instance=ExtResource("11_r")]
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 2.3, 0.15, -2.4)
 
 [node name="Property" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.4, 0.25)
-script = ExtResource("16_r")
+script = ExtResource("12_r")
 property_id = &"starter_room"
 display_name = "Starter Room"
 

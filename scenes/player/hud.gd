@@ -409,3 +409,131 @@ func _draw_hitmarker() -> void:
 	var c: Vector2 = hitmarker.size / 2.0
 	for d: Vector2 in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 		hitmarker.draw_line(c + d * 6.0, c + d * 13.0, _hit_color, 2.0, true)
+
+
+# --- Storage locker window (point 18) ------------------------------------------------
+
+var _locker_panel: Control
+var _locker: StorageLocker
+var _locker_player: Player
+var _locker_mine: VBoxContainer
+var _locker_theirs: VBoxContainer
+var _locker_title: Label
+
+
+func _build_locker_panel() -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.35)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.visible = false
+	add_child(dim)
+	_locker_panel = dim
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(640, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.09, 0.09, 0.1, 0.94)
+	style.border_color = Color(0.55, 0.65, 0.75, 0.8)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(18)
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	panel.add_child(box)
+	_locker_title = Label.new()
+	_locker_title.add_theme_font_size_override("font_size", 24)
+	_locker_title.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
+	box.add_child(_locker_title)
+	var hint := Label.new()
+	hint.text = "Click a stack to move it. Everything in here is shared with your crew."
+	hint.add_theme_color_override("font_color", Color(0.75, 0.75, 0.78))
+	box.add_child(hint)
+	box.add_child(HSeparator.new())
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 16)
+	box.add_child(cols)
+	for i: int in 2:
+		var col := VBoxContainer.new()
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.custom_minimum_size = Vector2(290, 0)
+		var head := Label.new()
+		head.text = "Your pockets" if i == 0 else "Locker"
+		head.add_theme_font_size_override("font_size", 18)
+		col.add_child(head)
+		var list := VBoxContainer.new()
+		list.add_theme_constant_override("separation", 4)
+		col.add_child(list)
+		cols.add_child(col)
+		if i == 0:
+			_locker_mine = list
+		else:
+			_locker_theirs = list
+	box.add_child(HSeparator.new())
+	var close := _button("Close  [E / Esc]")
+	close.size_flags_horizontal = Control.SIZE_SHRINK_END
+	close.pressed.connect(func() -> void: close_requested.emit())
+	box.add_child(close)
+
+
+func is_locker_open() -> bool:
+	return _locker_panel != null and _locker_panel.visible
+
+
+func open_locker(l: StorageLocker, p: Player) -> void:
+	if _locker_panel == null:
+		_build_locker_panel()
+	_locker = l
+	_locker_player = p
+	if not l.contents_changed.is_connected(_refresh_locker):
+		l.contents_changed.connect(_refresh_locker)
+	if not p.wallet_changed.is_connected(_refresh_locker):
+		p.wallet_changed.connect(_refresh_locker)
+	_refresh_locker()
+	_locker_panel.visible = true
+
+
+func close_locker() -> void:
+	if _locker and is_instance_valid(_locker) and _locker.contents_changed.is_connected(_refresh_locker):
+		_locker.contents_changed.disconnect(_refresh_locker)
+	if _locker_player and _locker_player.wallet_changed.is_connected(_refresh_locker):
+		_locker_player.wallet_changed.disconnect(_refresh_locker)
+	_locker = null
+	if _locker_panel:
+		_locker_panel.visible = false
+
+
+func _refresh_locker() -> void:
+	if _locker == null or not is_instance_valid(_locker):
+		return
+	_locker_title.text = "Storage Locker  (%d/%d)" % [_locker.used_slots(), StorageLocker.SLOTS]
+	_fill_stack_list(_locker_mine, _locker_player.inventory, true)
+	_fill_stack_list(_locker_theirs, _locker.state["items"], false)
+
+
+func _fill_stack_list(list: VBoxContainer, items: Array, to_locker: bool) -> void:
+	for c: Node in list.get_children():
+		c.queue_free()
+	if items.is_empty():
+		var empty := Label.new()
+		empty.text = "(empty)"
+		empty.modulate = Color(1, 1, 1, 0.5)
+		list.add_child(empty)
+	for i: int in items.size():
+		var it: Dictionary = items[i]
+		var data: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
+		var b := _button("%s  x%d" % [data.display_name if data else str(it.get("id")), int(it.get("count", 1))])
+		b.icon = data.get_icon() if data else null
+		b.expand_icon = true
+		b.custom_minimum_size = Vector2(0, 40)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_constant_override("icon_max_width", 34)
+		b.pressed.connect(func() -> void:
+			if _locker and is_instance_valid(_locker):
+				_locker.request_move(to_locker, i))
+		list.add_child(b)

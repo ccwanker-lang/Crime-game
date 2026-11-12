@@ -111,6 +111,13 @@ Godot console exe:
   right-hand lanes at +-1.75 m) and spawns `prefabs/vehicles/car.tscn` (`Car`, AnimatableBody3D on layer 2, mesh by
   `ProcCar`) via World/CarSpawner. Host drives (sense boxes along the route ahead, junction reservation per square
   in `Traffic.JUNCTIONS`), clients smooth net_pos/net_yaw. `--cars=N` changes the count; the self-test spawns its own.
+- Placement (point 6/17/18): placeable items have `ItemData.place_scene` (+ `category` station/furniture), made by
+  `tools/generators/gen_items.py` (furniture = every `prefabs/interiors/` prefab). Owner: `PlayerPlacement` (ghost, grid,
+  R/wheel rotate, LMB place, hold E pick up) -> `Player.request_place`/`request_pick_up` -> host re-checks with
+  `Placement.check` (inside a crew-owned `Property`, on a floor, nothing in the way). World/PlacedSpawner spawns
+  `GameState.world["placed"]` records (`World.host_place`/`host_remove_placed`); placed stations use station_id
+  `placed/<uid>`, furniture sits in a `PlacedFurniture`. Owned properties adopt their building's furniture
+  (`Property.host_adopt_furniture`). `StorageLocker` station + HUD storage window. Tests: `World.debug_weed_corner()`.
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

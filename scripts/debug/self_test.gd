@@ -25,9 +25,10 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "placement", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
+var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
 
 
 func _ready() -> void:
@@ -424,6 +425,11 @@ func _check_furniture(world: Node3D) -> void:
 					or c.scene_file_path.begins_with("res://prefabs/stations/")):
 				var f: int = clampi(floori(((c as Node3D).position.y + 0.2) / h.floor_height), 0, levels - 1)
 				counts[f] += 1
+		# Owned properties: their furniture became placed objects (point 17).
+		for c: Node in world.get_node("Placed").get_children():
+			var lp: Vector3 = h.to_local((c as Node3D).global_position)
+			if absf(lp.x) < h.width * 0.5 and lp.z < 0.0 and lp.z > -h.depth and lp.y > -0.3 and lp.y < h.get_height():
+				counts[clampi(floori((lp.y + 0.2) / h.floor_height), 0, levels - 1)] += 1
 		for f: int in levels:
 			total += 1
 			if counts[f] < (6 if h.furnish == "home" else 3):
@@ -736,14 +742,163 @@ func _check_gun_shop(world: Node3D) -> void:
 	await get_tree().physics_frame
 
 
+# --- Placement (point 6), furniture (17), storage lockers (18) ------------------------
+
+func _check_placement(world: Node3D) -> void:
+	var placed_root: Node3D = world.get_node("Placed")
+	var room := world.find_child("StarterRoom", true, false) as Building
+	var prop := room.get_node("Property") as Property
+	# New game: the Starter Room's furniture was adopted (placed objects, no static copies left).
+	var adopted: int = 0
+	for c: Node in placed_root.get_children():
+		if c is PlacedFurniture and prop.contains((c as Node3D).global_position + Vector3.UP * 0.1):
+			adopted += 1
+	_report(adopted >= 6 and prop.static_furniture().is_empty(),
+			"starter room furniture can be moved (%d placed pieces, %d static left)" % [adopted, prop.static_furniture().size()])
+	var no_station: bool = true
+	for c: Node in placed_root.get_children():
+		if c is Station and _corner.is_empty():
+			no_station = false
+	_report(no_station, "a new game starts without stations (they are bought)")
+
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Placer"
+	var spot: Vector3 = world.get_marker("Pot1Spot").global_position
+	var stand: Vector3 = spot + Vector3(0, 0.1, 1.6)
+	p.auto_target = stand
+	world.get_node("Players").add_child(p)
+	p.global_position = stand
+	for i: int in 20:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Placer")
+	(GameState.get_or_create_player_data("Placer")["inventory"] as Array).clear()
+	GameState.give("Placer", 0, [{"id": "grow_pot", "count": 2}, {"id": "storage_locker", "count": 1}, {"id": "sofa", "count": 1}])
+	var pot_item: ItemData = ItemDB.get_item(&"grow_pot")
+	var before: int = placed_root.get_child_count()
+	var why: String = p._host_place("grow_pot", spot, 0.0)
+	var pot: GrowPot = null
+	for c: Node in placed_root.get_children():
+		if c is GrowPot and (c as Node3D).global_position.distance_to(spot) < 0.01:
+			pot = c as GrowPot
+	_report(why == "" and pot != null and placed_root.get_child_count() == before + 1
+			and GameState.count_item("Placer", "grow_pot") == 1 and GameState.world["stations"].has(pot.station_id),
+			"a bought grow pot is placed in the starter room ('%s')" % why)
+	_report(p._host_place("grow_pot", spot, 0.0) != "", "a second pot on the same spot is refused (%s)" %
+			Placement.check(world.get_world_3d(), get_tree(), pot_item, spot, 0.0))
+	var street: Vector3 = room.global_position + room.global_basis.z * 3.0
+	_report(p._host_place("grow_pot", street + Vector3.UP * 0.05, 0.0) != "", "placing outside an own property is refused")
+	var wall: Vector3 = room.to_global(Vector3(room.width * 0.5 - 0.35, 0.15, -5.0))
+	_report(Placement.check(world.get_world_3d(), get_tree(), ItemDB.get_item(&"sofa"), wall, PI / 2.0) != "",
+			"a sofa sticking through the wall is refused")
+	_report(p._host_place("grow_pot", spot + Vector3(30, 0, 0), 0.0) != "", "placing far away is refused")
+	var arm: Node3D = null
+	for c: Node in world.get_node("Placed").get_children():
+		if c is PlacedFurniture and (c as PlacedFurniture).item_id == "armchair":
+			arm = c as Node3D
+	if arm:
+		var top: Dictionary = Placement.aim_point(world.get_world_3d(), arm.global_position + Vector3.UP * 1.5, Vector3.DOWN, [p.get_rid()])
+		_report(not top.is_empty() and Placement.check(world.get_world_3d(), get_tree(), ItemDB.get_item(&"sofa"), top["pos"], 0.0) != "",
+				"a sofa can't stand on top of an armchair")
+	# Pick up: a pot with a plant can't, an empty one can (and goes back into the inventory).
+	pot.state.merge({"stage": GrowPot.Stage.GROWING, "growth": 0.2, "water": 1.0}, true)
+	_report(p._host_pick_up(pot.placed_uid) != "" and is_instance_valid(pot), "a pot with a plant can't be picked up")
+	pot.state.merge({"stage": GrowPot.Stage.SOIL, "growth": 0.0}, true)
+	var uid: String = pot.placed_uid
+	var msg: String = p._host_pick_up(uid)
+	await get_tree().process_frame
+	_report(msg == "" and world.call("get_placed", uid) == null and GameState.count_item("Placer", "grow_pot") == 2
+			and GameState.count_item("Placer", "soil") == 1 and not GameState.world["placed"].has(uid)
+			and not GameState.world["stations"].has("placed/" + uid),
+			"picking a pot up gives it back (+ its soil) and removes its record ('%s')" % msg)
+	# Adopted furniture: pick up, place it again somewhere else (turned).
+	var chair: PlacedFurniture = null
+	for c: Node in placed_root.get_children():
+		if c is PlacedFurniture and prop.contains((c as Node3D).global_position + Vector3.UP * 0.1) \
+				and (c as Node3D).global_position.distance_to(p.global_position) < 4.0:
+			chair = c as PlacedFurniture
+	if chair:
+		var id: String = chair.item_id
+		_report(p._host_pick_up(chair.placed_uid) == "" and GameState.count_item("Placer", id) >= 1,
+				"furniture (%s) can be picked up" % id)
+		await get_tree().process_frame
+		var free_spot: Vector3 = _free_floor(world, ItemDB.get_item(StringName(id)), prop, p)
+		_report(free_spot != Vector3.INF and p._host_place(id, free_spot, PI / 2.0) == "",
+				"and placed again, turned (%s)" % free_spot.snapped(Vector3.ONE * 0.01))
+	else:
+		_report(false, "furniture near the placer to pick up")
+	# Resell (phone): half the price.
+	var cash: int = int(GameState.player_data["Placer"]["cash"])
+	p._host_resell(&"sofa")
+	_report(int(GameState.player_data["Placer"]["cash"]) == cash + Player.resell_price(ItemDB.get_item(&"sofa"))
+			and GameState.count_item("Placer", "sofa") == 0, "furniture resells for half the price")
+	# Storage locker: place, put a stack in, take it out, can't pick it up while full.
+	var lspot: Vector3 = _free_floor(world, ItemDB.get_item(&"storage_locker"), prop, p)
+	var lwhy: String = p._host_place("storage_locker", lspot, PI / 2.0) if lspot != Vector3.INF else "no free spot"
+	_report(lwhy == "", "a storage locker is placed ('%s' at %s, player at %s)" % [lwhy, lspot, p.global_position.snapped(Vector3.ONE * 0.1)])
+	var locker: StorageLocker = null
+	for c: Node in placed_root.get_children():
+		if c is StorageLocker:
+			locker = c as StorageLocker
+	if locker:
+		GameState.give("Placer", 0, [{"id": "weed_bag", "count": 7}])
+		var inv: Array = GameState.player_data["Placer"]["inventory"]
+		var idx: int = -1
+		for i: int in inv.size():
+			if str(inv[i]["id"]) == "weed_bag":
+				idx = i
+		locker.host_move("Placer", true, idx)
+		_report(GameState.count_item("Placer", "weed_bag") == 0 and locker.used_slots() == 1
+				and int(locker.state["items"][0]["count"]) == 7, "a stack goes into the locker")
+		_report(GameState.world["stations"][locker.station_id] == locker.state, "the locker contents live in the world state (saved)")
+		_report(p._host_pick_up(locker.placed_uid) != "", "a full locker can't be picked up")
+		locker.host_move("Placer", false, 0)
+		_report(GameState.count_item("Placer", "weed_bag") == 7 and locker.used_slots() == 0, "and comes back out")
+		_report(p._host_pick_up(locker.placed_uid) == "", "an empty locker can be picked up")
+	# Save round trip: placed records keep item, position and yaw.
+	var placed: Dictionary = GameState.world["placed"]
+	var json: String = JSON.stringify(JSON.from_native(GameState.world))
+	var back: Dictionary = JSON.to_native(JSON.parse_string(json))
+	var ok: bool = (back["placed"] as Dictionary).size() == placed.size()
+	for k: String in placed:
+		ok = ok and back["placed"][k]["pos"] is Vector3 and str(back["placed"][k]["item"]) == str(placed[k]["item"])
+	_report(ok and placed.size() > 0, "placed things survive a save (%d records)" % placed.size())
+	GameState.player_data.erase("Placer")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+## A floor spot inside `prop` near the player where `item` fits, or INF.
+func _free_floor(world: Node3D, item: ItemData, prop: Property, p: Player) -> Vector3:
+	var b: Building = prop.building()
+	for z: float in [-1.5, -2.0, -2.5, -3.0, -3.5, -4.0, -5.0, -6.0, -7.0]:
+		for x: float in [0.0, -0.5, 0.5, -1.0, 1.0, -1.5, 1.5]:
+			var hit: Dictionary = Placement.aim_point(world.get_world_3d(), b.to_global(Vector3(x, 1.5, z)), Vector3.DOWN,
+					[p.get_rid()], Placement.support_mask(item))
+			if hit.is_empty():
+				continue
+			if Placement.check(world.get_world_3d(), get_tree(), item, hit["pos"], PI / 2.0, [p.get_rid()]) == "":
+				return hit["pos"]
+	return Vector3.INF
+
+
 # --- Weed growing --------------------------------------------------------------------
 
+## The classic weed corner, placed in the Starter Room (once) for the station tests.
+func _weed_corner(world: Node3D) -> Dictionary:
+	if _corner.is_empty() or not is_instance_valid(_corner["Pot1"]):
+		_corner = world.call("debug_weed_corner")
+		await get_tree().physics_frame
+	return _corner
+
+
 func _check_growing(world: Node3D) -> void:
-	var room: Node = world.find_child("StarterRoom", true, false)
-	var pot: GrowPot = room.find_child("Pot1", true, false) as GrowPot
-	var lamp: GrowLamp = room.find_child("GrowLamp", true, false) as GrowLamp
-	var rack: DryingRack = room.find_child("DryingRack", true, false) as DryingRack
-	_report(pot != null and lamp != null and rack != null, "starter room has pots, a grow lamp and a drying rack")
+	var corner: Dictionary = await _weed_corner(world)
+	var pot: GrowPot = corner["Pot1"] as GrowPot
+	var lamp: GrowLamp = corner["GrowLamp"] as GrowLamp
+	var rack: DryingRack = corner["DryingRack"] as DryingRack
+	_report(pot != null and lamp != null and rack != null, "placed pots, a grow lamp and a drying rack in the starter room")
 	if pot == null or lamp == null or rack == null:
 		return
 	var stations: Dictionary = GameState.world.get("stations", {})
@@ -1074,9 +1229,8 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 # --- Packaging + selling (step 7) --------------------------------------------------------
 
 func _check_selling(world: Node3D) -> void:
-	var room: Node = world.find_child("StarterRoom", true, false)
-	var table: PackagingTable = room.find_child("PackagingTable", true, false) as PackagingTable
-	_report(table != null, "starter room has a packaging table")
+	var table: PackagingTable = (await _weed_corner(world))["PackagingTable"] as PackagingTable
+	_report(table != null, "placed a packaging table in the starter room")
 	if table == null:
 		return
 	var p: Player = WALKER.instantiate()

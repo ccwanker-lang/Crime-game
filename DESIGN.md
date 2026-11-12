@@ -193,7 +193,7 @@ the start for now; rank gates (see Progression) come later.
 3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees and comes back; shot car stops, wreck towed + replaced) - done
 4. Item icons (renders of the 3D models) with counts in hotbar/inventory (asked again as E) - done
 5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - done
-6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - todo
+6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - done
 7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - todo
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - todo
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - todo
@@ -205,14 +205,28 @@ the start for now; rank gates (see Progression) come later.
 Added after playing (A-F; E = point 4, C extends point 6):
 15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - done
 16. (B) Every house is furnished by the interior generator (no empty houses): dining corner, nightstands, wardrobes, study floors, footprint check - done
-17. (C) Own properties: ALL furniture can be picked up, moved, rotated, sold or stored (placement system of point 6) - todo
-18. (D) Storage lockers: buy + place in a property, own inventory (put in / take out), several allowed, saved, shared in co-op - todo
+17. (C) Own properties: ALL furniture can be picked up, moved, rotated, sold or stored (placement system of point 6) - done
+18. (D) Storage lockers: buy + place in a property, own inventory (put in / take out), several allowed, saved, shared in co-op - done
 19. (F) Balconies: a door (E opens) onto every balcony, walkable, solid railing without gaps (1.6 m collision wall) - done
 Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; heat, lawyer, bribes;
 rival territories, lab raids, story missions (acts 1-5); the full city (Map layout); roadside team, fuel station, garage.
 
 ## Decisions
 Choices made while working autonomously (what + why).
+- Point 6: until the black market exists (point 7) the Store (Marc) sells the basic weed stations (pot, lamp,
+  rack, packaging table) and the storage locker; QuickShip also delivers them and all furniture (legal items).
+  Why: new games start with an empty Starter Room, so the stations must be buyable from the first minute. The
+  black market will sell the illegal / advanced stations (meth, cocaine) and seeds.
+- Point 6: hold E (0.6 s) picks a placed thing up, a short tap keeps the normal E action. Why: stations already
+  use E; one key for both, and no accidental pickups.
+- Point 6: big furniture only stands on the floor; small things (footprint up to 0.7 m: TV, plant, pots,
+  register) may stand on table tops. Why: TVs on cabinets like the generated houses, no sofas on chairs.
+- Point 17: furniture is "adopted" (becomes placed objects) the moment a property is owned; the Starter Room's
+  furniture is adopted in every new game. Old saves: their Starter Room stations become placed stations at the
+  same spots with the same state. Why: one system for everything that can be moved.
+- Point 17: selling furniture/stations happens in the phone app "Resell" for 50% of the price (pick it up first).
+  Why: works anywhere, no extra NPC needed; storing = keep it in your pockets or put it in a storage locker.
+- Point 18: a storage locker holds 16 stacks and is shared by the whole crew (like all owned things in co-op).
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

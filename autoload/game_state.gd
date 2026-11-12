@@ -33,6 +33,8 @@ func init_new_world() -> void:
 		},
 		## station_id -> state Dictionary (pots, lamps, racks; see Station)
 		"stations": {},
+		## uid -> {item, pos, yaw}: stations + furniture placed in properties (World.host_place)
+		"placed": {},
 	}
 	world_changed.emit()
 
@@ -139,6 +141,11 @@ static func max_stack_of(id: String) -> int:
 
 ## Adds `count` of `id` to an inventory array; returns how many did not fit.
 static func _add_to_inventory(inv: Array, id: String, count: int) -> int:
+	return add_to_stacks(inv, id, count, INVENTORY_SLOTS)
+
+
+## Adds `count` of `id` to `inv` (stacks up to max_stack, at most `slots` stacks); returns what did not fit.
+static func add_to_stacks(inv: Array, id: String, count: int, slots: int) -> int:
 	var stack: int = max_stack_of(id)
 	for own: Dictionary in inv:
 		if count <= 0:
@@ -148,7 +155,7 @@ static func _add_to_inventory(inv: Array, id: String, count: int) -> int:
 			if add > 0:
 				own["count"] = int(own.get("count", 1)) + add
 				count -= add
-	while count > 0 and inv.size() < INVENTORY_SLOTS:
+	while count > 0 and inv.size() < slots:
 		var add: int = mini(count, stack)
 		inv.append({"id": id, "count": add})
 		count -= add

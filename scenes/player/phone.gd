@@ -6,6 +6,7 @@ extends PanelContainer
 ##   Map   - top-down town map with players, customers and the shops.
 ##   Shop  - webshop for LEGAL items; orders arrive in the delivery box in the
 ##           Starter Room (host: Player.webshop_buy -> DeliveryBox.order).
+##   Resell - sell carried furniture / stations for half their price (Player.resell).
 ## Messages come from the host through Player.phone_message().
 
 const APP_NAME: String = "Hush"
@@ -145,6 +146,9 @@ func _show(screen: String) -> void:
 		"shop":
 			_title.text = "QuickShip"
 			_shop()
+		"resell":
+			_title.text = "Resell"
+			_resell()
 
 
 func _app_button(text: String, color: Color, screen: String) -> void:
@@ -172,6 +176,7 @@ func _home() -> void:
 	_app_button("%s%s" % [APP_NAME, "  (%d new)" % n if n > 0 else ""], ACCENT, "list")
 	_app_button("Map", Color(0.45, 0.85, 0.45), "map")
 	_app_button("QuickShip (legal shop)", Color(1.0, 0.7, 0.3), "shop")
+	_app_button("Resell (furniture)", Color(0.8, 0.55, 1.0), "resell")
 
 
 func _list() -> void:
@@ -250,29 +255,78 @@ func _answer(index: int, accept: bool) -> void:
 		player.phone_reply(str(m["deal"]), accept)
 
 
+func _scroll_box() -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_content.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(box)
+	return box
+
+
 func _shop() -> void:
 	_content.add_child(_label("Legal stuff, delivered to the box in your Starter Room in about an hour.", Color(0.7, 0.7, 0.75)))
+	var box: VBoxContainer = _scroll_box()
 	var ids: Array = ItemDB.get_all_ids()
 	ids.sort()
-	for id: StringName in ids:
-		var item: ItemData = ItemDB.get_item(id)
-		if not item.is_legal or item.base_price <= 0:
-			continue
-		var row := HBoxContainer.new()
-		var name_l := _label("%s  €%d" % [item.display_name, item.base_price], Color(0.92, 0.92, 0.95))
-		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_l.tooltip_text = item.description
-		name_l.mouse_filter = Control.MOUSE_FILTER_PASS
-		row.add_child(name_l)
-		for n: int in ([1, 5] if item.max_stack >= 5 else [1]):
+	for category: String in ["", "station", "furniture"]:
+		box.add_child(_label({"": "Supplies", "station": "Stations", "furniture": "Furniture"}[category], ACCENT))
+		for id: StringName in ids:
+			var item: ItemData = ItemDB.get_item(id)
+			if item.is_legal and item.base_price > 0 and item.category == category:
+				_shop_row(box, item)
+
+
+func _shop_row(box: VBoxContainer, item: ItemData) -> void:
+	var row := HBoxContainer.new()
+	var name_l := _label("%s  €%d" % [item.display_name, item.base_price], Color(0.92, 0.92, 0.95))
+	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_l.tooltip_text = item.description
+	name_l.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_child(name_l)
+	for n: int in ([1, 5] if item.max_stack >= 5 else [1]):
+		var b := Button.new()
+		b.text = "Buy %d" % n
+		b.focus_mode = Control.FOCUS_NONE
+		b.pressed.connect(func() -> void:
+			if player:
+				player.webshop_buy(item.id, n))
+		row.add_child(b)
+	box.add_child(row)
+
+
+## Furniture and stations you carry: sell one for half the price.
+func _resell() -> void:
+	_content.add_child(_label("Sell furniture and stations you carry for half the price. Pick them up first (hold E).",
+			Color(0.7, 0.7, 0.75)))
+	var box: VBoxContainer = _scroll_box()
+	var any: bool = false
+	if player:
+		var seen: Dictionary = {}
+		for it: Dictionary in player.inventory:
+			var item: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
+			if item == null or item.place_scene == null or seen.has(item.id):
+				continue
+			seen[item.id] = true
+			any = true
+			var row := HBoxContainer.new()
+			var name_l := _label("%s  x%d" % [item.display_name, Station.carried(player, String(item.id))], Color(0.92, 0.92, 0.95))
+			name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(name_l)
 			var b := Button.new()
-			b.text = "Buy %d" % n
+			b.text = "Sell €%d" % Player.resell_price(item)
 			b.focus_mode = Control.FOCUS_NONE
 			b.pressed.connect(func() -> void:
-				if player:
-					player.webshop_buy(item.id, n))
+				player.resell(item.id)
+				await get_tree().create_timer(0.3).timeout
+				if _screen == "resell":
+					_show("resell"))
 			row.add_child(b)
-		_content.add_child(row)
+			box.add_child(row)
+	if not any:
+		box.add_child(_label("You don't carry any furniture or stations.", Color(0.6, 0.6, 0.65)))
 
 
 func _label(text: String, color: Color) -> Label:

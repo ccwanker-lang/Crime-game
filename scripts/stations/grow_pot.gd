@@ -30,6 +30,14 @@ func default_state() -> Dictionary:
 	return {"stage": Stage.EMPTY, "water": 0.0, "growth": 0.0, "seed": 0}
 
 
+func pick_up_blocker() -> String:
+	return "Harvest the plant first." if int(state["stage"]) >= Stage.GROWING else ""
+
+
+func refund_items() -> Array:
+	return [{"id": "soil", "count": 1}] if int(state["stage"]) == Stage.SOIL else []
+
+
 func _build() -> void:
 	var b := MeshBuilder.new()
 	# Tapered plastic pot with a rolled rim, open at the top.

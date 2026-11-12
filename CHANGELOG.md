@@ -10,3 +10,4 @@ One line per finished part.
 - Point 3: cars react to gunfire (panic, horn, swerve, driver bails and returns, shot cars stop, wrecks towed).
 - Point 4 (E): item models (ProcItem) and rendered icons in the hotbar.
 - Point 5: held items in the hand (first + third person, synced); netcheck: longer ENet timeout while a peer loads.
+- Points 6/17/18: placement mode for stations + furniture (ghost, grid, rotate, hold E to pick up), empty Starter Room with movable furniture, Resell phone app, storage lockers.

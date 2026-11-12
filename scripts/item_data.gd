@@ -14,6 +14,11 @@ extends Resource
 @export var pack_size: int = 1
 ## 3D model (held in the hand, dropped, icon). Empty = res://prefabs/items/<id>.tscn if it exists.
 @export var model_scene: PackedScene
+## Point 6: a station or piece of furniture that can be placed in an owned property
+## (selected in the hotbar = placement mode). Also its model when there is no model_scene.
+@export var place_scene: PackedScene
+## "station", "furniture" or "" (shop / phone lists group by it).
+@export var category: String = ""
 
 const ITEM_MODELS: String = "res://prefabs/items/"
 const ICONS: String = "res://assets/icons/"
@@ -23,7 +28,13 @@ func get_model() -> PackedScene:
 	if model_scene:
 		return model_scene
 	var path: String = ITEM_MODELS + String(id) + ".tscn"
-	return load(path) as PackedScene if ResourceLoader.exists(path) else null
+	if ResourceLoader.exists(path):
+		return load(path) as PackedScene
+	return place_scene
+
+
+func is_placeable() -> bool:
+	return place_scene != null
 
 
 ## Icon rendered from the model (scripts/debug/render_icons.gd), null if there is none yet.

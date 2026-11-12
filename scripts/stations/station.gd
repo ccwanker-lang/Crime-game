@@ -20,9 +20,19 @@ const SYNC_INTERVAL: float = 3.0
 
 var state: Dictionary = {}
 var _sync_timer: float = 0.0
+## Point 6: set when placed by a player (World._create_placed). Hold E picks it up.
+var placed_uid: String = ""
+## Placement preview: only the visuals, no state, groups or network.
+var ghost: bool = false
 
 
 func _ready() -> void:
+	if ghost:
+		state = default_state()
+		_build()
+		state_changed()
+		set_process(false)
+		return
 	add_to_group(&"interactable")
 	add_to_group(&"net_state")
 	add_to_group(&"stations")
@@ -73,6 +83,17 @@ func prompt_for(_player: Player) -> String:
 	return ""
 
 
+## Why this placed station can't be picked up right now ("" = it can). Every peer
+## (prompt) and the host (check).
+func pick_up_blocker() -> String:
+	return ""
+
+
+## Host, when picked up: items that were in it go back to the player (soil in a pot).
+func refund_items() -> Array:
+	return []
+
+
 ## Host: the player pressed E. Change GameState/state and return a message for
 ## the player ("" = none). Call changed() if the state changed.
 func do_action(_player: Player) -> String:
@@ -105,7 +126,10 @@ func changed() -> void:
 
 func get_interaction_prompt() -> String:
 	var me: Player = _local_player()
-	return prompt_for(me) if me else ""
+	var text: String = prompt_for(me) if me else ""
+	if placed_uid != "":
+		text += "   [hold E] pick up"
+	return text
 
 
 func interact() -> void:

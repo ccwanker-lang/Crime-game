@@ -15,6 +15,8 @@ const PEDESTRIAN_COUNT: int = 10
 @onready var player_spawner: MultiplayerSpawner = $PlayerSpawner
 @onready var loot_root: Node3D = $Loot
 @onready var loot_spawner: MultiplayerSpawner = $LootSpawner
+@onready var placed_root: Node3D = $Placed
+@onready var placed_spawner: MultiplayerSpawner = $PlacedSpawner
 @onready var players_label: Label = %PlayersLabel
 @onready var info_label: Label = %InfoLabel
 @onready var leave_button: Button = %LeaveButton
@@ -31,6 +33,7 @@ func _ready() -> void:
 	# Every peer builds player nodes with the same function (spawn data from the host).
 	player_spawner.spawn_function = _create_player
 	loot_spawner.spawn_function = _create_loot_bag
+	placed_spawner.spawn_function = _create_placed
 	leave_button.pressed.connect(_on_leave_pressed)
 
 	# Only the host runs NPC AI; clients skip the (slow) bake, which would also
@@ -123,9 +126,14 @@ func _net_check() -> void:
 			Input.action_press("crouch")
 			print("[NetCheck] client walks from %s" % me.global_position.snapped(Vector3.ONE * 0.1))
 		await get_tree().create_timer(6.0).timeout
+		if me:
+			# Placement RPC round trip: placing on the street must be refused by the host.
+			me.request_place("grow_pot", me.global_position, 0.0)
+			await get_tree().create_timer(1.0).timeout
+			print("[NetCheck] client place on the street -> '%s'" % me.last_message)
 	else:
 		# A growing plant in the starter room: the client must see it (snapshot / sync).
-		var pot := find_child("Pot1", true, false) as GrowPot
+		var pot := host_place("grow_pot", get_marker("Pot1Spot").global_position, 0.0) as GrowPot
 		pot.state.merge({"stage": GrowPot.Stage.GROWING, "growth": 0.3, "water": 1.0, "seed": 5}, true)
 		pot.changed()
 		# Start the timeline once a client's world is loaded (slow under load), max 90 s.
@@ -141,9 +149,15 @@ func _net_check() -> void:
 					print("[NetCheck] host sees client %s at %s crouch=%s weapon=%d held='%s' (model %s)" % [pl.player_name,
 							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch, pl.net_weapon, pl.net_held,
 							pl.get_node_or_null("HeldItem") != null])
-	var pot1 := find_child("Pot1", true, false) as GrowPot
-	print("[NetCheck] %s sees Pot1: %s (plant visible=%s)" % ["host" if multiplayer.is_server() else "client",
-			pot1.status_text(), pot1._plant.visible])
+	var pot1: GrowPot = null
+	for n: Node in placed_root.get_children():
+		if n is GrowPot:
+			pot1 = n as GrowPot
+	print("[NetCheck] %s sees placed pot: %s (plant visible=%s), %d placed things" % ["host" if multiplayer.is_server() else "client",
+			pot1.status_text() if pot1 else "NONE", pot1._plant.visible if pot1 else false, placed_root.get_child_count()])
+	var sr := find_child("StarterRoom", true, false).get_node("Property") as Property
+	print("[NetCheck] %s sees %d static starter room furniture (0 = adopted)" % ["host" if multiplayer.is_server() else "client",
+			sr.static_furniture().size()])
 	var parts: PackedStringArray = []
 	for npc: Node in npcs.get_children().slice(0, 3):
 		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])
@@ -250,6 +264,101 @@ func _create_loot_bag(data: Dictionary) -> Node:
 	return bag
 
 
+# --- Placed stations + furniture (point 6) ------------------------------------------
+
+## Host: puts a placeable item (station / furniture) in the world and records it in
+## GameState.world["placed"] (saved). No checks here (see Placement.check / Player._host_place).
+func host_place(item_id: String, pos: Vector3, yaw: float, uid: String = "") -> Node:
+	var placed: Dictionary = GameState.world.get_or_add("placed", {})
+	if uid == "":
+		var next: int = int(GameState.world.get("placed_next", 1))
+		GameState.world["placed_next"] = next + 1
+		uid = str(next)
+	placed[uid] = {"item": item_id, "pos": pos, "yaw": yaw}
+	return placed_spawner.spawn({"uid": uid, "item": item_id, "pos": pos, "yaw": yaw})
+
+
+## Every peer: builds a placed thing from the spawn data. Stations keep their state under
+## "placed/<uid>" in GameState.world["stations"]; furniture gets a PlacedFurniture parent.
+func _create_placed(data: Dictionary) -> Node:
+	var uid: String = str(data["uid"])
+	var item: ItemData = ItemDB.get_item(StringName(str(data["item"])))
+	var inst: Node3D = item.place_scene.instantiate() as Node3D
+	var node: Node3D = inst
+	if inst is Station:
+		(inst as Station).placed_uid = uid
+		(inst as Station).station_id = "placed/" + uid
+	else:
+		var f := PlacedFurniture.new()
+		f.placed_uid = uid
+		f.item_id = str(data["item"])
+		inst.name = "Model"
+		f.add_child(inst)
+		node = f
+	node.name = "P" + uid
+	node.position = data["pos"]
+	node.rotation.y = data["yaw"]
+	node.set_meta(&"placed_item", str(data["item"]))
+	# An empty synchronizer only so the spawn waits until a joining client's world is loaded.
+	var sync := MultiplayerSynchronizer.new()
+	sync.name = "Sync"
+	sync.replication_config = SceneReplicationConfig.new()
+	node.add_child(sync)
+	Net.limit_sync_to_world(sync)
+	return node
+
+
+func get_placed(uid: String) -> Node3D:
+	return placed_root.get_node_or_null("P" + uid) as Node3D
+
+
+## Host: removes a placed thing (the spawner removes it on the clients too) and its record.
+func host_remove_placed(uid: String) -> void:
+	(GameState.world.get("placed", {}) as Dictionary).erase(uid)
+	(GameState.world.get("stations", {}) as Dictionary).erase("placed/" + uid)
+	var n: Node = get_placed(uid)
+	if n:
+		placed_root.remove_child(n)
+		n.queue_free()
+
+
+## Before point 6 the weed stations stood in the Starter Room prefab. Old saves keep their
+## state under these paths: they become placed stations at the same spots (marker in the prefab).
+const OLD_STATIONS: Dictionary = {
+	"NavRegion/StarterRoom/GrowLamp": ["grow_lamp", "LampSpot"],
+	"NavRegion/StarterRoom/Pot1": ["grow_pot", "Pot1Spot"],
+	"NavRegion/StarterRoom/Pot2": ["grow_pot", "Pot2Spot"],
+	"NavRegion/StarterRoom/DryingRack": ["drying_rack", "RackSpot"],
+	"NavRegion/StarterRoom/PackagingTable": ["packaging_table", "PackagingSpot"],
+}
+
+
+func _migrate_old_stations() -> void:
+	var stations: Dictionary = GameState.world.get_or_add("stations", {})
+	for old: String in OLD_STATIONS:
+		if not stations.has(old):
+			continue
+		var spot: Node3D = get_marker(OLD_STATIONS[old][1])
+		var st: Dictionary = stations[old]
+		stations.erase(old)
+		if spot == null:
+			continue
+		var n := host_place(OLD_STATIONS[old][0], spot.global_position, spot.global_rotation.y) as Station
+		n.state.merge(st, true)
+		n.changed()
+		print("[World] Old save: %s is now a placed %s" % [old, OLD_STATIONS[old][0]])
+
+
+## Debug/tests: places the classic weed corner of the Starter Room (2 pots, lamp, rack,
+## packaging table) at its markers. Returns {"Pot1": GrowPot, "Pot2", "GrowLamp", "DryingRack", "PackagingTable"}.
+func debug_weed_corner() -> Dictionary:
+	var out: Dictionary = {}
+	for old: String in OLD_STATIONS:
+		var spot: Node3D = get_marker(OLD_STATIONS[old][1])
+		out[old.get_file()] = host_place(OLD_STATIONS[old][0], spot.global_position, spot.global_rotation.y)
+	return out
+
+
 ## Host only: remove the bodies of players that left (the spawner despawns them on clients).
 func _remove_left_players() -> void:
 	for p: Node in players_root.get_children():
@@ -298,6 +407,22 @@ func _restore_from_save() -> void:
 	for bag: Dictionary in GameState.world.get("loot_bags", []):
 		spawn_loot_bag(bag["pos"], str(bag["owner"]), int(bag["cash"]), bag["items"])
 	GameState.world["loot_bags"] = []
+	# Placed stations/furniture (point 6), stations from old saves, then furniture adoption (point 17).
+	var placed: Dictionary = GameState.world.get_or_add("placed", {})
+	for uid: String in placed.keys():
+		var rec: Dictionary = placed[uid]
+		var item: ItemData = ItemDB.get_item(StringName(str(rec.get("item", ""))))
+		if item == null or item.place_scene == null:
+			placed.erase(uid)
+			continue
+		if get_placed(uid) != null:
+			continue  # already there (placed before the restore ran)
+		host_place(str(rec["item"]), rec["pos"], float(rec["yaw"]), uid)
+	_migrate_old_stations()
+	for p: Node in get_tree().get_nodes_in_group(&"properties"):
+		var adopted: int = (p as Property).host_adopt_furniture(self)
+		if adopted > 0:
+			print("[World] %s: %d pieces of furniture can now be moved" % [(p as Property).display_name, adopted])
 	if GameState.world.has("hours"):
 		print("[World] Restored from the save: time %.1f h" % float(GameState.world["hours"]))
 

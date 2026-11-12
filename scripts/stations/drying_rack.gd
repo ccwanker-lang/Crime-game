@@ -20,6 +20,10 @@ func default_state() -> Dictionary:
 	return {"wet": 0, "dry": 0, "progress": 0.0}
 
 
+func pick_up_blocker() -> String:
+	return "Take the weed off the rack first." if int(state["wet"]) + int(state["dry"]) > 0 else ""
+
+
 func _build() -> void:
 	var b := MeshBuilder.new()
 	b.collide = true

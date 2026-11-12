@@ -333,13 +333,13 @@ def starter_extra(sc):
     inst(sc, "Plant", I + "potted_plant.tscn", (2.4, FLOOR, -0.7))
     inst(sc, "Lamp", I + "ceiling_lamp.tscn", (0, 2.98, -4.5))
     marker(sc, "PotSpot", (-1.2, FLOOR, -5.2))
-    # Weed corner: two pots under a grow light, drying rack against the right wall.
-    inst(sc, "GrowLamp", ST + "grow_lamp.tscn", (-1.2, FLOOR, -5.2), 0)
-    inst(sc, "Pot1", ST + "grow_pot.tscn", (-1.6, FLOOR, -5.2), 0)
-    inst(sc, "Pot2", ST + "grow_pot.tscn", (-0.8, FLOOR, -5.2), 0)
-    inst(sc, "DryingRack", ST + "drying_rack.tscn", (2.55, FLOOR, -6.0), 90)
+    # Point 6: new games start with an EMPTY weed corner (stations are bought + placed).
+    # The markers are where the stations of old saves (and the tests' weed corner) go.
+    marker(sc, "LampSpot", (-1.2, FLOOR, -5.2), 0)
+    marker(sc, "Pot1Spot", (-1.6, FLOOR, -5.2), 0)
+    marker(sc, "Pot2Spot", (-0.8, FLOOR, -5.2), 0)
+    marker(sc, "RackSpot", (2.55, FLOOR, -6.0), 90)
     marker(sc, "PackagingSpot", (1.0, FLOOR, -5.4))
-    inst(sc, "PackagingTable", ST + "packaging_table.tscn", (1.0, FLOOR, -5.4), 0)
     inst(sc, "DeliveryBox", ST + "delivery_box.tscn", (2.3, FLOOR, -2.4), -90)
     sc.node("Property", "Node3D", ".", props={
         "transform": xform((0, 3.4, 0.25)), "script": sc.script(S["property"]),
@@ -372,7 +372,9 @@ def store_extra(sc):
     inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
     marker(sc, "StoreSpot", (1.8, FLOOR, -8.4), 0)
     shopkeeper(sc, "Clerk", (1.8, FLOOR, -8.4), "Marc", "Store",
-               "Morning. Soil, cans, baggies... it's all on the shelves.", ["soil", "watering_can", "baggie"], 1, 7)
+               "Morning. Soil, pots, lamps, baggies... it's all on the shelves.",
+               ["soil", "watering_can", "baggie", "grow_pot", "grow_lamp", "drying_rack", "packaging_table",
+                "storage_locker"], 1, 7)
     marker(sc, "BuyPoint", (1.8, FLOOR, -6.6), 0)
 
 

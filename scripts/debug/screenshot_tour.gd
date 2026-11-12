@@ -80,11 +80,16 @@ const SHOTS: Array[Array] = [
 	["56_held_first", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["57_held_third", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 	["58_held_seen", Vector3(-10.2, 1.3, -3.6), Vector3(-8, 0.9, -4.6)],
+	# Point 6/18: placement ghost in the starter room, storage locker window, the empty starter room.
+	["59_place_ghost", Vector3(-31.5, 1.7, -6.0), Vector3(-31.5, 0.2, -8.5)],
+	["60_place_ghost_bad", Vector3(-31.5, 1.7, -6.0), Vector3(-31.5, 0.2, -8.5)],
+	["61_locker_window", Vector3(-31.5, 1.7, -6.0), Vector3(-31.5, 1.0, -8.5)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
 
 var _camera: Camera3D
+var _corner: Dictionary = {}  # the weed corner placed for shots 34-36 (World.debug_weed_corner)
 var _staged: Array[Node] = []  # posed NPCs of the current shot, removed after it
 
 
@@ -255,6 +260,35 @@ func _stage(shot_name: String) -> void:
 				me.head.rotation.x = -0.08
 				me._set_third_person(shot_name == "57_held_third")
 			await get_tree().create_timer(0.6).timeout
+		"59_place_ghost", "60_place_ghost_bad", "61_locker_window":
+			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+			me.peer_id = multiplayer.get_unique_id()
+			me.player_name = "Me"
+			me.auto_walk = true
+			var room := get_tree().current_scene.find_child("StarterRoom", true, false) as Node3D
+			me.position = room.to_global(Vector3(0.6, 0.15, -2.6))
+			me.auto_target = me.position
+			me.rotation.y = room.global_rotation.y + (0.5 if shot_name == "60_place_ghost_bad" else 0.0)
+			get_tree().current_scene.add_child(me)
+			_staged.append(me)
+			me.ui.visible = true
+			me.camera.current = true
+			me.head.rotation.x = -0.55 if shot_name != "61_locker_window" else -0.1
+			await get_tree().create_timer(0.3).timeout
+			if shot_name == "61_locker_window":
+				var locker := get_tree().current_scene.call("host_place", "storage_locker",
+						room.to_global(Vector3(0.6, 0.15, -4.6)), room.global_rotation.y) as StorageLocker
+				_staged.append(locker)
+				locker.state["items"] = [{"id": "weed_bag", "count": 12}, {"id": "ak47", "count": 1}, {"id": "ammo_762", "count": 60}]
+				me._set_wallet(320, [{"id": "pistol", "count": 1}, {"id": "weed_bud", "count": 6}, {"id": "baggie", "count": 10}])
+				await get_tree().create_timer(0.2).timeout
+				me.open_locker(locker)
+			else:
+				me._set_wallet(320, [{"id": "pistol", "count": 1}, {"id": "grow_pot", "count": 3}, {"id": "sofa", "count": 1}])
+				me.combat.select_slot(1 if shot_name == "59_place_ghost" else 2)
+				await get_tree().create_timer(0.4).timeout
+				me.prompt_label.text = me.placement.prompt_text()
+			await get_tree().create_timer(0.4).timeout
 		"50_phone_chat", "51_phone_map":
 			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
 			me.peer_id = multiplayer.get_unique_id()
@@ -302,10 +336,12 @@ func _stage(shot_name: String) -> void:
 			await get_tree().create_timer(0.6).timeout
 			me.prompt_label.text = "[E] %s" % clerk.get_interaction_prompt()
 		"34_weed_corner", "35_plants_close", "36_drying_rack":
-			var room: Node = get_tree().current_scene.find_child("StarterRoom", true, false)
-			var pot1: GrowPot = room.find_child("Pot1", true, false)
-			var pot2: GrowPot = room.find_child("Pot2", true, false)
-			var rack: DryingRack = room.find_child("DryingRack", true, false)
+			if _corner.is_empty():
+				_corner = get_tree().current_scene.call("debug_weed_corner")
+				await get_tree().physics_frame
+			var pot1: GrowPot = _corner["Pot1"]
+			var pot2: GrowPot = _corner["Pot2"]
+			var rack: DryingRack = _corner["DryingRack"]
 			pot1.apply_net_state({"stage": GrowPot.Stage.GROWING, "growth": 0.45, "water": 0.6, "seed": 3})
 			pot2.apply_net_state({"stage": GrowPot.Stage.READY, "growth": 1.0, "water": 0.0, "seed": 8})
 			rack.apply_net_state({"wet": 5, "dry": 4, "progress": 0.3})

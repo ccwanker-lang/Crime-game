@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://prefabs/stations/storage_locker.tscn" id="2_place"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"storage_locker"
+display_name = "Storage Locker"
+max_stack = 2
+is_legal = true
+base_price = 150
+description = "A lockable cabinet with room for 16 stacks. Shared with your crew."
+place_scene = ExtResource("2_place")
+category = "station"
