@@ -121,6 +121,9 @@ Godot console exe:
 - Black market (point 7): `prefabs/buildings/garage.tscn` (gen_prefabs `garage_extra`), `NightGate` (NetDoor subclass,
   locked by day from the workshop side) + Shopkeeper `night_only` (Rook). "Night" = `DayNight.is_night()` (lights on).
   The screenshot tour sets 23:00 for shots whose name contains "night".
+- Real estate (point 8): `Property` (`for_sale`, `price`, `description`; `host_set_owned` adopts the furniture and tells
+  every peer) inside buildings; `EstateAgent` (Shopkeeper subclass, `prefabs/buildings/real_estate.tscn`) lists them in
+  the shop window. South Street (z 60) holds the milestone 2 buildings; gen_world `property_node(...)` adds one.
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

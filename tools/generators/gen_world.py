@@ -69,12 +69,16 @@ put(R + "road_curve.tscn", (-6, 0, -48), 90)          # south <-> east
 put(R + "road_t_junction.tscn", (30, 0, -48), 180)     # W, E, branch south
 for x in (6, 18, 42, 54, 66):
     put(R + "road_straight.tscn", (x, 0, -48))
-for z in range(12, 61, 12):
+for z in range(12, 49, 12):
     put(R + "road_straight.tscn", (30, 0, z), 90)
+# Point 8: South Street branches west off the side road at z 60 (dead end at x -60).
+put(R + "road_t_junction.tscn", (30, 0, 60), 90)
+for x in range(-54, 19, 12):
+    put(R + "road_straight.tscn", (x, 0, 60), 0, props={"crossing": "true"} if x == -30 else None)
 
 # Road ends: barriers at the map edge.
 for x, z, r in [(-71, -1.8, 90), (-71, 1.8, 90), (71, -1.8, 90), (71, 1.8, 90), (71, -49.8, 90), (71, -46.2, 90),
-                (28.2, 65, 0), (31.8, 65, 0)]:
+                (28.2, 65, 0), (31.8, 65, 0), (-59.6, 58.2, 90), (-59.6, 61.8, 90)]:
     put("props/road_barrier.tscn", (x, 0, z), r)
 
 # Manholes
@@ -314,6 +318,32 @@ sc.node("GarageApron", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((22.5, 0, 44)),
     "size": "Vector2(3, 14)", "surface": q("asphalt"), "height": "0.02"})
 
+# South Street, north side (fronts face south at z 54): properties for sale + the real estate agent.
+def property_node(building, pid, title, price, desc, label_x=0.0, label_y=3.4):
+    """A Property (for sale) inside an instanced building: ownership, furnishing area, sign."""
+    sc.node("Property", "Node3D", NAV + "/" + building, props={
+        "transform": xform((label_x, label_y, 0.25)), "script": sc.script("res://scenes/world/property.gd"),
+        "property_id": f'&"{pid}"', "display_name": q(title), "for_sale": "true", "price": str(price),
+        "description": q(desc)})
+    sc.node("Label3D", "Label3D", NAV + "/" + building + "/Property", props={
+        "text": q("FOR SALE"), "font_size": "40", "pixel_size": "0.006", "outline_size": "8",
+        "modulate": col(1, 0.75, 0.35), "billboard": "0", "double_sided": "false"})
+
+
+gS = []
+fixed("buildings/warehouse.tscn", -58, 16, 54, True, gS, name="SouthWarehouse")
+property_node("SouthWarehouse", "south_warehouse", "Warehouse", 45000,
+              "16 x 12 m hall, 5.5 m high. Room for a big lab.", 0.0, 4.2)
+fixed("buildings/row_house_b.tscn", -40, 6.0, 54, True, gS, name="SmallHouse",
+      props={"width": "6.0", "floors": "2", "variation_seed": "4242", "door_color": col(0.45, 0.1, 0.1)})
+property_node("SmallHouse", "small_house", "Small House", 8000, "Two floors, furnished. A step up from the Starter Room.")
+fixed("buildings/corner_house.tscn", -33, 7.5, 54, True, gS, name="FamilyHouse",
+      props={"wall_material": q("brick_white"), "variation_seed": "777"})
+property_node("FamilyHouse", "family_house", "Family House", 20000, "Three floors, furnished, big rooms.")
+fixed("buildings/real_estate.tscn", -24, 8.0, 54, True, gS, name="RealEstate")
+for x in (-50, -26, -2, 22):
+    put("props/street_lamp.tscn", (x, 0.15, 56.05), 180)
+
 # Block E: Rival Turf (The Black Crows).
 sc.node("TurfYard", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((50, 0, 27)),
@@ -389,8 +419,9 @@ for i in range(26):
         (x + rng.uniform(-1.5, 1.5), 0, -58 + rng.uniform(-2, 2)), rng.uniform(0, 360),
         props={"tree_seed": str(600 + i)})
     if i % 2 == 0:
-        put("nature/tree_medium.tscn", (x + rng.uniform(-1.5, 1.5), 0, 63 + rng.uniform(-2, 2)), rng.uniform(0, 360),
-            props={"tree_seed": str(700 + i)})
+        tx, tz, tr = x + rng.uniform(-1.5, 1.5), 63 + rng.uniform(-2, 2), rng.uniform(0, 360)
+        if not -62 < tx < 37:  # South Street runs there (z 54..66)
+            put("nature/tree_medium.tscn", (tx, 0, tz), tr, props={"tree_seed": str(700 + i)})
 for i in range(18):
     z = -50 + i * 6.5
     if abs(z) < 8 or abs(z + 48) < 8:

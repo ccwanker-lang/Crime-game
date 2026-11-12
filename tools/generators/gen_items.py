@@ -54,7 +54,7 @@ STATIONS = {
 }
 
 
-def write(item_id, name, price, stack, desc, scene, category):
+def write(item_id, name, price, stack, desc, scene, category, legal=True):
     text = f"""[gd_resource type="Resource" script_class="ItemData" format=3]
 
 [ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
@@ -65,7 +65,7 @@ script = ExtResource("1_item")
 id = &"{item_id}"
 display_name = "{name}"
 max_stack = {stack}
-is_legal = true
+is_legal = {"true" if legal else "false"}
 base_price = {price}
 description = "{desc}"
 place_scene = ExtResource("2_place")
@@ -78,7 +78,9 @@ category = "{category}"
 for i, (n, p, s, d) in FURNITURE.items():
     assert os.path.exists(os.path.join(ROOT, "prefabs", "interiors", i + ".tscn")), i
     write(i, n, p, s, d, f"res://prefabs/interiors/{i}.tscn", "furniture")
+# Production stations are illegal (DESIGN core rules): only the black market sells them.
+# The storage locker is just a cabinet: legal (store + webshop).
 for i, (n, p, s, d) in STATIONS.items():
     assert os.path.exists(os.path.join(ROOT, "prefabs", "stations", i + ".tscn")), i
-    write(i, n, p, s, d, f"res://prefabs/stations/{i}.tscn", "station")
+    write(i, n, p, s, d, f"res://prefabs/stations/{i}.tscn", "station", legal=(i == "storage_locker"))
 print(f"wrote {len(FURNITURE) + len(STATIONS)} items")

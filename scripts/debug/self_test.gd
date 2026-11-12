@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "real_estate", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -948,6 +948,64 @@ func _free_floor(world: Node3D, item: ItemData, prop: Property, p: Player) -> Ve
 			if Placement.check(world.get_world_3d(), get_tree(), item, hit["pos"], PI / 2.0, [p.get_rid()]) == "":
 				return hit["pos"]
 	return Vector3.INF
+
+
+# --- Real estate (point 8) -----------------------------------------------------------
+
+func _check_real_estate(world: Node3D) -> void:
+	var agent: EstateAgent = world.find_child("Agent", true, false) as EstateAgent
+	_report(agent != null and agent.listings().size() >= 3, "Mrs. Vos sells %d properties" % (agent.listings().size() if agent else 0))
+	if agent == null:
+		return
+	var house: Property = null
+	for p: Property in agent.listings():
+		if p.property_id == &"small_house":
+			house = p
+	_report(house != null and not house.is_crew_owned() and house.static_furniture().size() > 0,
+			"the Small House is for sale and furnished (%d pieces)" % (house.static_furniture().size() if house else 0))
+	if house == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Buyer"
+	var front: Vector3 = agent.global_position - agent.global_basis.z * 2.5
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Buyer")
+	GameState.get_or_create_player_data("Buyer")["cash"] = 5000
+	var answers: Array = []
+	var cb := func(ok: bool, msg: String) -> void: answers.append([ok, msg])
+	agent.buy_result.connect(cb)
+	# Inside an unowned house nothing can be placed.
+	var inside: Vector3 = house.building().to_global(Vector3(0.5, 0.15, -6.0))
+	_report(Placement.check(world.get_world_3d(), get_tree(), ItemDB.get_item(&"grow_pot"), inside, 0.0) != "",
+			"placing in a house you don't own is refused")
+	agent.request_buy_property(&"small_house")
+	await get_tree().process_frame
+	_report(answers.size() == 1 and not answers[0][0] and not house.is_crew_owned(), "not enough cash: no sale (%s)" % [answers[0] if answers.size() else "-"])
+	GameState.get_or_create_player_data("Buyer")["cash"] = 9000
+	var placed_before: int = world.get_node("Placed").get_child_count()
+	agent.request_buy_property(&"small_house")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_report(answers.size() == 2 and answers[1][0] and house.is_crew_owned()
+			and int(GameState.player_data["Buyer"]["cash"]) == 1000, "buying the Small House for €8,000 (%s)" % [answers[1] if answers.size() > 1 else "-"])
+	_report(house.static_furniture().is_empty() and world.get_node("Placed").get_child_count() > placed_before,
+			"its furniture can now be moved (%d placed)" % (world.get_node("Placed").get_child_count() - placed_before))
+	_report(GameState.world["properties"]["small_house"]["owner"] == "host", "ownership is in the world state (saved)")
+	_report(house._label.text.contains("Owner"), "the sign shows the owner ('%s')" % house._label.text.replace("
+", " / "))
+	agent.request_buy_property(&"small_house")
+	await get_tree().process_frame
+	_report(answers.size() == 3 and not answers[2][0], "it can't be bought twice")
+	agent.buy_result.disconnect(cb)
+	GameState.player_data.erase("Buyer")
+	p.queue_free()
+	await get_tree().physics_frame
 
 
 # --- Weed growing --------------------------------------------------------------------

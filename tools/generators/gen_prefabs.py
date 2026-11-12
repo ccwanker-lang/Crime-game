@@ -18,6 +18,7 @@ S = {
     "building": "res://scripts/procgen/building.gd",
     "property": "res://scenes/world/property.gd",
     "proc_item": "res://scripts/procgen/proc_item.gd",
+    "estate_agent": "res://scripts/npc/estate_agent.gd",
 }
 
 
@@ -373,9 +374,8 @@ def store_extra(sc):
     inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
     marker(sc, "StoreSpot", (1.8, FLOOR, -8.4), 0)
     shopkeeper(sc, "Clerk", (1.8, FLOOR, -8.4), "Marc", "Store",
-               "Morning. Soil, pots, lamps, baggies... it's all on the shelves.",
-               ["soil", "watering_can", "baggie", "grow_pot", "grow_lamp", "drying_rack", "packaging_table",
-                "storage_locker"], 1, 7)
+               "Morning. Soil, watering cans, baggies, storage lockers... it's all on the shelves.",
+               ["soil", "watering_can", "baggie", "storage_locker"], 1, 7)
     marker(sc, "BuyPoint", (1.8, FLOOR, -6.6), 0)
 
 
@@ -474,6 +474,32 @@ building(B + "contact_hideout.tscn", {
     "wall_material": q("brick_old"), "wall_tint": col(0.8, 0.78, 0.76), "roof_type": q("flat"),
     "door_bay": "0", "door_color": col(0.2, 0.2, 0.2), "string_courses": "false", "enterable": "true",
     "floor_material": q("concrete"), "lit_windows": "0.0", "variation_seed": "13"}, contact_extra)
+
+
+# Point 8: the real estate agent's office (Mrs. Vos sells the properties marked for_sale).
+def estate_extra(sc):
+    inst(sc, "Desk", I + "office_desk.tscn", (0.8, FLOOR, -6.2), 180)
+    inst(sc, "Chair1", I + "dining_chair.tscn", (0.4, FLOOR, -5.0), 0)
+    inst(sc, "Chair2", I + "dining_chair.tscn", (1.3, FLOOR, -5.0), 0)
+    inst(sc, "Shelf", I + "bookshelf.tscn", (-3.0, FLOOR, -8.9), 0)
+    inst(sc, "Cabinet", I + "drawer_cabinet.tscn", (2.6, FLOOR, -9.4), 0)
+    inst(sc, "Sofa", I + "sofa_modern.tscn", (-2.9, FLOOR, -3.6), 90)
+    inst(sc, "SideTable", I + "side_table.tscn", (-3.0, FLOOR, -2.2), 90)
+    inst(sc, "Plant1", I + "potted_plant.tscn", (3.0, FLOOR, -1.0))
+    inst(sc, "Plant2", I + "potted_plant.tscn", (-3.0, FLOOR, -6.5))
+    inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
+    inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
+    marker(sc, "EstateSpot", (0.8, FLOOR, -7.3), 0)
+    shopkeeper(sc, "Agent", (0.8, FLOOR, -7.3), "Mrs. Vos", "Vos Real Estate",
+               "Looking for more room? Houses, a warehouse... I have something for every budget.", [], 6, 21,
+               {"script": sc.script(S["estate_agent"])})
+
+
+building(B + "real_estate.tscn", {
+    "width": "8.0", "depth": "10.0", "floors": "2", "wall_material": q("plaster"), "wall_tint": col(0.92, 0.9, 0.84),
+    "roof_material": q("roof_dark"), "ground_floor": q("shop"), "door_bay": "0", "shop_sign": q("VOS REAL ESTATE"),
+    "awning": "true", "awning_color": col(0.12, 0.2, 0.4), "chimney": q("none"), "enterable": "true",
+    "public_building": "true", "variation_seed": "512"}, estate_extra)
 
 
 # Point 7: the garage. Workshop in front, the black market behind a chain-link fence at the

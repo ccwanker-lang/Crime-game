@@ -158,6 +158,10 @@ func _net_check() -> void:
 	var sr := find_child("StarterRoom", true, false).get_node("Property") as Property
 	print("[NetCheck] %s sees %d static starter room furniture (0 = adopted)" % ["host" if multiplayer.is_server() else "client",
 			sr.static_furniture().size()])
+	var sh := find_child("SmallHouse", true, false).get_node("Property") as Property
+	print("[NetCheck] %s sees the Small House sign: %s" % ["host" if multiplayer.is_server() else "client",
+			sh._label.text.replace("
+", " / ")])
 	var parts: PackedStringArray = []
 	for npc: Node in npcs.get_children().slice(0, 3):
 		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])

@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/office_desk.tscn" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/dining_chair.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/bookshelf.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/drawer_cabinet.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/sofa_modern.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/side_table.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/potted_plant.tscn" id="8_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="9_r"]
+[ext_resource type="Script" path="res://scripts/npc/estate_agent.gd" id="10_r"]
+[ext_resource type="PackedScene" path="res://prefabs/npc/shopkeeper.tscn" id="11_r"]
+
+[node name="RealEstate" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 8.0
+depth = 10.0
+floors = 2
+wall_material = "plaster"
+wall_tint = Color(0.92, 0.9, 0.84, 1)
+roof_material = "roof_dark"
+ground_floor = "shop"
+door_bay = 0
+shop_sign = "VOS REAL ESTATE"
+awning = true
+awning_color = Color(0.12, 0.2, 0.4, 1)
+chimney = "none"
+enterable = true
+public_building = true
+variation_seed = 512
+
+[node name="Desk" parent="." instance=ExtResource("2_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 0.8, 0.15, -6.2)
+
+[node name="Chair1" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.4, 0.15, -5)
+
+[node name="Chair2" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.3, 0.15, -5)
+
+[node name="Shelf" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3, 0.15, -8.9)
+
+[node name="Cabinet" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.6, 0.15, -9.4)
+
+[node name="Sofa" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -2.9, 0.15, -3.6)
+
+[node name="SideTable" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -3, 0.15, -2.2)
+
+[node name="Plant1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3, 0.15, -1)
+
+[node name="Plant2" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3, 0.15, -6.5)
+
+[node name="Lamp1" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -3)
+
+[node name="Lamp2" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -7)
+
+[node name="EstateSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.8, 0.15, -7.3)
+
+[node name="Agent" parent="." instance=ExtResource("11_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 0.8, 0.15, -7.3)
+npc_name = "Mrs. Vos"
+shop_name = "Vos Real Estate"
+greeting = "Looking for more room? Houses, a warehouse... I have something for every budget."
+stock = Array[StringName]([])
+variant = 6
+color_seed = 21
+script = ExtResource("10_r")

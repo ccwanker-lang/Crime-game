@@ -5,13 +5,13 @@ extends Node3D
 ##
 ## Right-hand traffic, lanes 1.75 m from the road centre. Roads: main road
 ## z = 0 (x -72..72), side street x = -6 and x = 30 (z 0..-48), top road
-## z = -48 (x -6..72), south road x = 30 (z 0..66).
+## z = -48 (x -6..72), south road x = 30 (z 0..66), South Street z = 60 (x -60..30, dead end west).
 
 const CAR := preload("res://prefabs/vehicles/car.tscn")
 const CAR_COUNT: int = 8
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time.
-const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48)]
+const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60)]
 const JUNCTION_HALF: float = 6.0
 
 var routes: Array[TrafficRoute] = []
@@ -41,11 +41,11 @@ func _build_routes() -> void:
 	routes.append(TrafficRoute.new(
 			[Vector2(-66, 1.75), Vector2(66, 1.75), Vector2(66, -1.75), Vector2(-66, -1.75)],
 			[1.75, 1.75, 1.75, 1.75]))
-	# 3: main road west part + the south road.
+	# 3: main road west part + the south road + South Street (U-turn at its dead end).
 	routes.append(TrafficRoute.new(
-			[Vector2(-66, 1.75), Vector2(28.25, 1.75), Vector2(28.25, 62), Vector2(31.75, 62),
-			Vector2(31.75, -1.75), Vector2(-66, -1.75)],
-			[1.75, 2.5, 1.75, 1.75, 5.0, 1.75]))
+			[Vector2(-66, 1.75), Vector2(28.25, 1.75), Vector2(28.25, 58.25), Vector2(-54, 58.25),
+			Vector2(-54, 61.75), Vector2(31.75, 61.75), Vector2(31.75, -1.75), Vector2(-66, -1.75)],
+			[1.75, 2.5, 2.5, 1.75, 1.75, 5.0, 5.0, 1.75]))
 	for r: TrafficRoute in routes:
 		r.mark_junctions(JUNCTIONS, JUNCTION_HALF)
 		# The driving line as a Path3D (debug: F3 shows it).

@@ -195,7 +195,7 @@ the start for now; rank gates (see Progression) come later.
 5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - done
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - done
 7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - done
-8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - todo
+8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - done
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - todo
 10. Police station + patrolling police (foot / car) reacting to gunfire and murder - todo
 11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - todo
@@ -213,10 +213,9 @@ rival territories, lab raids, story missions (acts 1-5); the full city (Map layo
 
 ## Decisions
 Choices made while working autonomously (what + why).
-- Point 6: until the black market exists (point 7) the Store (Marc) sells the basic weed stations (pot, lamp,
-  rack, packaging table) and the storage locker; QuickShip also delivers them and all furniture (legal items).
-  Why: new games start with an empty Starter Room, so the stations must be buyable from the first minute. The
-  black market will sell the illegal / advanced stations (meth, cocaine) and seeds.
+- Point 6 (corrected after point 7): production stations are illegal (core rules), so ONLY Rook's black market
+  sells them (at night). The Store and QuickShip sell the storage locker and (QuickShip) all furniture: legal.
+  A new game therefore starts with an empty Starter Room and the first night is the first chance to buy a pot.
 - Point 6: hold E (0.6 s) picks a placed thing up, a short tap keeps the normal E action. Why: stations already
   use E; one key for both, and no accidental pickups.
 - Point 6: big furniture only stands on the floor; small things (footprint up to 0.7 m: TV, plant, pots,
@@ -231,6 +230,10 @@ Choices made while working autonomously (what + why).
   (DayNight.is_night, about 20:15-07:00), so the market follows the lamps players see. The gate always opens
   from the market side (nobody gets locked in) and closes by itself at dawn. Rook sells 10% below the store
   price: seeds, baggies and all current stations; meth/cocaine supplies are added there in milestone 3.
+- Point 8: the test town got "South Street" (z 60, branching west off the south road, dead end at x -60) for
+  the milestone 2 buildings; traffic route 3 now drives it (U-turn at the dead end). For sale at Mrs. Vos:
+  Small House (2 floors, €8,000), Family House (3 floors, €20,000), Warehouse (16x12 m, €45,000). Prices are
+  a few days of weed sales apart. Bought by the crew (co-op shares everything); the buyer pays.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

@@ -88,6 +88,9 @@ const SHOTS: Array[Array] = [
 	["62_garage_outside", Vector3(33, 2.2, 53), Vector3(24, 2.5, 44)],
 	["63_garage_workshop", Vector3(23.0, 1.85, 48.6), Vector3(16.4, 1.2, 45.0)],
 	["64_black_market_night", Vector3(16.0, 1.85, 46.0), Vector3(13.4, 1.3, 42.4)],
+	# Point 8: South Street with the properties for sale and the real estate agent (window open).
+	["65_south_street", Vector3(8, 2.2, 63), Vector3(-30, 3.0, 52)],
+	["66_estate_window", Vector3(-19.2, 1.7, 50.5), Vector3(-19.2, 1.3, 46.7)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -299,6 +302,24 @@ func _stage(shot_name: String) -> void:
 				await get_tree().create_timer(0.4).timeout
 				me.prompt_label.text = me.placement.prompt_text()
 			await get_tree().create_timer(0.4).timeout
+		"66_estate_window":
+			var agent: EstateAgent = get_tree().current_scene.find_child("Agent", true, false) as EstateAgent
+			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+			me.peer_id = multiplayer.get_unique_id()
+			me.player_name = "Me"
+			me.auto_walk = true
+			me.position = agent.global_position - agent.global_basis.z * 3.0
+			me.auto_target = me.position
+			me.rotation.y = agent.global_rotation.y + PI
+			get_tree().current_scene.add_child(me)
+			_staged.append(me)
+			me.ui.visible = true
+			me.camera.current = true
+			me.combat.set_equipped(false)
+			await get_tree().create_timer(0.3).timeout
+			me._set_wallet(12500, [])
+			me.open_shop(agent)
+			await get_tree().create_timer(0.5).timeout
 		"50_phone_chat", "51_phone_map":
 			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
 			me.peer_id = multiplayer.get_unique_id()

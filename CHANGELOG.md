@@ -12,3 +12,4 @@ One line per finished part.
 - Point 5: held items in the hand (first + third person, synced); netcheck: longer ENet timeout while a peer loads.
 - Points 6/17/18: placement mode for stations + furniture (ghost, grid, rotate, hold E to pick up), empty Starter Room with movable furniture, Resell phone app, storage lockers.
 - Point 7: the garage with the black market (chain-link gate locked by day, Rook sells only at night).
+- Point 8: South Street with a real estate agent (Mrs. Vos) selling a small house, a family house and a warehouse; production stations only at the black market.

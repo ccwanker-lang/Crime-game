@@ -318,6 +318,8 @@ func open_shop(shop: Shopkeeper, cash: int) -> void:
 	_shop_cash.text = "Your cash: €%d%s" % [cash, "  - buying is free for now" if GameState.infinite_cash else ""]
 	for c: Node in _shop_list.get_children():
 		c.queue_free()
+	if shop is EstateAgent:
+		_fill_estate(shop as EstateAgent)
 	for id: StringName in shop.stock:
 		var item: ItemData = ItemDB.get_item(id)
 		if item == null:
@@ -365,6 +367,45 @@ func _on_buy_pressed(id: StringName, count: int) -> void:
 func _on_buy_result(ok: bool, message: String) -> void:
 	_shop_msg.text = message
 	_shop_msg.add_theme_color_override("font_color", Color(0.7, 1, 0.6) if ok else Color(1, 0.5, 0.4))
+	if ok and _shop is EstateAgent:
+		for c: Node in _shop_list.get_children():
+			c.queue_free()
+		_fill_estate.call_deferred(_shop as EstateAgent)  # "Owned" now
+
+
+## Point 8: the agent's listings: name + description, price, Buy / Owned.
+func _fill_estate(agent: EstateAgent) -> void:
+	for p: Property in agent.listings():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var info := Label.new()
+		info.text = "%s\n%s" % [p.display_name, p.description]
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.custom_minimum_size = Vector2(300, 0)
+		info.add_theme_font_size_override("font_size", 16)
+		row.add_child(info)
+		var price := Label.new()
+		price.text = "€%s" % Property.money(p.price)
+		price.custom_minimum_size = Vector2(80, 0)
+		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		price.add_theme_font_size_override("font_size", 18)
+		row.add_child(price)
+		if p.is_crew_owned():
+			var owned := Label.new()
+			owned.text = "Owned"
+			owned.custom_minimum_size = Vector2(76, 0)
+			owned.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			owned.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
+			row.add_child(owned)
+		else:
+			var b := _button("Buy")
+			b.custom_minimum_size = Vector2(76, 0)
+			b.pressed.connect(func() -> void:
+				_shop_msg.text = "..."
+				agent.request_buy_property(p.property_id))
+			row.add_child(b)
+		_shop_list.add_child(row)
 
 
 func flash_damage(amount: int) -> void:

@@ -11,6 +11,10 @@ extends Node3D
 
 @export var property_id: StringName = &"starter_room"
 @export var display_name: String = "Starter Room"
+## Point 8: sold by the real estate agent (EstateAgent) for `price`; "" description = not for sale.
+@export var for_sale: bool = false
+@export var price: int = 0
+@export var description: String = ""
 
 const FURNITURE_DIR: String = "res://prefabs/interiors/"
 
@@ -63,8 +67,42 @@ func contains(pos: Vector3) -> bool:
 
 func _update_label() -> void:
 	var owner_id: String = get_owner_id()
+	if owner_id == "" and for_sale:
+		_label.text = "FOR SALE\n%s - €%s" % [display_name, Property.money(price)]
+		_label.modulate = Color(1.0, 0.75, 0.35)
+		return
 	var owner_name: String = Net.get_player_name(1) if owner_id == "host" else (owner_id if owner_id != "" else "-")
 	_label.text = "%s\nOwner: %s" % [display_name.to_upper(), owner_name]
+	_label.modulate = Color(1, 0.95, 0.8)
+
+
+## 8000 -> "8,000"
+static func money(amount: int) -> String:
+	var s: String = str(absi(amount))
+	var out: String = ""
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if amount < 0 else "") + s + out
+
+
+# --- Buying (point 8, host) ------------------------------------------------------------
+
+## Host: the crew buys this property (cash already paid). Furniture becomes movable,
+## every peer gets the new owner.
+func host_set_owned(buyer_name: String) -> void:
+	var data: Dictionary = GameState.world.get_or_add("properties", {}).get_or_add(property_id, {})
+	data["owner"] = "host"
+	data["buyer"] = buyer_name
+	host_adopt_furniture(get_tree().current_scene)
+	_update_label()
+	for peer: int in Net.peers_in_world:
+		_owned_changed.rpc_id(peer, get_net_state())
+
+
+@rpc("authority", "call_remote", "reliable")
+func _owned_changed(s: Dictionary) -> void:
+	apply_net_state(s)
 
 
 # --- Furniture adoption (host) --------------------------------------------------------
