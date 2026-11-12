@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["lamps", "debug_labels", "doors", "player", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 
@@ -66,6 +66,22 @@ func _wait_for_navmesh(world: Node3D) -> void:
 		await get_tree().physics_frame
 	for i: int in 10:
 		await get_tree().physics_frame
+
+
+# --- Items -----------------------------------------------------------------------
+
+## Every item has a 3D model (held / dropped) and a rendered icon (scripts/debug/render_icons.gd).
+func _check_items(_world: Node3D) -> void:
+	var missing: PackedStringArray = []
+	var ids: Array = ItemDB.get_all_ids()
+	for id: StringName in ids:
+		var data: ItemData = ItemDB.get_item(id)
+		if data.get_model() == null:
+			missing.append("%s (model)" % id)
+		if data.get_icon() == null:
+			missing.append("%s (icon)" % id)
+	_report(missing.is_empty(), "%d items have a model and an icon%s" % [ids.size(),
+			"" if missing.is_empty() else ", missing: " + ", ".join(missing)])
 
 
 # --- Lamps -----------------------------------------------------------------------

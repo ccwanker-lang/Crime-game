@@ -24,6 +24,9 @@ var _death_text: String = ""
 var _scope: Control
 var _slots: Array[PanelContainer] = []
 var _slot_styles: Array[StyleBoxFlat] = []
+var _slot_icons: Array[TextureRect] = []
+var _slot_names: Array[Label] = []
+var _slot_counts: Array[Label] = []
 var _hotbar_selected: int = -2
 var _toast: Label
 var _toast_time: float = 0.0
@@ -133,12 +136,12 @@ func _build_inventory_bar() -> void:
 	bar.add_theme_constant_override("separation", 6)
 	bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	bar.offset_top = -112.0
+	bar.offset_top = -120.0
 	bar.offset_bottom = -48.0
 	add_child(bar)
 	for i: int in GameState.INVENTORY_SLOTS:
 		var slot := PanelContainer.new()
-		slot.custom_minimum_size = Vector2(78, 64)
+		slot.custom_minimum_size = Vector2(78, 72)
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.05, 0.05, 0.06, 0.55)
@@ -148,6 +151,12 @@ func _build_inventory_bar() -> void:
 		style.set_content_margin_all(4)
 		slot.add_theme_stylebox_override("panel", style)
 		_slot_styles.append(style)
+		var icon := TextureRect.new()  # render of the item's 3D model (assets/icons/)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(icon)
+		_slot_icons.append(icon)
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -156,13 +165,15 @@ func _build_inventory_bar() -> void:
 		label.add_theme_constant_override("outline_size", 4)
 		label.add_theme_color_override("font_outline_color", Color.BLACK)
 		slot.add_child(label)
+		_slot_names.append(label)
 		var count := Label.new()
 		count.size_flags_horizontal = Control.SIZE_SHRINK_END
-		count.size_flags_vertical = Control.SIZE_SHRINK_END
+		count.size_flags_vertical = Control.SIZE_SHRINK_BEGIN  # top right (the name runs along the bottom)
 		count.add_theme_font_size_override("font_size", 15)
 		count.add_theme_constant_override("outline_size", 5)
 		count.add_theme_color_override("font_outline_color", Color.BLACK)
 		slot.add_child(count)
+		_slot_counts.append(count)
 		var key := Label.new()  # the number key of this slot
 		key.text = str(i + 1)
 		key.add_theme_font_size_override("font_size", 11)
@@ -189,15 +200,25 @@ func _build_inventory_bar() -> void:
 ## Shows the carried stacks ([{ "id", "count" }]) in the bar.
 func set_inventory(items: Array) -> void:
 	for i: int in _slots.size():
-		var name_label := _slots[i].get_child(0) as Label
-		var count_label := _slots[i].get_child(1) as Label
+		var name_label: Label = _slot_names[i]
+		var count_label: Label = _slot_counts[i]
 		if i < items.size():
 			var it: Dictionary = items[i]
 			var data: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
+			var tex: Texture2D = data.get_icon() if data else null
+			_slot_icons[i].texture = tex
 			name_label.text = data.display_name if data else str(it.get("id"))
+			# With an icon the name sits small along the bottom edge, else centred.
+			name_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM if tex else VERTICAL_ALIGNMENT_CENTER
+			name_label.size_flags_vertical = Control.SIZE_SHRINK_END if tex else Control.SIZE_FILL
+			name_label.autowrap_mode = TextServer.AUTOWRAP_OFF if tex else TextServer.AUTOWRAP_WORD_SMART
+			name_label.clip_text = tex != null
+			name_label.add_theme_font_size_override("font_size", 9 if tex else 12)
+			name_label.modulate.a = 0.8 if tex else 1.0
 			var n: int = int(it.get("count", 1))
 			count_label.text = "x%d" % n if n > 1 else ""
 		else:
+			_slot_icons[i].texture = null
 			name_label.text = ""
 			count_label.text = ""
 

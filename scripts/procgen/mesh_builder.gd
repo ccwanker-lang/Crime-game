@@ -267,6 +267,30 @@ func cylinder(key: StringName, base: Vector3, top: Vector3, r0: float, r1: float
 			poly(key, bottom_pts, -axis)
 
 
+## UV sphere (or ellipsoid when `scale` isn't ONE) around `center`.
+func sphere(key: StringName, center: Vector3, radius: float, rings: int = 6, segments: int = 8,
+		scale: Vector3 = Vector3.ONE) -> void:
+	var st: SurfaceTool = _st(key)
+	for r: int in rings:
+		var t0: float = PI * float(r) / rings
+		var t1: float = PI * float(r + 1) / rings
+		for s: int in segments:
+			var p0: float = TAU * float(s) / segments
+			var p1: float = TAU * float(s + 1) / segments
+			var d: Array[Vector3] = [
+				Vector3(sin(t0) * cos(p0), cos(t0), sin(t0) * sin(p0)),
+				Vector3(sin(t0) * cos(p1), cos(t0), sin(t0) * sin(p1)),
+				Vector3(sin(t1) * cos(p1), cos(t1), sin(t1) * sin(p1)),
+				Vector3(sin(t1) * cos(p0), cos(t1), sin(t1) * sin(p0))]
+			# (d0, d1, d2) winds counter-clockwise seen from outside: reversed for Godot's front faces.
+			for j: int in [0, 2, 1, 0, 3, 2]:
+				var n: Vector3 = (d[j] / scale).normalized()
+				st.set_normal((xform.basis * n).normalized())
+				st.set_uv(Vector2(float(s) / segments, float(r) / rings))
+				st.set_color(color)
+				st.add_vertex(xform * (center + d[j] * radius * scale))
+
+
 # --- Extruded 2D shapes (roads, pavements) -------------------------------------
 
 ## Extrudes a 2D outline (in XZ) into a slab with a top face at y_top.

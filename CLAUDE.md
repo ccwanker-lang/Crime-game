@@ -78,6 +78,10 @@ Godot console exe:
   from the pose on death (every peer, world layer only), drives the bones; host sends the shot push (`_ragdoll_push`).
 - NPC combat: `Pedestrian.host_damage`/`is_head_hit`; dead -> anim DEAD (ragdoll), removed after `corpse_time`, World
   `respawn_pedestrian_later` spawns a new one after `respawn_time` (60 s). `hear_gunshot` (group call per shot) -> flee.
+- Item models + icons: `ItemData.get_model()` (`model_scene`, else `prefabs/items/<id>.tscn`, procedural `ProcItem`) and
+  `get_icon()` (`assets/icons/<id>.png`). After adding an item or changing a model run (window)
+  `--path . --position 4000,40 --resolution 256x256 --script res://scripts/debug/render_icons.gd [-- --only=id,id]`,
+  then `--import`. Poly Haven models: `python tools/fetch_polyhaven.py . <id>...`.
 - Inventory: host-owned in GameState.player_data (8 slots, stacks up to ItemData.max_stack; `give` returns what
   didn't fit). The owner gets cash + items via `Player.send_wallet()` (call it after every change) -> HUD bar.
 - Shops: `prefabs/npc/shopkeeper.tscn` (`Shopkeeper`, a stationary Pedestrian + layer-2 body) placed in building

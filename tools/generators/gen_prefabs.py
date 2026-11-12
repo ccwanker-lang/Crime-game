@@ -17,6 +17,7 @@ S = {
     "proc_box": "res://scripts/procgen/proc_box.gd",
     "building": "res://scripts/procgen/building.gd",
     "property": "res://scenes/world/property.gd",
+    "proc_item": "res://scripts/procgen/proc_item.gd",
 }
 
 
@@ -470,3 +471,17 @@ building(B + "contact_hideout.tscn", {
     "wall_material": q("brick_old"), "wall_tint": col(0.8, 0.78, 0.76), "roof_type": q("flat"),
     "door_bay": "0", "door_color": col(0.2, 0.2, 0.2), "string_courses": "false", "enterable": "true",
     "floor_material": q("concrete"), "lit_windows": "0.0", "variation_seed": "13"}, contact_extra)
+
+
+# --------------------------------------------------------------------------- items
+# Held / dropped / icon models of the small inventory items (ProcItem, origin = grip, front -Z).
+IT = "prefabs/items/"
+for item_id, kind, props in [
+        ("soil", "soil_bag", {}), ("watering_can", "watering_can", {}),
+        ("weed_seed", "seed_packet", {"tint": col(0.25, 0.55, 0.2)}), ("baggie", "baggie", {}),
+        ("weed_bag", "weed_bag", {}), ("weed_bud", "weed_bud", {}), ("fresh_weed", "fresh_weed", {}),
+        ("ammo_9mm", "ammo_box", {"tint": col(0.75, 0.62, 0.38), "accent": col(0.2, 0.35, 0.7)}),
+        ("ammo_762", "ammo_box", {"tint": col(0.4, 0.42, 0.3), "accent": col(0.75, 0.2, 0.12)}),
+        ("ammo_12g", "ammo_box", {"tint": col(0.6, 0.12, 0.1), "accent": col(0.9, 0.85, 0.7)}),
+        ("ammo_308", "ammo_box", {"tint": col(0.25, 0.27, 0.22), "accent": col(0.85, 0.7, 0.2)})]:
+    script_prefab(IT + item_id + ".tscn", "Node3D", "proc_item", {"kind": q(kind), **props})

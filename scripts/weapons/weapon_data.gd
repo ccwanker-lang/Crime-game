@@ -46,8 +46,7 @@ extends ItemData
 ## Shot / reload sounds: pitch and volume (long guns reuse the pistol samples deeper and louder).
 @export var sound_pitch: float = 1.0
 @export var sound_volume_db: float = 0.0
-## Visual model (holds Muzzle / Ejection / Support markers, see WeaponModel).
-@export var model_scene: PackedScene
+## model_scene (ItemData): the WeaponModel (holds Muzzle / Ejection / Support markers).
 @export var shot_sounds: Array[AudioStream] = []
 @export var shot_far_sounds: Array[AudioStream] = []
 @export var reload_sound: AudioStream

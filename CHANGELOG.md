@@ -8,3 +8,4 @@ One line per finished part.
 - Point 16 (B): fuller procedural interiors (18 new CC0 furniture models, no overlaps, every floor furnished).
 - Point 19 (F): balcony doors (E) and safe balconies.
 - Point 3: cars react to gunfire (panic, horn, swerve, driver bails and returns, shot cars stop, wrecks towed).
+- Point 4 (E): item models (ProcItem) and rendered icons in the hotbar.

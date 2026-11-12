@@ -101,7 +101,7 @@ shader_material("door_paint", "painted.gdshader", {}, {"base_color": (1.0, 1.0, 
 shader_material("metal_dark", "painted.gdshader", {}, {"base_color": (0.16, 0.17, 0.18, 1.0), "roughness": 0.45, "metallic": 0.6, "wear": 0.2})
 shader_material("zinc", "painted.gdshader", {}, {"base_color": (0.55, 0.57, 0.58, 1.0), "roughness": 0.4, "metallic": 0.7, "wear": 0.25})
 shader_material("road_marking", "painted.gdshader", {}, {"base_color": (0.88, 0.88, 0.85, 1.0), "roughness": 0.7, "wear": 0.35})
-standard_material("awning", {"vertex_color_use_as_albedo": True, "cull_mode": 2, "roughness": 0.9})
+standard_material("awning", {"vertex_color_use_as_albedo": True, "vertex_color_is_srgb": True, "cull_mode": 2, "roughness": 0.9})
 shader_material("hedge_core", "painted.gdshader", {}, {"base_color": (0.1, 0.17, 0.07, 1.0), "roughness": 0.95, "wear": 0.3})
 
 # --- Glass ---
@@ -164,3 +164,10 @@ standard_material("car_headlight", {"albedo_color": (1.0, 0.98, 0.9, 1.0), "emis
                                     "emission": (1.0, 0.95, 0.85, 1.0), "emission_energy_multiplier": 2.5})
 standard_material("car_taillight", {"albedo_color": (0.6, 0.02, 0.02, 1.0), "emission_enabled": True,
                                     "emission": (1.0, 0.05, 0.03, 1.0), "emission_energy_multiplier": 1.5})
+
+# --- Items (scripts/procgen/proc_item.gd): coloured per vertex ---
+standard_material("item_matte", {"vertex_color_use_as_albedo": True, "vertex_color_is_srgb": True, "roughness": 0.85, "cull_mode": 2})
+standard_material("item_glossy", {"vertex_color_use_as_albedo": True, "vertex_color_is_srgb": True, "roughness": 0.35})
+standard_material("item_metal", {"vertex_color_use_as_albedo": True, "vertex_color_is_srgb": True, "metallic": 0.85, "roughness": 0.35})
+standard_material("item_clear", {"vertex_color_use_as_albedo": True, "vertex_color_is_srgb": True, "transparency": 1, "roughness": 0.12,
+                                 "metallic_specular": 0.8, "cull_mode": 2})

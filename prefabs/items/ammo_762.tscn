@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/proc_item.gd" id="1_r"]
+
+[node name="Ammo762" type="Node3D"]
+script = ExtResource("1_r")
+kind = "ammo_box"
+tint = Color(0.4, 0.42, 0.3, 1)
+accent = Color(0.75, 0.2, 0.12, 1)
