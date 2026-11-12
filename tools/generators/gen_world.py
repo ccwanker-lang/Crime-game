@@ -399,9 +399,10 @@ for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150
     sc.node("Wall" + name, "CollisionShape3D", "Bounds", props={
         "transform": xform(pos), "shape": sc.subres("BoxShape3D", {"size": v3(*size)})})
 
-# Keep NPCs 2 m away from the invisible map-edge walls (no rubbing along them).
+# Keep NPCs away from the invisible map-edge walls (no rubbing along them). W/E stop at 71.6:
+# the edge houses reach x = +-72 and their stairs must stay on the navmesh.
 for name, (x0, z0, x1, z1) in [("N", (-74, -62, 74, -58.5)), ("S", (-74, 64.5, 74, 68)),
-                               ("W", (-74, -62, -70, 68)), ("E", (70, -62, 74, 68))]:
+                               ("W", (-74, -62, -71.6, 68)), ("E", (71.6, -62, 74, 68))]:
     sc.node("EdgeNoWalk" + name, "NavigationObstacle3D", NAV, props={
         "transform": xform((0, -1, 0)), "height": "4.0", "avoidance_enabled": "false",
         "affect_navigation_mesh": "true", "carve_navigation_mesh": "true",

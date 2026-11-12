@@ -25,6 +25,8 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
+const CHECKS: Array[String] = ["lamps", "debug_labels", "doors", "player", "stairs", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+
 var _fails: int = 0
 
 
@@ -36,21 +38,14 @@ func _run() -> void:
 	GameState.infinite_cash = false  # test the real money rules
 	var world: Node3D = get_parent()
 	await _wait_for_navmesh(world)
-	_check_lamps(world)
-	_check_debug_labels()
-	await _check_doors(world)
-	await _check_player(world)
-	await _check_stairs(world)
-	await _check_combat(world)
-	await _check_shops(world)
-	await _check_gun_shop(world)
-	await _check_growing(world)
-	await _check_pedestrians(world)
-	await _check_npc_combat(world)
-	await _check_selling(world)
-	await _check_phone(world)
-	await _check_traffic(world)
-	await _check_save(world)
+	# --only=stairs,traffic runs just those checks (names = the _check_* suffix).
+	var only: PackedStringArray = []
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--only="):
+			only = a.trim_prefix("--only=").split(",")
+	for check: String in CHECKS:
+		if only.is_empty() or check in only:
+			await call("_check_" + check, world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -98,7 +93,7 @@ func _check_lamps(world: Node3D) -> void:
 
 # --- Debug labels ------------------------------------------------------------------
 
-func _check_debug_labels() -> void:
+func _check_debug_labels(_world: Node3D) -> void:
 	var shown: int = 0
 	var nodes: Array[Node] = get_tree().get_nodes_in_group("debug_only")
 	for n: Node in nodes:
@@ -291,6 +286,12 @@ func _check_stairs(world: Node3D) -> void:
 			nav_ok += 1
 		else:
 			print("[SelfTest]   no NPC path up the stairs of %s (%s)" % [h.name, path[path.size() - 1] if path.size() > 0 else "none"])
+			for f: int in range(1, h.floors):
+				var lvl: Vector3 = h.to_global(Vector3(x, f * h.floor_height + Building.SLAB_TOP, z0 + 0.5))
+				var pp: PackedVector3Array = NavigationServer3D.map_get_path(map, from, lvl, true)
+				var near: Vector3 = NavigationServer3D.map_get_closest_point(map, lvl)
+				print("[SelfTest]     floor %d: path end local %s, closest navmesh %s" % [f,
+						h.to_local(pp[pp.size() - 1]) if pp.size() > 0 else "none", h.to_local(near)])
 	_report(nav_ok == houses.size(), "NPC navmesh reaches the top floor of every house (%d/%d)" % [nav_ok, houses.size()])
 
 
@@ -318,8 +319,6 @@ func _climb(p: Player, h: Building) -> bool:
 	p.teleport(p.auto_target)
 	for i: int in 5:
 		await get_tree().physics_frame
-	if h.name in ["RowHouseC2", "RowHouseB2"]:
-		print("[SelfTest]     start %s -> local %s" % [h.name, h.to_local(p.global_position)])
 	var levels: int = h.floors - 1
 	# Up.
 	for f: int in levels:
@@ -331,14 +330,6 @@ func _climb(p: Player, h: Building) -> bool:
 				return false
 		if not await _walk(p, h, Vector3(x, 0, z0 + 0.4)):
 			print("[SelfTest]   %s: stuck going up flight %d at %s" % [h.name, f + 1, h.to_local(p.global_position)])
-			print("[SelfTest]     w=%.2f d=%.2f floors=%d fh=%.2f x=%.2f front=%.2f" % [h.width, h.depth, h.floors, h.floor_height, x, front])
-			for c: Node in h.get_children():
-				if c.name.begins_with("Television"):
-					print("[SelfTest]     TV at %s" % (c as Node3D).position)
-			for i: int in p.get_slide_collision_count():
-				var c: KinematicCollision3D = p.get_slide_collision(i)
-				print("[SelfTest]     hits %s/%s at %s normal %s" % [(c.get_collider() as Node).get_parent().name, (c.get_collider() as Node).name,
-						h.to_local(c.get_position()), c.get_normal().snapped(Vector3.ONE * 0.01)])
 			return false
 		var up: float = h.to_local(p.global_position).y
 		if absf(up - ((f + 1) * h.floor_height + Building.SLAB_TOP)) > 0.25:
@@ -832,6 +823,12 @@ func _check_traffic(world: Node3D) -> void:
 			car = c
 	car.progress = 30.0
 	car.speed = Car.CRUISE
+	# Other cars on that route go half a lap away, so none of them queues in front of the test car.
+	var gap_cars: float = 0.0
+	for c: Node in cars:
+		if c != car and (c as Car).route_id == 2:
+			(c as Car).progress = 30.0 + traffic.routes[2].length * 0.5 + gap_cars
+			gap_cars += 15.0
 	var person: Pedestrian = world.call("_add_pedestrian", traffic.routes[2].sample(30.0 + 14.0)[0], 0)
 	person.set_physics_process(false)
 	await get_tree().create_timer(5.0).timeout
