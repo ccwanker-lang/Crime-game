@@ -145,6 +145,15 @@ func select_slot(slot: int) -> void:
 		set_equipped(false)
 	else:
 		select(index)
+	update_held()
+
+
+## Owner: what the free hand holds = the item in the selected hotbar slot (not a weapon).
+func update_held() -> void:
+	var id: StringName = &""
+	if not equipped and selected_slot >= 0 and selected_slot < player.inventory.size() and weapon_in_slot(selected_slot) < 0:
+		id = StringName(str((player.inventory[selected_slot] as Dictionary).get("id", "")))
+	player.net_held = id
 
 
 ## Owner: new inventory from the host -> spare rounds; put away a weapon we lost.
@@ -156,6 +165,7 @@ func _on_wallet_changed() -> void:
 	if equipped and not owns(current):
 		set_equipped(false)
 		aiming = false
+	update_held()
 	weapon_changed.emit()
 
 
@@ -230,6 +240,7 @@ func set_equipped(on: bool) -> void:
 	_cancel_reload()
 	equipped = on
 	player.net_weapon = current + 1 if on else 0
+	update_held()
 	if viewmodel:
 		viewmodel.set_drawn(on)
 	weapon_changed.emit()
@@ -252,6 +263,7 @@ func select(index: int) -> void:
 	equipped = true
 	aiming = false
 	player.net_weapon = current + 1
+	update_held()
 	_next_fire = _now() + 0.35  # draw time
 	if viewmodel:
 		viewmodel.switch_to(weapon)

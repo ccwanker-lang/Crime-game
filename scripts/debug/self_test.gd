@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 
@@ -82,6 +82,34 @@ func _check_items(_world: Node3D) -> void:
 			missing.append("%s (icon)" % id)
 	_report(missing.is_empty(), "%d items have a model and an icon%s" % [ids.size(),
 			"" if missing.is_empty() else ", missing: " + ", ".join(missing)])
+
+
+## Point 5: an item in the selected hotbar slot is held in the hand (body + first-person
+## copy); drawing a weapon puts it away.
+func _check_held(world: Node3D) -> void:
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Holder"
+	world.get_node("Players").add_child(p)
+	p.global_position = Vector3(-8, 0.3, -4.6)
+	for i: int in 30:
+		await get_tree().physics_frame
+	p._set_wallet(100, [{"id": "pistol", "count": 1}, {"id": "watering_can", "count": 1}])
+	p.combat.select_slot(1)
+	for i: int in 3:
+		await get_tree().process_frame
+	var body: Node3D = p.get_node_or_null("HeldItem") as Node3D
+	var near: bool = body != null and body.global_position.distance_to(p.global_position + Vector3.UP * 0.9) < 0.9
+	_report(p.net_held == &"watering_can" and near and p._held_view != null,
+			"selected item is held in the hand (held '%s', body model %s)" % [p.net_held, body != null])
+	p.combat.select_slot(0)
+	for i: int in 3:
+		await get_tree().process_frame
+	_report(p.net_held == &"" and p.get_node_or_null("HeldItem") == null and p.net_weapon == 1,
+			"drawing the pistol puts the item away")
+	p.queue_free()
+	await get_tree().physics_frame
 
 
 # --- Lamps -----------------------------------------------------------------------

@@ -72,6 +72,8 @@ var net_crouch: bool = false
 var net_air: bool = false
 ## Weapon in hand: 0 = none (holstered), 1 = pistol.
 var net_weapon: int = 1
+## Item (id) held in the hand when no weapon is drawn: seeds, soil, watering can... "" = empty hands.
+var net_held: StringName = &""
 
 # --- Synced from the host (HostSync) --------------------------------------------
 var health: int = MAX_HEALTH:
@@ -234,6 +236,106 @@ func _build_model() -> void:
 	_bone_lower_r = _skeleton.find_bone("LowerArm.R")
 	_bone_wrist_r = _skeleton.find_bone("Wrist.R")
 	_skeleton.skeleton_updated.connect(_place_hand_gun)
+	_skeleton.skeleton_updated.connect(_place_held_item)
+
+
+# --- Held item (point 5) -------------------------------------------------------------
+
+var _held_id: StringName = &""
+var _held_body: Node3D  # in the right fist of the body (others, third person, shadow)
+var _held_view: Node3D  # first person: in view, bottom right
+var _held_bob: float = 0.0
+
+
+## Every peer: (re)builds the held item models when net_held changes.
+func _update_held_models() -> void:
+	var want: StringName = net_held if net_weapon == 0 and not dead else &""
+	if want == _held_id:
+		return
+	_held_id = want
+	for n: Node3D in [_held_body, _held_view]:
+		if n:
+			n.queue_free()
+	_held_body = null
+	_held_view = null
+	var data: ItemData = ItemDB.get_item(want) if want != &"" else null
+	var scene: PackedScene = data.get_model() if data else null
+	if scene == null:
+		return
+	_held_body = scene.instantiate() as Node3D
+	_held_body.name = "HeldItem"
+	_held_body.top_level = true
+	add_child(_held_body)
+	if is_local():
+		_held_view = scene.instantiate() as Node3D
+		_held_view.name = "HeldItemView"
+		camera.add_child(_held_view)
+		_set_held_shadows.call_deferred()
+	_set_third_person_held()
+
+
+## First person: the body's copy only casts a shadow (like the body itself).
+func _set_held_shadows() -> void:
+	_set_third_person_held()
+
+
+func _set_third_person_held() -> void:
+	var first_person: bool = is_local() and not third_person
+	if _held_body:
+		for m: Node in _held_body.find_children("*", "MeshInstance3D", true, false):
+			(m as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if first_person \
+					else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	if _held_view:
+		_held_view.visible = first_person
+
+
+## Body: the item hangs from the right fist (hand above it), facing where the player looks.
+func _place_held_item() -> void:
+	if _held_body == null or _bone_wrist_r < 0 or not is_inside_tree():
+		return
+	var t: Transform3D = _skeleton.global_transform
+	var lower: Vector3 = t * _skeleton.get_bone_global_pose(_bone_lower_r).origin
+	var wrist: Vector3 = t * _skeleton.get_bone_global_pose(_bone_wrist_r).origin
+	var up: Vector3 = (lower - wrist).normalized()
+	var back: Vector3 = global_basis.z - up * global_basis.z.dot(up)
+	if back.length() < 0.01:
+		back = global_basis.y
+	back = back.normalized()
+	var basis := Basis(up.cross(back).normalized(), up, back)
+	_held_body.global_transform = Transform3D(basis, wrist - up * 0.09)
+
+
+## First person: the item low in the right of the view, bobbing with the steps.
+## Big things (soil bag, watering can) sit further away so they don't fill the screen.
+func _update_held_view(delta: float) -> void:
+	if _held_view == null:
+		return
+	var speed: float = Vector2(velocity.x, velocity.z).length()
+	_held_bob += delta * (2.0 + speed * 1.6)
+	var bob: float = sin(_held_bob * 2.0) * 0.008 * minf(1.0, speed / 3.0)
+	var box: AABB = _held_aabb()
+	var dist: float = 0.42 + box.get_longest_axis_size() * 0.75
+	_held_view.rotation = Vector3(0.12, -0.75, 0.04)
+	var anchor := Vector3(0.42 * dist, -0.36 * dist + bob, -dist)
+	_held_view.position = anchor - _held_view.basis * box.get_center()
+
+
+var _held_box_cache: Dictionary = {}
+
+
+func _held_aabb() -> AABB:
+	if _held_box_cache.has(_held_id):
+		return _held_box_cache[_held_id]
+	var box := AABB()
+	var first: bool = true
+	for m: Node in _held_view.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh:
+			box = mi.get_aabb() if first else box.merge(mi.get_aabb())
+			first = false
+	if not first:
+		_held_box_cache[_held_id] = box
+	return box
 
 
 func _place_hand_gun() -> void:
@@ -253,6 +355,7 @@ func _place_hand_gun() -> void:
 ## casts a shadow; the viewmodel shows the arms instead.
 func _set_third_person(on: bool) -> void:
 	third_person = on
+	_set_third_person_held()
 	spring.spring_length = THIRD_PERSON_DISTANCE if on else 0.0
 	spring.position = Vector3(0.45, 0.15, 0) if on else Vector3.ZERO
 	var mode: GeometryInstance3D.ShadowCastingSetting = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if on \
@@ -376,8 +479,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_held_models()
 	if not is_local():
 		return
+	_update_held_view(delta)
 	# Recoil: most of the kick comes back down by itself.
 	var step: float = _recoil_pending * minf(1.0, 7.0 * delta)
 	head.rotation.x -= step

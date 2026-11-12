@@ -125,7 +125,22 @@ static func sanitize_name(raw: String) -> String:
 
 # --- Multiplayer callbacks --------------------------------------------------
 
+## Loading the world blocks a peer's main thread for several seconds (houses, furniture):
+## ENet's default timeout (~5 s) would drop it meanwhile. Allow up to PEER_TIMEOUT_MS.
+const PEER_TIMEOUT_MS: int = 45000
+
+
+func _set_peer_timeout(peer_id: int) -> void:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if enet == null:
+		return
+	var p: ENetPacketPeer = enet.get_peer(peer_id)
+	if p:
+		p.set_timeout(0, PEER_TIMEOUT_MS / 2, PEER_TIMEOUT_MS)
+
+
 func _on_peer_connected(peer_id: int) -> void:
+	_set_peer_timeout(peer_id)  # host: the client; client: the host (id 1)
 	# Host waits for _register_player before adding the peer to the list.
 	if multiplayer.is_server():
 		print("[Net] Peer %d connected, waiting for registration" % peer_id)

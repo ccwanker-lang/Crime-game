@@ -117,6 +117,7 @@ func _net_check() -> void:
 				clerk.request_buy(&"soil", 1)
 		# The client walks its own player 5 m east, crouched; the host must see that.
 		if me:
+			me.combat.select_slot(1)  # the 9mm rounds in the free hand: the host must see them
 			me.auto_walk = true
 			me.auto_target = me.global_position + Vector3(5, 0, 0)
 			Input.action_press("crouch")
@@ -137,8 +138,9 @@ func _net_check() -> void:
 			for p: Node in players_root.get_children():
 				var pl := p as Player
 				if not pl.is_local():
-					print("[NetCheck] host sees client %s at %s crouch=%s" % [pl.player_name,
-							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch])
+					print("[NetCheck] host sees client %s at %s crouch=%s weapon=%d held='%s' (model %s)" % [pl.player_name,
+							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch, pl.net_weapon, pl.net_held,
+							pl.get_node_or_null("HeldItem") != null])
 	var pot1 := find_child("Pot1", true, false) as GrowPot
 	print("[NetCheck] %s sees Pot1: %s (plant visible=%s)" % ["host" if multiplayer.is_server() else "client",
 			pot1.status_text(), pot1._plant.visible])

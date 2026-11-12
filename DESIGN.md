@@ -192,7 +192,7 @@ the start for now; rank gates (see Progression) come later.
 2. Stairs work for players and NPCs (invisible ramp over each flight, furniture keeps the stair way free, walker climbs every stair + navmesh path to every top floor) - done
 3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees and comes back; shot car stops, wreck towed + replaced) - done
 4. Item icons (renders of the 3D models) with counts in hotbar/inventory (asked again as E) - done
-5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - todo
+5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - done
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - todo
 7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - todo
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - todo

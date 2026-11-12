@@ -76,6 +76,10 @@ const SHOTS: Array[Array] = [
 	# Balcony of RowHouseB1 (x -58, front z -6): open door from inside, then from the street.
 	["54_balcony_door_open", Vector3(-59.0, 4.65, -9.0), Vector3(-59.3, 3.9, -4.0)],
 	["55_balcony_outside_door_open", Vector3(-57.0, 2.0, 2.5), Vector3(-59.3, 3.9, -6.0)],
+	# Point 5: held items (first person, third person, seen by someone else: soil bag).
+	["56_held_first", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
+	["57_held_third", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
+	["58_held_seen", Vector3(-10.2, 1.3, -3.6), Vector3(-8, 0.9, -4.6)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -225,6 +229,32 @@ func _stage(shot_name: String) -> void:
 			me.head.rotation.x = -0.08
 			me._set_third_person(shot_name == "29_third_person")
 			await get_tree().create_timer(0.5).timeout
+		"56_held_first", "57_held_third", "58_held_seen":
+			# Point 5: a player holding the watering can (slot 2) / soil bag (seen by another peer).
+			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+			var seen: bool = shot_name == "58_held_seen"
+			me.peer_id = 4242 if seen else multiplayer.get_unique_id()  # 58: someone else's player
+			me.player_name = "Other" if seen else "Me"
+			me.auto_walk = not seen
+			me.position = Vector3(-8, 0.15, -4.6)
+			me.auto_target = me.position
+			me.net_pos = me.position
+			me.rotation.y = PI / 2.0
+			me.net_yaw = me.rotation.y
+			get_tree().current_scene.add_child(me)
+			_staged.append(me)
+			if seen:
+				me.net_weapon = 0
+				me.net_held = &"soil"
+			else:
+				await get_tree().create_timer(0.3).timeout  # after the host's own wallet message
+				me._set_wallet(500, [{"id": "pistol", "count": 1}, {"id": "watering_can", "count": 1}, {"id": "soil", "count": 3}])
+				me.combat.select_slot(1)
+				me.ui.visible = true
+				me.camera.current = true
+				me.head.rotation.x = -0.08
+				me._set_third_person(shot_name == "57_held_third")
+			await get_tree().create_timer(0.6).timeout
 		"50_phone_chat", "51_phone_map":
 			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
 			me.peer_id = multiplayer.get_unique_id()

@@ -20,8 +20,11 @@ show_all = "--all" in sys.argv
 NOISE = ("Unreferenced static", "string_name.cpp", "leaked at exit", "PagedAllocator", "XR:")
 
 
+EXTRA = ["--verbose"] if "--verbose" in sys.argv else []
+
+
 def start(args):
-    return subprocess.Popen([G, "--headless", "--path", ROOT, "--"] + args, stdout=subprocess.PIPE,
+    return subprocess.Popen([G, "--headless", "--path", ROOT] + EXTRA + ["--"] + args, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
 
 
@@ -51,6 +54,7 @@ try:
 except subprocess.TimeoutExpired:
     lines.append("TIMEOUT")
 finally:
+    lines.append(f"client exit code {client.poll()}, host exit code {host.poll()}")
     kill_tree(client)
     kill_tree(host)
 time.sleep(0.5)

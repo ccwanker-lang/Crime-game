@@ -9,3 +9,4 @@ One line per finished part.
 - Point 19 (F): balcony doors (E) and safe balconies.
 - Point 3: cars react to gunfire (panic, horn, swerve, driver bails and returns, shot cars stop, wrecks towed).
 - Point 4 (E): item models (ProcItem) and rendered icons in the hotbar.
+- Point 5: held items in the hand (first + third person, synced); netcheck: longer ENet timeout while a peer loads.

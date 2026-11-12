@@ -37,6 +37,9 @@ properties/6/replication_mode = 2
 properties/7/path = NodePath(".:net_weapon")
 properties/7/spawn = true
 properties/7/replication_mode = 2
+properties/8/path = NodePath(".:net_held")
+properties/8/spawn = true
+properties/8/replication_mode = 2
 
 [sub_resource type="SceneReplicationConfig" id="HostReplication"]
 properties/0/path = NodePath(".:player_name")
