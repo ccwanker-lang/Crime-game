@@ -97,6 +97,9 @@ func _load_settings() -> void:
 
 
 func _save_settings() -> void:
+	# Test runs (--name=B etc.) must not overwrite the player's own name.
+	if _cmdline_name:
+		return
 	var cfg := ConfigFile.new()
 	cfg.set_value("player", "name", name_edit.text.strip_edges())
 	cfg.set_value("network", "last_ip", ip_edit.text.strip_edges())
@@ -111,6 +114,8 @@ var _port: int = Net.DEFAULT_PORT
 
 ## Command line auto host/join happens once; back in the menu you choose yourself.
 static var _cmdline_used: bool = false
+## True when --name= was given: settings are then not saved.
+var _cmdline_name: bool = false
 
 
 func _apply_cmdline_args() -> void:
@@ -123,6 +128,7 @@ func _apply_cmdline_args() -> void:
 	for arg: String in args:
 		if arg.begins_with("--name="):
 			name_edit.text = arg.trim_prefix("--name=")
+			_cmdline_name = true
 		elif arg.begins_with("--join="):
 			ip_edit.text = arg.trim_prefix("--join=")
 			auto_join = true
