@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1333,6 +1333,37 @@ func _check_npc_combat(world: Node3D) -> void:
 	Pedestrian.respawn_time = 60.0
 
 
+# --- Health regeneration (point 22) ------------------------------------------------------
+
+func _check_regen(world: Node3D) -> void:
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Healer"
+	var spot: Vector3 = (world.get_node("Markers/SpawnPoints").get_child(0) as Node3D).global_position
+	p.auto_target = spot
+	world.get_node("Players").add_child(p)
+	p.global_position = spot
+	await get_tree().physics_frame
+	_report(p.regen_delay >= 6.0 and p.regen_delay <= 10.0, "regeneration starts %.0f s after the last damage" % p.regen_delay)
+	p.regen_delay = 1.0
+	p.regen_per_second = 30.0
+	p.host_damage(60, null)
+	await get_tree().create_timer(0.6).timeout
+	_report(p.health == 40, "no healing right after a hit (health %d)" % p.health)
+	await get_tree().create_timer(2.0).timeout
+	var mid: int = p.health
+	p.host_damage(10, null)
+	var after_hit: int = p.health
+	await get_tree().create_timer(0.5).timeout
+	_report(mid > 40 and p.health == after_hit, "health comes back, a new hit pauses it (%d -> hit %d -> %d)" % [mid, after_hit, p.health])
+	await get_tree().create_timer(4.0).timeout
+	_report(p.health == Player.MAX_HEALTH, "healed back to %d (not higher)" % p.health)
+	GameState.player_data.erase("Healer")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
 # --- Police (point 10) -------------------------------------------------------------------
 
 func _check_police(world: Node3D) -> void:
@@ -1358,10 +1389,35 @@ func _check_police(world: Node3D) -> void:
 	# Far away gunshot: ignored. Nearby: the officer takes the shooter on.
 	get_tree().call_group(&"police", "report_crime", p, spot + Vector3(200, 0, 0), false)
 	_report(cop.target == null, "a gunshot 200 m away is not heard")
+	# Point 21: tunable, weak by default: slow to react, spread grows with range and movement.
+	var prof: NpcCombatProfile = cop.profile
+	_report(prof.reaction_time >= 0.8 and prof.damage <= 10 and prof.burst_pause > 1.0
+			and prof.spread(25.0, 0.0) > prof.spread(5.0, 0.0) and prof.spread(10.0, 5.0) > prof.spread(10.0, 0.0),
+			"police profile: reaction %.1f s, damage %d, bursts of %d, spread %.3f -> %.3f rad (5 -> 25 m), %.3f running" % [
+			prof.reaction_time, prof.damage, prof.burst_size, prof.spread(5.0, 0.0), prof.spread(25.0, 0.0), prof.spread(10.0, 5.0)])
+	p.health = 100000  # (count hits, don't die)
+	var hits: int = 0
+	for i: int in 40:
+		var h: int = p.health
+		cop._shoot_at(p)
+		hits += 1 if p.health < h else 0
+	_report(hits < 28, "at 12 m the police miss a lot (%d of 40 shots hit)" % hits)
+	p.health = Player.MAX_HEALTH
 	var health0: int = p.health
 	get_tree().call_group(&"police", "report_crime", p, p.global_position, false)
 	_report(cop.target == p, "a gunshot nearby: the officer goes after the shooter")
-	await get_tree().create_timer(4.0).timeout
+	await get_tree().create_timer(0.5).timeout
+	_report(p.health == health0, "no shot before the reaction time")
+	# From here a sharp test profile, so the rest of the check doesn't take minutes.
+	var sharp: NpcCombatProfile = prof.duplicate()
+	sharp.accuracy = 1.0
+	sharp.reaction_time = 0.2
+	sharp.burst_pause = 0.3
+	sharp.spread_per_metre = 0.0
+	sharp.moving_spread = 0.0
+	sharp.damage = 15
+	cop.profile = sharp
+	await get_tree().create_timer(3.0).timeout
 	_report(cop.anim_state == Pedestrian.Anim.AIM and p.health < health0,
 			"the officer aims and shoots the culprit (health %d -> %d)" % [health0, p.health])
 	_report(not get_tree().get_nodes_in_group(&"npc").any(func(n: Node) -> bool: return n is PoliceOfficer and (n as Pedestrian).is_fleeing()),
@@ -1374,6 +1430,7 @@ func _check_police(world: Node3D) -> void:
 	_report(p.dead, "the officer keeps shooting until the culprit is dead")
 	await get_tree().create_timer(0.6).timeout
 	_report(cop.target == null, "dead culprit: the officer stops")
+	cop.profile = PoliceOfficer.DEFAULT_PROFILE
 	# Shooting an officer makes you its target (a fresh test player).
 	p.queue_free()
 	await get_tree().physics_frame

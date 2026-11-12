@@ -213,8 +213,8 @@ Feedback round 2 (MUST first, then balance, traffic, police, map):
     to move, Shift+click = whole stack, host validates, saved + synced; a free locker in every Starter Room (old
     saves too); drop items (G / right click in the inventory) and pick them up again - done
 21. Police balance: reaction time, big spread (more at range and when you move), pauses between bursts, lower
-    damage; all values in a tunable resource (accuracy, reaction_time, damage, fire_rate) - todo
-22. Health regeneration: after ~8 s without damage HP slowly heals back to 100 (tunable) - todo
+    damage; all values in a tunable resource (accuracy, reaction_time, damage, fire_rate) - done
+22. Health regeneration: after ~8 s without damage HP slowly heals back to 100 (tunable) - done
 23. Car horns: much quieter, shorter, less often, not all cars at once - todo
 24. Traffic and gunfire: drivers never get out any more; cars speed away from the shooting (turn round / other
     route), then go back to their normal route; no abandoned cars left on the street (replaces part of point 3) - todo
@@ -270,6 +270,10 @@ Choices made while working autonomously (what + why).
   (Shift+G one item). A dropped item is a LootBag that shows the item's own model ("Pick up 2x Soil"), saved
   like loot bags; anybody can pick it up. The free locker (LockerSpot, against the Starter Room's left wall) is
   placed once per world (flag world["free_locker"]), so old saves get it too.
+- Point 21: police combat values live in `data/npc/police_combat.tres` (NpcCombatProfile, reused for rivals):
+  accuracy 0.55, reaction 1.2 s (again after losing sight), 7 damage, bursts of 2-4 at 2 shots/s, 1.8 s pause.
+  The cone grows 0.004 rad per metre and up to +0.09 rad against a running target (~20% hits at 12 m standing).
+- Point 22: health regenerates 4 HP/s after 8 s without damage (Player exports regen_delay/regen_per_second).
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

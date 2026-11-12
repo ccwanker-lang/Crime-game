@@ -19,13 +19,10 @@ const UNIFORM: Dictionary = {
 const VARIANT: int = 7  # man_longsleeve (CharacterArmature: gun animations)
 const HEAR_RANGE: float = 45.0
 const MURDER_RANGE: float = 70.0
-const SIGHT_RANGE: float = 32.0
 const SEARCH_TIME: float = 25.0
 const PATROL_RADIUS: float = 45.0
-const FIRE_INTERVAL: float = 0.75
-const REACTION_TIME: float = 0.6
-const DAMAGE: int = 12
-const SPREAD: float = 0.045  # radians
+## Point 21: aim, reaction time, damage, fire rate, bursts (tune data/npc/police_combat.tres).
+const DEFAULT_PROFILE: NpcCombatProfile = preload("res://data/npc/police_combat.tres")
 const SIGHT_MASK: int = 1 | 2  # world, doors/cars
 const HIT_MASK: int = 1 | 2 | 4 | 8
 ## Cap position relative to the head bone (metres), tuned with the screenshot tour.
@@ -45,7 +42,11 @@ var _bone_lower_r: int = -1
 var _bone_wrist_r: int = -1
 var _search_until: float = 0.0
 var _next_shot: float = 0.0
+var _burst_left: int = 0
+## Combat values (shared resource; tests swap in a sharper one).
+var profile: NpcCombatProfile = DEFAULT_PROFILE
 var _seen: bool = false
+var _seen_now: bool = false  # had the target in sight on the last think
 var _pistol: WeaponData
 
 
@@ -158,7 +159,8 @@ func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
 func _alert(culprit: Player, at: Vector3) -> void:
 	if target != culprit:
 		print("[Police] %s goes after %s" % [name, culprit.player_name])
-		_next_shot = _now() + REACTION_TIME
+		_next_shot = _now() + profile.reaction_time
+		_burst_left = profile.burst_size
 	target = culprit
 	last_known = at
 	_search_until = _now() + SEARCH_TIME
@@ -190,7 +192,7 @@ func _on_died(world: Node) -> void:
 func can_see(p: Player) -> bool:
 	var eye: Vector3 = global_position + Vector3.UP * 1.6
 	var chest: Vector3 = p.global_position + Vector3.UP * 1.2
-	if eye.distance_to(chest) > SIGHT_RANGE:
+	if eye.distance_to(chest) > profile.sight_range:
 		return false
 	var q := PhysicsRayQueryParameters3D.create(eye, chest, SIGHT_MASK, [get_rid()])
 	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
@@ -213,7 +215,10 @@ func _think() -> void:
 	if target == null:
 		_patrol()
 		return
-	if can_see(target):
+	var sees: bool = can_see(target)
+	if not sees:
+		_seen_now = false
+	if sees:
 		_seen = true
 		last_known = target.global_position
 		_search_until = _now() + SEARCH_TIME
@@ -223,9 +228,18 @@ func _think() -> void:
 		var d: Vector3 = target.global_position - global_position
 		rotation.y = atan2(-d.x, -d.z)
 		net_yaw = rotation.y
+		if not _seen_now:
+			# (Re)acquired the target: it needs a moment before the first shot.
+			_seen_now = true
+			_next_shot = maxf(_next_shot, _now() + profile.reaction_time * randf_range(0.7, 1.3))
 		if _now() >= _next_shot:
-			_next_shot = _now() + FIRE_INTERVAL * randf_range(0.8, 1.3)
 			_shoot_at(target)
+			_burst_left -= 1
+			if _burst_left <= 0:
+				_burst_left = maxi(1, profile.burst_size + randi_range(-1, 1))
+				_next_shot = _now() + profile.burst_pause * randf_range(0.8, 1.4)
+			else:
+				_next_shot = _now() + 1.0 / maxf(0.1, profile.fire_rate) * randf_range(0.85, 1.25)
 		return
 	if _now() > _search_until:
 		print("[Police] %s lost %s" % [name, target.player_name])
@@ -263,7 +277,8 @@ func _patrol() -> void:
 func _shoot_at(p: Player) -> void:
 	var origin: Vector3 = global_position + Vector3.UP * 1.45 - global_basis.z * 0.45
 	var aim: Vector3 = p.global_position + Vector3.UP * randf_range(0.9, 1.5)
-	var dir: Vector3 = PlayerCombat._cone((aim - origin).normalized(), SPREAD)
+	var speed: float = Vector2(p.velocity.x, p.velocity.z).length()
+	var dir: Vector3 = PlayerCombat._cone((aim - origin).normalized(), profile.spread(origin.distance_to(aim), speed))
 	var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * 80.0, HIT_MASK, [get_rid()])
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
 	var end: Vector3 = origin + dir * 80.0
@@ -275,7 +290,7 @@ func _shoot_at(p: Player) -> void:
 		surface = WeaponFX.surface_of(hit["collider"])
 		var victim: Node = hit["collider"]
 		if victim.has_method("host_damage") and not victim is PoliceOfficer:
-			var killed: bool = victim.call("host_damage", DAMAGE, self, origin)
+			var killed: bool = victim.call("host_damage", profile.damage, self, origin)
 			print("[Police] %s hit %s%s" % [name, victim.get("player_name") if victim is Player else victim.name,
 					" - killed" if killed else ""])
 	get_tree().call_group(&"npc", "hear_gunshot", origin)

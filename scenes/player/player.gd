@@ -75,6 +75,12 @@ var net_weapon: int = 1
 ## Item (id) held in the hand when no weapon is drawn: seeds, soil, watering can... "" = empty hands.
 var net_held: StringName = &""
 
+## Point 22: health comes back by itself after `regen_delay` seconds without damage.
+@export var regen_delay: float = 8.0
+@export var regen_per_second: float = 4.0
+var _last_damage: float = -1000.0  # host
+var _regen_acc: float = 0.0  # host
+
 # --- Synced from the host (HostSync) --------------------------------------------
 var health: int = MAX_HEALTH:
 	set(v):
@@ -485,6 +491,8 @@ func _weapon_key(event: InputEvent) -> int:
 # --- Movement --------------------------------------------------------------------
 
 func _physics_process(delta: float) -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_host_regen(delta)
 	if is_local():
 		_local_move(delta)
 		net_pos = global_position
@@ -787,10 +795,26 @@ func is_head_hit(pos: Vector3) -> bool:
 
 ## Host: apply damage from `attacker` (may be null). Returns true if this killed.
 ## `from`: where the shot came from (ragdoll impulse), INF = unknown.
+## Host: slow regeneration back to MAX_HEALTH once nothing hurt us for regen_delay s.
+func _host_regen(delta: float) -> void:
+	if dead or health >= MAX_HEALTH:
+		_regen_acc = 0.0
+		return
+	if Time.get_ticks_msec() / 1000.0 - _last_damage < regen_delay:
+		return
+	_regen_acc += regen_per_second * delta
+	if _regen_acc >= 1.0:
+		var add: int = int(_regen_acc)
+		_regen_acc -= add
+		health = mini(MAX_HEALTH, health + add)
+
+
 ## `attacker`: the Player who shot, or an NPC (police officer, rival), or null.
 func host_damage(amount: int, attacker: Node, from: Vector3 = Vector3.INF) -> bool:
 	if not multiplayer.is_server() or dead or amount <= 0:
 		return false
+	_last_damage = Time.get_ticks_msec() / 1000.0
+	_regen_acc = 0.0
 	health = maxi(0, health - amount)
 	if health > 0:
 		return false

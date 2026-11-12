@@ -16,3 +16,4 @@ One line per finished part.
 - Point 9: money laundering - dirty cash vs clean money, bakery/barber/laundromat sold by Mrs. Vos, back-office safes launder up to a daily maximum (10% fee).
 - Point 10: police station on South Street, officers on foot + a patrol car (light bar) who chase and shoot players that fire guns or kill nearby.
 - Point 20: storage window with slot grids (click one, Shift/drag stack), free locker in the Starter Room, drop items with G / right click and pick them up again.
+- Points 21+22: weaker, tunable police (NpcCombatProfile: reaction time, spread by range/movement, bursts, 7 damage) and health regeneration after 8 s.
