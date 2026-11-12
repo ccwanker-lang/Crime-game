@@ -191,7 +191,7 @@ the start for now; rank gates (see Progression) come later.
 1. Smooth car curves (Curve3D routes, heading along the axles, steered front wheels, brake before / accelerate after bends) - done
 2. Stairs work for players and NPCs (invisible ramp over each flight, furniture keeps the stair way free, walker climbs every stair + navmesh path to every top floor) - done
 3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees; shot car stops) - todo
-4. Item icons (renders of the 3D models) with counts in hotbar/inventory - todo
+4. Item icons (renders of the 3D models) with counts in hotbar/inventory (asked again as E) - todo
 5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - todo
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - todo
 7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - todo
@@ -202,7 +202,17 @@ the start for now; rank gates (see Progression) come later.
 12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
 13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
 14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
-Later: ranks/XP, dealers and staff, heat system, the big city map (milestone 4 layout).
+Added after playing (A-F; E = point 4, C extends point 6):
+15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - todo
+16. (B) Every house is furnished by the interior generator (no empty houses) - todo
+17. (C) Own properties: ALL furniture can be picked up, moved, rotated, sold or stored (placement system of point 6) - todo
+18. (D) Storage lockers: buy + place in a property, own inventory (put in / take out), several allowed, saved, shared in co-op - todo
+19. (F) Balconies: a door (E opens) onto every balcony, walkable, solid railing without gaps - todo
+Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; heat, lawyer, bribes;
+rival territories, lab raids, story missions (acts 1-5); the full city (Map layout); roadside team, fuel station, garage.
+
+## Decisions
+Choices made while working autonomously (what + why).
 
 ## Known issues / later
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into
