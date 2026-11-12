@@ -20,6 +20,10 @@ Fictional Belgian/European town, currency euro (€). Game language: English. Ar
 - ALL buying/selling happens via NPCs. Customers can rip you off (steal part or all).
 - Legal items: bought via the webshop on the in-game phone, delivered to your property.
 - Illegal items (seeds, chemicals, weapons, workers): ONLY physically, at NPCs / black market.
+  Production stations (grow pot, grow lamp, drying rack, packaging table) are illegal items too: they are sold
+  ONLY at the black market (see Buildings) and placed by the player in properties they own.
+- Money: every player has dirty cash (sales, loot) and clean money (laundered through front businesses).
+  Both are tracked separately in the code from milestone 2 on; for now both can be spent everywhere.
 - In-game phone: Telegram-style chat app (own name) for customers/dealers, webshop, map,
   calling the roadside service team.
 - Death: drop a loot bag with cash + carried items, respawn at the hospital. Anyone (incl. rivals)
@@ -69,6 +73,8 @@ Acts:
 3. Street war (rank 3–4): take districts one by one, move to Industrial, steal harbor shipments.
 4. The traitor (rank 5): a Crows lieutenant wants to defect; trust him or not → different missions.
 5. The HQ (rank 6): final assault, defeat Viktor and spare him.
+Milestone 2 (test town): the Crows have a house. At night some of them come out, walk the streets and
+attack players. Inside a player's own property you are safe (they don't come in). Killed rivals drop loot.
 Ending: the Crows work for the player (dealers/guards), Viktor runs the harbor. Highway to region 2
 opens with a new rival.
 
@@ -103,13 +109,46 @@ A believable Belgian/European town at human scale (1 unit = 1 m, people ~1.75 m)
 - Third person / other players: the same weapon held in the character model's hand (bone
   attachment), with matching shoot/reload animations.
 
+## Properties & furnishing (milestone 2)
+- Properties are bought at the real estate agent (NPC in an office). Several at once is fine. Each has a price
+  and a furnishing area (the interior floors). Upgrade path: Starter Room -> 2-floor apartment/house ->
+  full house -> warehouse (big labs). The Starter Room is the free first property.
+- Furnishing: stations are inventory items. Select one in the hotbar -> placement mode: ghost preview (green =
+  can place, red = can't), snaps to the floor on a 0.25 m grid, R/scroll rotates, LMB places. E on a placed
+  station's "pick up" action puts it back in the inventory (contents must be empty). Placing only works inside
+  properties owned by the crew. New saves start with an empty Starter Room.
+- Everything a player owns (properties, placed furniture/stations, cars, businesses) is in the savegame.
+
+## Money laundering (milestone 2)
+- Front businesses (bakery, barber, laundromat) are bought at the real estate agent.
+- Deposit dirty cash in a business (E at its counter). Each in-game day it turns up to its daily maximum into
+  clean money for the owner, minus a small fee (e.g. 10%).
+
+## Police (basic, milestone 2) and heat (later)
+- Police station with officers who patrol on foot or in a police car.
+- Basic reaction: an officer who sees a murder or hears gunshots nearby comes to look and shoots the culprit.
+- Later: heat/wanted level per player (rises with crimes seen, decays over time), searches, arrests, bribes
+  (rank 5), the corrupt cop from the story.
+
+## Vehicles (milestone 2)
+- AI traffic: procedural cars on smooth right-hand routes (curves), react to gunfire (speed up, honk,
+  swerve or stop and the driver flees on foot); a car that is shot stops.
+- Car dealer (building + NPC): buy cars. Your own cars: F to get in/out, WASD drives (VehicleBody3D), chase
+  camera; other players can ride along as passengers. Saved in the savegame, they spawn at your property.
+
 ## Buildings / services
 Starter room, garage property, barn, lab warehouse, harbor containers/storage, villa, mountain cabin,
 supermarket, hardware store, gas station, car garage (buy/sell/repair cars), roadside service depot
-(tow truck team drives to the player), real estate agent (buy front businesses), front businesses
-(laundromat, car wash, restaurant), bank, police station, hospital, lawyer's office, gun shop,
-black market, shooting range, bar (hire dealers), club, motel, town hall, rival HQ,
-dealer hangouts per district, customer houses.
+(tow truck team drives to the player), real estate agent (buy properties + front businesses), front
+businesses (bakery, barber, laundromat; later car wash, restaurant), bank, police station, hospital, lawyer's
+office, gun shop, black market, shooting range, bar (hire dealers), club, motel, town hall, rival HQ,
+dealer hangouts per district, customer houses, car dealer.
+- Black market: inside the garage, behind a fence. Open only at night (gate locked during the day). Sells
+  stations and illegal goods (seeds, baggies...).
+- Test town additions (milestone 2): police station, real estate agent, car dealer, the garage with the black
+  market, three front businesses, the Black Crows' house, a small park behind the benches on the square at
+  Mill Lane / Main Street (paths, grass, trees, benches, dog walkers, people sitting, youths smoking weed) and
+  an "agora" (fenced mini football pitch with goals, sometimes NPCs playing).
 
 ## Map layout (for milestone 4 — greybox first)
 Top-down, north = up. Organic town, NOT a square grid; compact dense center.
@@ -146,7 +185,24 @@ First playable (co-op weed loop in a small test town):
 8. Phone: chat app, map, webshop with delivery - done
 9. Save/load (host, autosave, continue/new game) - done
 Extras done along the way: more weapons + gun shop, ragdolls, day/night, enterable houses, AI traffic.
-Next: ranks/XP and the garage property (rank 1), police and witnesses, the big city map (milestone 4 layout).
+
+Milestone 2 (feedback after playing milestone 1). Ranks don't exist yet: everything below is available from
+the start for now; rank gates (see Progression) come later.
+1. Smooth car curves (path curves, interpolated heading, brake before / accelerate after bends) - todo
+2. Stairs work for players and NPCs (ramp collision / step-up, tested by a walker on every stair) - todo
+3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees; shot car stops) - todo
+4. Item icons (renders of the 3D models) with counts in hotbar/inventory - todo
+5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - todo
+6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - todo
+7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - todo
+8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - todo
+9. Money laundering: bakery, barber, laundromat; dirty vs clean money - todo
+10. Police station + patrolling police (foot / car) reacting to gunfire and murder - todo
+11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - todo
+12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
+13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
+14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
+Later: ranks/XP, dealers and staff, heat system, the big city map (milestone 4 layout).
 
 ## Known issues / later
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into
@@ -162,8 +218,6 @@ Next: ranks/XP and the garage property (rank 1), police and witnesses, the big c
 - Aiming down sights with the long guns: the left (sleeve) arm still crosses the lower left of the view.
 - No lag compensation: the host hits what it sees (fine on LAN).
 - First-person hands wear dark gloves; the third-person body shows bare hands.
-- The starter room has 2 fixed pots, a grow light and a drying rack. Buying/placing extra stations
-  (and pots as items) comes with the bigger properties.
 - The pedestrian self-test "activities" check is random and fails now and then (nobody sat/visited).
 - Houses: every floor walkable with an open-step stairwell along the left wall and simple procedural
   furniture (living room / bedrooms, shop shelves, warehouse storage). Rooms are open plan (no inner walls
