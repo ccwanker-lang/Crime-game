@@ -215,9 +215,9 @@ Feedback round 2 (MUST first, then balance, traffic, police, map):
 21. Police balance: reaction time, big spread (more at range and when you move), pauses between bursts, lower
     damage; all values in a tunable resource (accuracy, reaction_time, damage, fire_rate) - done
 22. Health regeneration: after ~8 s without damage HP slowly heals back to 100 (tunable) - done
-23. Car horns: much quieter, shorter, less often, not all cars at once - todo
+23. Car horns: much quieter, shorter, less often, not all cars at once - done
 24. Traffic and gunfire: drivers never get out any more; cars speed away from the shooting (turn round / other
-    route), then go back to their normal route; no abandoned cars left on the street (replaces part of point 3) - todo
+    route), then go back to their normal route; no abandoned cars left on the street (replaces part of point 3) - done
 25. Police and their car: officers get out to shoot or arrest, never leave the car behind, walk back and patrol on
     when it's over (dead / arrested / escaped). Arrest: a player who doesn't resist and is close gets cuffed
     instead of shot -> illegal items confiscated + fine, released at the police station - todo
@@ -273,6 +273,11 @@ Choices made while working autonomously (what + why).
 - Point 21: police combat values live in `data/npc/police_combat.tres` (NpcCombatProfile, reused for rivals):
   accuracy 0.55, reaction 1.2 s (again after losing sight), 7 damage, bursts of 2-4 at 2 shots/s, 1.8 s pause.
   The cone grows 0.004 rad per metre and up to +0.09 rad against a running target (~20% hits at 12 m standing).
+- Points 23/24: horns are -12 dB with a short range, cut to 0.45 s (startled) / 0.2 s (impatient), only 35% of
+  the time and never two within 1.8 s in the whole town. Gunfire: nobody gets out any more. A shot ahead within
+  30 m -> the car turns round (2.2 s left-hand U-turn onto the nearest opposite lane of any route that heads
+  away, Traffic.find_escape) and speeds off; otherwise it just speeds off. A hit car does the same. Only a wreck
+  stops; it is towed after 20 s and replaced. After the panic the car follows whatever route it is on now.
 - Point 22: health regenerates 4 HP/s after 8 s without damage (Player exports regen_delay/regen_per_second).
 
 ## Known issues / later

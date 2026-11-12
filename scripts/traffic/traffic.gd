@@ -26,6 +26,11 @@ func _ready() -> void:
 			if arg.begins_with("--cars="):
 				count = arg.trim_prefix("--cars=").to_int()
 		spawn_cars.call_deferred(count)
+		var police_cars: int = 1
+		for arg: String in OS.get_cmdline_user_args():
+			if arg.begins_with("--police-cars="):
+				police_cars = arg.trim_prefix("--police-cars=").to_int()
+		spawn_police_cars.call_deferred(police_cars)
 
 
 func _build_routes() -> void:
@@ -69,6 +74,29 @@ func request_junction(j: int, car: Car) -> bool:
 func release_junction(j: int, car: Car) -> void:
 	if _junction_owner.get(j) == car:
 		_junction_owner.erase(j)
+
+
+## Host (point 24): where a car at `pos` heading `fwd` can turn round to flee from
+## `origin`: [route index, progress] of the closest point on the opposite lane (2.5-6 m
+## away, heading the other way, away from the shot), or [] if there is none.
+func find_escape(pos: Vector3, origin: Vector3, fwd: Vector3) -> Array:
+	var best: Array = []
+	var best_d: float = INF
+	var away: Vector3 = Vector3(pos.x - origin.x, 0, pos.z - origin.z).normalized()
+	for r: int in routes.size():
+		var route: TrafficRoute = routes[r]
+		var d: float = 0.0
+		while d < route.length:
+			var s: Array = route.sample(d)
+			var p: Vector3 = s[0]
+			var gap: float = Vector2(p.x - pos.x, p.z - pos.z).length()
+			if gap > 2.5 and gap < 6.0 and gap < best_d:
+				var dir: Vector3 = s[1]
+				if dir.dot(fwd) < -0.8 and dir.dot(away) > 0.3:
+					best = [r, d]
+					best_d = gap
+			d += 1.0
+	return best
 
 
 ## Host: a wreck (or a car whose driver died) is towed away: removed, and a new car
@@ -124,14 +152,13 @@ func spawn_cars(count: int) -> void:
 			car.color_seed = randi()
 			add_child(car, true)
 			n += 1
-	# Point 10: one police patrol car on the route past the police station (South Street).
-	var police_cars: int = 1
-	for arg: String in OS.get_cmdline_user_args():
-		if arg.begins_with("--police-cars="):
-			police_cars = arg.trim_prefix("--police-cars=").to_int()
-	for k: int in police_cars:
+	print("[Traffic] %d cars on %d routes" % [n, routes.size()])
+
+
+## Host: point 10, police patrol cars on the route past the police station (South Street).
+func spawn_police_cars(count: int) -> void:
+	for k: int in count:
 		spawn_police_car(3, routes[3].length * (0.6 + 0.15 * k))
-	print("[Traffic] %d cars + %d police cars on %d routes" % [n, police_cars, routes.size()])
 
 
 ## Host: a police patrol car on route `r` at `prog` metres.

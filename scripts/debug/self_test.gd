@@ -1607,25 +1607,43 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 	_report(car.panic > 0.0 and top > Car.CRUISE + 1.0 and not car.abandoned,
 			"gunshot nearby: the car panics and speeds up (%.1f m/s)" % top)
 	await get_tree().create_timer(Car.PANIC_TIME).timeout
-	# Bail out: the driver gets out and runs, the car stays put, the driver comes back later.
-	Car.force_reaction = "bail"
-	var shot_from: Vector3 = car.global_position + car.global_basis.x * 8.0
+	# Point 24: a shot ahead -> the car turns round and drives away; nobody gets out.
+	var peds0: int = get_tree().get_nodes_in_group(&"npc").size()
+	var shot_from: Vector3 = car.global_position - car.global_basis.z * 15.0
+	var d0: float = car.global_position.distance_to(shot_from)
+	Car.force_reaction = "uturn"
 	car.hear_gunshot(shot_from)
 	Car.force_reaction = ""
-	await get_tree().create_timer(4.0).timeout
-	var driver: Pedestrian = car._driver as Pedestrian
-	var gap: float = driver.global_position.distance_to(car.global_position) if driver else 0.0
-	_report(car.abandoned and car.speed < 0.1 and driver != null and gap > 4.0,
-			"close gunshot: car stops, the driver gets out and runs (%.1f m away)" % gap)
+	_report(not car._uturn.is_empty(), "gunshot ahead: the car turns round")
+	await get_tree().create_timer(Car.UTURN_TIME + 2.5).timeout
+	var heading_away: bool = (car.global_position - shot_from).dot(-car.global_basis.z) > 0.0
+	var d1: float = car.global_position.distance_to(shot_from)
+	_report(car._uturn.is_empty() and heading_away and d1 > d0 + 5.0 and not car.abandoned,
+			"it drives away from the shooting on the other lane (%.0f -> %.0f m, %.1f m/s)" % [d0, d1, car.speed])
+	_report(get_tree().get_nodes_in_group(&"npc").size() == peds0 and car._driver == null, "the driver stays in the car")
+	# A hit (not wrecked) car doesn't stop either.
+	car.panic = 0.0
+	car.host_damage(20, null, car.global_position + car.global_basis.x * 6.0)
+	await get_tree().create_timer(0.5).timeout
+	_report(not car.abandoned and car.panic > 0.0, "a car that is hit speeds off (doesn't stop)")
+	await get_tree().create_timer(Car.PANIC_TIME).timeout
+	var prog0: float = car.progress
+	await get_tree().create_timer(3.0).timeout
+	_report(car.panic == 0.0 and not car.abandoned and car._uturn.is_empty() and car.progress != prog0,
+			"after the panic it drives its route again (route %d)" % car.route_id)
+	# Back onto the main road for the next checks.
+	car.route_id = 2
+	car.progress = 20.0
+	car.speed = Car.CRUISE
+	await get_tree().create_timer(1.0).timeout
+	# Horns: one at a time in town.
+	Car._last_honk_ms = -100000
+	car.honk(true)
+	var t0: int = Car._last_honk_ms
+	(on_main[1] if on_main.size() > 1 else car).honk(true)
+	_report(Car._last_honk_ms == t0, "only one horn at a time")
 	var other: Car = on_main[1] if on_main.size() > 1 else null
 	Engine.time_scale = 3.0
-	var back: bool = false
-	for i: int in 70:  # up to 70 game seconds
-		await get_tree().create_timer(1.0).timeout
-		if not car.abandoned:
-			back = true
-			break
-	_report(back and not is_instance_valid(driver), "the driver comes back and drives on")
 	# A car stuck behind a stopped car waits (no driving through it).
 	if other:
 		other.progress = car.progress - 14.0

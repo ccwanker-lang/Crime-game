@@ -136,6 +136,8 @@ Godot console exe:
   Crimes: group call `report_crime(player, pos, murder)` on "police" from PlayerCombat (every shot, every kill).
   Patrol car = `Car.police` (+ synced `siren`), `Traffic.spawn_police_car` (`--police-cars=N`). NPCs can damage players:
   `Player.host_damage(amount, attacker: Node, from)`.
+- Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;
+  `abandon()` only for wrecks/tests; `honk` is rate-limited town-wide (`_last_honk_ms`). `Car.force_reaction` "panic"/"uturn".
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

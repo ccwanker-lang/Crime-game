@@ -31,12 +31,9 @@ const SENSE_LEN: float = 4.5
 const HEAR_DISTANCE: float = 35.0
 const PANIC_TIME: float = 6.0
 const PANIC_SPEED: float = 1.5  # x CRUISE
-## A shot closer than this may make the driver bail out (else the car races off).
-const BAIL_DISTANCE: float = 18.0
-const BAIL_CHANCE: float = 0.35
 const MAX_HEALTH: int = 150
-const DRIVER_AWAY: float = 25.0
-const WRECK_TIME: float = 45.0
+const DRIVER_AWAY: float = 8.0  # a stopped (not wrecked) car drives on after this
+const WRECK_TIME: float = 20.0
 const SWERVE_TIME: float = 1.2
 const HORN := preload("res://assets/audio/vehicles/car_horn.ogg")
 const HORN_SHORT := preload("res://assets/audio/vehicles/car_horn_short.ogg")
@@ -64,8 +61,17 @@ var net_pos: Vector3 = Vector3.ZERO
 var net_yaw: float = 0.0
 var net_speed: float = 0.0
 
-## Tests: "panic" / "bail" forces the reaction to a gunshot ("" = random).
+## Tests: "panic" / "uturn" forces the reaction to a gunshot ("" = by where the shot was).
 static var force_reaction: String = ""
+## Point 23: one horn at a time in the whole town (msec of the last honk).
+static var _last_honk_ms: int = -100000
+const HONK_GAP_MS: int = 1800
+const HONK_CHANCE: float = 0.35
+## Point 24: a shot ahead closer than this makes the car turn round.
+const UTURN_DISTANCE: float = 30.0
+const UTURN_TIME: float = 2.2
+## Host: U-turn in progress ({} = none): from transform, target route + progress, time.
+var _uturn: Dictionary = {}
 
 var speed: float = 0.0
 ## Host: stopped with nobody at the wheel (driver fled) / shot to pieces.
@@ -121,8 +127,9 @@ func _ready() -> void:
 	shape.position.y = 0.3 + box.size.y / 2.0
 	add_child(shape)
 	_horn = AudioStreamPlayer3D.new()
-	_horn.unit_size = 12.0
-	_horn.max_distance = 90.0
+	_horn.unit_size = 5.0
+	_horn.volume_db = -12.0
+	_horn.max_distance = 55.0
 	_horn.position = Vector3(0, 0.8, -1.5)
 	add_child(_horn)
 	Net.limit_sync_to_world($Sync)
@@ -246,6 +253,9 @@ func _physics_process(delta: float) -> void:
 		net_yaw = rotation.y
 		net_speed = speed
 		return
+	if not _uturn.is_empty():
+		_drive_uturn(delta)
+		return
 	panic = maxf(0.0, panic - delta)
 	_swerve = maxf(0.0, _swerve - delta)
 	# Slow down for corners ahead, stop for anything in the way (faster when panicking).
@@ -266,8 +276,9 @@ func _physics_process(delta: float) -> void:
 	if blocker == "car" and _ahead_stopped:
 		_wait_car = 0.0  # a stopped car ahead: wait (and toot) instead of creeping through it
 		if _honk_cooldown <= 0.0 and speed < 0.5:
-			honk(false)
-			_honk_cooldown = randf_range(6.0, 12.0)
+			if randf() < HONK_CHANCE:
+				honk(false)
+			_honk_cooldown = randf_range(12.0, 25.0)
 	elif blocker == "car":
 		_wait_car += delta
 		if _wait_car > DEADLOCK_TIME:
@@ -394,23 +405,74 @@ func _spin_wheels(v: float, delta: float) -> void:
 # --- Gunfire (host) ------------------------------------------------------------------
 
 ## Host (group "cars", every shot): race off honking and swerving, or bail out when close.
+## Host (point 24): drivers never get out. A shot ahead -> turn round and drive away;
+## anywhere else -> speed off (and maybe a startled honk). Then the normal route again.
 func hear_gunshot(origin: Vector3, _hit: bool = false) -> void:
 	if not _is_host() or abandoned or police or not is_inside_tree():
 		return
 	var d: float = global_position.distance_to(origin)
 	if d > HEAR_DISTANCE:
 		return
-	var bail: bool = d < BAIL_DISTANCE and randf() < BAIL_CHANCE
+	var to_shot: Vector3 = origin - global_position
+	to_shot.y = 0.0
+	var ahead: bool = to_shot.dot(-global_basis.z) > 0.3 * to_shot.length() and d < UTURN_DISTANCE
 	if force_reaction != "":
-		bail = force_reaction == "bail"
-	if bail and panic <= 0.0:
-		abandon(origin)
+		ahead = force_reaction == "uturn"
+	if ahead and _uturn.is_empty() and start_uturn(origin):
+		panic = PANIC_TIME + UTURN_TIME
 		return
 	if panic <= 0.0:
-		honk(true)
-		_swerve = SWERVE_TIME
-		_swerve_side = -1.0 if randf() < 0.5 else 1.0
+		if randf() < HONK_CHANCE:
+			honk(true)
+		if _uturn.is_empty():
+			_swerve = SWERVE_TIME
+			_swerve_side = -1.0 if randf() < 0.5 else 1.0
 	panic = PANIC_TIME
+
+
+## Host: turn round onto the other lane (any route there that heads away from `origin`).
+## False if there is no such lane close by (then it just speeds on).
+func start_uturn(origin: Vector3) -> bool:
+	var traffic := get_parent() as Traffic
+	if traffic == null:
+		return false
+	var spot: Array = traffic.find_escape(global_position, origin, -global_basis.z)
+	if spot.is_empty():
+		return false
+	for j: int in Traffic.JUNCTIONS.size():
+		traffic.release_junction(j, self)
+	_uturn = {"from": global_transform, "route": int(spot[0]), "prog": float(spot[1]), "t": 0.0}
+	_swerve = 0.0
+	return true
+
+
+func _drive_uturn(delta: float) -> void:
+	_uturn["t"] = float(_uturn["t"]) + delta
+	var s: float = clampf(float(_uturn["t"]) / UTURN_TIME, 0.0, 1.0)
+	var e: float = s * s * (3.0 - 2.0 * s)
+	var from: Transform3D = _uturn["from"]
+	var route: TrafficRoute = (get_parent() as Traffic).routes[int(_uturn["route"])]
+	var to: Array = route.sample(float(_uturn["prog"]))
+	var to_pos: Vector3 = to[0]
+	var to_dir: Vector3 = to[1]
+	var a_yaw: float = from.basis.get_euler().y
+	var b_yaw: float = atan2(-to_dir.x, -to_dir.z)
+	var turn: float = fposmod(b_yaw - a_yaw, TAU)  # always round to the left (right-hand traffic)
+	var fwd: Vector3 = -from.basis.z
+	global_position = from.origin.lerp(to_pos, e) + fwd * sin(s * PI) * 3.0
+	rotation.y = a_yaw + turn * e
+	speed = 3.0
+	_steer = 0.5
+	_spin_wheels(speed, delta)
+	net_pos = global_position
+	net_yaw = rotation.y
+	net_speed = speed
+	if s >= 1.0:
+		route_id = int(_uturn["route"])
+		progress = float(_uturn["prog"])
+		_uturn = {}
+		_steer = 0.0
+		_place_on(route)
 
 
 ## Host: a bullet hit the car: it stops and the driver runs. Cars don't "die" (returns false).
@@ -425,6 +487,10 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 			report_crime(attacker as Player, from if from != Vector3.INF else global_position, false)
 		elif is_instance_valid(_driver) and _driver is PoliceOfficer:
 			(_driver as PoliceOfficer)._alert(attacker as Player, (attacker as Player).global_position)
+		return false
+	if not wrecked and not police:
+		# Point 24: a hit car speeds off (or turns round), the driver stays in.
+		hear_gunshot(from if from != Vector3.INF else global_position, true)
 		return false
 	if not abandoned:
 		abandon(from if from != Vector3.INF else global_position)
@@ -485,19 +551,12 @@ func _police_come_back() -> void:
 
 
 ## Host: stop; the driver gets out on the kerb side and runs from `origin`, comes back later.
-func abandon(origin: Vector3) -> void:
+## Host: stop where it is (a wreck, or tests). Drivers never get out any more (point 24):
+## a wreck is towed away after WRECK_TIME and replaced, anything else drives on after a while.
+func abandon(_origin: Vector3) -> void:
 	abandoned = true
 	panic = 0.0
 	_swerve = 0.0
-	var world: Node = get_tree().current_scene
-	if world and world.has_method("_add_pedestrian"):
-		var side: Vector3 = global_position + global_basis.x * 1.4
-		side.y = global_position.y + 0.1
-		var ped: Pedestrian = world.call("_add_pedestrian", side, randi() % 4)
-		ped.ambient = false
-		ped.set_meta(&"driver", true)
-		_driver = ped
-		ped.hear_gunshot.call_deferred(origin, true)
 	_come_back()
 
 
@@ -505,27 +564,9 @@ func _come_back() -> void:
 	await get_tree().create_timer(WRECK_TIME if wrecked else DRIVER_AWAY).timeout
 	if not is_inside_tree():
 		return
-	var alive: bool = is_instance_valid(_driver) and not (_driver as Pedestrian).dead
-	if wrecked or not alive:
-		if not wrecked:
-			# Driver dead: the car waits for the tow truck.
-			await get_tree().create_timer(WRECK_TIME - DRIVER_AWAY).timeout
-		_remove_driver()
-		if is_inside_tree():
-			(get_parent() as Traffic).replace_car(self)
+	if wrecked:
+		(get_parent() as Traffic).replace_car(self)
 		return
-	# The driver walks back to the car, gets in and drives on.
-	var door: Vector3 = global_position + global_basis.x * 1.4
-	for attempt: int in 3:
-		if not is_instance_valid(_driver) or (_driver as Pedestrian).dead:
-			break
-		await (_driver as Pedestrian).walk_to(door)
-		if is_instance_valid(_driver) and (_driver as Node3D).global_position.distance_to(door) < 3.0:
-			break
-		await get_tree().create_timer(3.0).timeout
-	if not is_inside_tree():
-		return
-	_remove_driver()
 	abandoned = false
 
 
@@ -537,6 +578,10 @@ func _remove_driver() -> void:
 
 ## Host -> everyone: horn (long = startled, short = impatient toot).
 func honk(long: bool) -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - _last_honk_ms < HONK_GAP_MS:
+		return  # somebody else is already honking
+	_last_honk_ms = now
 	_play_horn(long)
 	for peer: int in Net.peers_in_world:
 		_play_horn.rpc_id(peer, long)
@@ -549,3 +594,8 @@ func _play_horn(long: bool) -> void:
 	_horn.stream = HORN if long else HORN_SHORT
 	_horn.pitch_scale = randf_range(0.92, 1.08) + float(kind) * 0.04
 	_horn.play()
+	# Point 23: short toots only.
+	var stop_after: float = 0.45 if long else 0.2
+	get_tree().create_timer(stop_after).timeout.connect(func() -> void:
+		if is_instance_valid(_horn):
+			_horn.stop())
