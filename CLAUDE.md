@@ -66,7 +66,9 @@ Godot console exe:
   live in PlayerCombat (`_h_mags` on the host). New player/respawn: `GameState.give_starter_kit` (pistol + 24 9mm).
   Death: `host_unload` puts loaded rounds back as items before the loot bag. Gun shop: `prefabs/buildings/gun_shop.tscn`
   (Vince, `ItemData.pack_size` = ammo per box). F6 = debug +€1000. Third person aims at the camera's centre ray.
-- NPC combat: `Pedestrian.host_damage`/`is_head_hit`; dead -> anim DEAD, removed after `corpse_time`, World
+- Ragdoll: `Ragdoll` (`scripts/npc/ragdoll.gd`, SkeletonModifier3D) builds capsule RigidBody3Ds + ConeTwist joints
+  from the pose on death (every peer, world layer only), drives the bones; host sends the shot push (`_ragdoll_push`).
+- NPC combat: `Pedestrian.host_damage`/`is_head_hit`; dead -> anim DEAD (ragdoll), removed after `corpse_time`, World
   `respawn_pedestrian_later` spawns a new one after `respawn_time` (60 s). `hear_gunshot` (group call per shot) -> flee.
 - Inventory: host-owned in GameState.player_data (8 slots, stacks up to ItemData.max_stack; `give` returns what
   didn't fit). The owner gets cash + items via `Player.send_wallet()` (call it after every change) -> HUD bar.

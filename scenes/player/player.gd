@@ -122,6 +122,7 @@ var _meshes: Array[MeshInstance3D] = []
 var _model: Node3D
 var _recoil_pending: float = 0.0  # camera pitch still to recover from recoil
 var _view_before_death: bool = false
+var _ragdoll: Ragdoll
 # Host-side validation of client movement.
 var _check_pos: Vector3 = Vector3.INF
 var _check_time: float = 0.0
@@ -213,6 +214,8 @@ func _build_model() -> void:
 	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	_pose = PoseModifier.new()
 	_skeleton.add_child(_pose)
+	_ragdoll = Ragdoll.new()  # after the pose modifier: overrides it while dead
+	_skeleton.add_child(_ragdoll)
 	if aim_anim:
 		_pose.set_aim_pose(aim_anim, 0.3)
 	_anim.play(_anim_names.get("Idle", ""))
@@ -481,7 +484,7 @@ func _update_anim() -> void:
 	if _anim == null:
 		return
 	if dead:
-		return  # the death animation plays once and holds its last frame
+		return  # the ragdoll moves the body
 	var move: Vector2 = net_move
 	var key: String = "Idle"
 	var speed_scale: float = 1.0
@@ -575,12 +578,20 @@ func host_damage(amount: int, attacker: Player, from: Vector3 = Vector3.INF) -> 
 	health = maxi(0, health - amount)
 	if health > 0:
 		return false
-	_host_die(attacker)
+	_host_die(attacker, from)
 	return true
 
 
-func _host_die(attacker: Player) -> void:
+func _host_die(attacker: Player, from: Vector3 = Vector3.INF) -> void:
 	dead = true
+	# Every peer lets the body fall as a ragdoll; the shot pushes it away from the shooter.
+	var away := Vector3(global_position.x - from.x, 0, global_position.z - from.z) if from != Vector3.INF else -global_basis.z
+	var impulse: Vector3 = away.normalized() * 90.0 + Vector3.UP * 15.0
+	var at: Vector3 = global_position + Vector3.UP * 1.25
+	_ragdoll_push(impulse, at)
+	for peer: int in Net.peers_in_world:
+		if peer != multiplayer.get_unique_id():
+			_ragdoll_push.rpc_id(peer, impulse, at)
 	var killer: String = attacker.player_name if attacker and attacker != self else ""
 	print("[Player] %s died%s" % [player_name, (" (killed by %s)" % killer) if killer != "" else ""])
 	# Drop everything carried in a bag on the ground (loaded rounds included).
@@ -623,13 +634,11 @@ func _on_dead_changed() -> void:
 	# Dead bodies are not solid for others and can't be shot again.
 	collision_layer = 0 if dead else 8
 	if dead:
-		_pose.aim = 0.0
-		_pose.crouch = 0.0
-		_pose.pitch = 0.0
-		_anim.speed_scale = 1.0
-		_anim.play(_anim_names.get("Death", ""), 0.15)
+		_go_limp()
 	else:
-		_anim.play(_anim_names.get("Idle", ""), 0.1)
+		_ragdoll.stop()
+		_pose.active = true
+		_anim.play(_anim_names.get("Idle", ""), 0.0)
 	if is_local():
 		if dead and shop != null:
 			close_shop()
@@ -643,6 +652,27 @@ func _on_dead_changed() -> void:
 			_set_third_person(_view_before_death)
 			if ui:
 				ui.hide_death()
+
+
+## Every peer: the animation stops and the ragdoll takes over.
+func _go_limp() -> void:
+	if _ragdoll == null or _ragdoll.running:
+		return
+	_pose.aim = 0.0
+	_pose.crouch = 0.0
+	_pose.pitch = 0.0
+	_pose.active = false
+	_anim.pause()
+	_ragdoll.start(velocity)
+
+
+## Host -> peers: the death shot's push on the ragdoll.
+@rpc("any_peer", "call_remote", "reliable")
+func _ragdoll_push(impulse: Vector3, at: Vector3) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	_go_limp()
+	_ragdoll.push(impulse, at)
 
 
 ## Host -> owner: you died.

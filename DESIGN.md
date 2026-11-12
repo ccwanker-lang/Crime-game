@@ -142,8 +142,9 @@ Terrain should have real height differences (hills up, down to the river and har
 - Weapons + ammo are inventory items, sold by Vince in the gun shop (temporary spot in the shop row).
   Every new player and every respawn gets a free loaded service pistol + 24 rounds (until earning money
   works); later this should go. F6 = debug +€1000 to test buying.
-- Pedestrians die and respawn after 60 s (corpse 20 s); no ragdoll physics yet (death animation), no
-  police/witnesses yet. Shopkeepers can't be shot.
+- Pedestrians die (ragdoll) and respawn after 60 s (corpse 20 s); no police/witnesses yet.
+  Shopkeepers can't be shot. Ragdolls are cosmetic and local per peer (bodies may lie slightly
+  differently on each screen).
 - Aiming down sights with the long guns: the left (sleeve) arm still crosses the lower left of the view.
 - No lag compensation: the host hits what it sees (fine on LAN).
 - First-person hands wear dark gloves; the third-person body shows bare hands.

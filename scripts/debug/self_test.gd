@@ -273,6 +273,9 @@ func _check_combat(world: Node3D) -> void:
 	await get_tree().physics_frame
 	var bags: Array[Node] = world.get_node("Loot").get_children()
 	_report(p.dead and p.collision_layer == 0, "player dies at 0 health (not solid while dead)")
+	await get_tree().create_timer(2.0).timeout
+	_report(p._ragdoll.running and p._ragdoll.head_height() < p.global_position.y + 0.6,
+			"dead player falls as a ragdoll (head %.2f m above the feet)" % (p._ragdoll.head_height() - p.global_position.y))
 	_report(bags.size() == 1 and (bags[0] as LootBag).cash == cash and cash > 0,
 			"death drops a loot bag with the cash (€%d)" % cash)
 	_report(int(GameState.get_or_create_player_data(p.player_name)["cash"]) == 0, "dead player's cash is in the bag, not on him")
@@ -286,6 +289,7 @@ func _check_combat(world: Node3D) -> void:
 		if (sp as Node3D).global_position.distance_to(p.global_position) < 1.0:
 			near_spawn = true
 	_report(near_spawn, "respawned at a hospital spawn point %s" % p.global_position.snapped(Vector3.ONE * 0.1))
+	_report(not p._ragdoll.running, "ragdoll gone after the respawn")
 
 	# Pick the bag up again.
 	p.teleport(death_pos + Vector3(1.0, 0.1, 0))
@@ -617,8 +621,8 @@ func _check_npc_combat(world: Node3D) -> void:
 	if count0 < 2:
 		_report(false, "need pedestrians for the NPC combat check")
 		return
-	Pedestrian.corpse_time = 1.0
-	Pedestrian.respawn_time = 2.0
+	Pedestrian.corpse_time = 3.0
+	Pedestrian.respawn_time = 4.0
 	var a: Pedestrian = npcs[0] as Pedestrian
 	var b: Pedestrian = npcs[1] as Pedestrian
 	var b_start: Vector3 = b.global_position
@@ -632,6 +636,11 @@ func _check_npc_combat(world: Node3D) -> void:
 	var killed: bool = a.host_damage(200, null)
 	_report(killed and a.dead and a.anim_state == Pedestrian.Anim.DEAD and a.collision_layer == 0,
 			"NPC dies at 0 health (death anim, not solid)")
+	var head0: float = a.get_node("Model").find_children("*", "Skeleton3D", true, false)[0].global_position.y
+	await get_tree().create_timer(2.0).timeout
+	var rd: Ragdoll = a._ragdoll
+	_report(rd.running and rd.head_height() < a.global_position.y + 0.6,
+			"dead NPC falls as a ragdoll (head %.2f m above its feet)" % (rd.head_height() - a.global_position.y))
 	await get_tree().create_timer(2.5).timeout
 	var now: int = get_tree().get_nodes_in_group(&"npc").size()
 	_report(not is_instance_valid(a) and now == count0, "dead NPC removed and a new one respawned (%d -> %d)" % [count0, now])

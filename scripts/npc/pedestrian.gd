@@ -92,6 +92,7 @@ static var _material_cache: Dictionary = {}
 @onready var collision: CollisionShape3D = $Collision
 
 var _anim: AnimationPlayer
+var _ragdoll: Ragdoll
 var _anim_names: Dictionary = {}
 var _anim_walk_speed: float = 1.0
 var _moving: bool = false
@@ -164,6 +165,8 @@ func _build_model() -> void:
 			m.set_surface_override_material(s, _matte(mat, tint))
 
 	_anim = model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	_ragdoll = Ragdoll.new()
+	(model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D).add_child(_ragdoll)
 	# Skip animating NPCs that no camera sees (cheap CPU when many are around).
 	var notifier := VisibleOnScreenNotifier3D.new()
 	notifier.aabb = AABB(Vector3(-0.6, 0, -0.6), Vector3(1.2, 2.0, 1.2))
@@ -206,6 +209,9 @@ func can_sit() -> bool:
 
 func _apply_anim() -> void:
 	if _anim == null:
+		return
+	if anim_state == Anim.DEAD:
+		_go_limp()
 		return
 	var a: String = _anim_names.get(anim_state, _anim_names.get(Anim.IDLE, ""))
 	if a == "" or _anim.current_animation == a:
@@ -462,11 +468,26 @@ func host_damage(amount: int, _attacker: Node = null, from: Vector3 = Vector3.IN
 	if health > 0:
 		hear_gunshot(from if from != Vector3.INF else global_position, true)
 		return false
-	_die()
+	_die(from)
 	return true
 
 
-func _die() -> void:
+## Every peer: dead -> the animation stops and the ragdoll takes over.
+func _go_limp() -> void:
+	if _ragdoll == null or _ragdoll.running:
+		return
+	_anim.pause()
+	_ragdoll.start(velocity if _is_host() else Vector3.ZERO)
+
+
+## Host -> peers: the death shot's push on the ragdoll.
+@rpc("authority", "call_remote", "reliable")
+func _ragdoll_push(impulse: Vector3, at: Vector3) -> void:
+	_go_limp()
+	_ragdoll.push(impulse, at)
+
+
+func _die(from: Vector3 = Vector3.INF) -> void:
 	dead = true
 	_flee_until = 0
 	if _sitting:
@@ -476,6 +497,12 @@ func _die() -> void:
 		_finish_move(false)
 	anim_state = Anim.DEAD
 	net_pos = global_position
+	var away := Vector3(global_position.x - from.x, 0, global_position.z - from.z) if from != Vector3.INF else -global_basis.z
+	var impulse: Vector3 = away.normalized() * 90.0 + Vector3.UP * 15.0
+	var at: Vector3 = global_position + Vector3.UP * 1.25
+	_ragdoll_push(impulse, at)
+	for peer: int in Net.peers_in_world:
+		_ragdoll_push.rpc_id(peer, impulse, at)
 	print("[NPC] %s died at %s" % [name, global_position.snapped(Vector3.ONE * 0.1)])
 	var world: Node = get_tree().current_scene
 	if world and world.has_method("respawn_pedestrian_later"):

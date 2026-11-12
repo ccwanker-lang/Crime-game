@@ -53,6 +53,7 @@ const SHOTS: Array[Array] = [
 	# Gun shop (Block C, centre x 53, front z -6).
 	["37_gun_shop_outside", Vector3(53, 1.8, 3.0), Vector3(53, 2.6, -6)],
 	["38_gun_shop_inside", Vector3(51.6, 1.7, -7.2), Vector3(53.4, 1.4, -15.7)],
+	["39_ragdolls", Vector3(-17.8, 1.6, -1.6), Vector3(-17.8, 0.2, -4.6)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -171,6 +172,17 @@ func _stage(shot_name: String) -> void:
 				get_tree().current_scene.add_child(pl)
 				_staged.append(pl)
 			await get_tree().create_timer(0.7).timeout
+		"39_ragdolls":
+			# Three pedestrians (both character packs) shot dead on the sidewalk.
+			for i: int in 3:
+				var npc := _posed(scene, npcs, [0, 8, 4][i], Vector3(-16.0 - i * 1.8, 0.15, -4.6), PI / 2.0)
+				await get_tree().physics_frame
+				npc.host_damage(500, null, npc.global_position + Vector3(-3.0, 1.4, 0.5 * i))
+			await get_tree().create_timer(3.0).timeout
+			for n: Node in _staged:
+				var r: Ragdoll = n.get("_ragdoll")
+				if r:
+					print("[Screenshot] ragdoll %s head %.2f, feet %.2f" % [n.name, r.head_height(), (n as Node3D).global_position.y])
 		"29_third_person", "30_first_person":
 			# A local player (auto_walk: no mouse capture) whose own camera takes the shot.
 			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
