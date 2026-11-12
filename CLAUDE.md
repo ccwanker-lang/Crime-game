@@ -37,8 +37,9 @@ Godot console exe:
 - Map self-test (headless): `--headless --path . -- --selftest --port=7791` (`scripts/debug/self_test.gd`):
   lamps on poles, walk + navmesh through every door, debug labels hidden, pedestrians stay off the
   road (except zebras) and keep moving, player jump/speed/crouch, combat (ammo, reload, damage, death,
-  loot bag, respawn). Run it after map/door/NPC/player/combat
-  changes; it prints PASS/FAIL. The door/player checks use `player.tscn` with `auto_walk`.
+  loot bag, respawn), stairs (walker up/down every flight + NPC navmesh to every top floor). Run it after
+  map/door/NPC/player/combat changes; it prints PASS/FAIL. `--only=stairs,traffic` runs just those checks
+  (names = `CHECKS` in self_test.gd). The door/player checks use `player.tscn` with `auto_walk`.
 - Network check (headless): `-- --host --port=7792 --netcheck --name=Host`, then 4 s later
   `-- --join=127.0.0.1 --port=7792 --netcheck --name=B`: the client shoots the host dead, takes the loot bag,
   sees the respawn, then walks crouched 5 m; both print what they see. The host runs ~40 s: wait for it to
