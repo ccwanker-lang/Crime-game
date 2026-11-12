@@ -107,6 +107,8 @@ var shop: Shopkeeper = null
 var _base_fov: float = 75.0
 ## Owner: last message from the host (show_message), also for tests.
 var last_message: String = ""
+## Last phone message received [contact, text, deal] (tests).
+var last_phone: Array = []
 
 signal wallet_changed
 var _gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -269,6 +271,12 @@ func _set_third_person(on: bool) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local() or auto_walk:
 		return
+	if ui and ui.phone.is_open():
+		# Phone out: mouse free for it, you can still walk; Tab or Esc puts it away.
+		if event.is_action_pressed("phone") or event.is_action_pressed("release_mouse"):
+			close_phone()
+			get_viewport().set_input_as_handled()
+		return
 	if shop != null:
 		# Shop window open: the mouse is free for its buttons; E or Esc leaves.
 		if event.is_action_pressed("release_mouse") or event.is_action_pressed("interact"):
@@ -319,6 +327,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		combat.select_slot(_weapon_key(event))
 	elif event.is_action_pressed("toggle_view") and not dead:
 		_set_third_person(not third_person)
+	elif event.is_action_pressed("phone") and not dead and ui:
+		open_phone()
 	elif event.is_action_pressed("interact") and _focused != null and not dead:
 		_focused.call("interact")
 	elif event is InputEventKey and not event.echo and (event as InputEventKey).physical_keycode == KEY_F7:
@@ -555,6 +565,22 @@ func open_shop(keeper: Shopkeeper) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
+## Owner: phone out (frees the mouse) / away.
+func open_phone() -> void:
+	ui.phone.player = self
+	ui.phone.open()
+	combat.trigger_held = false
+	combat.aiming = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_phone() -> void:
+	if ui:
+		ui.phone.close()
+	if not auto_walk:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
 func close_shop() -> void:
 	shop = null
 	if ui:
@@ -747,6 +773,77 @@ func _set_wallet(amount: int, items: Array) -> void:
 		ui.set_cash(amount)
 		ui.set_inventory(items)
 	wallet_changed.emit()
+
+
+## Host: a phone message for the owner (`deal` = customer node name or "").
+func phone_message(contact: String, text: String, deal: String) -> void:
+	if not multiplayer.is_server():
+		return
+	if peer_id == multiplayer.get_unique_id():
+		_phone_message(contact, text, deal)
+	else:
+		_phone_message.rpc_id(peer_id, contact, text, deal)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _phone_message(contact: String, text: String, deal: String) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	last_phone = [contact, text, deal]
+	if ui:
+		ui.phone.player = self
+		ui.phone.add_message(contact, text, deal)
+		if not ui.phone.is_open():
+			ui.toast("New message from %s  [Tab]" % contact)
+
+
+## Owner: answer a customer's text (accept = "On my way").
+func phone_reply(deal: String, accept: bool) -> void:
+	if multiplayer.is_server():
+		_host_phone_reply(deal, accept)
+	else:
+		_request_phone_reply.rpc_id(1, deal, accept)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_phone_reply(deal: String, accept: bool) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		_host_phone_reply(deal, accept)
+
+
+func _host_phone_reply(deal: String, accept: bool) -> void:
+	var npc := get_tree().current_scene.get_node_or_null("NPCs/" + deal) as Pedestrian
+	if npc and not npc.dead and npc.wants > 0:
+		npc.answer_text(self, accept)
+
+
+## Owner: order a legal item on the phone (delivered to the Starter Room box).
+func webshop_buy(id: StringName, count: int) -> void:
+	if multiplayer.is_server():
+		_host_webshop_buy(id, count)
+	else:
+		_request_webshop_buy.rpc_id(1, id, count)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_webshop_buy(id: StringName, count: int) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		_host_webshop_buy(id, count)
+
+
+func _host_webshop_buy(id: StringName, count: int) -> void:
+	var item: ItemData = ItemDB.get_item(id)
+	var box := get_tree().get_first_node_in_group(&"delivery_box") as DeliveryBox
+	if item == null or not item.is_legal or item.base_price <= 0 or count < 1 or count > 20 or box == null:
+		show_message("QuickShip can't deliver that.")
+		return
+	var cost: int = item.base_price * count
+	if not GameState.add_cash(player_name, -cost):
+		show_message("Not enough cash (€%d)." % cost)
+		return
+	box.order(str(id), count * item.pack_size)
+	send_wallet()
+	show_message("Ordered %d %s for €%d. Delivery to your Starter Room in about an hour." % [count, item.display_name, cost])
 
 
 ## Host: short message on the owner's screen (station results, errors).

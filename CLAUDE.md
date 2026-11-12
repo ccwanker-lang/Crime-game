@@ -90,6 +90,10 @@ Godot console exe:
   `wants`/`offer` (synced, group `customer` + `interactable`, "€" Label3D); World `_customer_loop`/`make_customer`
   (host), E -> `Pedestrian._server_sell` rolls fair/short/run (`Pedestrian.force_outcome` for tests). The interact
   ray hits layer 3 (npcs) too; clients enable a customer's collision only for that ray.
+- Phone (step 8): `Phone` (scenes/player/phone.gd, built in code, in the HUD) + `PhoneMap`; Tab = action `phone`.
+  Host -> owner texts via `Player.phone_message(contact, text, deal)` / `World.phone_all`; answers go back with
+  `Player.phone_reply` -> `Pedestrian.answer_text`. Webshop: `Player.webshop_buy` (legal items only) ->
+  `DeliveryBox.order` (station in the Starter Room, group `delivery_box`).
 - Health/death: host-owned `health`/`dead` on Player (HostSync). Death -> `LootBag` (`prefabs/props/loot_bag.tscn`,
   World/LootSpawner) with the cash + carried items from GameState, respawn at a free hospital spawn point.
 - In .tscn files a Transform3D basis is written as ROWS (x.x, y.x, z.x, x.y, ...), not columns.

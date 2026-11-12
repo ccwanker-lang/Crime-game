@@ -119,6 +119,11 @@ var _deal_label: Label3D
 ## Host: customer gives up at this time (msec ticks); bags it ran off with.
 var _customer_until: int = 0
 var _stolen: int = 0
+## Host: first name in texts; true once a player answered "On my way" (it waits).
+var customer_name: String = ""
+var _meet_accepted: bool = false
+const CUSTOMER_NAMES: Array[String] = ["Kevin", "Jens", "Lotte", "Sam", "Dylan", "Inge", "Bram", "Nora", "Wout",
+		"Femke", "Robbe", "Elke", "Senne", "Jana", "Milan", "Lisa"]
 
 
 func _ready() -> void:
@@ -579,7 +584,7 @@ func hear_gunshot(origin: Vector3, hit: bool = false) -> void:
 func _wander() -> void:
 	await idle(randf_range(0.5, 3.0))
 	while is_inside_tree() and ambient and not dead:
-		if is_fleeing() or _sitting or (wants > 0 and _player_near(CUSTOMER_STOP_DISTANCE) != null):
+		if is_fleeing() or _sitting or (wants > 0 and (_meet_accepted or _player_near(CUSTOMER_STOP_DISTANCE) != null)):
 			await get_tree().create_timer(0.5).timeout
 			if not is_fleeing() and not _moving and not dead and not _sitting:
 				anim_state = Anim.IDLE
@@ -674,7 +679,28 @@ func _customer_changed() -> void:
 func become_customer(bags: int, price: int, seconds: float) -> void:
 	offer = price
 	wants = bags
+	_meet_accepted = false
 	_customer_until = Time.get_ticks_msec() + int(seconds * 1000.0)
+	customer_name = CUSTOMER_NAMES.pick_random()
+	var world: Node = get_tree().current_scene
+	if world and world.has_method("phone_all"):
+		var where: String = world.call("describe_location", global_position)
+		world.call("phone_all", customer_name, "Hey, it's %s. Need %d bag%s, I'll pay €%d. I'm %s." % [
+				customer_name, bags, "" if bags == 1 else "s", price, where], str(name))
+
+
+## Host: a player answered the customer's text.
+func answer_text(from: Player, accept: bool) -> void:
+	if accept:
+		_meet_accepted = true
+		_customer_until = maxi(_customer_until, Time.get_ticks_msec() + 180000)
+		if _moving:
+			_finish_move(false)
+		from.phone_message(customer_name, "Cool. I'll wait right here. Look for the €.", "")
+	else:
+		wants = 0
+		from.phone_message(customer_name, "Your loss.", "")
+	print("[Deal] %s answered %s: %s" % [from.player_name, customer_name, "on my way" if accept else "not now"])
 
 
 func _player_near(dist: float) -> Player:
@@ -696,7 +722,12 @@ func _player_near(dist: float) -> Player:
 func _customer_tick() -> void:
 	if Time.get_ticks_msec() > _customer_until:
 		wants = 0
+		var world: Node = get_tree().current_scene
+		if world and world.has_method("phone_all") and _meet_accepted:
+			world.call("phone_all", customer_name, "Forget it, you're too slow.", "")
 		return
+	if _meet_accepted and _moving:
+		_finish_move(false)  # waiting for the player at the spot it texted
 	if is_fleeing():
 		return
 	var pl: Player = _player_near(CUSTOMER_STOP_DISTANCE)

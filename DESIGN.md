@@ -164,3 +164,8 @@ Terrain should have real height differences (hills up, down to the river and har
   after 5 min) wanting 1-3 bags at ~€51-78 each; E sells. Outcomes (host roll): fair 73%, pays short
   (35-70%) 15%, runs off with the bags 12% (kill it -> loot bag with the bags). Customers find you on the
   street for now; the phone (step 8) adds messages and meet points.
+- Step 8 (phone, Tab): own chat app "Hush" (customers text name, bags, price and where they are; "On my
+  way" makes them wait 3 more minutes, "Not now" sends them off), a map centred on you (roads, buildings,
+  shops, players, customers) and QuickShip, the webshop for legal items (soil, watering can) delivered to
+  the delivery box in the Starter Room after 1 in-game hour. Messages live on each client (not saved yet).
+  Later: dealer contacts, calling the roadside service team, more apps.

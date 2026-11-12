@@ -48,6 +48,7 @@ func _run() -> void:
 	await _check_pedestrians(world)
 	await _check_npc_combat(world)
 	await _check_selling(world)
+	await _check_phone(world)
 	await _check_traffic(world)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
@@ -827,5 +828,75 @@ func _check_selling(world: Node3D) -> void:
 	_report(world.get_node("Loot").get_child_count() == bags_before + 1 and stolen_back,
 			"killing the runner drops the stolen bags")
 	GameState.player_data.erase("Dealer")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Phone (step 8) -------------------------------------------------------------------------
+
+func _check_phone(world: Node3D) -> void:
+	var room: Node = world.find_child("StarterRoom", true, false)
+	var box: DeliveryBox = room.find_child("DeliveryBox", true, false) as DeliveryBox
+	_report(box != null, "starter room has a delivery box")
+	if box == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Caller"
+	var front: Vector3 = box.global_position + box.global_basis.z * 0.9 + Vector3.UP * 0.1
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Caller")
+	p.send_wallet()
+	# Customers text where they are; "On my way" makes them wait, "Not now" sends them off.
+	var npc: Pedestrian = null
+	for n: Node in get_tree().get_nodes_in_group(&"npc"):
+		if not (n as Pedestrian).dead and (n as Pedestrian).wants == 0:
+			npc = n as Pedestrian
+	world.call("make_customer", npc)
+	_report(p.last_phone.size() == 3 and p.last_phone[0] == npc.customer_name and p.last_phone[2] == str(npc.name)
+			and str(p.last_phone[1]).contains("Need"), "customer texts the players: %s" % [p.last_phone])
+	p._host_phone_reply(str(npc.name), true)
+	await get_tree().create_timer(1.0).timeout
+	var pos0: Vector3 = npc.global_position
+	await get_tree().create_timer(2.0).timeout
+	_report(npc._meet_accepted and npc.global_position.distance_to(pos0) < 0.3 and str(p.last_phone[1]).contains("wait"),
+			"'On my way': the customer waits (moved %.2f m) - '%s'" % [npc.global_position.distance_to(pos0), p.last_phone[1]])
+	p._host_phone_reply(str(npc.name), false)
+	_report(npc.wants == 0 and not npc.is_in_group(&"customer"), "'Not now': no longer a customer")
+	# Webshop: legal items only, paid now, delivered to the box after an in-game hour.
+	var cash0: int = int(GameState.get_or_create_player_data("Caller")["cash"])
+	p._host_webshop_buy(&"weed_seed", 1)
+	_report(p.last_message.contains("can't") and int(GameState.get_or_create_player_data("Caller")["cash"]) == cash0,
+			"webshop refuses illegal items: '%s'" % p.last_message)
+	p._host_webshop_buy(&"soil", 2)
+	_report(int(GameState.get_or_create_player_data("Caller")["cash"]) == cash0 - 20 and (box.state["pending"] as Array).size() == 1,
+			"webshop order paid (€20) and on its way: '%s'" % p.last_message)
+	box.tick(DeliveryBox.DELIVERY_HOURS + 0.05)
+	_report((box.state["items"] as Array).size() == 1 and p.last_phone[0] == "QuickShip", "order delivered to the box + text")
+	var soil0: int = GameState.count_item("Caller", "soil")
+	box._server_action(1)
+	_report(GameState.count_item("Caller", "soil") == soil0 + 2 and (box.state["items"] as Array).is_empty(),
+			"take the delivery: +2 soil ('%s')" % p.last_message)
+	# Phone UI: messages, unread count, every app opens.
+	var phone := Phone.new()
+	add_child(phone)
+	phone.add_message("Kevin", "Need 2 bags", "Pedestrian")
+	phone.add_message("Kevin", "Hello?", "")
+	_report(phone.total_unread() == 2, "phone counts unread messages (%d)" % phone.total_unread())
+	phone.open()
+	for screen: String in ["list", "map", "shop", "home"]:
+		phone._show(screen)
+		await get_tree().process_frame
+	phone._contact = "Kevin"
+	phone._show("thread")
+	await get_tree().process_frame
+	_report(phone.total_unread() == 0, "reading the thread clears unread")
+	phone.queue_free()
+	GameState.player_data.erase("Caller")
 	p.queue_free()
 	await get_tree().physics_frame

@@ -1,0 +1,115 @@
+class_name PhoneMap
+extends Control
+## Phone map app: top-down town map (north = -Z up), centred on you. Roads come from the
+## RoadTile asphalt, buildings from Building footprints; markers for players
+## (you = arrow), customers (€) and the shops. Redrawn every frame while open.
+
+const BOUNDS := Rect2(-76, -58, 152, 128)  # world x, z
+const LANDMARKS: Dictionary = {
+	"StarterRoom": "Your room", "Store": "Store", "Hospital": "Hospital",
+	"GunShop": "Guns", "ContactHideout": "Dries",
+}
+
+var _roads: Array[PackedVector2Array] = []
+var _buildings: Array[PackedVector2Array] = []
+var _labels: Array[Array] = []  # [world xz, text]
+
+
+func _ready() -> void:
+	custom_minimum_size = Vector2(0, 380)
+	clip_contents = true
+	var world: Node = get_tree().current_scene
+	if world == null:
+		return
+	for n: Node in world.find_children("*", "RoadTile", true, false):
+		var t := n as RoadTile
+		for poly: PackedVector2Array in t.asphalt_areas:
+			var out := PackedVector2Array()
+			for p: Vector2 in poly:
+				var w: Vector3 = t.global_transform * Vector3(p.x, 0, p.y)
+				out.append(Vector2(w.x, w.z))
+			_roads.append(out)
+	for n: Node in world.find_children("*", "Building", true, false):
+		var b := n as Building
+		var hw: float = b.width * 0.5
+		var out := PackedVector2Array()
+		for c: Vector2 in [Vector2(-hw, 0), Vector2(hw, 0), Vector2(hw, -b.depth), Vector2(-hw, -b.depth)]:
+			var w: Vector3 = b.global_transform * Vector3(c.x, 0, c.y)
+			out.append(Vector2(w.x, w.z))
+		_buildings.append(out)
+	for key: String in LANDMARKS:
+		var node := world.find_child(key, true, false) as Node3D
+		if node:
+			var p: Vector3 = node.global_position
+			_labels.append([Vector2(p.x, p.z), LANDMARKS[key]])
+
+
+func _process(_delta: float) -> void:
+	queue_redraw()
+
+
+const PIXELS_PER_M: float = 2.6
+
+var _centre := Vector2.ZERO  # world xz in the middle of the map
+
+
+func _to_map(p: Vector2) -> Vector2:
+	return size * 0.5 + (p - _centre) * PIXELS_PER_M
+
+
+## Follows the local player, without scrolling past the edge of the town.
+func _update_centre() -> void:
+	for n: Node in get_tree().get_nodes_in_group(&"players"):
+		var pl := n as Player
+		if pl and pl.is_local():
+			_centre = Vector2(pl.global_position.x, pl.global_position.z)
+	var half: Vector2 = size * 0.5 / PIXELS_PER_M
+	for axis: int in 2:
+		var lo: float = BOUNDS.position[axis] + half[axis]
+		var hi: float = BOUNDS.end[axis] - half[axis]
+		_centre[axis] = clampf(_centre[axis], lo, hi) if lo <= hi else (BOUNDS.position[axis] + BOUNDS.end[axis]) * 0.5
+
+
+func _poly(points: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for p: Vector2 in points:
+		out.append(_to_map(p))
+	return out
+
+
+func _draw() -> void:
+	_update_centre()
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.16, 0.22, 0.15))
+	for r: PackedVector2Array in _roads:
+		if r.size() >= 3:
+			draw_colored_polygon(_poly(r), Color(0.33, 0.33, 0.36))
+	for b: PackedVector2Array in _buildings:
+		var poly: PackedVector2Array = _poly(b)
+		draw_colored_polygon(poly, Color(0.55, 0.5, 0.45))
+		poly.append(poly[0])
+		draw_polyline(poly, Color(0.3, 0.27, 0.25), 1.0)
+	var font: Font = get_theme_default_font()
+	for l: Array in _labels:
+		var p: Vector2 = _to_map(l[0])
+		draw_string_outline(font, p + Vector2(-20, 4), l[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0, 0, 0, 0.8))
+		draw_string(font, p + Vector2(-20, 4), l[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 0.9, 0.6))
+	for c: Node in get_tree().get_nodes_in_group(&"customer"):
+		var p3: Vector3 = (c as Node3D).global_position
+		var p: Vector2 = _to_map(Vector2(p3.x, p3.z))
+		draw_circle(p, 7.0, Color(0.2, 0.7, 0.25))
+		draw_string(font, p + Vector2(-4, 4), "€", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	for n: Node in get_tree().get_nodes_in_group(&"players"):
+		var pl := n as Player
+		if pl == null or pl.dead:
+			continue
+		var p: Vector2 = _to_map(Vector2(pl.global_position.x, pl.global_position.z))
+		if pl.is_local():
+			# Arrow in the facing direction (-Z of the body).
+			var fwd3: Vector3 = -pl.global_basis.z
+			var f: Vector2 = Vector2(fwd3.x, fwd3.z).normalized()
+			var side: Vector2 = Vector2(-f.y, f.x)
+			draw_colored_polygon(PackedVector2Array([p + f * 9.0, p - f * 6.0 + side * 6.0, p - f * 3.0, p - f * 6.0 - side * 6.0]),
+					Color(0.35, 0.75, 1.0))
+		else:
+			draw_circle(p, 5.0, Color(1, 1, 1))
+			draw_string(font, p + Vector2(7, 4), pl.player_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)

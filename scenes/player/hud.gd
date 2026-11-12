@@ -35,6 +35,7 @@ var _shop_greeting: Label
 var _shop_list: VBoxContainer
 var _shop_cash: Label
 var _shop_msg: Label
+var phone: Phone
 
 
 func _ready() -> void:
@@ -43,6 +44,9 @@ func _ready() -> void:
 	damage_flash.color.a = 0.0
 	_build_inventory_bar()
 	_build_shop_panel()
+	phone = Phone.new()
+	phone.name = "Phone"
+	add_child(phone)
 	_scope = Control.new()
 	_scope.name = "Scope"
 	_scope.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

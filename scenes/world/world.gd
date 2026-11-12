@@ -146,6 +146,9 @@ func _net_check() -> void:
 	for c: Node in get_tree().get_nodes_in_group(&"customer"):
 		deals.append("%s wants %d for €%d (€ visible=%s)" % [c.name, c.get("wants"), c.get("offer"), c.get("_deal_label").visible])
 	print("[NetCheck] %s sees customers: %s" % ["host" if multiplayer.is_server() else "client", ", ".join(deals)])
+	for p: Node in players_root.get_children():
+		if (p as Player).is_local():
+			print("[NetCheck] %s last phone message: %s" % ["host" if multiplayer.is_server() else "client", (p as Player).last_phone])
 	print("[NetCheck] %s sees %d cars: %s" % ["host" if multiplayer.is_server() else "client",
 			get_tree().get_nodes_in_group(&"cars").size(), ", ".join(cars)])
 	for p: Node in players_root.get_children():
@@ -353,6 +356,42 @@ func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
 	npc.rotation.y = randf() * TAU
 	npcs.add_child(npc, true)
 	return npc
+
+
+# --- Phone (step 8) ----------------------------------------------------------------
+
+const PLACE_NAMES: Dictionary = {
+	"StarterRoom": "your Starter Room", "Store": "the Store", "Hospital": "the hospital",
+	"GunShop": "Vince's gun shop", "ContactHideout": "Dries' place", "Warehouse": "the warehouse",
+}
+
+
+## Host: a phone message to every player.
+func phone_all(contact: String, text: String, deal: String = "") -> void:
+	for p: Node in players_root.get_children():
+		(p as Player).phone_message(contact, text, deal)
+
+
+## "near the Store" / "on Main Road": roughly where `pos` is, for texts.
+func describe_location(pos: Vector3) -> String:
+	var best: String = ""
+	var best_d: float = 22.0
+	for key: String in PLACE_NAMES:
+		var n := find_child(key, true, false) as Node3D
+		if n and n.global_position.distance_to(pos) < best_d:
+			best_d = n.global_position.distance_to(pos)
+			best = "near " + PLACE_NAMES[key]
+	if best != "":
+		return best
+	if absf(pos.z) < 9.0:
+		return "on Main Road"
+	if absf(pos.x - 30.0) < 9.0:
+		return "on Station Road"
+	if absf(pos.z + 48.0) < 9.0:
+		return "on the north road"
+	if absf(pos.x + 6.0) < 9.0:
+		return "on the side street"
+	return "around the block (check the map)"
 
 
 # --- Customers (step 7) ------------------------------------------------------------

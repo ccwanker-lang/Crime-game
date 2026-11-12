@@ -67,6 +67,9 @@ const SHOTS: Array[Array] = [
 	# Step 7: packaging table in the starter room, a customer ("$") on the sidewalk.
 	["48_packaging_table", Vector3(-31.0, 1.6, -9.7), Vector3(-31.0, 0.8, -11.4)],
 	["49_customer", Vector3(-17.8, 1.7, -1.2), Vector3(-17.8, 1.3, -4.6)],
+	# Step 8: the phone (staged local player): chat thread and map.
+	["50_phone_chat", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
+	["51_phone_map", Vector3(-8, 1.7, -4.6), Vector3(-20, 1.5, -4.6)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -216,6 +219,31 @@ func _stage(shot_name: String) -> void:
 			me.head.rotation.x = -0.08
 			me._set_third_person(shot_name == "29_third_person")
 			await get_tree().create_timer(0.5).timeout
+		"50_phone_chat", "51_phone_map":
+			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
+			me.peer_id = multiplayer.get_unique_id()
+			me.player_name = "Me"
+			me.auto_walk = true
+			me.position = Vector3(-8, 0.15, -4.6)
+			me.auto_target = me.position
+			me.rotation.y = PI / 2.0
+			get_tree().current_scene.add_child(me)
+			_staged.append(me)
+			me.ui.visible = true
+			me.camera.current = true
+			me.combat.set_equipped(false)
+			var phone: Phone = me.ui.phone
+			phone.player = me
+			phone.add_message("QuickShip", "Your order has been delivered to the box in your Starter Room.", "")
+			phone.add_message("Lotte", "Hey, it's Lotte. Need 2 bags, I'll pay €140. I'm near the Store.", "Pedestrian3")
+			me.open_phone()
+			if shot_name == "50_phone_chat":
+				phone._contact = "Lotte"
+				phone._show("thread")
+			else:
+				get_tree().current_scene.call("make_customer")
+				phone._show("map")
+			await get_tree().create_timer(0.6).timeout
 		"32_store_counter", "33_shop_window":
 			var clerk: Shopkeeper = get_tree().current_scene.find_child("Clerk", true, false) as Shopkeeper
 			var me: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
