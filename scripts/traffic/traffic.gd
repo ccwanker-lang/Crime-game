@@ -71,6 +71,40 @@ func release_junction(j: int, car: Car) -> void:
 		_junction_owner.erase(j)
 
 
+## Host: a wreck (or a car whose driver died) is towed away: removed, and a new car
+## turns up on the same route a bit later, out of sight of the players if possible.
+func replace_car(old: Car) -> void:
+	var r: int = old.route_id
+	var kind: int = old.kind
+	for j: int in JUNCTIONS.size():
+		release_junction(j, old)
+	old.queue_free()
+	await get_tree().create_timer(5.0).timeout
+	if not is_inside_tree():
+		return
+	var route: TrafficRoute = routes[r]
+	var best: float = randf() * route.length
+	var best_d: float = -1.0
+	for attempt: int in 12:
+		var prog: float = randf() * route.length
+		var p: Vector3 = route.sample(prog)[0]
+		var nearest: float = INF
+		for pl: Node in get_tree().get_nodes_in_group(&"players"):
+			nearest = minf(nearest, (pl as Node3D).global_position.distance_to(p))
+		for c: Node in get_children():
+			if c is Car:
+				nearest = minf(nearest, (c as Car).global_position.distance_to(p) * 3.0)
+		if nearest > best_d:
+			best_d = nearest
+			best = prog
+	var car: Car = CAR.instantiate()
+	car.route_id = r
+	car.progress = best
+	car.kind = kind
+	car.color_seed = randi()
+	add_child(car, true)
+
+
 ## Host: spreads `count` cars over the routes.
 func spawn_cars(count: int) -> void:
 	var per_route: Array[int] = []

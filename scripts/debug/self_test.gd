@@ -953,6 +953,78 @@ func _check_traffic(world: Node3D) -> void:
 	_report(rad_to_deg(max_step) < 2.5, "cars turn smoothly (max %.2f deg per frame)" % rad_to_deg(max_step))
 	_report(bend_speed > 0.5 and bend_speed < 3.5 and straight_speed > 6.0,
 			"slow in tight bends (%.1f m/s), fast on straights (%.1f m/s)" % [bend_speed, straight_speed])
+	await _check_car_gunfire(world, traffic)
+
+
+## Point 3: cars react to gunfire (panic: faster + honk; bail: driver runs and comes back;
+## a shot car stops, a wreck is towed away and replaced).
+func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
+	var on_main: Array[Car] = []
+	for c: Node in traffic.get_children():
+		if c is Car and (c as Car).route_id == 2:
+			on_main.append(c as Car)
+	var car: Car = on_main[0]
+	# Clear stretch of the main road for the test car, others half a lap away.
+	car.progress = 20.0
+	car.speed = Car.CRUISE
+	for i: int in range(1, on_main.size()):
+		on_main[i].progress = 20.0 + traffic.routes[2].length * 0.5 + i * 15.0
+	await get_tree().create_timer(0.5).timeout
+	Car.force_reaction = "panic"
+	car.hear_gunshot(car.global_position + Vector3(0, 0, 20))
+	var top: float = 0.0
+	for i: int in 120:
+		await get_tree().physics_frame
+		top = maxf(top, car.speed)
+	_report(car.panic > 0.0 and top > Car.CRUISE + 1.0 and not car.abandoned,
+			"gunshot nearby: the car panics and speeds up (%.1f m/s)" % top)
+	await get_tree().create_timer(Car.PANIC_TIME).timeout
+	# Bail out: the driver gets out and runs, the car stays put, the driver comes back later.
+	Car.force_reaction = "bail"
+	var shot_from: Vector3 = car.global_position + car.global_basis.x * 8.0
+	car.hear_gunshot(shot_from)
+	Car.force_reaction = ""
+	await get_tree().create_timer(4.0).timeout
+	var driver: Pedestrian = car._driver as Pedestrian
+	var gap: float = driver.global_position.distance_to(car.global_position) if driver else 0.0
+	_report(car.abandoned and car.speed < 0.1 and driver != null and gap > 4.0,
+			"close gunshot: car stops, the driver gets out and runs (%.1f m away)" % gap)
+	var other: Car = on_main[1] if on_main.size() > 1 else null
+	Engine.time_scale = 3.0
+	var back: bool = false
+	for i: int in 70:  # up to 70 game seconds
+		await get_tree().create_timer(1.0).timeout
+		if not car.abandoned:
+			back = true
+			break
+	_report(back and not is_instance_valid(driver), "the driver comes back and drives on")
+	# A car stuck behind a stopped car waits (no driving through it).
+	if other:
+		other.progress = car.progress - 14.0
+		other.speed = Car.CRUISE
+		car.abandon(car.global_position + Vector3(0, 0, 30))
+		await get_tree().create_timer(6.0).timeout
+		var d: float = other.global_position.distance_to(car.global_position)
+		_report(other.speed < 0.2 and d > 3.0, "car behind a stopped car waits (%.1f m behind)" % d)
+	# Shot to a wreck: it stops for good, is towed away and a new car turns up.
+	var before: int = 0
+	for c: Node in traffic.get_children():
+		before += 1 if c is Car else 0
+	var wreck: Car = on_main[on_main.size() - 1]
+	wreck.host_damage(Car.MAX_HEALTH + 10, null, wreck.global_position + Vector3(5, 1, 0))
+	_report(wreck.wrecked and wreck.abandoned, "a car shot to pieces stops (wrecked)")
+	var replaced: bool = false
+	for i: int in 70:
+		await get_tree().create_timer(1.0).timeout
+		if not is_instance_valid(wreck):
+			await get_tree().create_timer(6.0).timeout
+			var after: int = 0
+			for c: Node in traffic.get_children():
+				after += 1 if c is Car and not c.is_queued_for_deletion() else 0
+			replaced = after == before
+			break
+	Engine.time_scale = 1.0
+	_report(replaced, "the wreck is towed away and a new car turns up")
 
 
 # --- Packaging + selling (step 7) --------------------------------------------------------

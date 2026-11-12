@@ -190,7 +190,7 @@ Milestone 2 (feedback after playing milestone 1). Ranks don't exist yet: everyth
 the start for now; rank gates (see Progression) come later.
 1. Smooth car curves (Curve3D routes, heading along the axles, steered front wheels, brake before / accelerate after bends) - done
 2. Stairs work for players and NPCs (invisible ramp over each flight, furniture keeps the stair way free, walker climbs every stair + navmesh path to every top floor) - done
-3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees; shot car stops) - todo
+3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees and comes back; shot car stops, wreck towed + replaced) - done
 4. Item icons (renders of the 3D models) with counts in hotbar/inventory (asked again as E) - todo
 5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - todo
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - todo
@@ -215,6 +215,7 @@ rival territories, lab raids, story missions (acts 1-5); the full city (Map layo
 Choices made while working autonomously (what + why).
 
 ## Known issues / later
+- Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into
   walls. Turn avoidance back on (and tune it) in milestone 4, with the big city map.
 - Players and NPCs pass through each other (NPCs walking into players used to shove them metres

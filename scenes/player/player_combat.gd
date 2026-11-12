@@ -439,6 +439,7 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 			_hit_confirm.rpc_id(player.peer_id, heads[victim], killed)
 	# Pedestrians nearby react to the bang (host AI).
 	get_tree().call_group(&"npc", "hear_gunshot", origin)
+	get_tree().call_group(&"cars", "hear_gunshot", origin)
 	# Everyone else sees and hears the shot.
 	for peer: int in [1] + Net.peers_in_world:
 		if peer == player.peer_id:

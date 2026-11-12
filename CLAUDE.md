@@ -40,7 +40,9 @@ Godot console exe:
   loot bag, respawn), stairs (walker up/down every flight + NPC navmesh to every top floor). Run it after
   map/door/NPC/player/combat changes; it prints PASS/FAIL. `--only=stairs,traffic` runs just those checks
   (names = `CHECKS` in self_test.gd). The door/player checks use `player.tscn` with `auto_walk`.
-- Network check (headless): `-- --host --port=7792 --netcheck --name=Host`, then 4 s later
+- Network check: `python tools/netcheck.py [port]` runs both sides and kills both process trees afterwards
+  (a shell `timeout` only kills the console wrapper: the real Godot keeps the port). Manual form (headless):
+  `-- --host --port=7792 --netcheck --name=Host`, then 4 s later
   `-- --join=127.0.0.1 --port=7792 --netcheck --name=B`: the client shoots the host dead, takes the loot bag,
   sees the respawn, then walks crouched 5 m; both print what they see. The host runs ~40 s: wait for it to
   quit before starting another run on the same port. Clients don't bake the navmesh (host-only AI). Under heavy CPU load

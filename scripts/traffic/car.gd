@@ -6,6 +6,12 @@ extends AnimatableBody3D
 ## anything in front (cars, pedestrians, players) and syncs net_pos / net_yaw /
 ## net_speed; clients smooth towards that and spin the wheels. The body is on
 ## layer 2 (solid for players, hit by bullets, not baked into the navmesh).
+##
+## Gunfire (host): a shot within HEAR_DISTANCE panics the car for PANIC_TIME (faster,
+## honks, swerves) or, close by, it stops and the driver gets out and runs. A car that
+## is shot always stops and the driver runs; at 0 health it is a wreck that is towed
+## away (removed) after WRECK_TIME and Traffic brings a new car. A fled driver walks
+## back after DRIVER_AWAY and drives on. Cars behind a stopped car wait and honk.
 
 const CRUISE: float = 8.5         # m/s (~30 km/h)
 ## Sideways grip in bends (m/s2): bend speed = sqrt(LAT_ACCEL * radius).
@@ -22,6 +28,18 @@ const JUNCTION_APPROACH: float = 9.0
 ## Lane check ahead: this many boxes of SENSE_LEN metres along the route.
 const SENSE_SEGMENTS: int = 3
 const SENSE_LEN: float = 4.5
+const HEAR_DISTANCE: float = 35.0
+const PANIC_TIME: float = 6.0
+const PANIC_SPEED: float = 1.5  # x CRUISE
+## A shot closer than this may make the driver bail out (else the car races off).
+const BAIL_DISTANCE: float = 18.0
+const BAIL_CHANCE: float = 0.35
+const MAX_HEALTH: int = 150
+const DRIVER_AWAY: float = 25.0
+const WRECK_TIME: float = 45.0
+const SWERVE_TIME: float = 1.2
+const HORN := preload("res://assets/audio/vehicles/car_horn.ogg")
+const HORN_SHORT := preload("res://assets/audio/vehicles/car_horn_short.ogg")
 
 @export var kind: int = 0
 @export var color_seed: int = 0
@@ -33,7 +51,21 @@ var net_pos: Vector3 = Vector3.ZERO
 var net_yaw: float = 0.0
 var net_speed: float = 0.0
 
+## Tests: "panic" / "bail" forces the reaction to a gunshot ("" = random).
+static var force_reaction: String = ""
+
 var speed: float = 0.0
+## Host: stopped with nobody at the wheel (driver fled) / shot to pieces.
+var abandoned: bool = false
+var wrecked: bool = false
+var health: int = MAX_HEALTH
+var panic: float = 0.0  # host: seconds of panic left
+var _swerve: float = 0.0  # host: seconds of swerve left
+var _swerve_side: float = 1.0
+var _driver: Node = null  # the pedestrian that got out
+var _ahead_stopped: bool = false  # host: the car ahead is abandoned (wait, don't creep through)
+var _honk_cooldown: float = 0.0
+var _horn: AudioStreamPlayer3D
 ## Host: what made it stop last (debug/tests): "", "car", "person", "junction".
 var blocked_by: String = ""
 var _wheels: Array[Node3D] = []
@@ -67,6 +99,11 @@ func _ready() -> void:
 	shape.shape = box
 	shape.position.y = 0.3 + box.size.y / 2.0
 	add_child(shape)
+	_horn = AudioStreamPlayer3D.new()
+	_horn.unit_size = 12.0
+	_horn.max_distance = 90.0
+	_horn.position = Vector3(0, 0.8, -1.5)
+	add_child(_horn)
 	Net.limit_sync_to_world($Sync)
 	if _is_host():
 		_place_on(_route())
@@ -101,9 +138,22 @@ func _physics_process(delta: float) -> void:
 		_spin_wheels(net_speed, delta)
 		return
 	var route: TrafficRoute = _route()
-	# Slow down for corners ahead, stop for anything in the way.
-	var target: float = CRUISE
-	target = minf(target, _bend_speed(route))
+	_honk_cooldown = maxf(0.0, _honk_cooldown - delta)
+	if abandoned:
+		# Nobody at the wheel: roll to a stop and stay there.
+		speed = move_toward(speed, 0.0, BRAKE * delta)
+		progress = fposmod(progress + speed * delta, route.length)
+		_place_on(route)
+		_spin_wheels(speed, delta)
+		net_pos = global_position
+		net_yaw = rotation.y
+		net_speed = speed
+		return
+	panic = maxf(0.0, panic - delta)
+	_swerve = maxf(0.0, _swerve - delta)
+	# Slow down for corners ahead, stop for anything in the way (faster when panicking).
+	var target: float = CRUISE * (PANIC_SPEED if panic > 0.0 else 1.0)
+	target = minf(target, _bend_speed(route) * (1.25 if panic > 0.0 else 1.0))
 	# Something in the lane: slow down by its distance, stop when it's close.
 	var seen: Array = _sense(route)
 	var blocker: String = seen[0] if seen[1] == 0 else ""
@@ -116,7 +166,12 @@ func _physics_process(delta: float) -> void:
 	if _hold > 0.0:
 		target = 0.0
 	target = minf(target, _junction_limit(route, seen))
-	if blocker == "car":
+	if blocker == "car" and _ahead_stopped:
+		_wait_car = 0.0  # a stopped car ahead: wait (and toot) instead of creeping through it
+		if _honk_cooldown <= 0.0 and speed < 0.5:
+			honk(false)
+			_honk_cooldown = randf_range(6.0, 12.0)
+	elif blocker == "car":
 		_wait_car += delta
 		if _wait_car > DEADLOCK_TIME:
 			_ignore_cars = 2.5
@@ -195,6 +250,11 @@ func _place_on(route: TrafficRoute) -> void:
 	var dir: Vector3 = front - rear
 	rotation.y = atan2(-dir.x, -dir.z)
 	_steer = atan(2.0 * half_base * route.curvature(progress + half_base * 0.5))
+	if _swerve > 0.0:
+		# Swerve: a quick sideways jink in the lane (half a sine over SWERVE_TIME).
+		var t: float = 1.0 - _swerve / SWERVE_TIME
+		global_position += global_basis.x * (_swerve_side * 0.7 * sin(PI * t))
+		_steer -= _swerve_side * 0.25 * cos(PI * t)
 
 
 ## Host: what is in the lane ahead? Checks SENSE_SEGMENTS boxes following the
@@ -207,6 +267,7 @@ func _sense(route: TrafficRoute) -> Array:
 	q.shape = _sense_shape
 	q.collision_mask = SENSE_MASK
 	q.exclude = [get_rid()]
+	_ahead_stopped = false
 	for k: int in SENSE_SEGMENTS:
 		var ahead: Array = route.sample(progress + half_len + SENSE_LEN * (k + 0.5))
 		var dir: Vector3 = ahead[1]
@@ -217,8 +278,9 @@ func _sense(route: TrafficRoute) -> Array:
 			if c is Pedestrian or c is Player:
 				what = "person"
 				break
-			if c is Car and _ignore_cars <= 0.0:
+			if c is Car and ((c as Car).abandoned or _ignore_cars <= 0.0):
 				what = "car"
+				_ahead_stopped = _ahead_stopped or (c as Car).abandoned
 		if what != "":
 			return [what, k]
 	return ["", -1]
@@ -230,3 +292,104 @@ func _spin_wheels(v: float, delta: float) -> void:
 	var turn: float = -v * delta / ProcCar.WHEEL_R
 	for i: int in _wheels.size():
 		_wheels[i].rotate_object_local(Vector3.RIGHT, turn * _wheel_sign[i])
+
+
+# --- Gunfire (host) ------------------------------------------------------------------
+
+## Host (group "cars", every shot): race off honking and swerving, or bail out when close.
+func hear_gunshot(origin: Vector3, _hit: bool = false) -> void:
+	if not _is_host() or abandoned or not is_inside_tree():
+		return
+	var d: float = global_position.distance_to(origin)
+	if d > HEAR_DISTANCE:
+		return
+	var bail: bool = d < BAIL_DISTANCE and randf() < BAIL_CHANCE
+	if force_reaction != "":
+		bail = force_reaction == "bail"
+	if bail and panic <= 0.0:
+		abandon(origin)
+		return
+	if panic <= 0.0:
+		honk(true)
+		_swerve = SWERVE_TIME
+		_swerve_side = -1.0 if randf() < 0.5 else 1.0
+	panic = PANIC_TIME
+
+
+## Host: a bullet hit the car: it stops and the driver runs. Cars don't "die" (returns false).
+func host_damage(amount: int, _attacker: Node = null, from: Vector3 = Vector3.INF) -> bool:
+	if not _is_host() or wrecked or amount <= 0:
+		return false
+	health = maxi(0, health - amount)
+	if health == 0:
+		wrecked = true
+	if not abandoned:
+		abandon(from if from != Vector3.INF else global_position)
+	return false
+
+
+## Host: stop; the driver gets out on the kerb side and runs from `origin`, comes back later.
+func abandon(origin: Vector3) -> void:
+	abandoned = true
+	panic = 0.0
+	_swerve = 0.0
+	var world: Node = get_tree().current_scene
+	if world and world.has_method("_add_pedestrian"):
+		var side: Vector3 = global_position + global_basis.x * 1.4
+		side.y = global_position.y + 0.1
+		var ped: Pedestrian = world.call("_add_pedestrian", side, randi() % 4)
+		ped.ambient = false
+		ped.set_meta(&"driver", true)
+		_driver = ped
+		ped.hear_gunshot.call_deferred(origin, true)
+	_come_back()
+
+
+func _come_back() -> void:
+	await get_tree().create_timer(WRECK_TIME if wrecked else DRIVER_AWAY).timeout
+	if not is_inside_tree():
+		return
+	var alive: bool = is_instance_valid(_driver) and not (_driver as Pedestrian).dead
+	if wrecked or not alive:
+		if not wrecked:
+			# Driver dead: the car waits for the tow truck.
+			await get_tree().create_timer(WRECK_TIME - DRIVER_AWAY).timeout
+		_remove_driver()
+		if is_inside_tree():
+			(get_parent() as Traffic).replace_car(self)
+		return
+	# The driver walks back to the car, gets in and drives on.
+	var door: Vector3 = global_position + global_basis.x * 1.4
+	for attempt: int in 3:
+		if not is_instance_valid(_driver) or (_driver as Pedestrian).dead:
+			break
+		await (_driver as Pedestrian).walk_to(door)
+		if is_instance_valid(_driver) and (_driver as Node3D).global_position.distance_to(door) < 3.0:
+			break
+		await get_tree().create_timer(3.0).timeout
+	if not is_inside_tree():
+		return
+	_remove_driver()
+	abandoned = false
+
+
+func _remove_driver() -> void:
+	if is_instance_valid(_driver) and not (_driver as Pedestrian).dead:
+		_driver.queue_free()
+	_driver = null
+
+
+## Host -> everyone: horn (long = startled, short = impatient toot).
+func honk(long: bool) -> void:
+	_play_horn(long)
+	for peer: int in Net.peers_in_world:
+		_play_horn.rpc_id(peer, long)
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _play_horn(long: bool) -> void:
+	if _horn == null:
+		return
+	_horn.stream = HORN if long else HORN_SHORT
+	_horn.pitch_scale = randf_range(0.92, 1.08) + float(kind) * 0.04
+	_horn.play()

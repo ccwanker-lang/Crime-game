@@ -127,6 +127,11 @@ func _net_check() -> void:
 		var pot := find_child("Pot1", true, false) as GrowPot
 		pot.state.merge({"stage": GrowPot.Stage.GROWING, "growth": 0.3, "water": 1.0, "seed": 5}, true)
 		pot.changed()
+		# Start the timeline once a client's world is loaded (slow under load), max 90 s.
+		for i: int in 180:
+			if not Net.peers_in_world.is_empty():
+				break
+			await get_tree().create_timer(0.5).timeout
 		for i: int in 12:  # the host reports what it sees of the client players
 			await get_tree().create_timer(3.0).timeout
 			for p: Node in players_root.get_children():

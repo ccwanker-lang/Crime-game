@@ -546,7 +546,7 @@ func _die(from: Vector3 = Vector3.INF) -> void:
 		# The rip-off customer drops what it ran off with.
 		world.call("spawn_loot_bag", global_position, "Customer", 0, [{"id": "weed_bag", "count": _stolen}])
 		_stolen = 0
-	if world and world.has_method("respawn_pedestrian_later"):
+	if world and world.has_method("respawn_pedestrian_later") and not has_meta(&"driver"):
 		world.call("respawn_pedestrian_later", respawn_time)
 	await get_tree().create_timer(corpse_time).timeout
 	if is_inside_tree():
