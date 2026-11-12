@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/washing_machine.tscn" id="2_place"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"washing_machine"
+display_name = "Washing Machine"
+max_stack = 2
+is_legal = true
+base_price = 350
+description = "Front-loading washer."
+place_scene = ExtResource("2_place")
+category = "furniture"

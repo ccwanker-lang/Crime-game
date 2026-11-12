@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+[ext_resource type="Script" path="res://scripts/procgen/proc_box.gd" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/cash_register.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/wall_shelf.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/round_coffee_table.tscn" id="5_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/dining_chair.tscn" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/potted_plant.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="8_r"]
+[ext_resource type="PackedScene" path="res://prefabs/stations/launder_safe.tscn" id="9_r"]
+
+[node name="Bakery" type="StaticBody3D"]
+script = ExtResource("1_r")
+depth = 10.0
+floors = 2
+roof_material = "roof_dark"
+ground_floor = "shop"
+door_bay = 0
+awning = true
+chimney = "none"
+enterable = true
+public_building = true
+floor_material = "wood_floor"
+width = 7.0
+shop_sign = "BAKERY"
+wall_material = "brick_yellow"
+awning_color = Color(0.55, 0.38, 0.2, 1)
+variation_seed = 200
+
+[node name="Counter" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.6, 0.15, -5.6)
+script = ExtResource("2_r")
+size = Vector3(4.6, 0.95, 0.7)
+material_key = "planks"
+
+[node name="Display" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.6, 1.1, -5.6)
+script = ExtResource("2_r")
+size = Vector3(4.2, 0.35, 0.55)
+material_key = "glass_clear"
+collision = false
+bevel = 0.005
+
+[node name="Register" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 2.5, 1.1, -5.6)
+
+[node name="ShelfA" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 0.15, -9.7)
+
+[node name="ShelfB" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.2, 0.15, -9.7)
+
+[node name="Table" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 0.15, -2.6)
+
+[node name="ChairA" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 1.3, 0.15, -2.6)
+
+[node name="ChairB" parent="." instance=ExtResource("6_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 2.75, 0.15, -2.6)
+
+[node name="Plant" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.9, 0.15, -0.9)
+
+[node name="Lamp1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -3)
+
+[node name="Lamp2" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -7.5)
+
+[node name="Safe" parent="." instance=ExtResource("9_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.6, 0.15, -9.3)
+daily_max = 1500

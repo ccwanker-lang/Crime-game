@@ -196,8 +196,8 @@ the start for now; rank gates (see Progression) come later.
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - done
 7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - done
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - done
-9. Money laundering: bakery, barber, laundromat; dirty vs clean money - todo
-10. Police station + patrolling police (foot / car) reacting to gunfire and murder - todo
+9. Money laundering: bakery, barber, laundromat; dirty vs clean money - done
+10. Police station + patrolling police (foot / car) reacting to gunfire and murder - done
 11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - todo
 12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
 13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
@@ -234,6 +234,22 @@ Choices made while working autonomously (what + why).
   the milestone 2 buildings; traffic route 3 now drives it (U-turn at the dead end). For sale at Mrs. Vos:
   Small House (2 floors, €8,000), Family House (3 floors, €20,000), Warehouse (16x12 m, €45,000). Prices are
   a few days of weed sales apart. Bought by the crew (co-op shares everything); the buyer pays.
+- Point 9 (laundering): all income is dirty cash; laundered money is "clean" (a bank balance). Paying takes
+  from both (DESIGN: both can be spent everywhere for now), but legal purchases (webshop, real estate, legal
+  shop items) use clean money first and illegal ones dirty cash first. On death only the dirty cash goes into
+  the loot bag: clean money is in the bank. That is the reason to launder until heat/police checks arrive.
+- Point 9: each front business has a back-office safe (LaunderSafe). E (crew must own the business) puts your
+  dirty cash in, up to 2 days of turnover. The daily maximum is booked evenly over the in-game day (not all at
+  midnight: steady feedback), paid out per €100 as €90 clean to whoever deposited it, first in first out.
+  Bakery €12,000 / €1,500 a day (the old bakery on the main road), Barber Shop €20,000 / €2,500, Laundromat
+  €35,000 / €4,000 (both on South Street). Their furniture is adopted like a house's (movable, sellable).
+- Point 10 (police): station on South Street; 2 officers on foot patrol within 45 m of it, 1 patrol car on
+  traffic route 3. Any shot a player fires is a crime heard within 45 m, a kill within 70 m (no heat/witness
+  logic yet: that is the heat system in milestone 3). The officer runs there, and when it sees the shooter
+  (32 m, line of sight) it stops and fires (12 damage, ~0.75 s, some spread) until the culprit is dead or out
+  of sight for 25 s. Shooting an officer makes you its target. The patrol car stops with its light bar on and
+  the officer gets out; afterwards it gets back in. Dead officers come back at the station after 60 s.
+  Officers don't flee and don't drop loot.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

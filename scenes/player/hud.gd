@@ -31,6 +31,7 @@ var _hotbar_selected: int = -2
 var _toast: Label
 var _toast_time: float = 0.0
 var _last_cash: int = -1
+var _last_clean: int = -1
 var _shop_panel: Control
 var _shop: Shopkeeper
 var _shop_title: Label
@@ -118,13 +119,21 @@ func _draw_scope() -> void:
 		_scope.draw_circle(c - Vector2(r * 0.03 * k, 0), 1.6, line)
 
 
-func set_cash(cash: int) -> void:
-	cash_label.text = "€ %d%s" % [cash, "  (∞ dev)" if GameState.infinite_cash else ""]
+## Point 9: `cash` = dirty cash in your pocket, `clean` = laundered money (bank).
+func set_cash(cash: int, clean: int = 0) -> void:
+	cash_label.text = "€ %d   clean € %d%s" % [cash, clean, "  (∞ dev)" if GameState.infinite_cash else ""]
 	if _last_cash >= 0 and cash != _last_cash:
 		toast("%s€%d" % ["+" if cash > _last_cash else "-", absi(cash - _last_cash)])
+	if _last_clean >= 0 and clean != _last_clean:
+		toast("%s€%d clean" % ["+" if clean > _last_clean else "-", absi(clean - _last_clean)])
 	_last_cash = cash
+	_last_clean = clean
 	if _shop_cash:
-		_shop_cash.text = "Your cash: €%d%s" % [cash, "  - buying is free for now" if GameState.infinite_cash else ""]
+		_shop_cash.text = _money_text(cash, clean)
+
+
+static func _money_text(cash: int, clean: int) -> String:
+	return "Your money: €%d cash + €%d clean%s" % [cash, clean, "  - buying is free for now" if GameState.infinite_cash else ""]
 
 
 # --- Inventory bar ---------------------------------------------------------------
@@ -310,12 +319,12 @@ func is_shop_open() -> bool:
 	return _shop_panel.visible
 
 
-func open_shop(shop: Shopkeeper, cash: int) -> void:
+func open_shop(shop: Shopkeeper, cash: int, clean: int = 0) -> void:
 	_shop = shop
 	_shop_title.text = "%s  -  %s" % [shop.npc_name, shop.shop_name]
 	_shop_greeting.text = "\"%s\"" % shop.greeting
 	_shop_msg.text = ""
-	_shop_cash.text = "Your cash: €%d%s" % [cash, "  - buying is free for now" if GameState.infinite_cash else ""]
+	_shop_cash.text = _money_text(cash, clean)
 	for c: Node in _shop_list.get_children():
 		c.queue_free()
 	if shop is EstateAgent:

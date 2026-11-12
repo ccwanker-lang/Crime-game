@@ -136,6 +136,10 @@ func _net_check() -> void:
 		var pot := host_place("grow_pot", get_marker("Pot1Spot").global_position, 0.0) as GrowPot
 		pot.state.merge({"stage": GrowPot.Stage.GROWING, "growth": 0.3, "water": 1.0, "seed": 5}, true)
 		pot.changed()
+		# Point 9: dirty cash waiting in the bakery safe (the client must see it).
+		var safe := find_child("Bakery", true, false).get_node("Safe") as LaunderSafe
+		safe.state["queue"] = {"Nobody": 1234}
+		safe.changed()
 		# Start the timeline once a client's world is loaded (slow under load), max 90 s.
 		for i: int in 180:
 			if not Net.peers_in_world.is_empty():
@@ -145,6 +149,9 @@ func _net_check() -> void:
 			await get_tree().create_timer(3.0).timeout
 			for p: Node in players_root.get_children():
 				var pl := p as Player
+				if not pl.is_local() and i == 1:
+					GameState.add_clean(pl.player_name, 250)  # laundered money reaches the owner's wallet
+					pl.send_wallet()
 				if not pl.is_local():
 					print("[NetCheck] host sees client %s at %s crouch=%s weapon=%d held='%s' (model %s)" % [pl.player_name,
 							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch, pl.net_weapon, pl.net_held,
@@ -158,6 +165,10 @@ func _net_check() -> void:
 	var sr := find_child("StarterRoom", true, false).get_node("Property") as Property
 	print("[NetCheck] %s sees %d static starter room furniture (0 = adopted)" % ["host" if multiplayer.is_server() else "client",
 			sr.static_furniture().size()])
+	var bsafe := find_child("Bakery", true, false).get_node("Safe") as LaunderSafe
+	var mine: Player = players_root.get_node_or_null(str(multiplayer.get_unique_id())) as Player
+	print("[NetCheck] %s sees the bakery safe with €%d, own clean money €%d" % ["host" if multiplayer.is_server() else "client",
+			bsafe.queued_total(), mine.clean if mine else -1])
 	var sh := find_child("SmallHouse", true, false).get_node("Property") as Property
 	print("[NetCheck] %s sees the Small House sign: %s" % ["host" if multiplayer.is_server() else "client",
 			sh._label.text.replace("
@@ -528,6 +539,11 @@ func _after_navmesh() -> void:
 				count = arg.trim_prefix("--npcs=").to_int()
 		spawn_pedestrians(count)
 		_customer_loop()
+		var cops: int = POLICE_COUNT
+		for arg: String in OS.get_cmdline_user_args():
+			if arg.begins_with("--police="):
+				cops = arg.trim_prefix("--police=").to_int()
+		spawn_police(cops)
 
 
 ## Host only: ambient pedestrians on random sidewalk spots (synced by NPCSpawner).
@@ -542,6 +558,42 @@ func spawn_pedestrians(count: int) -> void:
 		if p == Vector3.INF:
 			continue
 		_add_pedestrian(p, i % Pedestrian.VARIANTS.size())
+
+
+# --- Police (point 10, host) -------------------------------------------------------------
+
+const POLICE_OFFICER := preload("res://prefabs/npc/police_officer.tscn")
+const POLICE_COUNT: int = 2
+
+
+## Host: `count` officers on foot, starting at the police station's spawn markers.
+func spawn_police(count: int) -> void:
+	var station: Node3D = find_child("PoliceStation", true, false) as Node3D
+	if station == null:
+		return
+	for i: int in count:
+		var m := station.find_child("OfficerSpawn%d" % (i % 3 + 1), true, false) as Node3D
+		var p: Vector3 = m.global_position if m else station.global_position + station.global_basis.z * 2.0
+		add_officer(p, station.global_position + station.global_basis.z * 3.0)
+
+
+## Host: a police officer at `p` that patrols around `home` (`car` = its patrol car).
+func add_officer(p: Vector3, home: Vector3, car: Node3D = null) -> PoliceOfficer:
+	var cop: PoliceOfficer = POLICE_OFFICER.instantiate()
+	cop.variant = PoliceOfficer.VARIANT
+	cop.color_seed = randi()
+	cop.position = p
+	cop.home = home
+	cop.from_car = car
+	npcs.add_child(cop, true)
+	return cop
+
+
+## Host: a dead officer is replaced at the station after `delay` seconds.
+func respawn_officer_later(delay: float) -> void:
+	await get_tree().create_timer(delay).timeout
+	if is_inside_tree() and multiplayer.is_server():
+		spawn_police(1)
 
 
 func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
@@ -559,7 +611,7 @@ func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
 const PLACE_NAMES: Dictionary = {
 	"StarterRoom": "your Starter Room", "Store": "the Store", "Hospital": "the hospital",
 	"GunShop": "Vince's gun shop", "ContactHideout": "Dries' place", "Warehouse": "the warehouse",
-	"Garage": "the garage",
+	"Garage": "the garage", "PoliceStation": "the police station",
 }
 
 

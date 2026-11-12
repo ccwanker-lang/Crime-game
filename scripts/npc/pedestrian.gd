@@ -14,7 +14,8 @@ extends CharacterBody3D
 ## removed; World spawns a fresh pedestrian respawn_time after the death.
 ## Gunshots nearby (hear_gunshot) make it run away from the shooter.
 
-enum Anim { IDLE, WALK, SIT, RUN, DEAD }
+## AIM / RUN_GUN: armed NPCs (police, rivals), only on the CharacterArmature models.
+enum Anim { IDLE, WALK, SIT, RUN, DEAD, AIM, RUN_GUN }
 
 ## Quaternius CC0 characters. "scale" brings them to ~1.75 m; "walk" is the
 ## animation speed that matches WALK_SPEED (no foot sliding).
@@ -184,7 +185,11 @@ func _build_model() -> void:
 			var tint: int = -1
 			if mat.resource_name in TINTABLE and rng.randf() < 0.75:
 				tint = rng.randi() % PALETTE.size()
-			m.set_surface_override_material(s, _matte(mat, tint))
+			var fixed: Dictionary = uniform_colors()
+			if fixed.has(mat.resource_name):
+				m.set_surface_override_material(s, _matte(mat, -1, fixed[mat.resource_name]))
+			else:
+				m.set_surface_override_material(s, _matte(mat, tint))
 
 	_anim = model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	if not stationary:
@@ -219,12 +224,21 @@ func _build_model() -> void:
 			_anim_names[Anim.RUN] = a
 		elif short.ends_with("Death"):
 			_anim_names[Anim.DEAD] = a
+		elif short == "Idle_Gun_Pointing":
+			_anim_names[Anim.AIM] = a
+		elif short == "Run_Shoot":
+			_anim_names[Anim.RUN_GUN] = a
 	for key: int in _anim_names:
 		_anim.get_animation(_anim_names[key]).loop_mode = Animation.LOOP_NONE if key == Anim.DEAD else Animation.LOOP_LINEAR
 
 
-static func _matte(source: StandardMaterial3D, tint: int) -> StandardMaterial3D:
-	var key: String = "%d:%d" % [source.get_instance_id(), tint]
+## Subclasses (police): clothing material name -> fixed colour (a uniform).
+func uniform_colors() -> Dictionary:
+	return {}
+
+
+static func _matte(source: StandardMaterial3D, tint: int, color: Color = Color(0, 0, 0, 0)) -> StandardMaterial3D:
+	var key: String = "%d:%d:%s" % [source.get_instance_id(), tint, color.to_html()]
 	if not _material_cache.has(key):
 		var copy := source.duplicate() as StandardMaterial3D
 		copy.metallic = 0.0
@@ -233,6 +247,8 @@ static func _matte(source: StandardMaterial3D, tint: int) -> StandardMaterial3D:
 			copy.roughness = 0.3
 		if tint >= 0:
 			copy.albedo_color = PALETTE[tint]
+		elif color.a > 0.0:
+			copy.albedo_color = color
 		_material_cache[key] = copy
 	return _material_cache[key]
 
@@ -252,13 +268,23 @@ func _apply_anim() -> void:
 		return
 	_anim.play(a, 0.15 if anim_state == Anim.DEAD else 0.3)
 	_anim.speed_scale = _anim_walk_speed if anim_state == Anim.WALK else 1.0
+	_anim_changed()
 	if anim_state == Anim.DEAD:
 		_anim.process_mode = Node.PROCESS_MODE_INHERIT  # fall even if off screen
 	if anim_state == Anim.IDLE:
 		_anim.seek(randf() * _anim.current_animation_length)  # not everyone in sync
 
 
+## Every peer, after anim_state changed (armed NPCs show/hide their gun).
+func _anim_changed() -> void:
+	pass
+
+
 # --- Movement (host) ----------------------------------------------------------------
+
+## Walking / running speed for the current move (subclasses: police run to a crime).
+func _move_speed() -> float:
+	return RUN_SPEED if is_fleeing() or anim_state == Anim.RUN else WALK_SPEED
 
 func _physics_process(delta: float) -> void:
 	if not _is_host():
@@ -305,7 +331,7 @@ func _physics_process(delta: float) -> void:
 					if along.length() < 0.05 * dir.length():
 						along = n.cross(Vector3.UP)
 					dir = along + n * 0.1 * along.length()
-			var speed: float = RUN_SPEED if is_fleeing() else WALK_SPEED
+			var speed: float = _move_speed()
 			var wish: Vector3 = dir.normalized() * speed if dir.length() > 0.01 else Vector3.ZERO
 			if agent.avoidance_enabled:
 				agent.velocity = wish  # -> velocity_computed -> _on_velocity_computed
@@ -546,11 +572,16 @@ func _die(from: Vector3 = Vector3.INF) -> void:
 		# The rip-off customer drops what it ran off with.
 		world.call("spawn_loot_bag", global_position, "Customer", 0, [{"id": "weed_bag", "count": _stolen}])
 		_stolen = 0
-	if world and world.has_method("respawn_pedestrian_later") and not has_meta(&"driver"):
-		world.call("respawn_pedestrian_later", respawn_time)
+	_on_died(world)
 	await get_tree().create_timer(corpse_time).timeout
 	if is_inside_tree():
 		queue_free()  # NPCSpawner removes it on the clients too
+
+
+## Host: after the death (a new pedestrian turns up later; not for car drivers).
+func _on_died(world: Node) -> void:
+	if world and world.has_method("respawn_pedestrian_later") and not has_meta(&"driver"):
+		world.call("respawn_pedestrian_later", respawn_time)
 
 
 ## Host (called on the "npc" group for every shot): run away from `origin`.

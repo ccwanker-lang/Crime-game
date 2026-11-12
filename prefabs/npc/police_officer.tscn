@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://prefabs/npc/pedestrian.tscn" id="1_ped"]
+[ext_resource type="Script" path="res://scripts/npc/police_officer.gd" id="2_cop"]
+
+[node name="PoliceOfficer" instance=ExtResource("1_ped")]
+script = ExtResource("2_cop")
+variant = 7

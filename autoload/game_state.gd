@@ -42,9 +42,12 @@ func init_new_world() -> void:
 ## Host only: returns the persistent record for a player, creating it if new.
 func get_or_create_player_data(player_name: String) -> Dictionary:
 	if not player_data.has(player_name):
-		player_data[player_name] = {"cash": STARTING_CASH, "inventory": []}
+		player_data[player_name] = {"cash": STARTING_CASH, "clean": 0, "inventory": []}
 		give_starter_kit(player_name)
-	return player_data[player_name]
+	var data: Dictionary = player_data[player_name]
+	if not data.has("clean"):
+		data["clean"] = 0  # saves from before point 9
+	return data
 
 
 ## Host only: a service pistol (unless carried) + its starter rounds (new player, respawn).
@@ -60,6 +63,7 @@ func give_starter_kit(player_name: String) -> void:
 
 ## Host only: empties a player's cash and carried items and returns them
 ## ({ "cash": int, "items": Array }), e.g. for the loot bag on death.
+## Only the dirty cash: clean (laundered) money is in the bank and stays.
 func take_all(player_name: String) -> Dictionary:
 	var data: Dictionary = get_or_create_player_data(player_name)
 	var taken: Dictionary = {"cash": int(data["cash"]), "items": (data["inventory"] as Array).duplicate(true)}
@@ -123,15 +127,42 @@ func remove_item(player_name: String, id: String, count: int) -> bool:
 	return true
 
 
-## Host only: changes a player's cash (negative = pay). Returns false if they can't pay.
-func add_cash(player_name: String, amount: int) -> bool:
+## Host only: changes a player's money (negative = pay). Returns false if they can't pay.
+## Income is dirty cash ("cash"). Point 9: a payment takes from both pots; `legal`
+## purchases (webshop, real estate, legal shop items) use clean money first,
+## illegal ones dirty cash first (DESIGN: for now both can be spent everywhere).
+func add_cash(player_name: String, amount: int, legal: bool = false) -> bool:
 	if infinite_cash and amount < 0:
 		return true
 	var data: Dictionary = get_or_create_player_data(player_name)
-	if int(data["cash"]) + amount < 0:
+	if amount >= 0:
+		data["cash"] = int(data["cash"]) + amount
+		return true
+	var dirty: int = int(data["cash"])
+	var clean: int = int(data["clean"])
+	var cost: int = -amount
+	if dirty + clean < cost:
 		return false
-	data["cash"] = int(data["cash"]) + amount
+	var first: int = mini(cost, clean if legal else dirty)
+	if legal:
+		data["clean"] = clean - first
+		data["cash"] = dirty - (cost - first)
+	else:
+		data["cash"] = dirty - first
+		data["clean"] = clean - (cost - first)
 	return true
+
+
+## Host only: laundered money (point 9).
+func add_clean(player_name: String, amount: int) -> void:
+	var data: Dictionary = get_or_create_player_data(player_name)
+	data["clean"] = maxi(0, int(data["clean"]) + amount)
+
+
+## Dirty + clean.
+func total_money(player_name: String) -> int:
+	var data: Dictionary = get_or_create_player_data(player_name)
+	return int(data["cash"]) + int(data["clean"])
 
 
 static func max_stack_of(id: String) -> int:

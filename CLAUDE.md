@@ -124,6 +124,15 @@ Godot console exe:
 - Real estate (point 8): `Property` (`for_sale`, `price`, `description`; `host_set_owned` adopts the furniture and tells
   every peer) inside buildings; `EstateAgent` (Shopkeeper subclass, `prefabs/buildings/real_estate.tscn`) lists them in
   the shop window. South Street (z 60) holds the milestone 2 buildings; gen_world `property_node(...)` adds one.
+- Laundering (point 9): player_data "cash" = dirty, "clean" = laundered (`GameState.add_cash(name, -x, legal)` pays
+  from both pots, legal = clean first; `add_clean`; death drops only dirty). `LaunderSafe` station
+  (`prefabs/stations/launder_safe.tscn`, `daily_max`) in `prefabs/buildings/bakery|barber|laundromat.tscn`; its
+  `property()` = the building's Property (must be crew owned). HUD shows "€ dirty   clean € x".
+- Police (point 10): `PoliceOfficer` (Pedestrian subclass, `prefabs/npc/police_officer.tscn`, Anim AIM/RUN_GUN, cap +
+  pistol in the fist) spawned by `World.spawn_police`/`add_officer` at `PoliceStation` OfficerSpawn markers (`--police=N`).
+  Crimes: group call `report_crime(player, pos, murder)` on "police" from PlayerCombat (every shot, every kill).
+  Patrol car = `Car.police` (+ synced `siren`), `Traffic.spawn_police_car` (`--police-cars=N`). NPCs can damage players:
+  `Player.host_damage(amount, attacker: Node, from)`.
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner
   (spawn function `World._create_player`). The owner moves its body and syncs net_* state; the host checks the
   speed and corrects with `_teleport`. Crouch/look pitch on the model: `scripts/player/pose_modifier.gd`.

@@ -448,12 +448,15 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 		var killed: bool = victim.call("host_damage", int(damage[victim]), player, origin)
 		print("[Combat] %s hit %s for %d%s%s" % [player.player_name, victim.get("player_name") if victim is Player else victim.name,
 				damage[victim], " (headshot)" if heads[victim] else "", " - killed" if killed else ""])
+		if killed:
+			get_tree().call_group(&"police", "report_crime", player, (victim as Node3D).global_position, true)
 		if player.peer_id == 1:
 			_hit_confirm(heads[victim], killed)
 		else:
 			_hit_confirm.rpc_id(player.peer_id, heads[victim], killed)
-	# Pedestrians nearby react to the bang (host AI).
+	# Pedestrians nearby react to the bang (host AI); police come for the shooter (point 10).
 	get_tree().call_group(&"npc", "hear_gunshot", origin)
+	get_tree().call_group(&"police", "report_crime", player, origin, false)
 	get_tree().call_group(&"cars", "hear_gunshot", origin)
 	# Everyone else sees and hears the shot.
 	for peer: int in [1] + Net.peers_in_world:

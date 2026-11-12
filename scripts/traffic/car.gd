@@ -44,6 +44,19 @@ const HORN_SHORT := preload("res://assets/audio/vehicles/car_horn_short.ogg")
 @export var kind: int = 0
 @export var color_seed: int = 0
 @export var route_id: int = 0
+## Point 10: a police patrol car (white with blue stripes and a light bar). It doesn't
+## panic: a crime nearby (report_crime) stops it and the officer gets out and takes
+## the culprit on; afterwards the officer gets back in and it patrols on.
+@export var police: bool = false
+## Synced: the light bar flashes (officer out on a call).
+var siren: bool = false:
+	set(v):
+		siren = v
+		for l: OmniLight3D in _bar_lights:
+			l.visible = v
+		if not v:
+			for m: MeshInstance3D in _bar_meshes:
+				m.visible = false
 ## Host: distance driven along the route (m).
 @export var progress: float = 0.0
 
@@ -76,6 +89,9 @@ var _steer: float = 0.0  # front wheel angle (rad, + = left)
 var _steer_pivots: Array[Node3D] = []
 var _hold: float = 0.0  # stay stopped this long after the way is clear (no creeping)
 var _sense_shape := BoxShape3D.new()
+var _bar_lights: Array[OmniLight3D] = []
+var _bar_meshes: Array[MeshInstance3D] = []
+var _flash_t: float = 0.0
 
 
 func _ready() -> void:
@@ -86,7 +102,12 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = color_seed
 	var paint: Color = ProcCar.PAINTS[rng.randi() % ProcCar.PAINTS.size()]
+	if police:
+		paint = Color(0.92, 0.93, 0.95)
+		add_to_group(&"police")
 	ProcCar.build(self, kind, paint)
+	if police:
+		_build_police_gear()
 	for c: Node in find_children("Wheel*", "", true, false):
 		var w := c as Node3D
 		_wheels.append(w)
@@ -120,6 +141,82 @@ func _is_host() -> bool:
 
 func _route() -> TrafficRoute:
 	return (get_parent() as Traffic).routes[route_id]
+
+
+func _process(delta: float) -> void:
+	if not siren or _bar_lights.size() != 2:
+		return
+	# Alternate the two lamps of the light bar.
+	_flash_t += delta
+	var left: bool = fmod(_flash_t, 0.5) < 0.25
+	_bar_lights[0].light_energy = 2.0 if left else 0.0
+	_bar_lights[1].light_energy = 0.0 if left else 2.0
+	_bar_meshes[0].visible = left
+	_bar_meshes[1].visible = not left
+
+
+## Blue/yellow side stripes, "POLICE" on the doors and a roof light bar.
+func _build_police_gear() -> void:
+	var s: Dictionary = ProcCar.SPECS[kind]
+	var hw: float = float(s["w"]) / 2.0 + 0.004
+	var hl: float = float(s["len"]) / 2.0
+	var roof: float = float(s["roof"])
+	var stripe_y: float = float(s["body"]) - 0.22
+	var b := MeshBuilder.new()
+	b.color = Color(0.05, 0.15, 0.6)
+	for side: float in [-1.0, 1.0]:
+		b.box(&"item_glossy", Vector3(side * hw, stripe_y, 0.0), Vector3(0.01, 0.16, hl * 1.7))
+	b.color = Color(0.95, 0.75, 0.1)
+	for side: float in [-1.0, 1.0]:
+		b.box(&"item_glossy", Vector3(side * hw, stripe_y - 0.11, 0.0), Vector3(0.01, 0.05, hl * 1.7))
+	b.color = Color(0.1, 0.1, 0.12)
+	var cab: float = (float(s["cab_f"]) + float(s["cab_b"])) / 2.0
+	b.box(&"item_matte", Vector3(0, roof + 0.03, cab), Vector3(1.1, 0.07, 0.22))
+	var mi := MeshInstance3D.new()
+	mi.mesh = b.build()
+	add_child(mi)
+	for side: float in [-1.0, 1.0]:
+		var c: Color = Color(0.35, 0.5, 1.0) if side < 0 else Color(1.0, 0.25, 0.2)
+		var lb := MeshBuilder.new()
+		lb.color = c
+		lb.box(&"item_glossy", Vector3(side * 0.3, roof + 0.1, cab), Vector3(0.42, 0.08, 0.18))
+		var dim := MeshInstance3D.new()
+		dim.mesh = lb.build()
+		add_child(dim)
+		var gm := StandardMaterial3D.new()
+		gm.albedo_color = c
+		gm.emission_enabled = true
+		gm.emission = c
+		gm.emission_energy_multiplier = 6.0
+		gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var box := BoxMesh.new()
+		box.size = Vector3(0.43, 0.085, 0.19)
+		box.material = gm
+		var glow := MeshInstance3D.new()
+		glow.mesh = box
+		glow.position = Vector3(side * 0.3, roof + 0.1, cab)
+		glow.visible = false
+		add_child(glow)
+		_bar_meshes.append(glow)
+		var light := OmniLight3D.new()
+		light.light_color = c
+		light.omni_range = 7.0
+		light.position = Vector3(side * 0.3, roof + 0.35, cab)
+		light.visible = false
+		add_child(light)
+		_bar_lights.append(light)
+	for side: float in [-1.0, 1.0]:
+		var label := Label3D.new()
+		label.text = "POLICE"
+		label.font_size = 64
+		label.pixel_size = 0.004
+		label.modulate = Color(0.05, 0.15, 0.6)
+		label.outline_size = 0
+		label.position = Vector3(side * (hw + 0.006), stripe_y + 0.2, cab - 0.2)
+		label.rotation.y = side * PI / 2.0
+		label.double_sided = false
+		add_child(label)
+	siren = siren
 
 
 func _physics_process(delta: float) -> void:
@@ -298,7 +395,7 @@ func _spin_wheels(v: float, delta: float) -> void:
 
 ## Host (group "cars", every shot): race off honking and swerving, or bail out when close.
 func hear_gunshot(origin: Vector3, _hit: bool = false) -> void:
-	if not _is_host() or abandoned or not is_inside_tree():
+	if not _is_host() or abandoned or police or not is_inside_tree():
 		return
 	var d: float = global_position.distance_to(origin)
 	if d > HEAR_DISTANCE:
@@ -317,15 +414,74 @@ func hear_gunshot(origin: Vector3, _hit: bool = false) -> void:
 
 
 ## Host: a bullet hit the car: it stops and the driver runs. Cars don't "die" (returns false).
-func host_damage(amount: int, _attacker: Node = null, from: Vector3 = Vector3.INF) -> bool:
+func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF) -> bool:
 	if not _is_host() or wrecked or amount <= 0:
 		return false
 	health = maxi(0, health - amount)
 	if health == 0:
 		wrecked = true
+	if police and attacker is Player:
+		if not abandoned:
+			report_crime(attacker as Player, from if from != Vector3.INF else global_position, false)
+		elif is_instance_valid(_driver) and _driver is PoliceOfficer:
+			(_driver as PoliceOfficer)._alert(attacker as Player, (attacker as Player).global_position)
+		return false
 	if not abandoned:
 		abandon(from if from != Vector3.INF else global_position)
 	return false
+
+
+## Host (group "police"): a crime nearby. The car stops, the officer gets out and
+## goes after the culprit; when that's over it walks back and the car drives on.
+func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
+	if not _is_host() or not police or abandoned or wrecked or culprit == null or culprit.dead:
+		return
+	if global_position.distance_to(origin) > (PoliceOfficer.MURDER_RANGE if murder else PoliceOfficer.HEAR_RANGE):
+		return
+	var world: Node = get_tree().current_scene
+	if world == null or not world.has_method("add_officer"):
+		return
+	abandoned = true
+	panic = 0.0
+	_swerve = 0.0
+	siren = true
+	var side: Vector3 = global_position + global_basis.x * 1.4
+	side.y = global_position.y + 0.1
+	var cop: PoliceOfficer = world.call("add_officer", side, global_position, self)
+	cop._alert(culprit, origin)
+	_driver = cop
+	print("[Police] patrol car %s stops, officer out after %s" % [name, culprit.player_name])
+	_police_come_back()
+
+
+func _police_come_back() -> void:
+	# Wait until the officer is done (culprit dead / lost), then it walks back and gets in.
+	while is_inside_tree() and is_instance_valid(_driver) and not (_driver as Pedestrian).dead and (_driver as PoliceOfficer).target != null:
+		await get_tree().create_timer(1.0).timeout
+	if not is_inside_tree():
+		return
+	if not is_instance_valid(_driver) or (_driver as Pedestrian).dead:
+		await get_tree().create_timer(WRECK_TIME).timeout
+		_remove_driver()
+		if is_inside_tree():
+			(get_parent() as Traffic).replace_car(self)
+		return
+	await get_tree().create_timer(2.0).timeout
+	var door: Vector3 = global_position + global_basis.x * 1.4
+	for attempt: int in 3:
+		if not is_instance_valid(_driver) or (_driver as Pedestrian).dead or (_driver as PoliceOfficer).target != null:
+			break
+		await (_driver as Pedestrian).walk_to(door)
+		if is_instance_valid(_driver) and (_driver as Node3D).global_position.distance_to(door) < 3.0:
+			break
+	if not is_inside_tree():
+		return
+	if is_instance_valid(_driver) and not (_driver as Pedestrian).dead and (_driver as PoliceOfficer).target != null:
+		_police_come_back()  # a new call came in on the way back
+		return
+	_remove_driver()
+	siren = false
+	abandoned = false
 
 
 ## Host: stop; the driver gets out on the kerb side and runs from `origin`, comes back later.

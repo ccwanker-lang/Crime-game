@@ -43,6 +43,7 @@ FURNITURE = {
     "wheelchair": ("Wheelchair", 120, 1, "A wheelchair."),
     "cardboard_box": ("Cardboard Box", 5, 8, "Just a box."),
     "potted_plant": ("Potted Plant", 30, 4, "A bit of green."),
+    "washing_machine": ("Washing Machine", 350, 2, "Front-loading washer."),
 }
 
 STATIONS = {

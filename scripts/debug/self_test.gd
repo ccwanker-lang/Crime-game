@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "real_estate", "growing", "pedestrians", "npc_combat", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1008,6 +1008,71 @@ func _check_real_estate(world: Node3D) -> void:
 	await get_tree().physics_frame
 
 
+# --- Money laundering (point 9) ------------------------------------------------------
+
+func _check_laundering(world: Node3D) -> void:
+	var safes: Array[LaunderSafe] = []
+	for n: Node in get_tree().get_nodes_in_group(&"stations"):
+		if n is LaunderSafe:
+			safes.append(n as LaunderSafe)
+	var names: Array[String] = []
+	for s: LaunderSafe in safes:
+		names.append(s.business_name())
+	_report(safes.size() == 3 and "Bakery" in names and "Barber Shop" in names and "Laundromat" in names,
+			"three front businesses with a safe (%s)" % ", ".join(names))
+	var agent: EstateAgent = world.find_child("Agent", true, false) as EstateAgent
+	var bakery: LaunderSafe = null
+	for s: LaunderSafe in safes:
+		if s.business_name() == "Bakery":
+			bakery = s
+	if bakery == null or agent == null:
+		return
+	_report(bakery.property() in agent.listings(), "Mrs. Vos sells the Bakery")
+	# Spending: legal purchases use clean money first, illegal ones dirty cash first.
+	GameState.player_data.erase("Washer")
+	var d: Dictionary = GameState.get_or_create_player_data("Washer")
+	d["cash"] = 100
+	d["clean"] = 100
+	GameState.add_cash("Washer", -60, true)
+	var legal_ok: bool = int(d["cash"]) == 100 and int(d["clean"]) == 40
+	GameState.add_cash("Washer", -120, false)
+	_report(legal_ok and int(d["cash"]) == 0 and int(d["clean"]) == 20 and not GameState.add_cash("Washer", -50),
+			"legal buys use clean money first, illegal ones dirty cash (cash %d, clean %d)" % [d["cash"], d["clean"]])
+	var taken: Dictionary = GameState.take_all("Washer")
+	_report(int(d["clean"]) == 20, "clean money is not lost on death (bag €%d, clean €%d)" % [taken["cash"], d["clean"]])
+	GameState.player_data.erase("Washer")
+
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Washer"
+	var front: Vector3 = bakery.global_position + bakery.global_basis.z * 1.2
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	d = GameState.get_or_create_player_data("Washer")
+	d["cash"] = 5000
+	d["clean"] = 0
+	var msg: String = bakery.do_action(p)
+	_report(int(d["cash"]) == 5000 and msg.contains("doesn't own"), "an unowned business doesn't launder ('%s')" % msg)
+	bakery.property().host_set_owned("Washer")
+	msg = bakery.do_action(p)
+	_report(int(d["cash"]) == 2000 and bakery.queued_total() == 3000,
+			"depositing fills the safe up to 2 days of turnover (cash %d, safe %d)" % [d["cash"], bakery.queued_total()])
+	bakery.tick(12.0)
+	_report(int(d["clean"]) == 630 and bakery.queued_total() == 2300,
+			"half a day launders €700 (in €100 chunks) -> €630 clean (clean %d, safe %d)" % [d["clean"], bakery.queued_total()])
+	bakery.tick(48.0)
+	_report(int(d["clean"]) == 2700 and bakery.queued_total() == 0 and bakery.state["queue"].is_empty(),
+			"everything comes back clean minus 10%% (clean %d)" % d["clean"])
+	_report(GameState.world["stations"].has(bakery.station_id), "the safe state is in the world state (saved)")
+	GameState.player_data.erase("Washer")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
 # --- Weed growing --------------------------------------------------------------------
 
 ## The classic weed corner, placed in the Starter Room (once) for the station tests.
@@ -1184,6 +1249,100 @@ func _check_npc_combat(world: Node3D) -> void:
 	_report(not is_instance_valid(a) and now == count0, "dead NPC removed and a new one respawned (%d -> %d)" % [count0, now])
 	Pedestrian.corpse_time = 20.0
 	Pedestrian.respawn_time = 60.0
+
+
+# --- Police (point 10) -------------------------------------------------------------------
+
+func _check_police(world: Node3D) -> void:
+	var station: Node3D = world.find_child("PoliceStation", true, false) as Node3D
+	_report(station != null and station.find_child("OfficerSpawn1", true, false) != null, "police station with officer spawns")
+	if station == null:
+		return
+	# A test player on the pavement in front of the station, an officer 12 m away.
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Crook"
+	var spot: Vector3 = station.global_position + station.global_basis.z * 4.5 + station.global_basis.x * 6.0
+	p.auto_target = spot
+	world.get_node("Players").add_child(p)
+	p.global_position = spot
+	for i: int in 10:
+		await get_tree().physics_frame
+	var cop: PoliceOfficer = world.add_officer(spot - station.global_basis.x * 12.0, spot)
+	await get_tree().create_timer(2.0).timeout
+	_report(cop.target == null and cop.anim_state != Pedestrian.Anim.AIM, "an officer on patrol leaves an innocent player alone")
+	_report(cop.can_see(p), "the officer can see the player (12 m, open street)")
+	# Far away gunshot: ignored. Nearby: the officer takes the shooter on.
+	get_tree().call_group(&"police", "report_crime", p, spot + Vector3(200, 0, 0), false)
+	_report(cop.target == null, "a gunshot 200 m away is not heard")
+	var health0: int = p.health
+	get_tree().call_group(&"police", "report_crime", p, p.global_position, false)
+	_report(cop.target == p, "a gunshot nearby: the officer goes after the shooter")
+	await get_tree().create_timer(4.0).timeout
+	_report(cop.anim_state == Pedestrian.Anim.AIM and p.health < health0,
+			"the officer aims and shoots the culprit (health %d -> %d)" % [health0, p.health])
+	_report(not get_tree().get_nodes_in_group(&"npc").any(func(n: Node) -> bool: return n is PoliceOfficer and (n as Pedestrian).is_fleeing()),
+			"officers don't flee from gunfire")
+	# Until the culprit is dead.
+	for i: int in 40:
+		if p.dead:
+			break
+		await get_tree().create_timer(0.5).timeout
+	_report(p.dead, "the officer keeps shooting until the culprit is dead")
+	await get_tree().create_timer(0.6).timeout
+	_report(cop.target == null, "dead culprit: the officer stops")
+	# Shooting an officer makes you its target (a fresh test player).
+	p.queue_free()
+	await get_tree().physics_frame
+	GameState.player_data.erase("Crook")
+	var q: Player = WALKER.instantiate()
+	q.auto_walk = true
+	q.name = "1"
+	q.player_name = "Crook2"
+	q.auto_target = spot
+	world.get_node("Players").add_child(q)
+	q.global_position = spot
+	await get_tree().physics_frame
+	cop.host_damage(10, q, q.global_position)
+	_report(cop.target == q and cop.health == 90, "shooting an officer makes you its target")
+	# Out of sight long enough: it gives up.
+	q.global_position = spot + Vector3(0, 0, -60)  # behind the buildings
+	q.auto_target = q.global_position
+	cop._search_until = cop._now() + 1.0
+	await get_tree().create_timer(2.0).timeout
+	_report(cop.target == null, "culprit gone for a while: the officer gives up")
+	# Patrol car: a crime nearby stops it and the officer gets out.
+	var traffic: Traffic = world.get_node("Traffic")
+	var car: Car = traffic.spawn_police_car(3, 10.0)
+	await get_tree().create_timer(0.5).timeout
+	_report(car.police and car.is_in_group(&"police") and car._bar_lights.size() == 2, "police car with a light bar")
+	q.global_position = car.global_position + car.global_basis.x * 6.0
+	q.auto_target = q.global_position
+	await get_tree().physics_frame
+	var cops0: int = get_tree().get_nodes_in_group(&"police").size()
+	car.hear_gunshot(q.global_position)
+	_report(not car.abandoned and car.panic == 0.0, "a police car doesn't panic at gunfire")
+	get_tree().call_group(&"police", "report_crime", q, q.global_position, false)
+	await get_tree().create_timer(0.5).timeout
+	var out: PoliceOfficer = car._driver as PoliceOfficer
+	_report(car.abandoned and car.siren and out != null and out.target == q and out.from_car == car,
+			"a crime near the patrol car: it stops (siren) and an officer gets out")
+	_report(get_tree().get_nodes_in_group(&"police").size() >= cops0 + 1, "the officer from the car is on the street")
+	# Called off: walks back, the car drives on.
+	out.target = null
+	for i: int in 30:
+		if not car.abandoned:
+			break
+		await get_tree().create_timer(0.5).timeout
+	_report(not car.abandoned and not car.siren and not is_instance_valid(out),
+			"after the call the officer gets back in and the car drives on")
+	car.queue_free()
+	if is_instance_valid(cop):
+		cop.queue_free()
+	q.queue_free()
+	GameState.player_data.erase("Crook2")
+	await get_tree().physics_frame
 
 
 # --- traffic ---------------------------------------------------------------------------

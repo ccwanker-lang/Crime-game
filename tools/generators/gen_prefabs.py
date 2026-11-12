@@ -19,6 +19,7 @@ S = {
     "property": "res://scenes/world/property.gd",
     "proc_item": "res://scripts/procgen/proc_item.gd",
     "estate_agent": "res://scripts/npc/estate_agent.gd",
+    "washing_machine": "res://scripts/procgen/washing_machine.gd",
 }
 
 
@@ -211,6 +212,7 @@ furn("stool", "metal_stool_01", (0.35, 0.88, 0.35))
 furn("plastic_chair", "plastic_monobloc_chair_01", (0.62, 0.88, 0.6))
 furn("picnic_table", "wooden_picnic_table", (2.2, 0.75, 3.0))
 furn("painted_bench", "painted_wooden_bench", (1.16, 0.89, 0.5))
+script_prefab(I + "washing_machine.tscn", "StaticBody3D", "washing_machine")
 model_prefab(I + "potted_plant.tscn", "potted_plant_01", None, ("cyl", 0.25, 0.55), vis_end=30)
 
 
@@ -551,6 +553,108 @@ building(B + "garage.tscn", {
     "door_bay": "0", "door_color": col(0.25, 0.27, 0.3), "string_courses": "false", "enterable": "true",
     "public_building": "true", "shop_sign": q("GARAGE"), "floor_material": q("concrete"), "chimney": q("none"),
     "lit_windows": "0.0", "variation_seed": "41"}, garage_extra)
+
+
+# Point 9: front businesses (bought at Vos Real Estate). The back-office safe launders
+# dirty cash: `daily_max` per in-game day, 10% fee.
+def safe(sc, pos, daily_max, rot=0.0):
+    inst(sc, "Safe", "prefabs/stations/launder_safe.tscn", pos, rot, {"daily_max": str(daily_max)})
+
+
+def counter(sc, name, pos, size, material="planks"):
+    sc.node(name, "StaticBody3D", ".", props={
+        "transform": xform(pos), "script": sc.script(S["proc_box"]), "size": v3(*size), "material_key": q(material)})
+
+
+def bakery_extra(sc):
+    counter(sc, "Counter", (0.6, FLOOR, -5.6), (4.6, 0.95, 0.7))
+    sc.node("Display", "StaticBody3D", ".", props={
+        "transform": xform((0.6, FLOOR + 0.95, -5.6)), "script": sc.script(S["proc_box"]),
+        "size": v3(4.2, 0.35, 0.55), "material_key": q("glass_clear"), "collision": "false", "bevel": "0.005"})
+    inst(sc, "Register", I + "cash_register.tscn", (2.5, FLOOR + 0.95, -5.6), 180)
+    inst(sc, "ShelfA", I + "wall_shelf.tscn", (-2.0, FLOOR, -9.7), 0)
+    inst(sc, "ShelfB", I + "wall_shelf.tscn", (0.2, FLOOR, -9.7), 0)
+    # Front door is in the left bay: the seating goes right.
+    inst(sc, "Table", I + "round_coffee_table.tscn", (2.0, FLOOR, -2.6), 0)
+    inst(sc, "ChairA", I + "dining_chair.tscn", (1.3, FLOOR, -2.6), 90)
+    inst(sc, "ChairB", I + "dining_chair.tscn", (2.75, FLOOR, -2.6), -90)
+    inst(sc, "Plant", I + "potted_plant.tscn", (2.9, FLOOR, -0.9))
+    inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
+    inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.5))
+    safe(sc, (2.6, FLOOR, -9.3), 1500)
+
+
+def barber_extra(sc):
+    for i, z in enumerate([-3.4, -5.6]):
+        inst(sc, f"Chair{i}", I + "barber_chair.tscn", (-1.7, FLOOR, z), -90)
+        sc.node(f"MirrorFrame{i}", "StaticBody3D", ".", props={
+            "transform": xform((-2.93, FLOOR + 0.95, z)), "script": sc.script(S["proc_box"]),
+            "size": v3(0.04, 1.1, 1.0), "material_key": q("planks"), "bevel": "0.01"})
+        sc.node(f"Mirror{i}", "StaticBody3D", ".", props={
+            "transform": xform((-2.9, FLOOR + 1.0, z)), "script": sc.script(S["proc_box"]),
+            "size": v3(0.02, 0.95, 0.85), "material_key": q("car_chrome"), "bevel": "0.0", "collision": "false"})
+    inst(sc, "Bench", I + "painted_bench.tscn", (2.5, FLOOR, -3.6), -90)
+    inst(sc, "Side", I + "side_table.tscn", (2.6, FLOOR, -5.4), -90)
+    inst(sc, "Register", I + "cash_register.tscn", (2.6, FLOOR + 0.55, -5.4), -90)
+    inst(sc, "Shelf", I + "wall_shelf.tscn", (-1.2, FLOOR, -9.7), 0)
+    inst(sc, "Plant", I + "potted_plant.tscn", (2.6, FLOOR, -1.0))
+    inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
+    inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
+    safe(sc, (2.3, FLOOR, -9.3), 2500)
+
+
+def laundromat_extra(sc):
+    for i in range(9):
+        inst(sc, f"Washer{i}", I + "washing_machine.tscn", (-3.3, FLOOR, -3.0 - i * 0.68), 90)
+    inst(sc, "Folding", I + "office_desk.tscn", (0.6, FLOOR, -5.5), 90)
+    for i, z in enumerate([-2.2, -3.0, -3.8]):
+        inst(sc, f"Chair{i}", I + "plastic_chair.tscn", (3.2, FLOOR, z), -90)
+    inst(sc, "Basket", I + "cardboard_box.tscn", (0.6, FLOOR + 0.79, -5.0), 10)
+    inst(sc, "Plant", I + "potted_plant.tscn", (3.2, FLOOR, -1.0))
+    inst(sc, "Lamp1", I + "ceiling_lamp.tscn", (0, 2.98, -3.0))
+    inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
+    safe(sc, (3.0, FLOOR, -9.3), 4000)
+
+
+# Point 10: the police station. Officers start at the OfficerSpawn markers and patrol around it.
+def police_extra(sc):
+    counter(sc, "FrontDesk", (2.0, FLOOR, -4.2), (4.0, 1.05, 0.7))
+    inst(sc, "DeskPC", I + "television.tscn", (2.6, FLOOR + 1.05, -4.25), 180, {"scale": "Vector3(0.6, 0.6, 0.6)"})
+    inst(sc, "Bench", I + "painted_bench.tscn", (5.3, FLOOR, -2.4), -90)
+    inst(sc, "Plant", I + "potted_plant.tscn", (5.3, FLOOR, -0.9))
+    for i, x in enumerate([-3.0, 1.5]):
+        inst(sc, f"Desk{i}", I + "office_desk.tscn", (x, FLOOR, -7.4), 0)
+        inst(sc, f"Chair{i}", I + "dining_chair.tscn", (x, FLOOR, -6.6), 180)
+    inst(sc, "Shelves", I + "steel_shelves.tscn", (5.2, FLOOR, -8.0), -90)
+    inst(sc, "Cabinet", I + "drawer_cabinet.tscn", (-5.0, FLOOR, -9.3), 0)
+    for i, x in enumerate([-1.0, 0.0, 1.0]):
+        marker(sc, f"OfficerSpawn{i + 1}", (x, FLOOR, -2.0), 0)
+    for i, x in enumerate([-3.0, 0.0, 3.0]):
+        inst(sc, f"Lamp{i}", I + "ceiling_lamp.tscn", (x, 2.98, -5.0))
+    # Blue lamp over the door.
+    sc.node("BlueLamp", "OmniLight3D", ".", props={
+        "transform": xform((-3.0, 3.2, 0.6)), "light_color": col(0.4, 0.55, 1.0), "light_energy": "1.5",
+        "omni_range": "5.0"})
+
+
+building(B + "police_station.tscn", {
+    "width": "12.0", "depth": "10.0", "floors": "2", "bays": "4", "wall_material": q("brick_white"),
+    "wall_tint": col(0.9, 0.92, 0.95), "roof_material": q("roof_dark"), "roof_type": q("flat"),
+    "ground_floor": q("shop"), "door_bay": "0", "shop_sign": q("POLICE"), "awning": "false",
+    "chimney": q("none"), "enterable": "true", "public_building": "true", "string_courses": "false",
+    "floor_material": q("floor_tiles"), "trim_color": col(0.1, 0.18, 0.45), "door_color": col(0.1, 0.18, 0.45),
+    "variation_seed": "700"}, police_extra)
+
+
+FRONT = {"depth": "10.0", "floors": "2", "roof_material": q("roof_dark"), "ground_floor": q("shop"),
+         "door_bay": "0", "awning": "true", "chimney": q("none"), "enterable": "true", "public_building": "true",
+         "floor_material": q("floor_tiles")}
+building(B + "bakery.tscn", {**FRONT, "width": "7.0", "shop_sign": q("BAKERY"), "wall_material": q("brick_yellow"),
+         "awning_color": col(0.55, 0.38, 0.2), "variation_seed": "200", "floor_material": q("wood_floor")}, bakery_extra)
+building(B + "barber.tscn", {**FRONT, "width": "6.5", "shop_sign": q("BARBER"), "wall_material": q("brick_white"),
+         "awning_color": col(0.15, 0.25, 0.55), "variation_seed": "610"}, barber_extra)
+building(B + "laundromat.tscn", {**FRONT, "width": "7.5", "shop_sign": q("LAUNDROMAT"), "wall_material": q("plaster"),
+         "wall_tint": col(0.8, 0.88, 0.92), "awning_color": col(0.1, 0.45, 0.5), "variation_seed": "620"}, laundromat_extra)
 
 
 # --------------------------------------------------------------------------- items

@@ -231,9 +231,10 @@ row(0, 24, -42, False, gB2)
 
 # Block C: shops on the main road, houses behind.
 gC = []
-SHOPS = [("BAKERY", col(0.55, 0.38, 0.2), "brick_yellow"), ("SNACK BAR", col(0.7, 0.1, 0.08), "plaster")]
-x = 36.0
-for i, (name, c, wm) in enumerate(SHOPS):
+# Point 9: the bakery is a front business (prefab with a back-office safe, sold by Mrs. Vos).
+x = fixed("buildings/bakery.tscn", 36.0, 7.0, -6, True, gC, name="Bakery")
+SHOPS = [None, ("SNACK BAR", col(0.7, 0.1, 0.08), "plaster")]
+for i, (name, c, wm) in list(enumerate(SHOPS))[1:]:
     w = [7.0, 6.5, 6.0][i]
     props = {"width": f"{w:g}", "shop_sign": q(name), "awning_color": c, "wall_material": q(wm),
              "variation_seed": str(200 + i)}
@@ -341,6 +342,17 @@ fixed("buildings/corner_house.tscn", -33, 7.5, 54, True, gS, name="FamilyHouse",
       props={"wall_material": q("brick_white"), "variation_seed": "777"})
 property_node("FamilyHouse", "family_house", "Family House", 20000, "Three floors, furnished, big rooms.")
 fixed("buildings/real_estate.tscn", -24, 8.0, 54, True, gS, name="RealEstate")
+property_node("Bakery", "bakery", "Bakery", 12000,
+              "Front business on the main road. Launders up to €1,500 dirty cash a day (10% fee).", 0.0, 4.6)
+# Point 9: front businesses next to the agent (the bakery is on the main road, see block C).
+fixed("buildings/barber.tscn", -16, 6.5, 54, True, gS, name="Barber")
+property_node("Barber", "barber", "Barber Shop", 20000,
+              "Front business. Launders up to €2,500 dirty cash a day (10% fee).", 0.0, 4.6)
+fixed("buildings/laundromat.tscn", -9.5, 7.5, 54, True, gS, name="Laundromat")
+property_node("Laundromat", "laundromat", "Laundromat", 35000,
+              "Front business. Launders up to €4,000 dirty cash a day (10% fee).", 0.0, 4.6)
+# Point 10: the police station (officers patrol from here; the patrol car drives route 3).
+fixed("buildings/police_station.tscn", -1.5, 12.0, 54, True, gS, name="PoliceStation")
 for x in (-50, -26, -2, 22):
     put("props/street_lamp.tscn", (x, 0.15, 56.05), 180)
 
@@ -475,7 +487,7 @@ for i in range(4):
 # Host spawns pedestrians under NPCs; the spawner replicates them to clients.
 sc.node("NPCs", "Node3D", ".")
 sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
-    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn")',
+    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn")',
     "spawn_path": 'NodePath("../NPCs")'})
 
 # --------------------------------------------------------------------------- traffic

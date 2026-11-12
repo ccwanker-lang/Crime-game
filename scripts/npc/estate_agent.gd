@@ -49,8 +49,8 @@ func _server_buy_property(peer: int, id: StringName) -> void:
 		msg = "\"That one isn't on the market.\""
 	elif prop.is_crew_owned():
 		msg = "\"Your crew already owns that one.\""
-	elif not GameState.add_cash(buyer.player_name, -prop.price):
-		msg = "Not enough cash (€%s needed)." % Property.money(prop.price)
+	elif not GameState.add_cash(buyer.player_name, -prop.price, true):
+		msg = "Not enough money (€%s needed)." % Property.money(prop.price)
 	else:
 		prop.host_set_owned(buyer.player_name)
 		buyer.send_wallet()

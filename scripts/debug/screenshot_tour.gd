@@ -91,6 +91,14 @@ const SHOTS: Array[Array] = [
 	# Point 8: South Street with the properties for sale and the real estate agent (window open).
 	["65_south_street", Vector3(8, 2.2, 63), Vector3(-30, 3.0, 52)],
 	["66_estate_window", Vector3(-19.2, 1.7, 50.5), Vector3(-19.2, 1.3, 46.7)],
+	["67_front_businesses", Vector3(-1, 2.2, 63), Vector3(-12, 3.0, 52)],
+	["68_bakery_inside", Vector3(39.5, 1.7, -6.9), Vector3(40.4, 1.0, -13.5)],
+	["69_barber_inside", Vector3(-10.6, 1.7, 53.0), Vector3(-14.5, 1.0, 48.0)],
+	["70_laundromat_inside", Vector3(-3.0, 1.7, 53.0), Vector3(-8.5, 0.8, 47.5)],
+	# Point 10: police station, an officer aiming next to a patrol car (light bar on).
+	["71_police_station", Vector3(16, 2.2, 64), Vector3(3, 3.0, 52)],
+	["72_police_officer", Vector3(3.6, 1.6, 59.6), Vector3(1.6, 1.1, 56.4)],
+	["73_police_car_night", Vector3(10.5, 2.0, 63.0), Vector3(4.0, 0.8, 57.5)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -301,6 +309,25 @@ func _stage(shot_name: String) -> void:
 				me.combat.select_slot(1 if shot_name == "59_place_ghost" else 2)
 				await get_tree().create_timer(0.4).timeout
 				me.prompt_label.text = me.placement.prompt_text()
+			await get_tree().create_timer(0.4).timeout
+		"72_police_officer", "73_police_car_night":
+			var world: Node = get_tree().current_scene
+			var traffic: Traffic = world.get_node("Traffic")
+			var route: TrafficRoute = traffic.routes[3]
+			var best: float = 0.0
+			for i: int in int(route.length * 2.0):
+				if (route.sample(i * 0.5)[0] as Vector3).distance_to(Vector3(5.5, 0, 58.25)) 						< (route.sample(best)[0] as Vector3).distance_to(Vector3(5.5, 0, 58.25)):
+					best = i * 0.5
+			var car: Car = traffic.spawn_police_car(3, best)
+			car.abandoned = true
+			car.siren = true
+			_staged.append(car)
+			var cop: PoliceOfficer = world.add_officer(Vector3(1.6, 0.15, 56.4), Vector3(1.6, 0.15, 56.4), car)
+			cop.rotation.y = deg_to_rad(150.0)
+			_staged.append(cop)
+			await get_tree().create_timer(0.6).timeout
+			cop.anim_state = Pedestrian.Anim.AIM
+			cop.net_yaw = cop.rotation.y
 			await get_tree().create_timer(0.4).timeout
 		"66_estate_window":
 			var agent: EstateAgent = get_tree().current_scene.find_child("Agent", true, false) as EstateAgent

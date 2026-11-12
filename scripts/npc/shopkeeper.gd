@@ -94,7 +94,7 @@ func _server_buy(peer: int, id: StringName, count: int) -> void:
 			msg = "\"One's enough, friend.\""
 		elif GameState.space_for(buyer.player_name, String(id)) < amount:
 			msg = "Your pockets are full."
-		elif not GameState.add_cash(buyer.player_name, -total):
+		elif not GameState.add_cash(buyer.player_name, -total, item.is_legal):
 			msg = "Not enough cash (€%d needed)." % total
 		else:
 			GameState.give(buyer.player_name, 0, [{"id": String(id), "count": amount}])

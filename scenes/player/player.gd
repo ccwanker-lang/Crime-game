@@ -102,6 +102,7 @@ var auto_target: Vector3 = Vector3.ZERO
 
 var third_person: bool = false
 var cash: int = 0  # owner: last value sent by the host
+var clean: int = 0  # owner: laundered money (point 9), last value sent by the host
 ## Owner: carried item stacks [{ "id", "count" }], last list sent by the host.
 var inventory: Array = []
 ## Owner: the shop window that is open (null = none).
@@ -685,7 +686,7 @@ func open_shop(keeper: Shopkeeper) -> void:
 	if ui == null or dead:
 		return
 	shop = keeper
-	ui.open_shop(keeper, cash)
+	ui.open_shop(keeper, cash, clean)
 	if not ui.close_requested.is_connected(close_shop):
 		ui.close_requested.connect(close_shop)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -743,13 +744,16 @@ func is_head_hit(pos: Vector3) -> bool:
 
 ## Host: apply damage from `attacker` (may be null). Returns true if this killed.
 ## `from`: where the shot came from (ragdoll impulse), INF = unknown.
-func host_damage(amount: int, attacker: Player, from: Vector3 = Vector3.INF) -> bool:
+## `attacker`: the Player who shot, or an NPC (police officer, rival), or null.
+func host_damage(amount: int, attacker: Node, from: Vector3 = Vector3.INF) -> bool:
 	if not multiplayer.is_server() or dead or amount <= 0:
 		return false
 	health = maxi(0, health - amount)
 	if health > 0:
 		return false
-	_host_die(attacker, from)
+	if attacker is PoliceOfficer:
+		print("[Player] %s was shot dead by the police" % player_name)
+	_host_die(attacker as Player, from)
 	return true
 
 
@@ -894,11 +898,12 @@ func send_wallet() -> void:
 		return
 	var data: Dictionary = GameState.get_or_create_player_data(player_name)
 	var amount: int = int(data["cash"])
+	var clean_amount: int = int(data["clean"])
 	var items: Array = (data["inventory"] as Array).duplicate(true)
 	if peer_id == multiplayer.get_unique_id():
-		_set_wallet(amount, items)
+		_set_wallet(amount, items, clean_amount)
 	else:
-		_set_wallet.rpc_id(peer_id, amount, items)
+		_set_wallet.rpc_id(peer_id, amount, items, clean_amount)
 
 
 ## Owner -> host: send me my cash (when my player node is ready).
@@ -910,13 +915,14 @@ func _request_wallet() -> void:
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _set_wallet(amount: int, items: Array) -> void:
+func _set_wallet(amount: int, items: Array, clean_amount: int = 0) -> void:
 	if multiplayer.get_remote_sender_id() not in [0, 1]:
 		return
 	cash = amount
+	clean = clean_amount
 	inventory = items
 	if ui:
-		ui.set_cash(amount)
+		ui.set_cash(amount, clean_amount)
 		ui.set_inventory(items)
 	wallet_changed.emit()
 
@@ -984,8 +990,8 @@ func _host_webshop_buy(id: StringName, count: int) -> void:
 		show_message("QuickShip can't deliver that.")
 		return
 	var cost: int = item.base_price * count
-	if not GameState.add_cash(player_name, -cost):
-		show_message("Not enough cash (€%d)." % cost)
+	if not GameState.add_cash(player_name, -cost, true):
+		show_message("Not enough money (€%d)." % cost)
 		return
 	box.order(str(id), count * item.pack_size)
 	send_wallet()

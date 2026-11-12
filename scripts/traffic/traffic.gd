@@ -76,6 +76,7 @@ func release_junction(j: int, car: Car) -> void:
 func replace_car(old: Car) -> void:
 	var r: int = old.route_id
 	var kind: int = old.kind
+	var police: bool = old.police
 	for j: int in JUNCTIONS.size():
 		release_junction(j, old)
 	old.queue_free()
@@ -101,6 +102,7 @@ func replace_car(old: Car) -> void:
 	car.route_id = r
 	car.progress = best
 	car.kind = kind
+	car.police = police
 	car.color_seed = randi()
 	add_child(car, true)
 
@@ -122,4 +124,23 @@ func spawn_cars(count: int) -> void:
 			car.color_seed = randi()
 			add_child(car, true)
 			n += 1
-	print("[Traffic] %d cars on %d routes" % [n, routes.size()])
+	# Point 10: one police patrol car on the route past the police station (South Street).
+	var police_cars: int = 1
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--police-cars="):
+			police_cars = arg.trim_prefix("--police-cars=").to_int()
+	for k: int in police_cars:
+		spawn_police_car(3, routes[3].length * (0.6 + 0.15 * k))
+	print("[Traffic] %d cars + %d police cars on %d routes" % [n, police_cars, routes.size()])
+
+
+## Host: a police patrol car on route `r` at `prog` metres.
+func spawn_police_car(r: int, prog: float) -> Car:
+	var car: Car = CAR.instantiate()
+	car.route_id = r
+	car.progress = prog
+	car.kind = ProcCar.Kind.SEDAN
+	car.police = true
+	car.color_seed = randi()
+	add_child(car, true)
+	return car
