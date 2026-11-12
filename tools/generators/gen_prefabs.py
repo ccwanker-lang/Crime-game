@@ -344,6 +344,8 @@ def starter_extra(sc):
     marker(sc, "Pot2Spot", (-0.8, FLOOR, -5.2), 0)
     marker(sc, "RackSpot", (2.55, FLOOR, -6.0), 90)
     marker(sc, "PackagingSpot", (1.0, FLOOR, -5.4))
+    # Point 20: every Starter Room gets a free storage locker here (against the left wall).
+    marker(sc, "LockerSpot", (-2.43, FLOOR, -5.6), 90)
     inst(sc, "DeliveryBox", ST + "delivery_box.tscn", (2.3, FLOOR, -2.4), -90)
     sc.node("Property", "Node3D", ".", props={
         "transform": xform((0, 3.4, 0.25)), "script": sc.script(S["property"]),

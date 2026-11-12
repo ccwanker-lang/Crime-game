@@ -461,13 +461,18 @@ func _draw_hitmarker() -> void:
 		hitmarker.draw_line(c + d * 6.0, c + d * 13.0, _hit_color, 2.0, true)
 
 
-# --- Storage locker window (point 18) ------------------------------------------------
+# --- Storage window (points 18 + 20) ----------------------------------------------------
+# Left: your 8 pocket slots, right: the locker's slots. Click = move one item,
+# Shift+click = the whole stack, drag a slot onto the other side = the whole stack,
+# right click on a pocket slot = drop it on the ground (Shift: just one).
+
+const SLOT_SIZE: Vector2 = Vector2(74, 74)
 
 var _locker_panel: Control
 var _locker: StorageLocker
 var _locker_player: Player
-var _locker_mine: VBoxContainer
-var _locker_theirs: VBoxContainer
+var _locker_mine: GridContainer
+var _locker_theirs: GridContainer
 var _locker_title: Label
 
 
@@ -484,7 +489,6 @@ func _build_locker_panel() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(640, 0)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.09, 0.1, 0.94)
 	style.border_color = Color(0.55, 0.65, 0.75, 0.8)
@@ -501,29 +505,29 @@ func _build_locker_panel() -> void:
 	_locker_title.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
 	box.add_child(_locker_title)
 	var hint := Label.new()
-	hint.text = "Click a stack to move it. Everything in here is shared with your crew."
+	hint.text = "Click: move one   Shift+click / drag: whole stack   Right click: drop on the ground\nShared with your crew."
 	hint.add_theme_color_override("font_color", Color(0.75, 0.75, 0.78))
 	box.add_child(hint)
 	box.add_child(HSeparator.new())
 	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 16)
+	cols.add_theme_constant_override("separation", 28)
 	box.add_child(cols)
 	for i: int in 2:
 		var col := VBoxContainer.new()
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.custom_minimum_size = Vector2(290, 0)
 		var head := Label.new()
 		head.text = "Your pockets" if i == 0 else "Locker"
 		head.add_theme_font_size_override("font_size", 18)
 		col.add_child(head)
-		var list := VBoxContainer.new()
-		list.add_theme_constant_override("separation", 4)
-		col.add_child(list)
+		var grid := GridContainer.new()
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", 6)
+		grid.add_theme_constant_override("v_separation", 6)
+		col.add_child(grid)
 		cols.add_child(col)
 		if i == 0:
-			_locker_mine = list
+			_locker_mine = grid
 		else:
-			_locker_theirs = list
+			_locker_theirs = grid
 	box.add_child(HSeparator.new())
 	var close := _button("Close  [E / Esc]")
 	close.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -562,28 +566,83 @@ func _refresh_locker() -> void:
 	if _locker == null or not is_instance_valid(_locker):
 		return
 	_locker_title.text = "Storage Locker  (%d/%d)" % [_locker.used_slots(), StorageLocker.SLOTS]
-	_fill_stack_list(_locker_mine, _locker_player.inventory, true)
-	_fill_stack_list(_locker_theirs, _locker.state["items"], false)
+	_fill_slot_grid(_locker_mine, _locker_player.inventory, GameState.INVENTORY_SLOTS, false)
+	_fill_slot_grid(_locker_theirs, _locker.state["items"], StorageLocker.SLOTS, true)
 
 
-func _fill_stack_list(list: VBoxContainer, items: Array, to_locker: bool) -> void:
-	for c: Node in list.get_children():
+## One grid of `slots` slots; the first items.size() hold a stack.
+func _fill_slot_grid(grid: GridContainer, items: Array, slots: int, in_locker: bool) -> void:
+	for c: Node in grid.get_children():
+		grid.remove_child(c)
 		c.queue_free()
-	if items.is_empty():
-		var empty := Label.new()
-		empty.text = "(empty)"
-		empty.modulate = Color(1, 1, 1, 0.5)
-		list.add_child(empty)
-	for i: int in items.size():
-		var it: Dictionary = items[i]
-		var data: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
-		var b := _button("%s  x%d" % [data.display_name if data else str(it.get("id")), int(it.get("count", 1))])
-		b.icon = data.get_icon() if data else null
-		b.expand_icon = true
-		b.custom_minimum_size = Vector2(0, 40)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_constant_override("icon_max_width", 34)
-		b.pressed.connect(func() -> void:
-			if _locker and is_instance_valid(_locker):
-				_locker.request_move(to_locker, i))
-		list.add_child(b)
+	for i: int in slots:
+		var it: Dictionary = items[i] if i < items.size() else {}
+		grid.add_child(_storage_slot(it, i, in_locker))
+
+
+func _storage_slot(it: Dictionary, index: int, in_locker: bool) -> Control:
+	var slot := PanelContainer.new()
+	slot.custom_minimum_size = SLOT_SIZE
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.16, 0.17, 0.19, 0.95) if not it.is_empty() else Color(0.1, 0.1, 0.11, 0.8)
+	style.border_color = Color(1, 1, 1, 0.22)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(4)
+	slot.add_theme_stylebox_override("panel", style)
+	if it.is_empty():
+		slot.set_drag_forwarding(Callable(), _can_drop_on_slot.bind(in_locker), _drop_on_slot.bind(in_locker))
+		return slot
+	var data: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
+	var icon := TextureRect.new()
+	icon.texture = data.get_icon() if data else null
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(icon)
+	var count := Label.new()
+	count.text = "x%d" % int(it.get("count", 1))
+	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	count.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	count.add_theme_font_size_override("font_size", 15)
+	count.add_theme_constant_override("outline_size", 4)
+	count.add_theme_color_override("font_outline_color", Color.BLACK)
+	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(count)
+	slot.tooltip_text = "%s  x%d" % [data.display_name if data else str(it.get("id")), int(it.get("count", 1))]
+	slot.gui_input.connect(_on_storage_slot_input.bind(index, in_locker))
+	slot.set_drag_forwarding(_drag_slot.bind(index, in_locker, icon.texture, slot), _can_drop_on_slot.bind(in_locker),
+			_drop_on_slot.bind(in_locker))
+	return slot
+
+
+func _on_storage_slot_input(event: InputEvent, index: int, in_locker: bool) -> void:
+	var mb := event as InputEventMouseButton
+	if mb == null or mb.pressed or _locker == null or not is_instance_valid(_locker):
+		return
+	if get_viewport().gui_is_dragging():
+		return
+	if mb.button_index == MOUSE_BUTTON_LEFT:
+		_locker.request_move(not in_locker, index, 0 if mb.shift_pressed else 1)
+	elif mb.button_index == MOUSE_BUTTON_RIGHT and not in_locker and _locker_player:
+		_locker_player.request_drop(index, 1 if mb.shift_pressed else 0)
+
+
+func _drag_slot(_at: Vector2, index: int, in_locker: bool, tex: Texture2D, source: Control) -> Variant:
+	var preview := TextureRect.new()
+	preview.texture = tex
+	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview.custom_minimum_size = SLOT_SIZE * 0.8
+	preview.size = SLOT_SIZE * 0.8
+	preview.modulate = Color(1, 1, 1, 0.8)
+	source.set_drag_preview(preview)
+	return {"storage_slot": index, "in_locker": in_locker}
+
+
+func _can_drop_on_slot(_at: Vector2, data: Variant, target_in_locker: bool) -> bool:
+	return data is Dictionary and (data as Dictionary).has("storage_slot") and bool(data["in_locker"]) != target_in_locker
+
+
+func _drop_on_slot(_at: Vector2, data: Variant, target_in_locker: bool) -> void:
+	if _locker and is_instance_valid(_locker) and _can_drop_on_slot(_at, data, target_in_locker):
+		_locker.request_move(target_in_locker, int(data["storage_slot"]), 0)

@@ -448,6 +448,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_third_person(not third_person)
 	elif event.is_action_pressed("phone") and not dead and ui:
 		open_phone()
+	elif event.is_action_pressed("drop") and not dead:
+		# G: drop the selected hotbar stack (Shift+G: just one).
+		var slot: int = combat.hotbar_slot()
+		if slot >= 0 and slot < inventory.size():
+			request_drop(slot, 1 if Input.is_key_pressed(KEY_SHIFT) else 0)
 	elif event.is_action_pressed("interact") and _focused != null and not dead:
 		if placement == null or not placement.begin_interact(_focused):
 			_focused.call("interact")
@@ -706,6 +711,44 @@ func close_phone() -> void:
 		ui.phone.close()
 	if not auto_walk:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+# --- Dropping items (point 20) -------------------------------------------------------
+
+## Owner: drop `count` items (<= 0: the whole stack) of inventory slot `index` on the ground.
+func request_drop(index: int, count: int = 0) -> void:
+	if multiplayer.is_server():
+		_host_drop(index, count)
+	else:
+		_request_drop.rpc_id(1, index, count)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_drop(index: int, count: int) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		_host_drop(index, count)
+
+
+## Host: takes the items out of the inventory and puts them on the ground in front of the player.
+func _host_drop(index: int, count: int) -> void:
+	var inv: Array = GameState.get_or_create_player_data(player_name)["inventory"]
+	if dead or index < 0 or index >= inv.size():
+		return
+	var stack: Dictionary = inv[index]
+	var id: String = str(stack.get("id", ""))
+	var have: int = int(stack.get("count", 1))
+	var amount: int = have if count <= 0 else mini(count, have)
+	stack["count"] = have - amount
+	if int(stack["count"]) <= 0:
+		inv.remove_at(index)
+	var world: Node = get_tree().current_scene
+	var pos: Vector3 = global_position - global_basis.z * 0.9 + Vector3.UP * 0.3
+	if world.has_method("spawn_loot_bag"):
+		world.call("spawn_loot_bag", pos, player_name, 0, [{"id": id, "count": amount}], true)
+	send_wallet()
+	var data: ItemData = ItemDB.get_item(StringName(id))
+	print("[Player] %s dropped %dx %s" % [player_name, amount, id])
+	show_message("Dropped %dx %s." % [amount, data.display_name if data else id])
 
 
 ## Owner: the storage window of a locker (frees the mouse).

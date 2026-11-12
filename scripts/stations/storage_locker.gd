@@ -66,57 +66,55 @@ func interact() -> void:
 
 # --- Moving stacks -----------------------------------------------------------------
 
-## Owner: move stack `index` of your inventory into the locker (to_locker) or back.
-func request_move(to_locker: bool, index: int) -> void:
+## Owner: move `count` items (<= 0: the whole stack) of stack `index` of your
+## inventory into the locker (to_locker) or back.
+func request_move(to_locker: bool, index: int, count: int = 0) -> void:
 	if _is_host():
-		_server_move(multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1, to_locker, index)
+		_server_move(multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1, to_locker, index, count)
 	else:
-		_request_move.rpc_id(1, to_locker, index)
+		_request_move.rpc_id(1, to_locker, index, count)
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _request_move(to_locker: bool, index: int) -> void:
+func _request_move(to_locker: bool, index: int, count: int) -> void:
 	if multiplayer.is_server():
-		_server_move(multiplayer.get_remote_sender_id(), to_locker, index)
+		_server_move(multiplayer.get_remote_sender_id(), to_locker, index, count)
 
 
-func _server_move(peer: int, to_locker: bool, index: int) -> void:
+func _server_move(peer: int, to_locker: bool, index: int, count: int) -> void:
 	var player := get_tree().current_scene.get_node_or_null("Players/%d" % peer) as Player
-	if player == null or player.dead or player.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 1.5:
+	if player == null or player.dead or player.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 2.0:
 		return
-	var msg: String = host_move(player.player_name, to_locker, index)
+	var msg: String = host_move(player.player_name, to_locker, index, count)
 	player.send_wallet()
 	if msg != "":
 		player.show_message(msg)
 
 
-## Host: moves one stack. Returns a message for the player ("" = all fine).
-func host_move(who: String, to_locker: bool, index: int) -> String:
+## Host: moves `count` items (<= 0: all) of one stack. Returns a message for the
+## player ("" = all fine).
+func host_move(who: String, to_locker: bool, index: int, count: int = 0) -> String:
 	var items: Array = state["items"]
 	var inv: Array = GameState.get_or_create_player_data(who)["inventory"]
-	if to_locker:
-		if index < 0 or index >= inv.size():
-			return ""
-		var it: Dictionary = inv[index]
-		var id: String = str(it["id"])
-		var count: int = int(it.get("count", 1))
-		var left: int = GameState.add_to_stacks(items, id, count, SLOTS)
-		var moved: int = count - left
-		if moved > 0:
-			it["count"] = left
-			if left <= 0:
-				inv.remove_at(index)
-			changed()
-		return "The locker is full." if left > 0 else ""
-	if index < 0 or index >= items.size():
+	var from: Array = inv if to_locker else items
+	if index < 0 or index >= from.size():
 		return ""
-	var stack: Dictionary = items[index]
-	var leftover: Array = GameState.give(who, 0, [{"id": stack["id"], "count": int(stack["count"])}])
-	var left2: int = 0
-	for l: Dictionary in leftover:
-		left2 += int(l["count"])
-	stack["count"] = left2
-	if left2 <= 0:
-		items.remove_at(index)
-	changed()
-	return "Your pockets are full." if left2 > 0 else ""
+	var stack: Dictionary = from[index]
+	var id: String = str(stack["id"])
+	var have: int = int(stack.get("count", 1))
+	var amount: int = have if count <= 0 else mini(count, have)
+	var left: int = 0
+	if to_locker:
+		left = GameState.add_to_stacks(items, id, amount, SLOTS)
+	else:
+		for l: Dictionary in GameState.give(who, 0, [{"id": id, "count": amount}]):
+			left += int(l["count"])
+	var moved: int = amount - left
+	if moved > 0:
+		stack["count"] = have - moved
+		if int(stack["count"]) <= 0:
+			from.remove_at(index)
+		changed()
+	if left > 0:
+		return "The locker is full." if to_locker else "Your pockets are full."
+	return ""

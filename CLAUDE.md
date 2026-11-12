@@ -118,6 +118,9 @@ Godot console exe:
   `GameState.world["placed"]` records (`World.host_place`/`host_remove_placed`); placed stations use station_id
   `placed/<uid>`, furniture sits in a `PlacedFurniture`. Owned properties adopt their building's furniture
   (`Property.host_adopt_furniture`). `StorageLocker` station + HUD storage window. Tests: `World.debug_weed_corner()`.
+- Storage/drop (point 20): `StorageLocker.request_move(to_locker, index, count)` (count 0 = stack), HUD slot grids
+  with drag (`set_drag_forwarding`); `Player.request_drop(index, count)` -> `World.spawn_loot_bag(..., dropped=true)`
+  (LootBag shows the item model). Free locker at the Starter Room's `LockerSpot` (world["free_locker"]).
 - Black market (point 7): `prefabs/buildings/garage.tscn` (gen_prefabs `garage_extra`), `NightGate` (NetDoor subclass,
   locked by day from the workshop side) + Shopkeeper `night_only` (Rook). "Night" = `DayNight.is_night()` (lights on).
   The screenshot tour sets 23:00 for shots whose name contains "night".

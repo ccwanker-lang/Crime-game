@@ -258,13 +258,13 @@ var _loot_counter: int = 0
 
 
 ## Host only: drops a bag with cash + items on the ground below `pos` (replicated by LootSpawner).
-func spawn_loot_bag(pos: Vector3, owner_name: String, cash: int, items: Array) -> void:
+func spawn_loot_bag(pos: Vector3, owner_name: String, cash: int, items: Array, dropped: bool = false) -> void:
 	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.5, pos + Vector3.DOWN * 20.0, 1)
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
 	var ground: Vector3 = hit["position"] if not hit.is_empty() else pos
 	_loot_counter += 1
 	loot_spawner.spawn({"id": _loot_counter, "pos": ground, "yaw": randf() * TAU,
-			"owner": owner_name, "cash": cash, "items": items})
+			"owner": owner_name, "cash": cash, "items": items, "dropped": dropped})
 	print("[World] Loot bag of %s dropped at %s (€%d)" % [owner_name, ground.snapped(Vector3.ONE * 0.1), cash])
 
 
@@ -276,6 +276,7 @@ func _create_loot_bag(data: Dictionary) -> Node:
 	bag.owner_name = data["owner"]
 	bag.cash = data["cash"]
 	bag.items = data["items"]
+	bag.dropped = bool(data.get("dropped", false))
 	return bag
 
 
@@ -395,7 +396,8 @@ func capture_for_save() -> void:
 	for bag: Node in loot_root.get_children():
 		var b := bag as LootBag
 		if b and not b.is_queued_for_deletion():
-			bags.append({"pos": b.global_position, "owner": b.owner_name, "cash": b.cash, "items": b.items})
+			bags.append({"pos": b.global_position, "owner": b.owner_name, "cash": b.cash, "items": b.items,
+					"dropped": b.dropped})
 	GameState.world["loot_bags"] = bags
 
 
@@ -420,7 +422,7 @@ func _restore_from_save() -> void:
 	if dn and GameState.world.has("hours"):
 		dn.set_hours(float(GameState.world["hours"]))
 	for bag: Dictionary in GameState.world.get("loot_bags", []):
-		spawn_loot_bag(bag["pos"], str(bag["owner"]), int(bag["cash"]), bag["items"])
+		spawn_loot_bag(bag["pos"], str(bag["owner"]), int(bag["cash"]), bag["items"], bool(bag.get("dropped", false)))
 	GameState.world["loot_bags"] = []
 	# Placed stations/furniture (point 6), stations from old saves, then furniture adoption (point 17).
 	var placed: Dictionary = GameState.world.get_or_add("placed", {})
@@ -434,6 +436,12 @@ func _restore_from_save() -> void:
 			continue  # already there (placed before the restore ran)
 		host_place(str(rec["item"]), rec["pos"], float(rec["yaw"]), uid)
 	_migrate_old_stations()
+	if not GameState.world.get("free_locker", false):
+		var spot: Node3D = get_marker("LockerSpot")
+		if spot:
+			host_place("storage_locker", spot.global_position, spot.global_rotation.y)
+			GameState.world["free_locker"] = true
+			print("[World] A free storage locker in the Starter Room")
 	for p: Node in get_tree().get_nodes_in_group(&"properties"):
 		var adopted: int = (p as Property).host_adopt_furniture(self)
 		if adopted > 0:

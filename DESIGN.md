@@ -206,8 +206,23 @@ Added after playing (A-F; E = point 4, C extends point 6):
 15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - done
 16. (B) Every house is furnished by the interior generator (no empty houses): dining corner, nightstands, wardrobes, study floors, footprint check - done
 17. (C) Own properties: ALL furniture can be picked up, moved, rotated, sold or stored (placement system of point 6) - done
-18. (D) Storage lockers: buy + place in a property, own inventory (put in / take out), several allowed, saved, shared in co-op - done
+18. (D) Storage lockers: buy + place in a property, own inventory (put in / take out), several allowed, saved, shared in co-op - reopened as 20
 19. (F) Balconies: a door (E opens) onto every balcony, walkable, solid railing without gaps (1.6 m collision wall) - done
+Feedback round 2 (MUST first, then balance, traffic, police, map):
+20. Storage that really works: locker/shelf with own slots, E opens inventory (left) + storage (right), click or drag
+    to move, Shift+click = whole stack, host validates, saved + synced; a free locker in every Starter Room (old
+    saves too); drop items (G / right click in the inventory) and pick them up again - done
+21. Police balance: reaction time, big spread (more at range and when you move), pauses between bursts, lower
+    damage; all values in a tunable resource (accuracy, reaction_time, damage, fire_rate) - todo
+22. Health regeneration: after ~8 s without damage HP slowly heals back to 100 (tunable) - todo
+23. Car horns: much quieter, shorter, less often, not all cars at once - todo
+24. Traffic and gunfire: drivers never get out any more; cars speed away from the shooting (turn round / other
+    route), then go back to their normal route; no abandoned cars left on the street (replaces part of point 3) - todo
+25. Police and their car: officers get out to shoot or arrest, never leave the car behind, walk back and patrol on
+    when it's over (dead / arrested / escaped). Arrest: a player who doesn't resist and is close gets cuffed
+    instead of shot -> illegal items confiscated + fine, released at the police station - todo
+26. Spread the properties for sale over the map: at least a street apart, different neighbourhoods, not next to
+    the police station; agent list + existing saves follow (owned property moves with its contents) - todo
 Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; heat, lawyer, bribes;
 rival territories, lab raids, story missions (acts 1-5); the full city (Map layout); roadside team, fuel station, garage.
 
@@ -250,6 +265,11 @@ Choices made while working autonomously (what + why).
   of sight for 25 s. Shooting an officer makes you its target. The patrol car stops with its light bar on and
   the officer gets out; afterwards it gets back in. Dead officers come back at the station after 60 s.
   Officers don't flee and don't drop loot.
+- Point 20: the storage window is two slot grids (8 pockets, 16 locker). Plain click moves ONE item, Shift+click
+  or dragging moves the whole stack, right click on a pocket slot drops it. G drops the selected hotbar stack
+  (Shift+G one item). A dropped item is a LootBag that shows the item's own model ("Pick up 2x Soil"), saved
+  like loot bags; anybody can pick it up. The free locker (LockerSpot, against the Starter Room's left wall) is
+  placed once per world (flag world["free_locker"]), so old saves get it too.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

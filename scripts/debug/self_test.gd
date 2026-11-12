@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -824,9 +824,9 @@ func _check_placement(world: Node3D) -> void:
 			"starter room furniture can be moved (%d placed pieces, %d static left)" % [adopted, prop.static_furniture().size()])
 	var no_station: bool = true
 	for c: Node in placed_root.get_children():
-		if c is Station and _corner.is_empty():
+		if c is Station and not c is StorageLocker and _corner.is_empty():
 			no_station = false
-	_report(no_station, "a new game starts without stations (they are bought)")
+	_report(no_station, "a new game starts without production stations (only the free locker)")
 
 	var p: Player = WALKER.instantiate()
 	p.auto_walk = true
@@ -1004,6 +1004,88 @@ func _check_real_estate(world: Node3D) -> void:
 	_report(answers.size() == 3 and not answers[2][0], "it can't be bought twice")
 	agent.buy_result.disconnect(cb)
 	GameState.player_data.erase("Buyer")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Storage + dropping (point 20) ------------------------------------------------------
+
+func _check_storage(world: Node3D) -> void:
+	var spot: Node3D = world.get_marker("LockerSpot")
+	var locker: StorageLocker = null
+	for n: Node in get_tree().get_nodes_in_group(&"stations"):
+		if n is StorageLocker and (n as Node3D).global_position.distance_to(spot.global_position) < 0.3:
+			locker = n as StorageLocker
+	_report(locker != null and GameState.world.get("free_locker", false), "a free storage locker stands in the Starter Room")
+	if locker == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Packrat"
+	var front: Vector3 = locker.global_position + locker.global_basis.z * 1.0
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Packrat")
+	var d: Dictionary = GameState.get_or_create_player_data("Packrat")
+	locker.state["items"] = []
+	# Full pockets: 8 different stacks.
+	d["inventory"] = [{"id": "soil", "count": 5}, {"id": "baggie", "count": 20}, {"id": "weed_seed", "count": 3},
+			{"id": "watering_can", "count": 1}, {"id": "weed_bud", "count": 4}, {"id": "ammo_9mm", "count": 30},
+			{"id": "pistol", "count": 1}, {"id": "fresh_weed", "count": 2}]
+	_report(GameState.space_for("Packrat", "sofa") == 0, "pockets are full (8 slots)")
+	locker.host_move("Packrat", true, 0, 1)
+	_report(int(d["inventory"][0]["count"]) == 4 and locker.state["items"] == [{"id": "soil", "count": 1}],
+			"click: one Soil into the locker")
+	locker.host_move("Packrat", true, 0, 0)
+	_report(d["inventory"].size() == 7 and locker.state["items"] == [{"id": "soil", "count": 5}],
+			"shift+click: the rest of the stack joins it (pockets now have a free slot)")
+	locker._server_move(1, true, 0, 0)  # the RPC path (peer 1 = this walker), baggies
+	_report(d["inventory"].size() == 6 and locker.used_slots() == 2, "moving through the host request works too")
+	# Back out: pockets refill, and a full pocket refuses.
+	locker.host_move("Packrat", false, 0, 2)
+	_report(GameState.count_item("Packrat", "soil") == 2 and int(locker.state["items"][0]["count"]) == 3,
+			"two Soil back into the pockets")
+	d["inventory"].append({"id": "sofa", "count": 1})
+	d["inventory"].append({"id": "stool", "count": 1})
+	var msg: String = locker.host_move("Packrat", false, 1, 0)
+	_report(msg == "Your pockets are full." and locker.used_slots() == 2, "full pockets: the baggies stay in the locker ('%s')" % msg)
+	_report(GameState.world["stations"][locker.station_id]["items"].size() == 2, "the locker contents are in the world state (saved)")
+	# Drop the stool (G / right click) and pick it up again.
+	var bags0: int = world.get_node("Loot").get_child_count()
+	var idx: int = -1
+	for i: int in d["inventory"].size():
+		if d["inventory"][i]["id"] == "stool":
+			idx = i
+	p._host_drop(idx, 0)
+	await get_tree().process_frame
+	var bag: LootBag = null
+	for b: Node in world.get_node("Loot").get_children():
+		if (b as LootBag).dropped and (b as LootBag).owner_name == "Packrat":
+			bag = b as LootBag
+	_report(bag != null and world.get_node("Loot").get_child_count() == bags0 + 1 and GameState.count_item("Packrat", "stool") == 0
+			and bag.get_node_or_null("ItemModel") != null or (bag != null and bag.find_child("ItemModel", true, false) != null),
+			"dropping puts the item on the ground (its own model)")
+	_report(bag != null and bag.get_interaction_prompt() == "Pick up 1x Stool", "prompt: '%s'" % (bag.get_interaction_prompt() if bag else "-"))
+	world.capture_for_save()
+	var saved: bool = false
+	for rec: Dictionary in GameState.world["loot_bags"]:
+		saved = saved or bool(rec.get("dropped", false))
+	GameState.world["loot_bags"] = []
+	_report(saved, "dropped items are saved")
+	GameState.remove_item("Packrat", "sofa", 1)  # room in the pockets again
+	if bag:
+		bag.global_position = p.global_position + Vector3(0.5, 0, 0)
+		bag._server_take(1)
+		await get_tree().process_frame
+	_report(GameState.count_item("Packrat", "stool") == 1 and (bag == null or not is_instance_valid(bag) or bag.is_queued_for_deletion()),
+			"picking it up puts it back in the pockets")
+	locker.state["items"] = []
+	locker.changed()
+	GameState.player_data.erase("Packrat")
 	p.queue_free()
 	await get_tree().physics_frame
 
