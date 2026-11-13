@@ -8,6 +8,11 @@
 - Work in small, testable steps. After each step: how to test solo, with 2 local instances
   (Debug > Customize Run Instances), and over LAN. Wait for feedback unless told "ga door".
 - Commit after each working step.
+- FIXED RULE (test scenarios): every time you ask the user to test something, first make a scenario for it in
+  `scripts/debug/scenarios.gd` (`Scenarios.LIST` + a `match` branch in `run`) and give them its name (F9 in the game,
+  or `--scenario=<name>`). Never ask the user to test something for which they would first have to collect or make
+  items, money, time of day, a place or NPCs themselves. Check every new scenario with
+  `-- --scenario=<name> --scenario-quit --port=7790 --name=Tester` (headless; prints a `[ScenarioCheck]` line).
 
 ## Conventions
 - Godot 4.6 (standard, not .NET), GDScript with static typing, Forward+, Jolt physics.
@@ -50,6 +55,12 @@ Godot console exe:
 - Viewmodel check (window): `-- --vmpreview --port=7790 [--reload=0.5] [--fire] [--model=1]` saves
   `screenshots/vm_view.png` (player view) + `vm_side.png` (side view) of the first-person arms + weapon.
   `--script res://scripts/debug/model_preview.gd -- --scene=res://... --size=0.3` renders any scene (no autoloads).
+
+- Scenarios: `Scenarios` (static, `pending`, `run(world, id)`, `restart_into(tree, id)`) + `ScenarioMenu` (F9, in World).
+  A scenario restarts the host into a FRESH game on `user://scenario_test.json` (`SaveManager.use_scenario_save`,
+  `scenario_mode`); the real save is written once before and never touched; the main menu switches back
+  (`use_real_save`). Helpers: `_kit(me, cash, [[id, count]...])` (exact inventory), `_place(me, pos, look_at, dn, hours)`,
+  `_at_keeper(world, me, "Building", dn, hours)`.
 
 ## Map / prefabs
 - Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts in `scripts/procgen/`).

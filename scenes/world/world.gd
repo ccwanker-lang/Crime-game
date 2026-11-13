@@ -47,6 +47,7 @@ func _ready() -> void:
 	_refresh_players()
 
 	_set_debug_visible(false)
+	add_child(ScenarioMenu.new())  # F9
 	if "--screenshot" in OS.get_cmdline_user_args():
 		_start_screenshot_tour()
 	elif "--vmpreview" in OS.get_cmdline_user_args():
@@ -618,6 +619,14 @@ func _after_navmesh() -> void:
 			if arg.begins_with("--rivals="):
 				rival_count = arg.trim_prefix("--rivals=").to_int()
 		_rival_loop()
+	# Test scenario (F9 / --scenario=): set the host player up now that NPCs can walk.
+	if multiplayer.is_server() and Scenarios.pending != "":
+		Scenarios.run(self, Scenarios.pending)
+	elif multiplayer.is_server() and not SaveManager.scenario_mode:
+		# Check run of the F9 path: a normal game that switches into a scenario by itself.
+		for arg: String in OS.get_cmdline_user_args():
+			if arg.begins_with("--f9-test="):
+				Scenarios.restart_into(get_tree(), arg.trim_prefix("--f9-test="))
 
 
 ## Host only: ambient pedestrians on random sidewalk spots (synced by NPCSpawner).

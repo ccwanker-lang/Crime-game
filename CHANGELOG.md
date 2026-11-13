@@ -21,3 +21,4 @@ One line per finished part.
 - Point 25: police belong to their patrol car (crew of 2 gets out, stays within 60 m, walks back and drives on); a player who doesn't resist is cuffed instead of shot: illegal items confiscated, fine, released at the police station.
 - Point 26: the properties for sale are spread over four neighbourhoods (none next to the police station); old saves carry the contents of an owned property along.
 - Point 11: the Black Crows' house in their yard; at night Crows roam the town and attack players they see (safe inside your own property), dropping cash and loot when killed, going home at daybreak.
+- Test scenarios: F9 menu / --scenario=<id> sets you up for a manual check (items, money, time, place, NPCs) in a separate test game; the real save stays untouched.

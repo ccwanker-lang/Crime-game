@@ -106,6 +106,7 @@ const SHOTS: Array[Array] = [
 	# Point 11: the Black Crows' house in their yard, members out front at night.
 	["77_crows_house_night", Vector3(50.5, 1.8, 10.2), Vector3(56.5, 2.0, 17.0)],
 	["78_crows_house_day", Vector3(49.0, 3.0, 9.0), Vector3(56.0, 4.0, 17.0)],
+	["79_scenario_menu", Vector3(-30, 1.9, 2.5), Vector3(-32, 3.5, -6)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -336,6 +337,10 @@ func _stage(shot_name: String) -> void:
 			cop.anim_state = Pedestrian.Anim.AIM
 			cop.net_yaw = cop.rotation.y
 			await get_tree().create_timer(0.4).timeout
+		"79_scenario_menu":
+			var menu: ScenarioMenu = get_tree().current_scene.find_children("*", "ScenarioMenu", true, false)[0]
+			menu.toggle()
+			await get_tree().create_timer(0.3).timeout
 		"77_crows_house_night":
 			var world: Node = get_tree().current_scene
 			Rival.obey_daylight = false

@@ -20,6 +20,10 @@ var _connect_timer: Timer
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	# Back from a test scenario: the menu always works on the real save again.
+	if _cmdline_used or not _has_scenario_arg():
+		SaveManager.use_real_save()
+		Scenarios.pending = ""
 	_connect_timer = Timer.new()
 	_connect_timer.one_shot = true
 	_connect_timer.timeout.connect(_on_connect_timeout)
@@ -121,6 +125,13 @@ func _save_settings() -> void:
 var _port: int = Net.DEFAULT_PORT
 
 
+static func _has_scenario_arg() -> bool:
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--scenario="):
+			return true
+	return false
+
+
 ## Command line auto host/join happens once; back in the menu you choose yourself.
 static var _cmdline_used: bool = false
 ## True when --name= was given: settings are then not saved.
@@ -134,7 +145,12 @@ func _apply_cmdline_args() -> void:
 	_cmdline_used = true
 	var auto_host: bool = false
 	var auto_join: bool = false
+	var scenario: bool = false
 	for arg: String in args:
+		if arg.begins_with("--scenario="):
+			Scenarios.pending = arg.trim_prefix("--scenario=")
+			scenario = true
+			auto_host = true
 		if arg.begins_with("--name="):
 			name_edit.text = arg.trim_prefix("--name=")
 			_cmdline_name = true
@@ -147,6 +163,6 @@ func _apply_cmdline_args() -> void:
 			auto_host = true
 	# Deferred so the menu is fully ready before switching scenes.
 	if auto_host:
-		_on_host_pressed.call_deferred()
+		_on_host_pressed.call_deferred(scenario)  # a scenario always starts a fresh test game
 	elif auto_join:
 		_on_join_pressed.call_deferred()

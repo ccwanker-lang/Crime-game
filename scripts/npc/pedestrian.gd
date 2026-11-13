@@ -447,6 +447,8 @@ func _go(target: Vector3, anim: int) -> bool:
 
 
 func idle(seconds: float) -> void:
+	if not is_inside_tree():
+		return  # the world is being left / reloaded
 	if not dead and not is_fleeing():
 		anim_state = Anim.IDLE
 	await get_tree().create_timer(seconds).timeout

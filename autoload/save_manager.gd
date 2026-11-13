@@ -12,6 +12,8 @@ extends Node
 ##   another file (and saves even in test runs), `--autosave=N` changes the interval.
 
 const SAVE_PATH: String = "user://savegame.json"
+## Test scenarios (Scenarios, F9 / --scenario=) play on this file, never on the real save.
+const SCENARIO_PATH: String = "user://scenario_test.json"
 const SAVE_VERSION: int = 2
 const AUTOSAVE_INTERVAL: float = 120.0
 const TEST_FLAGS: Array[String] = ["--selftest", "--screenshot", "--netcheck", "--vmpreview"]
@@ -20,6 +22,9 @@ var enabled: bool = true
 var save_path: String = SAVE_PATH
 var autosave_interval: float = AUTOSAVE_INTERVAL
 var _autosave_timer: float = 0.0
+var scenario_mode: bool = false
+var _normal_path: String = SAVE_PATH
+var _normal_enabled: bool = true
 
 
 func _ready() -> void:
@@ -35,6 +40,28 @@ func _ready() -> void:
 			autosave_interval = arg.trim_prefix("--autosave=").to_float()
 	if explicit_path:
 		enabled = true
+	_normal_path = save_path
+	_normal_enabled = enabled
+	for arg: String in OS.get_cmdline_user_args():
+		if arg.begins_with("--scenario="):
+			use_scenario_save()
+
+
+## Scenarios: from now on load/save the scenario test file (the real save is left alone).
+func use_scenario_save() -> void:
+	scenario_mode = true
+	save_path = SCENARIO_PATH
+	enabled = true
+	_autosave_timer = 0.0
+
+
+## Back to the real save (main menu).
+func use_real_save() -> void:
+	if not scenario_mode:
+		return
+	scenario_mode = false
+	save_path = _normal_path
+	enabled = _normal_enabled
 
 
 func has_save() -> bool:

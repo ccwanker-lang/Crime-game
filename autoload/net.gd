@@ -41,18 +41,23 @@ func _ready() -> void:
 
 # --- Public API -------------------------------------------------------------
 
-func host_game(player_name: String, port: int = DEFAULT_PORT) -> Error:
+## The port this game was hosted on.
+var port: int = DEFAULT_PORT
+
+
+func host_game(player_name: String, host_port: int = DEFAULT_PORT) -> Error:
 	leave_game()
 	var peer := ENetMultiplayerPeer.new()
-	var err: Error = peer.create_server(port, MAX_PLAYERS - 1)
+	var err: Error = peer.create_server(host_port, MAX_PLAYERS - 1)
 	if err != OK:
 		push_warning("[Net] create_server failed: %s" % error_string(err))
 		return err
 	multiplayer.multiplayer_peer = peer
+	port = host_port
 	local_name = sanitize_name(player_name)
 	players[1] = {"name": local_name}
 	_joined = true
-	print("[Net] Hosting on port %d as '%s'" % [port, local_name])
+	print("[Net] Hosting on port %d as '%s'" % [host_port, local_name])
 	players_changed.emit()
 	return OK
 

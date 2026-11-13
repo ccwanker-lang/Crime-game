@@ -304,6 +304,10 @@ Choices made while working autonomously (what + why).
   walk home and disappear. The first Crow of each night sends everyone a warning text. Police and Crows ignore
   each other for now (the corrupt-cop story comes in milestone 3). Rival = PoliceOfficer subclass (same armed
   brain), so balance changes to one apply to both.
+- Test scenarios (user request, after point 11): F9 menu / `--scenario=<id>` (scripts/debug/scenarios.gd). A scenario
+  restarts the host into a fresh game on a separate file (user://scenario_test.json) after saving the real game once,
+  so real progress can never be changed by a test. Co-op clients are disconnected by it (it is a solo check tool).
+  One scenario per feature; every manual check asked of the user gets one first (rule in CLAUDE.md).
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
