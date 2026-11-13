@@ -134,12 +134,17 @@ func _process(delta: float) -> void:
 	var tree := get_tree()
 	var world: Node = tree.current_scene
 	if world == null or world.get_node_or_null("Players") == null:
-		_views = null
+		if _views != null:
+			_views = null
+			members = {}  # left the game
+			candidates = []
 		return
 	if _views == null or not is_instance_valid(_views):
 		_views = StaffViews.new()
 		world.add_child(_views)
 		_views.rebuild(members)
+		if not _is_host():
+			request_sync()
 	if not _is_host() or GameState.world.is_empty():
 		return
 	var dn := tree.get_first_node_in_group(&"day_night") as DayNight
@@ -178,6 +183,7 @@ func tick(hours: float) -> void:
 
 
 func _pay_wages() -> void:
+	var paid: Dictionary = {}  # employer -> total
 	for uid: String in _members().keys():
 		var rec: Dictionary = _members()[uid]
 		var wage: int = int(rec.get("wage", 0))
@@ -186,11 +192,14 @@ func _pay_wages() -> void:
 		var boss: String = str(rec["employer"])
 		if GameState.add_cash(boss, -wage):
 			_send_wallet(boss)
+			paid[boss] = int(paid.get(boss, 0)) + wage
 			print("[Staff] paid %s (%s) €%d" % [rec["name"], rec["role"], wage])
 		else:
 			_members().erase(uid)
 			_text(boss, "%s quit: you couldn't pay the €%d wage." % [rec["name"], wage])
 			print("[Staff] %s quit (unpaid)" % rec["name"])
+	for boss: String in paid:
+		_text(boss, "Paid today's wages: €%d." % int(paid[boss]))
 	_mark()
 
 
@@ -230,7 +239,9 @@ func _set_status(rec: Dictionary, text: String) -> void:
 
 
 func _stand_at(rec: Dictionary, st: Node3D) -> void:
-	var front: Vector3 = st.global_position + st.global_basis.z * 0.95
+	# Two workers at one station stand side by side (odd / even uid).
+	var side: float = 0.45 if str(rec.get("uid", "s0")).trim_prefix("s").to_int() % 2 == 1 else -0.45
+	var front: Vector3 = st.global_position + st.global_basis.z * 0.95 + st.global_basis.x * side
 	front.y = st.global_position.y
 	rec["pos"] = front
 	var to: Vector3 = st.global_position - front
@@ -721,6 +732,9 @@ func _request_sync() -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _set_members(m: Dictionary, c: Array) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server() and m.size() != members.size():
+		print("[Staff] client %d: %d crew members %s" % [multiplayer.get_unique_id(), m.size(),
+				m.values().map(func(r: Dictionary) -> String: return "%s/%s@%s" % [r["name"], r["role"], r.get("pos")])])
 	members = m
 	candidates = c
 	if _views and is_instance_valid(_views):

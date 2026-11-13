@@ -11,12 +11,12 @@ extends Resource
 ## yet in the game are listed as "(later)".
 @export var unlock_text: PackedStringArray = [
 	"Weed, pistol, phone + webshop, Starter Room",
-	"Grow lamp, shotgun, Small House. (Later: first car, a dealer, a grower)",
-	"SMG, Bakery front, Family House. (Later: meth, cook, packager)",
-	"AK-47, Barber + Laundromat fronts. (Later: couriers)",
+	"Grow lamp, shotgun, Small House, a grower, 1 dealer. (Later: first car)",
+	"SMG, Bakery front, Family House, packagers. (Later: meth, cook)",
+	"AK-47, Barber + Laundromat fronts, 2 dealers. (Later: couriers)",
 	"Sniper rifle, South Warehouse. (Later: cocaine, bulk deals, guards, lawyer)",
-	"(Later: bribe the police, more dealers, roadside team)",
-	"(Later: attack the Crows' HQ, the highway to region 2)",
+	"Up to 4 dealers. (Later: bribe the police, roadside team)",
+	"Up to 5 dealers. (Later: attack the Crows' HQ, the highway to region 2)",
 ]
 ## Item id -> rank needed to BUY it in a shop (ids not listed: rank 0). Owning/using is never blocked.
 @export var item_rank: Dictionary = {

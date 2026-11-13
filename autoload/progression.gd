@@ -130,7 +130,7 @@ func host_add(amount: int, reason: String, by: Node = null) -> void:
 		elif peer > 0:
 			_gained.rpc_id(peer, amount, reason)
 	var after: int = rank_for(total)
-	if after > before:
+	if after > before and reason != "debug":  # (tests / scenarios set a rank without the banner)
 		print("[Rank] crew reached rank %d (%s)" % [after, rank_name(after)])
 		_ranked_up(after)
 		if multiplayer.has_multiplayer_peer():

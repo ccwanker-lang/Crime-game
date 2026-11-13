@@ -41,6 +41,8 @@ const LIST: Array = [
 	["wanted_five", "5 stars on the main road, AK-47", "The whole force: heavy teams (dark uniform, SMG, take more hits) and a police car across the road ahead of you (road block). Can you get away?"],
 	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the stars drop 3x faster (~15 s instead of ~50 s). Outside they come for you."],
 	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round and sell the customer 1 bag (E): +10 XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
+	["staff_workers", "Rank 2: a grower + a packager in your Starter Room", "Hold F7 to speed up time and watch: the grower fills the pots with soil, plants, waters and harvests onto the drying rack; the packager takes the dried weed off and packages it (bags end up in the locker: E on it). E on a worker = what they are doing. Tab > Crew: your staff, wages, Fire, and Benny's candidates (Hire tab)."],
+	["dealers", "Rank 1, 10 bags, next to your dealer in Old Town", "E on the dealer: Give all my bags, then hold F7: they sell about 1 bag per in-game hour (+XP, top-left panel). E again: Collect. Tab > Crew > Hire: Benny's people (pick a district or a property). Rank 1 allows 1 dealer: F8 a few times for more."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -290,6 +292,30 @@ static func run(world: Node, id: String) -> bool:
 			npc.stationary = true
 			Pedestrian.force_outcome = "fair"
 			npc.become_customer(1, 60, 900.0)
+		"staff_workers":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			_kit(me, 3000, [])
+			world.call("debug_weed_corner")
+			await world.get_tree().physics_frame
+			for l: StorageLocker in Staff._stations_in("starter_room", StorageLocker):
+				l.state["items"] = [{"id": "soil", "count": 6}, {"id": "weed_seed", "count": 6}, {"id": "baggie", "count": 20}]
+				l.changed()
+			Staff.debug_hire(me.player_name, "grower", "starter_room")
+			Staff.debug_hire(me.player_name, "packager", "starter_room")
+			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 9.0)
+		"dealers":
+			Progression.force_gates = true
+			Progression.debug_set_rank(1)
+			_kit(me, 1000, [["weed_bag", 10]])
+			Staff.debug_hire(me.player_name, "dealer", "old_town")
+			var dealer: Dictionary = {}
+			for rec: Dictionary in Staff._members().values():
+				dealer = rec
+			var dpos: Vector3 = dealer.get("pos", Vector3(-24, 0, -4.6))
+			var yaw: float = float(dealer.get("yaw", 0.0))
+			var dfwd := Vector3(-sin(yaw), 0, -cos(yaw))  # where the dealer looks
+			_place(me, dpos + dfwd * 2.2 + Vector3.UP * 0.2, dpos + Vector3.UP * 1.4, dn, 15.0)
 	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()
@@ -352,6 +378,14 @@ static func run(world: Node, id: String) -> bool:
 						me.combat.select_slot(i)
 				me.host_work("water", pot.global_position if pot else me.global_position - me.global_basis.z)
 				await world.get_tree().create_timer(0.45).timeout
+			for a: String in OS.get_cmdline_user_args():
+				if a.begins_with("--crew="):  # staff window: --crew=crew / hire / dealer
+					var tab: String = a.trim_prefix("--crew=")
+					var first: String = Staff.members.keys()[0] if not Staff.members.is_empty() else ""
+					CrewWindow.open_for(me, "dealer" if tab == "dealer" else "crew", first)
+					var w := me.ui.get_node("CrewWindow") as CrewWindow
+					w._tab = tab
+					w._refresh()
 			for f: int in 6:
 				await RenderingServer.frame_post_draw
 			var path: String = ProjectSettings.globalize_path("res://screenshots/scenario_%s.png" % id)
