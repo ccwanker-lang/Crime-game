@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1041,6 +1041,35 @@ func _check_real_estate(world: Node3D) -> void:
 	_report(world.migrate_layout() == 0, "the move runs only once per save")
 	GameState.world = keep
 	GameState.player_data.erase("Mover")
+
+
+# --- Bookshelf storage (point 38) --------------------------------------------------------
+
+func _check_bookshelf(world: Node3D) -> void:
+	var item: ItemData = ItemDB.get_item(&"bookshelf")
+	_report(item != null and item.place_scene != null and item.place_scene.resource_path.ends_with("bookshelf_storage.tscn"),
+			"the bookshelf item places a storage bookshelf")
+	var spot: Node3D = world.get_marker("LockerSpot")
+	var sr: Property = world.find_child("StarterRoom", true, false).get_node("Property") as Property
+	var at: Vector3 = spot.global_position - sr.building().global_basis.x * 2.0
+	var shelf := world.call("host_place", "bookshelf", at, spot.global_rotation.y) as BookshelfStorage
+	await get_tree().physics_frame
+	_report(shelf != null and shelf.storage_name() == "Bookshelf" and shelf.get_node_or_null("Shelf") != null,
+			"a placed bookshelf is a storage station with the bookshelf model")
+	if shelf == null:
+		return
+	GameState.player_data.erase("Reader")
+	var d: Dictionary = GameState.get_or_create_player_data("Reader")
+	d["inventory"] = [{"id": "baggie", "count": 20}]
+	shelf.host_move("Reader", true, 0, 0)
+	_report((shelf.state["items"] as Array).size() == 1 and GameState.count_item("Reader", "baggie") == 0,
+			"put a stack in the bookshelf: %s" % [shelf.state["items"]])
+	_report(shelf.pick_up_blocker() != "", "a full bookshelf can't be picked up ('%s')" % shelf.pick_up_blocker())
+	shelf.host_move("Reader", false, 0, 0)
+	_report(GameState.count_item("Reader", "baggie") == 20, "and take it out again")
+	world.call("host_remove_placed", shelf.placed_uid)
+	GameState.player_data.erase("Reader")
+	await get_tree().physics_frame
 
 
 # --- Storage + dropping (point 20) ------------------------------------------------------

@@ -39,3 +39,4 @@ One line per finished part.
 - Point 35: your own properties show on the phone map (green house + name); the estate agent's window has a town map with every property for sale and a "Where?" button per listing.
 - Point 36: build mode on B - only in build mode can you place, rotate and pick up furniture and stations; outside it E just uses things.
 - Point 37: sleep in your own bed (E, from 20:00) to skip to 07:00 - in co-op when everyone is in bed; plants and racks catch up on the night, you wake up healed. Scenario sleep.
+- Point 38: bookshelves are storage too (same window as the locker), also the ones in houses you buy. Scenario bookshelf.

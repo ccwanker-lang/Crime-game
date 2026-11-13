@@ -45,6 +45,11 @@ func state_changed() -> void:
 	contents_changed.emit()
 
 
+## Window title (point 38: the bookshelf says "Bookshelf").
+func storage_name() -> String:
+	return "Storage Locker"
+
+
 func used_slots() -> int:
 	return (state["items"] as Array).size()
 
@@ -54,7 +59,7 @@ func prompt_for(_player: Player) -> String:
 
 
 func pick_up_blocker() -> String:
-	return "Empty the locker first." if used_slots() > 0 else ""
+	return "Empty the %s first." % storage_name().to_lower() if used_slots() > 0 else ""
 
 
 ## Tap E: open the storage window on this peer (nothing to do on the host).

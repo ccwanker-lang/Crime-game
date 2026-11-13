@@ -358,7 +358,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
 36. Build mode (B): only in build mode can furniture and stations be picked up, moved and rotated. Outside it E
     only uses things (plant, water, harvest, open a locker) (changes 6/17) - done
 37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - done
-38. Bookcase = storage too, like the locker - todo
+38. Bookcase = storage too, like the locker - done
 39. Trash: throw cardboard boxes and rubbish in a bin, put the bin outside, a garbage truck comes by and empties it - todo
 40. Money: HUD shows dirty and clean money apart; depositing in a front business shows a message ("€5000 deposited
     -> €4500 clean tomorrow") and another one when the clean money comes in; a screen in the business with what
@@ -596,6 +596,10 @@ Choices made while working autonomously (what + why).
   "x/y in bed", moving gets you up. When all sleep the host jumps to 07:00, every station ticks the skipped hours
   at once (plants grow, racks dry, safes/deliveries progress) and sleepers wake healed. Logic in one host node
   World/Sleep (`scripts/world/sleep.gd`); a leaving player is dropped from the count.
+- Point 38 (bookshelf storage): the "bookshelf" item now places a station `BookshelfStorage` (a StorageLocker with
+  the bookshelf model, same 16 slots and window). Because adoption maps furniture to items by file name, every
+  bookshelf of a house you buy (and those already adopted in saves) becomes storage automatically; bookshelves in
+  houses you don't own stay plain props. gen_items.py has FURNITURE_STATIONS for more of these later.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

@@ -76,9 +76,12 @@ category = "{category}"
         f.write(text)
 
 
+# Point 38: furniture that works as a station when placed (a bookshelf is storage).
+FURNITURE_STATIONS = {"bookshelf": "bookshelf_storage"}
 for i, (n, p, s, d) in FURNITURE.items():
     assert os.path.exists(os.path.join(ROOT, "prefabs", "interiors", i + ".tscn")), i
-    write(i, n, p, s, d, f"res://prefabs/interiors/{i}.tscn", "furniture")
+    scene = f"res://prefabs/stations/{FURNITURE_STATIONS[i]}.tscn" if i in FURNITURE_STATIONS else f"res://prefabs/interiors/{i}.tscn"
+    write(i, n, p, s, d + (" Storage for 16 stacks." if i in FURNITURE_STATIONS else ""), scene, "furniture")
 # Production stations are illegal (DESIGN core rules): only the black market sells them.
 # The storage locker is just a cabinet: legal (store + webshop).
 for i, (n, p, s, d) in STATIONS.items():

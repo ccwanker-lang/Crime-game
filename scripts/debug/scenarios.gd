@@ -30,6 +30,7 @@ const LIST: Array = [
 	["launder", "Own the bakery, €8,000 dirty", "E on the safe in the back office: deposit dirty cash. Hold F7: it comes back as clean money (90%), max per day."],
 	["houses", "Inside the Family House", "Walk all floors: stairs, railings, balconies (E opens the balcony door), furniture."],
 	["death_respawn", "Low health, cash + items", "Press F4 a few times: you die and drop a loot bag; you respawn at the hospital. Go back and take your bag."],
+	["bookshelf", "A bookshelf to place at home", "B = build mode, LMB places the bookshelf (slot 1), B again. E on it opens the same storage window as the locker (16 stacks). Bookshelves in a house you buy work as storage too. A full one can't be picked up."],
 	["sleep", "22:30 next to your bed", "E on the bed: the screen goes dark and the clock jumps to 07:00 (plants and racks catch up). Before 20:00 it says you're not tired. Moving gets you out of bed. In co-op everyone has to be in bed."],
 	["health_regen", "30 health, safe at home", "Wait ~8 s: health slowly comes back to 100. F4 (hurt) pauses it again."],
 	["road_crossing", "Main road, people crossing everywhere", "Pedestrians cross the road anywhere (not only at zebras): they wait at the kerb for close cars, then walk straight over. Cars brake for them. (Crossing is made 4x more common here.)"],
@@ -245,6 +246,10 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 200, [])
 			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 12.0)
 			me.health = 30
+		"bookshelf":
+			_kit(me, 200, [["bookshelf", 1], ["baggie", 20], ["weed_bag", 5]])
+			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 12.0)
+			me.combat.select_slot(0)
 		"sleep":
 			_kit(me, 200, [])
 			var bed: Node3D = null

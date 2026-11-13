@@ -171,7 +171,8 @@ Godot console exe:
   `Placement.check` (inside a crew-owned `Property`, on a floor, nothing in the way). World/PlacedSpawner spawns
   `GameState.world["placed"]` records (`World.host_place`/`host_remove_placed`); placed stations use station_id
   `placed/<uid>`, furniture sits in a `PlacedFurniture`. Owned properties adopt their building's furniture
-  (`Property.host_adopt_furniture`). `StorageLocker` station + HUD storage window. Tests: `World.debug_weed_corner()`.
+  (`Property.host_adopt_furniture`). `StorageLocker` station + HUD storage window
+  (point 38: `BookshelfStorage` subclass = the "bookshelf" item, gen_items `FURNITURE_STATIONS`). Tests: `World.debug_weed_corner()`.
 - Storage/drop (point 20): `StorageLocker.request_move(to_locker, index, count)` (count 0 = stack), HUD slot grids
   with drag (`set_drag_forwarding`); `Player.request_drop(index, count)` -> `World.spawn_loot_bag(..., dropped=true)`
   (LootBag shows the item model). Free locker at the Starter Room's `LockerSpot` (world["free_locker"]).

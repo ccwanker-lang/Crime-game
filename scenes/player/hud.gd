@@ -899,7 +899,7 @@ func close_locker() -> void:
 func _refresh_locker() -> void:
 	if _locker == null or not is_instance_valid(_locker):
 		return
-	_locker_title.text = "Storage Locker  (%d/%d)" % [_locker.used_slots(), StorageLocker.SLOTS]
+	_locker_title.text = "%s  (%d/%d)" % [_locker.storage_name(), _locker.used_slots(), StorageLocker.SLOTS]
 	_fill_slot_grid(_locker_mine, _locker_player.inventory, GameState.INVENTORY_SLOTS, false)
 	_fill_slot_grid(_locker_theirs, _locker.state["items"], StorageLocker.SLOTS, true)
 
