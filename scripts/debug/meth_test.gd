@@ -24,6 +24,19 @@ static func run(t: Node, world: Node3D) -> void:
 	report.call(lock1 != "" and Progression.item_lock(&"cook_station") == "" and Progression.item_lock(&"lab_chemicals") == "",
 			"meth needs rank 2 ('%s')" % lock1)
 
+	# Customers (A's World.make_customer asks Products): meth only from rank 2, cocaine from rank 4.
+	var picks: Dictionary = {}
+	Progression.debug_set_rank(1)
+	for i: int in 200:
+		picks[Products.pick_customer_product()] = true
+	var low: Array = picks.keys()
+	picks = {}
+	Progression.debug_set_rank(4)
+	for i: int in 300:
+		picks[Products.pick_customer_product()] = true
+	report.call(low == ["weed_bag"] and picks.has("meth_bag") and picks.has("coke_bag") and picks.has("weed_bag"),
+			"customers: rank 1 only weed %s, rank 4 also meth + cocaine %s" % [low, picks.keys()])
+	Progression.debug_set_rank(2)
 	var cash_rule: bool = GameState.infinite_cash
 	GameState.infinite_cash = false
 	var p: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()

@@ -3,15 +3,8 @@
 Session B notes. To be folded into DESIGN.md (Roadmap status + Decisions) / CHANGELOG.md / CLAUDE.md by
 session A when merging (B may not edit those files).
 
-## SESSION END (2026-11-13) - where we stopped
-- DONE + committed: part 1 ranks + XP, part 2 staff + dealers (both complete, targeted checks ranks + staff pass).
-- feature-b is rebased on main f4df907 (point 38). Full self-test after the FIRST rebase (on c566f9c): ALL PASSED
-  (417). Full self-test after the SECOND rebase was stopped by the user at 118 checks, 0 FAIL so far.
-- Half done: nothing in code. Open: A should add 1 line in scripts/world/sleep.gd `_morning()`:
-  `get_tree().call_group(&"hours_skipped", "on_hours_skipped", skipped)` (staff catch up on slept nights).
-- NEXT STEP: rebase on main if A committed more (`git log feature-b..main`; conflicts are only in
-  self_test.gd CHECKS / scenarios.gd: keep both sides, ours at the end), run the full self-test
-  (`--headless --path . -- --selftest --port=7778`), netcheck on 7778, then put "KLAAR OM TE MERGEN" in B.md.
+## MERGED parts 1 + 2 (A, main c95e70c, already in DESIGN/CHANGELOG/CLAUDE.md). Open for the next merge: parts 3-5
+(meth, cocaine, courier/lawyer/bribes) below.
 
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
@@ -147,7 +140,8 @@ Done (commit 399e1bf; check `meth` PASS, scenarios OK). Customers buying meth on
   onto free cooling plates, start a cook from locker supplies. `cook_actions_per_hour` 3. Packager also bags shards.
 - Dealers sell meth: record `stock` = all bags, `meth` = how many of those are meth; meth sells first at
   `Products.price("meth_bag", district price)` (x2.2). Give hands over weed + meth; firing returns both.
-- Customers: `Products.pick_customer_product()` (meth 35% once the crew is rank 2) is ready for A's customer code.
+- Customers: A's `World.make_customer` asks `Products.pick_customer_product()` (meth 35% from rank 2, cocaine 20% from
+  rank 4) + `Products.price(product, weed_price)`; `Pedestrian.product` (A, main 49ba411) drives texts + the sale.
 - Since part 4 the stir is the generic `ProcessStation` "attend" moment (`attend_at`, `missed_count`, state key
   "attend"), and the cook runs every machine generically (`Staff._machine_step`: take output into the locker, attend,
   start from the locker) - hot trays go via the locker to the cooling plate.

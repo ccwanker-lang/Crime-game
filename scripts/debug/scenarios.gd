@@ -54,6 +54,7 @@ const LIST: Array = [
 	["meth_lab", "Rank 2: cooking station + cooling plate in your Starter Room, supplies in your pockets", "E on the cooking station: start a cook. Hold F7: halfway it shows STIR! (E) - stirred = 2 Hot Trays, not stirred = 1. Take the trays, E on the cooling plate, F7, E = Meth Shards. Then the packaging table: shards + baggies = Bags of Meth."],
 	["meth_cook", "Rank 2: a cook + a packager run the meth lab in your Starter Room", "Hold F7 and watch: the cook starts a cook (supplies from the locker), stirs, pours the trays on the cooling plate and breaks them; the packager bags the shards (into the locker: E on it). E on a worker = what they are doing."],
 	["meth_dealer", "Rank 1, 6 Bags of Meth + 4 Bags of Weed, next to your dealer", "E on the dealer: Give all my bags (weed + meth). Hold F7: they sell meth first, for about twice the price of weed. E again: Collect."],
+	["meth_customer", "Rank 2, 5 Bags of Meth, a customer who wants meth next to you", "The customer (green €) wants meth: E = talk, Confirm deal. Customers ask for meth now and then from rank 2 (cocaine from rank 4); the phone texts say \"bags of meth\"."],
 	["coke_lab", "Rank 4: coca bed, leaf press + refinery in your Starter Room, supplies in your pockets", "E on the coca bed: plant. Hold F7: halfway WATER! (E) - watered = 12 leaves, dry = 6. Harvest, E on the leaf press (12 leaves + Process Fluid) = Coca Paste, E on the refinery, VENT! halfway (E) = 8 Cocaine. Then the packaging table: Bags of Cocaine."],
 	["coke_staff", "Rank 4: a grower + a cook run the cocaine lab in your Starter Room", "Hold F7 and watch: the grower plants + waters the coca bed (seedlings + soil from the locker), the cook presses the leaves and runs the refinery; the cocaine ends up in the locker (E on it). E on a worker = what they are doing."],
 	["courier", "Rank 3: a courier in your Starter Room, bags in the locker, a dealer in Old Town", "Hold F7: the courier takes the bags from the locker to your dealer and brings the cash back (phone text), then buys soil/seeds/baggies for the stations into the locker (paid from your money). Tab > Crew: what everybody does."],
@@ -461,6 +462,16 @@ static func run(world: Node, id: String) -> bool:
 			_no_police(world)  # no officers coming, and the stars stay (Wanted off) until you bribe them away
 			if Wanted.current:
 				Wanted.current.debug_set(me, 3)
+		"meth_customer":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			_kit(me, 1000, [["meth_bag", 5], ["weed_bag", 2]])
+			_place(me, home_front + Vector3.UP * 0.1, home_front + sr.building().global_basis.z * 4.0, dn, 14.0)
+			var buyer: Pedestrian = world.call("_add_pedestrian", home_front + sr.building().global_basis.z * 3.0, 1)
+			buyer.become_customer(2, Products.price("meth_bag", 60) * 2, 900.0, "meth_bag")
+			buyer.accept_deal()
+			buyer.face(me.global_position)
+			Pedestrian.force_outcome = "fair"
 		"meth_dealer":
 			Progression.force_gates = true
 			Progression.debug_set_rank(1)
