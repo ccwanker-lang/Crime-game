@@ -1148,6 +1148,7 @@ func _server_sell(peer: int) -> void:
 	if paid > 0:
 		GameState.add_cash(who, paid)
 	print("[Deal] %s sold %d bags to %s: %s, paid €%d of €%d" % [who, bags, name, outcome, paid, offer])
+	Progression.host_sale(seller, bags, paid, outcome, _meet_accepted)  # ranks: XP for the sale
 	wants = 0
 	deal_ok = false
 	# Hook for other systems (ranks/XP, point 43): group "progression" gets every finished sale.

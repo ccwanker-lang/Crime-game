@@ -49,6 +49,8 @@ func _server_buy_property(peer: int, id: StringName) -> void:
 		msg = "\"That one isn't on the market.\""
 	elif prop.is_crew_owned():
 		msg = "\"Your crew already owns that one.\""
+	elif Progression.property_lock(id) != "":
+		msg = "\"I only show that one to serious buyers.\" (%s)" % Progression.property_lock(id)  # ranks
 	elif not GameState.add_cash(buyer.player_name, -prop.price, true):
 		msg = "Not enough money (€%s needed)." % Property.money(prop.price)
 	else:

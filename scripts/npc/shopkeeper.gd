@@ -87,6 +87,8 @@ func _server_buy(peer: int, id: StringName, count: int) -> void:
 		msg = "\"Not now. Come back when it's dark.\""
 	elif item == null or not id in stock or count < 1 or count > MAX_PER_BUY:
 		msg = "\"I don't sell that.\""
+	elif Progression.item_lock(id) != "":
+		msg = "\"Not to you. Not yet.\" (%s)" % Progression.item_lock(id)  # ranks
 	else:
 		var total: int = price_of(id) * count
 		var amount: int = count * maxi(1, item.pack_size)

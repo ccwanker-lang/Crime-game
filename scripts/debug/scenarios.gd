@@ -40,6 +40,7 @@ const LIST: Array = [
 	["wanted_three", "3 stars on the main road, AK-47", "Police cars race in with sirens and shoot on sight. Break their line of sight: the stars blink, one drops after ~45 s unseen. Killing officers adds stars."],
 	["wanted_five", "5 stars on the main road, AK-47", "The whole force: heavy teams (dark uniform, SMG, take more hits) and a police car across the road ahead of you (road block). Can you get away?"],
 	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the stars drop 3x faster (~15 s instead of ~50 s). Outside they come for you."],
+	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round and sell the customer 1 bag (E): +10 XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -181,6 +182,16 @@ static func run(world: Node, id: String) -> bool:
 		"gun_shop":
 			_kit(me, 8000, [])
 			_at_keeper(world, me, "GunShop", dn, 12.0)
+		"ranks":
+			Progression.force_gates = true  # (scenarios normally skip rank gates)
+			Progression.host_add(Progression.xp_for(1) - 10 - Progression.host_xp(), "scenario")
+			_kit(me, 8000, [["weed_bag", 4]])
+			_at_keeper(world, me, "GunShop", dn, 12.0)
+			var k: Node3D = (world.find_child("GunShop", true, false).find_children("*", "Shopkeeper", true, false)[0]) as Node3D
+			var npc: Pedestrian = world.call("_add_pedestrian", k.global_position + k.global_basis.z * 3.6, 1)
+			npc.stationary = true
+			npc.force_outcome = "fair"
+			npc.become_customer(1, 60, 900.0)
 		"real_estate":
 			_kit(me, 40000, [])
 			GameState.add_clean(me.player_name, 30000)

@@ -71,6 +71,7 @@ func _ready() -> void:
 	_restyle_hud()
 	_build_help_panel()
 	_build_shop_panel()
+	add_child(RankPanel.new())  # ranks: rank + XP, top left
 	phone = Phone.new()
 	phone.name = "Phone"
 	add_child(phone)
@@ -375,6 +376,9 @@ func open_shop(shop: Shopkeeper, cash: int, clean: int = 0) -> void:
 		price.add_theme_font_size_override("font_size", 18)
 		row.add_child(price)
 		var counts: Array = [1] if item.max_stack <= 1 else ([1, 5] if item.max_stack >= 5 * item.pack_size else [1])
+		if Progression.item_lock(id) != "":  # ranks: locked = no Buy buttons
+			row.add_child(_rank_lock(Progression.item_rank(id)))
+			counts = []
 		for n: int in counts:
 			var b := _button("Buy %d" % n)
 			b.custom_minimum_size = Vector2(76, 0)
@@ -446,6 +450,8 @@ func _fill_estate(agent: EstateAgent) -> void:
 			owned.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			owned.add_theme_color_override("font_color", Color(0.6, 1, 0.6))
 			row.add_child(owned)
+		elif Progression.property_lock(p.property_id) != "":
+			row.add_child(_rank_lock(Progression.property_rank(p.property_id)))
 		else:
 			var b := _button("Buy")
 			b.custom_minimum_size = Vector2(76, 0)
@@ -454,6 +460,18 @@ func _fill_estate(agent: EstateAgent) -> void:
 				agent.request_buy_property(p.property_id))
 			row.add_child(b)
 		_shop_list.add_child(row)
+
+
+## Ranks: "Rank 2" in place of a Buy button.
+func _rank_lock(need: int) -> Label:
+	var l := Label.new()
+	l.text = "Rank %d" % need
+	l.tooltip_text = "Needs rank %d (%s)" % [need, Progression.rank_name(need)]
+	l.mouse_filter = Control.MOUSE_FILTER_PASS
+	l.custom_minimum_size = Vector2(76, 0)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.add_theme_color_override("font_color", Color(1, 0.6, 0.45))
+	return l
 
 
 func flash_damage(amount: int) -> void:
