@@ -29,6 +29,12 @@ const LIST: Array = [
 	["houses", "Inside the Family House", "Walk all floors: stairs, railings, balconies (E opens the balcony door), furniture."],
 	["death_respawn", "Low health, cash + items", "Press F4 a few times: you die and drop a loot bag; you respawn at the hospital. Go back and take your bag."],
 	["health_regen", "30 health, safe at home", "Wait ~8 s: health slowly comes back to 100. F4 (hurt) pauses it again."],
+	["road_crossing", "Main road, people crossing everywhere", "Pedestrians cross the road anywhere (not only at zebras): they wait at the kerb for close cars, then walk straight over. Cars brake for them. (Crossing is made 4x more common here.)"],
+	["police_life", "South Street at the police station", "Watch the police: two officers on foot stop passers-by for a chat; a patrol car stops with its light bar on, one officer gets out, talks to someone and gets back in."],
+	["wanted_one", "An officer nearby, pistol holstered", "Draw the pistol (1) where the officer sees you: 1 star at once (top right), even if you put it away quickly. Gun away + stand still = cuffed. Keep it out or run = 2 stars, they shoot."],
+	["wanted_three", "3 stars on the main road, AK-47", "Police cars race in with sirens and shoot on sight. Break their line of sight: the stars blink, one drops after ~45 s unseen. Killing officers adds stars."],
+	["wanted_five", "5 stars on the main road, AK-47", "The whole force: heavy teams (dark uniform, SMG, take more hits) and a police car across the road ahead of you (road block). Can you get away?"],
+	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the stars drop 3x faster (~15 s instead of ~50 s). Outside they come for you."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -171,6 +177,48 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 750, [["pistol", 1], ["ammo_9mm", 24], ["weed_bag", 2]])
 			_place(me, Vector3(-4.0, 0.2, 4.8), Vector3(-4.0, 1.0, 12.0), dn, 12.0)
 			me.health = 30
+		"road_crossing":
+			_kit(me, 200, [])
+			Pedestrian.jaywalk_chance = 0.8
+			_place(me, Vector3(12.0, 0.2, 5.0), Vector3(12.0, 1.0, -6.0), dn, 12.0)
+			for i: int in 6:
+				var p: Vector3 = Vector3(randf_range(-2.0, 26.0), 0.2, 5.2 if i % 2 == 0 else -5.2)
+				world.call("_add_pedestrian", p, i % Pedestrian.VARIANTS.size())
+		"police_life":
+			_kit(me, 300, [])
+			var spot := Vector3(-27.0, 0.2, 55.6)
+			_place(me, spot + Vector3(-2.0, 0, 0.6), spot + Vector3(8, 1.5, 3), dn, 11.0)
+			for i: int in 6:
+				var side: float = 0.0 if i % 2 == 0 else 8.8  # both pavements
+				world.call("_add_pedestrian", spot + Vector3(randf_range(-12.0, 12.0), 0, side + randf_range(-0.6, 0.6)), i)
+			world.call("add_officer", spot + Vector3(7.0, 0, 0.5), spot + Vector3(7.0, 0, 0.5))
+			var traffic: Traffic = world.get_node("Traffic")
+			var car: Car = traffic.spawn_police_car(3, _progress_near(traffic.routes[3], spot + Vector3(-40, 0, 3)))
+			car.question_in = 6.0
+			for n: Node in world.get_tree().get_nodes_in_group(&"police"):
+				if n is PoliceOfficer:
+					(n as PoliceOfficer)._next_chat = 0.0
+		"wanted_one":
+			_kit(me, 1500, [["weed_bag", 2], ["pistol", 1], ["ammo_9mm", 30]])
+			var spot := Vector3(-27.0, 0.2, 55.6)
+			_place(me, spot, spot + Vector3(-9, 1.5, 1), dn, 13.0)
+			me.combat.select_slot(0)  # hands free (the starter pistol was drawn)
+			me.combat.set_equipped(false)
+			world.call("add_officer", spot + Vector3(-11, 0, 1.5), spot + Vector3(-11, 0, 1.5))
+		"wanted_three", "wanted_five":
+			var five: bool = id == "wanted_five"
+			_kit(me, 1000, [["ak47", 1], ["ammo_762", 300], ["pistol", 1], ["ammo_9mm", 60]])
+			_place(me, Vector3(-4.0, 0.2, 4.8), Vector3(10.0, 1.0, 4.8), dn, 13.0)
+			me.combat.host_refill()
+			me.combat.select_slot(0)  # the AK in hand
+			Wanted.current.debug_set(me, 5 if five else 3)
+		"wanted_hide":
+			var small: Property = world.find_child("SmallHouse", true, false).get_node("Property") as Property
+			small.host_set_owned(me.player_name)
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 30]])
+			var door_out: Vector3 = small.building().to_global(Vector3(0.0, 0.2, 4.0))
+			_place(me, door_out, small.building().to_global(Vector3(0.0, 1.2, 0.0)), dn, 13.0)
+			Wanted.current.debug_set(me, 2)
 		"health_regen":
 			_kit(me, 200, [])
 			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 12.0)
@@ -183,7 +231,7 @@ static func run(world: Node, id: String) -> bool:
 	me.show_message("SCENARIO '%s': %s" % [id, check_text(id)])
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(4.0).timeout
+		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):
@@ -193,9 +241,9 @@ static func run(world: Node, id: String) -> bool:
 			if (c as Car).police and (c as Node3D).global_position.distance_to(me.global_position) < 40.0:
 				near.append("police car %.0f m" % (c as Node3D).global_position.distance_to(me.global_position))
 		var prop: Property = Placement.property_at(world.get_tree(), me.global_position)
-		print("[ScenarioCheck] %s: at %s (%s), %.1f h, health %d, cash %d clean %d, items %s, near: %s" % [id,
+		print("[ScenarioCheck] %s: at %s (%s), %.1f h, health %d, wanted %d, cash %d clean %d, items %s, near: %s" % [id,
 				me.global_position.snapped(Vector3.ONE * 0.1), prop.display_name if prop else "street",
-				dn.hours if dn else -1.0, me.health, int(data["cash"]), int(data.get("clean", 0)),
+				dn.hours if dn else -1.0, me.health, me.wanted_stars, int(data["cash"]), int(data.get("clean", 0)),
 				(data["inventory"] as Array).map(func(it: Dictionary) -> String: return "%dx %s" % [int(it["count"]), it["id"]]),
 				", ".join(near)])
 		if "--scenario-shot" in OS.get_cmdline_user_args():
@@ -246,6 +294,7 @@ static func _at_keeper(world: Node, me: Player, building: String, dn: DayNight, 
 
 ## Scenarios about other things: no patrol cars that would come after the gunfire.
 static func _no_police(world: Node) -> void:
+	Wanted.enabled = false  # point 28: no stars either
 	for n: Node in world.get_tree().get_nodes_in_group(&"police"):
 		n.queue_free()
 

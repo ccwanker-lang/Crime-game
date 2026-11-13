@@ -15,7 +15,8 @@ extends CharacterBody3D
 ## Gunshots nearby (hear_gunshot) make it run away from the shooter.
 
 ## AIM / RUN_GUN: armed NPCs (police, rivals), only on the CharacterArmature models.
-enum Anim { IDLE, WALK, SIT, RUN, DEAD, AIM, RUN_GUN }
+## TALK (point 30): a hand gesture while talking (Interact; the other models stand).
+enum Anim { IDLE, WALK, SIT, RUN, DEAD, AIM, RUN_GUN, TALK }
 
 ## Quaternius CC0 characters. "scale" brings them to ~1.75 m; "walk" is the
 ## animation speed that matches WALK_SPEED (no foot sliding).
@@ -96,7 +97,20 @@ var dead: bool = false
 var _flee_until: int = 0
 var _sit_front: Vector3 = Vector3.INF
 ## Debug counters (self-test): how often it did each activity.
-var stats: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0}
+var stats: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0, "cross": 0}
+## Point 29: the navmesh keeps people off the asphalt (except zebras); to cross the road
+## anywhere (people) or cut straight across it (police, Crows) they walk a straight line
+## without the navmesh. Host only. Cars brake for them like for anyone in their lane.
+var crossing_road: bool = false
+## Point 30: an officer is talking to this pedestrian (host): stand still, face them.
+var _talk_with: Node3D = null
+var _talk_until: float = 0.0
+var _direct: bool = false
+var _direct_target: Vector3 = Vector3.INF
+## Chance that a wander step is crossing the road where the pedestrian stands (scenarios raise it).
+const JAYWALK_DEFAULT: float = 0.2
+static var jaywalk_chance: float = JAYWALK_DEFAULT
+const CROSS_MAX: float = 16.0
 
 static var _taken_seats: Dictionary = {}
 static var _material_cache: Dictionary = {}
@@ -228,6 +242,8 @@ func _build_model() -> void:
 			_anim_names[Anim.AIM] = a
 		elif short == "Run_Shoot":
 			_anim_names[Anim.RUN_GUN] = a
+		elif short == "Interact" or short.ends_with("_Standing"):
+			_anim_names[Anim.TALK] = a
 	for key: int in _anim_names:
 		_anim.get_animation(_anim_names[key]).loop_mode = Animation.LOOP_NONE if key == Anim.DEAD else Animation.LOOP_LINEAR
 
@@ -306,7 +322,9 @@ func _physics_process(delta: float) -> void:
 		return
 	if wants > 0:
 		_customer_tick()
-	if _moving:
+	if _moving and _direct:
+		_direct_step(delta)
+	elif _moving:
 		if agent.is_navigation_finished():
 			_finish_move(true)
 		else:
@@ -418,8 +436,32 @@ func _unstick() -> void:
 	_trail.clear()
 
 
+## Point 29: one physics step of a straight walk (no navmesh) to _direct_target.
+func _direct_step(delta: float) -> void:
+	var to := Vector3(_direct_target.x - global_position.x, 0, _direct_target.z - global_position.z)
+	if to.length() < 0.35:
+		_finish_move(true)
+		return
+	_on_velocity_computed(to.normalized() * _move_speed())
+	if global_position.distance_to(_last_pos) > 0.5:
+		_last_pos = global_position
+		_stuck_time = 0.0
+	else:
+		_stuck_time += delta
+		if _stuck_time > 3.0:
+			stats["stuck"] += 1
+			_finish_move(false)
+
+
+## Where the current move goes (straight or over the navmesh).
+func move_target() -> Vector3:
+	return _direct_target if _direct else agent.target_position
+
+
 func _finish_move(ok: bool) -> void:
 	_moving = false
+	_direct = false
+	crossing_road = false
 	agent.velocity = Vector3.ZERO
 	if not dead:
 		anim_state = Anim.IDLE
@@ -440,12 +482,171 @@ func walk_to(target: Vector3) -> bool:
 func _go(target: Vector3, anim: int) -> bool:
 	if _moving:
 		_finish_move(false)  # release whoever awaited the previous move
+	_direct = false
 	agent.target_position = target
 	_moving = true
 	_stuck_time = 0.0
 	_last_pos = global_position
 	anim_state = anim
 	return await arrived
+
+
+## Point 29: walk in a straight line to `target`, off the navmesh (road crossings, police
+## cutting across). Check the way first with `straight_way_clear`.
+func _go_direct(target: Vector3, anim: int) -> bool:
+	if _moving:
+		_finish_move(false)
+	_direct = true
+	_direct_target = target
+	_moving = true
+	_stuck_time = 0.0
+	_last_pos = global_position
+	anim_state = anim
+	return await arrived
+
+
+## Host: can it walk straight from here to `target`? Nothing solid in between (rays at knee
+## and chest height, cars included), ground all the way with no step higher than a kerb.
+func straight_way_clear(target: Vector3, max_len: float = 30.0) -> bool:
+	var a := Vector3(global_position.x, 0, global_position.z)
+	var b := Vector3(target.x, 0, target.z)
+	var length: float = a.distance_to(b)
+	if length > max_len or length < 0.5:
+		return false
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var base: float = global_position.y
+	for h: float in [0.5, 1.3]:
+		var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * h, Vector3(target.x, base + h, target.z), 1 | 2,
+				[get_rid()])
+		if not space.intersect_ray(q).is_empty():
+			return false
+	var steps: int = int(length)
+	for i: int in steps + 1:
+		var p: Vector3 = a.lerp(b, float(i) / maxf(1.0, float(steps)))
+		var down := PhysicsRayQueryParameters3D.create(Vector3(p.x, base + 1.0, p.z), Vector3(p.x, base - 1.0, p.z), 1)
+		var hit: Dictionary = space.intersect_ray(down)
+		if hit.is_empty() or absf((hit["position"] as Vector3).y - base) > 0.35:
+			return false
+	return true
+
+
+## Host (point 29): a way across the road from where it stands: [kerb here, kerb across]
+## or [] (not next to a road, or no clear straight way). Picks the shortest crossing.
+func plan_road_crossing() -> Array:
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var map: RID = get_world_3d().navigation_map
+	var best: Array = []
+	var best_len: float = INF
+	for k: int in 12:
+		var dir := Vector3.FORWARD.rotated(Vector3.UP, TAU * k / 12.0 + randf_range(-0.1, 0.1))
+		var start: Vector3 = Vector3.INF
+		var end: Vector3 = Vector3.INF
+		var on_road: bool = false
+		var tile: RoadTile = null  # the road tile of the pavement it stands on
+		for i: int in int(CROSS_MAX * 2.0):
+			var p: Vector3 = global_position + dir * (i * 0.5)
+			var down := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 1.0, p + Vector3.DOWN * 1.0, 1)
+			var hit: Dictionary = space.intersect_ray(down)
+			if hit.is_empty():
+				break
+			var y: float = (hit["position"] as Vector3).y
+			if hit["collider"] is RoadTile:
+				tile = hit["collider"]
+			# (the ray may hit the flat ground under the asphalt instead of the tile)
+			var asphalt: bool = y < 0.08 and tile != null and tile.is_on_asphalt(hit["position"])
+			if not on_road:
+				if asphalt:
+					if i * 0.5 > 6.0:
+						break  # the road isn't right here
+					on_road = true
+					start = global_position + dir * maxf(0.0, i * 0.5 - 0.6)
+				elif y < -0.05 or y > 0.3:
+					break
+			elif not asphalt:
+				if y < 0.1 or y > 0.3:
+					break  # not a pavement on the other side
+				end = (hit["position"] as Vector3) + dir * 0.6
+				break
+		if start == Vector3.INF or end == Vector3.INF:
+			continue
+		var len: float = start.distance_to(end)
+		if len >= best_len or len > CROSS_MAX:
+			continue
+		var on_nav: Vector3 = NavigationServer3D.map_get_closest_point(map, end)
+		if Vector2(on_nav.x - end.x, on_nav.z - end.z).length() > 0.4:
+			continue
+		best_len = len
+		best = [start, end]
+	return best
+
+
+## Host (point 29): cross the road here if there is a way: kerb, look both ways (wait for
+## cars that are close), walk straight over. Returns false when there was no crossing.
+func cross_road() -> bool:
+	var plan: Array = plan_road_crossing()
+	if plan.is_empty():
+		return false
+	if global_position.distance_to(plan[0]) > 0.6 and not await walk_to(plan[0]):
+		return false
+	var start: Vector3 = plan[0]
+	var end: Vector3 = plan[1]
+	var mid: Vector3 = (start + end) * 0.5
+	for i: int in 8:
+		await idle(randf_range(0.6, 1.2))  # look left, look right
+		if dead or is_fleeing() or not is_inside_tree():
+			return false
+		var coming: bool = false
+		for c: Node in get_tree().get_nodes_in_group(&"cars"):
+			var car := c as Car
+			if car and not car.abandoned and car.speed > 0.5 and car.global_position.distance_to(mid) < 22.0:
+				coming = true
+				break
+		if not coming:
+			break
+	if not straight_way_clear(end, CROSS_MAX + 1.0):
+		return false
+	crossing_road = true
+	var ok: bool = await _go_direct(end, Anim.WALK)
+	if ok:
+		stats["cross"] = int(stats.get("cross", 0)) + 1
+		if "--scenario-quit" in OS.get_cmdline_user_args():
+			print("[Pedestrian] %s crossed the road %s -> %s" % [name, start.snapped(Vector3.ONE * 0.1), end.snapped(Vector3.ONE * 0.1)])
+	return ok
+
+
+## Host (point 30): `by` (an officer) wants a word: stop and wait up to `seconds`.
+func hold_for_talk(by: Node3D, seconds: float) -> void:
+	_talk_with = by
+	_talk_until = Time.get_ticks_msec() / 1000.0 + seconds
+	if _moving:
+		_finish_move(false)
+	if not dead:
+		anim_state = Anim.IDLE
+		face(by.global_position)
+
+
+func release_talk() -> void:
+	_talk_with = null
+	if not dead and not _moving and not is_fleeing():
+		anim_state = Anim.IDLE
+
+
+func is_talking() -> bool:
+	return _talk_with != null and is_instance_valid(_talk_with) and Time.get_ticks_msec() / 1000.0 < _talk_until
+
+
+## Host: turn towards `p` (synced yaw).
+func face(p: Vector3) -> void:
+	var d: Vector3 = p - global_position
+	if Vector2(d.x, d.z).length() > 0.05:
+		rotation.y = atan2(-d.x, -d.z)
+		net_yaw = rotation.y
+
+
+## Host (point 30): could an officer stop this one for a chat?
+func free_for_talk() -> bool:
+	return ambient and not dead and not _sitting and not is_fleeing() and not is_talking() and wants <= 0 \
+			and not crossing_road and not stationary
 
 
 func idle(seconds: float) -> void:
@@ -619,9 +820,12 @@ func hear_gunshot(origin: Vector3, hit: bool = false) -> void:
 func _wander() -> void:
 	await idle(randf_range(0.5, 3.0))
 	while is_inside_tree() and ambient and not dead:
-		if is_fleeing() or _sitting or (wants > 0 and (_meet_accepted or _player_near(CUSTOMER_STOP_DISTANCE) != null)):
+		if is_fleeing() or _sitting or is_talking() \
+				or (wants > 0 and (_meet_accepted or _player_near(CUSTOMER_STOP_DISTANCE) != null)):
 			await get_tree().create_timer(0.5).timeout
-			if not is_fleeing() and not _moving and not dead and not _sitting:
+			if is_talking() and not is_fleeing():
+				face(_talk_with.global_position)
+			elif not is_fleeing() and not _moving and not dead and not _sitting:
 				anim_state = Anim.IDLE
 			continue
 		if _backoff != Vector3.INF:
@@ -642,6 +846,8 @@ func _wander() -> void:
 		elif roll < 0.45:
 			stats["idle"] += 1
 			await idle(randf_range(2.0, 7.0))
+			continue
+		if randf() < jaywalk_chance and await cross_road():
 			continue
 		var p: Vector3 = random_sidewalk_point(self)
 		if p != Vector3.INF:

@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**Start elke sessie met HANDOFF.md, DESIGN.md en CHANGELOG.md lezen.**
+
 **Read DESIGN.md before every milestone.** It is the source of truth for the whole game.
 
 ## Working with the user
@@ -89,6 +91,8 @@ Godot console exe:
 - NPCs: `prefabs/npc/pedestrian.tscn` (`Pedestrian`): host runs AI/physics, clients get net_pos/net_yaw/
   anim_state via MultiplayerSynchronizer; spawned by World/NPCSpawner. Road tiles carve the asphalt (minus
   zebras) out of the navmesh with NavigationObstacle3D. Moving meshes: no SDFGI (environment uses SSIL).
+  Point 29: off-navmesh straight walks `Pedestrian._go_direct` / `straight_way_clear`; `cross_road()` (jaywalk,
+  `Pedestrian.jaywalk_chance`, `crossing_road` flag), police/Crows `_chase_to`; scenario road_crossing.
 - Weapons: `WeaponData` (extends ItemData) in `data/items/` (pistol.tres); visual model `prefabs/weapons/*.tscn`
   (`WeaponModel`, origin = grip, barrel -Z, markers Muzzle/Ejection/RightHand/Support/MagazineDir). Shooting lives
   in Player/Combat (`PlayerCombat`): owner predicts + plays effects, host validates, raycasts, applies damage,
@@ -168,6 +172,17 @@ Godot console exe:
   with `crew_size` 2 (`Car.crew_out`, `_police_come_back`); officers have `from_car` (LEASH 60 m). Arrest:
   `PoliceOfficer.resisting(p)` (`_hostile`, `Player.host_last_shot`, weapon drawn after warning, running) else
   `_try_arrest` -> `Player.host_arrest(by)` (confiscate illegal, fine, `ReleaseSpot` marker), group call `on_arrested`.
+- Wanted level (point 28): `Wanted` (`scripts/police/wanted.gd`, node World/Wanted, host logic, `Wanted.current`),
+  config `WantedConfig` in `data/police/wanted.tres`. Crimes: `Wanted.report(player, kind, pos)` (kinds heard,
+  weapon_seen, kill, kill_officer, kill_rival, assault, resist); `Wanted.clear(p, why)` on arrest/death; synced
+  `Player.wanted_stars` / `wanted_seen` -> HUD stars (`PlayerHUD.set_wanted`). Officers: `_should_shoot(p)` by stars,
+  group call `on_wanted_cleared`, `heavy` (SMG, `data/npc/police_heavy.tres`, spawn-synced). Cars: `Car.respond`,
+  `chase`, `dispatched`, `roadblock` (`start_roadblock`/`end_roadblock`), `Traffic.nearest` / `spot_ahead`,
+  `spawn_police_car(r, prog, crew, heavy)`. `Wanted.enabled = false` = no stars (selftest default, `_no_police`),
+  `Wanted.dispatch` off in selftest/netcheck. Tests: `wanted.debug_set(p, stars)`; scenarios wanted_one/three/five/hide.
+- Police life (point 30): `PoliceOfficer.question(npc)` / `is_busy()` / `chats`, `Pedestrian.hold_for_talk` /
+  `free_for_talk` / `face`, Anim.TALK; `Car.question_in` (patrol car stops to question, `_try_question`, `_in_car`);
+  World POLICE_COUNT = 2 foot officers. `PoliceOfficer.talk_time` (tests shorten it). Scenario police_life.
 - Black Crows (point 11): `Rival` (`scripts/npc/rival.gd`, PoliceOfficer subclass, group `rivals`, `prefabs/npc/rival.tscn`,
   profile `data/npc/rival_combat.tres`), house `prefabs/buildings/crows_house.tscn` (RivalSpawn markers) in the turf yard.
   World `_rival_loop` (night only, `rival_count`, `--rivals=N`, off in selftest/netcheck) / `add_rival(at)`.

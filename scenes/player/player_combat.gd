@@ -451,6 +451,14 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 				damage[victim], " (headshot)" if heads[victim] else "", " - killed" if killed else ""])
 		if killed:
 			get_tree().call_group(&"police", "report_crime", player, (victim as Node3D).global_position, true)
+			# Point 28: heat. Witnesses call it in (a Crow only counts when the police see it).
+			var kind: StringName = &"kill"
+			if victim is Rival:
+				kind = &"kill_rival"
+			elif victim is PoliceOfficer:
+				kind = &"kill_officer"
+			if victim != player:
+				Wanted.report(player, kind, (victim as Node3D).global_position)
 		if player.peer_id == 1:
 			_hit_confirm(heads[victim], killed)
 		else:

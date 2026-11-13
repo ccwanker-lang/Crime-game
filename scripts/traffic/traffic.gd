@@ -106,9 +106,12 @@ func replace_car(old: Car) -> void:
 	var r: int = old.route_id
 	var kind: int = old.kind
 	var police: bool = old.police
+	var extra: bool = old.dispatched or old.roadblock  # point 28: sent cars are not replaced
 	for j: int in JUNCTIONS.size():
 		release_junction(j, old)
 	old.queue_free()
+	if extra:
+		return
 	await get_tree().create_timer(5.0).timeout
 	if not is_inside_tree():
 		return
@@ -162,13 +165,56 @@ func spawn_police_cars(count: int) -> void:
 		spawn_police_car(3, routes[3].length * (0.6 + 0.15 * k))
 
 
-## Host: a police patrol car on route `r` at `prog` metres.
-func spawn_police_car(r: int, prog: float) -> Car:
+## Host: a police patrol car on route `r` at `prog` metres (`crew` officers, point 28:
+## `heavy` = a heavy team with SMGs).
+func spawn_police_car(r: int, prog: float, crew: int = 2, heavy: bool = false) -> Car:
 	var car: Car = CAR.instantiate()
 	car.route_id = r
 	car.progress = prog
 	car.kind = ProcCar.Kind.SEDAN
 	car.police = true
+	car.crew_size = crew
+	car.heavy = heavy
 	car.color_seed = randi()
 	add_child(car, true)
 	return car
+
+
+## Point 28: the route point closest to `p`: [route index, progress (m), distance].
+func nearest(p: Vector3) -> Array:
+	var best: Array = [0, 0.0, INF]
+	for r: int in routes.size():
+		var route: TrafficRoute = routes[r]
+		for i: int in int(route.length):
+			var d: float = (route.sample(float(i))[0] as Vector3).distance_to(p)
+			if d < best[2]:
+				best = [r, float(i), d]
+	return best
+
+
+## Point 28 (road blocks): a route point between `near` and `far` metres from `p`, preferably
+## in direction `dir` (where the player is heading), away from other police cars.
+## Returns [route index, progress] or [] when there is none.
+func spot_ahead(p: Vector3, dir: Vector3, near: float, far: float) -> Array:
+	var fwd: Vector3 = dir.normalized() if dir.length() > 0.5 else Vector3.ZERO
+	var best: Array = []
+	var best_score: float = -INF
+	for r: int in routes.size():
+		var route: TrafficRoute = routes[r]
+		for i: int in int(route.length / 2.0):
+			var q: Vector3 = route.sample(i * 2.0)[0]
+			var d: float = q.distance_to(p)
+			if d < near or d > far:
+				continue
+			var clear: bool = true
+			for c: Node in get_children():
+				if c is Car and (c as Car).police and (c as Car).global_position.distance_to(q) < 20.0:
+					clear = false
+					break
+			if not clear:
+				continue
+			var score: float = fwd.dot((q - p).normalized()) + randf() * 0.4
+			if score > best_score:
+				best_score = score
+				best = [r, i * 2.0]
+	return best

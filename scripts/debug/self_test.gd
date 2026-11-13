@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -37,6 +37,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	GameState.infinite_cash = false  # test the real money rules
+	Wanted.enabled = false  # point 28: only the "wanted" check uses stars (the others test the plain AI)
 	var world: Node3D = get_parent()
 	await _wait_for_navmesh(world)
 	# --only=stairs,traffic runs just those checks (names = the _check_* suffix).
@@ -1296,6 +1297,8 @@ func _check_pedestrians(world: Node3D) -> void:
 			travelled[n] += p.distance_to(last[n])
 			last[n] = p
 			samples += 1
+			if (n as Pedestrian).crossing_road or (n as Pedestrian)._direct:
+				continue  # point 29: crossing the road on purpose
 			for r: Node in roads:
 				# Fully on the road (body overlapping a zebra edge is fine).
 				var t := r as RoadTile
@@ -1305,8 +1308,8 @@ func _check_pedestrians(world: Node3D) -> void:
 						print("[SelfTest]   %s on the road at %s" % [n.name, p])
 					break
 	Engine.time_scale = 1.0
-	_report(on_road == 0, "pedestrians stayed off the road outside zebras (%d of %d samples on road)" % [on_road, samples])
-	var totals: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0}
+	_report(on_road == 0, "pedestrians only walk on the road while crossing it (%d of %d samples on road)" % [on_road, samples])
+	var totals: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0, "cross": 0}
 	var lazy: int = 0
 	var worst_stuck: int = 0
 	for n: Node in npcs:
@@ -1322,6 +1325,32 @@ func _check_pedestrians(world: Node3D) -> void:
 	# Getting stuck now and then is fine (it backs off); staying stuck is not.
 	_report(worst_stuck <= 2 and totals["stuck"] <= 5,
 			"nobody stays stuck (%d stuck moves, worst NPC %d)" % [totals["stuck"], worst_stuck])
+	# Point 29: crossing the road anywhere (not at a zebra), straight over the asphalt.
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var kerb: Vector3 = Vector3.INF
+	for r: Node in roads:
+		var t := r as RoadTile
+		if t.type != RoadTile.Type.STRAIGHT or t.crossing:
+			continue
+		for off: Vector3 in [Vector3(5.0, 0, 0), Vector3(-5.0, 0, 0), Vector3(0, 0, 5.0), Vector3(0, 0, -5.0)]:
+			var p: Vector3 = t.to_global(off)
+			var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP, p + Vector3.DOWN, 1))
+			if not hit.is_empty() and hit["collider"] == t and (hit["position"] as Vector3).y > 0.1:
+				kerb = hit["position"]
+				break
+		if kerb != Vector3.INF:
+			break
+	var walker := npcs[0] as Pedestrian
+	walker.ambient = false
+	walker._finish_move(false)
+	walker.global_position = kerb + Vector3.UP * 0.05
+	for i: int in 5:
+		await get_tree().physics_frame
+	var plan: Array = walker.plan_road_crossing()
+	var crossed: bool = await walker.cross_road() if not plan.is_empty() else false
+	var across: float = walker.global_position.distance_to(kerb)
+	_report(kerb != Vector3.INF and crossed and across > 5.0,
+			"a pedestrian crosses the road outside a zebra (from %s, %.1f m across)" % [kerb.snapped(Vector3.ONE * 0.1), across])
 
 
 # --- NPC combat -----------------------------------------------------------------------
@@ -1636,6 +1665,7 @@ func _check_police(world: Node3D) -> void:
 	_report(mate.target == null, "an officer doesn't go further than %d m from the car" % int(PoliceOfficer.LEASH))
 	# Called off: they walk back, get in, the car drives on.
 	var crew: Array = car.crew_out.duplicate()
+	Wanted.clear(q, "test")
 	for c: PoliceOfficer in crew:
 		c._drop_target()
 	for i: int in 30:
@@ -1650,6 +1680,221 @@ func _check_police(world: Node3D) -> void:
 	q.queue_free()
 	GameState.player_data.erase("Crook2")
 	await get_tree().physics_frame
+
+
+# --- wanted level (point 28) -------------------------------------------------------------
+
+func _check_wanted(world: Node3D) -> void:
+	var wanted: Wanted = Wanted.current
+	_report(wanted != null and wanted.config != null and wanted.config.heat_for_star.size() == 5,
+			"wanted system with its config (data/police/wanted.tres)")
+	if wanted == null:
+		return
+	Wanted.enabled = true
+	var cfg: WantedConfig = wanted.config
+	var station: Node3D = world.find_child("PoliceStation", true, false) as Node3D
+	var spot: Vector3 = station.global_position + station.global_basis.z * 4.5 + station.global_basis.x * 6.0
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Wanted1"
+	p.auto_target = spot
+	world.get_node("Players").add_child(p)
+	p.global_position = spot
+	for i: int in 10:
+		await get_tree().physics_frame
+	# 0 stars: innocent = left alone; a drawn weapon in sight of an officer = 1 star at once.
+	p.combat.set_equipped(false)  # (the starter pistol comes drawn)
+	p.net_weapon = 0
+	var cop: PoliceOfficer = world.add_officer(spot - station.global_basis.x * 12.0, spot)
+	await get_tree().create_timer(1.0).timeout
+	_report(p.wanted_stars == 0 and cop.target == null, "no stars for an innocent player next to an officer")
+	p.net_weapon = 1
+	await get_tree().create_timer(0.6).timeout
+	_report(p.wanted_stars == 1 and cop.target == p, "weapon drawn in sight of an officer: 1 star within 0.6 s, it comes")
+	p.net_weapon = 0
+	if p.is_local():
+		_report(p.ui._wanted_row.visible and p.ui._wanted_stars[0].color == PlayerHUD.ACCENT
+				and p.ui._wanted_stars[1].color != PlayerHUD.ACCENT, "HUD shows 1 star")
+	_report(not cop._should_shoot(p), "1 star, weapon away: the officer arrests, doesn't shoot")
+	p.host_arrest(cop)
+	_report(p.wanted_stars == 0 and cop.target == null, "an arrest clears the stars")
+	cop.queue_free()
+	p.teleport(spot)
+	p.auto_target = spot
+	await get_tree().physics_frame
+	# Heat: kills add up to stars; an officer kill is 2 stars at once.
+	var got: Array = []
+	for n: int in [1, 5, 6]:
+		for i: int in n:
+			Wanted.report(p, &"kill", spot)
+		got.append(p.wanted_stars)
+	_report(got == [1, 2, 3], "kills add stars: 1 kill / 6 / 12 = %s stars" % [got])
+	Wanted.clear(p, "test")
+	Wanted.report(p, &"kill_officer", spot)
+	_report(p.wanted_stars == cfg.officer_kill_stars, "killing an officer: %d stars at once" % p.wanted_stars)
+	# How the police treat you, by stars.
+	var far: Vector3 = spot + Vector3(0, 0, -60)
+	var judge: PoliceOfficer = world.add_officer(far, far)
+	await get_tree().physics_frame
+	var unarmed2: bool = judge._should_shoot(p)
+	p.net_weapon = 1
+	var armed2: bool = judge._should_shoot(p)
+	p.net_weapon = 0
+	wanted.debug_set(p, 3)
+	var unarmed3: bool = judge._should_shoot(p)
+	_report(not unarmed2 and armed2 and unarmed3, "2 stars: shot only when armed; 3 stars: shot on sight")
+	judge.queue_free()
+	# Out of sight the stars drop; inside your own place faster.
+	var fast: WantedConfig = cfg.duplicate()
+	fast.lose_star_time = PackedFloat32Array([0.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+	wanted.config = fast
+	var fam: Property = world.find_child("FamilyHouse", true, false).get_node("Property") as Property
+	var hide_out: Vector3 = fam.building().to_global(Vector3(0.0, 0.2, -2.0))
+	p.teleport(hide_out)
+	p.auto_target = hide_out
+	await get_tree().physics_frame
+	wanted.debug_set(p, 3)
+	await get_tree().create_timer(1.1).timeout
+	var outside: int = p.wanted_stars
+	var seen_out: bool = p.wanted_seen
+	await get_tree().create_timer(1.4).timeout
+	var outside2: int = p.wanted_stars
+	var sr: Property = world.find_child("StarterRoom", true, false).get_node("Property") as Property
+	var at_home: Vector3 = sr.building().to_global(Vector3(0.0, 0.2, -3.0))
+	p.teleport(at_home)
+	p.auto_target = at_home
+	await get_tree().physics_frame
+	wanted.debug_set(p, 3)
+	await get_tree().create_timer(1.1).timeout
+	var home: int = p.wanted_stars
+	_report(not fam.is_crew_owned() and not seen_out and outside == 3 and outside2 == 2 and sr.is_crew_owned() and home <= 2,
+			"out of sight a star drops after its time (3 -> %d -> %d), at home faster (3 -> %d in 1.1 s)" % [outside, outside2, home])
+	await get_tree().create_timer(3.0).timeout
+	_report(p.wanted_stars == 0, "every star gone after a while out of sight (%d)" % p.wanted_stars)
+	wanted.config = cfg
+	# Response: cars sent along the road, heavy teams and a road block at 4 stars.
+	p.teleport(spot)
+	p.auto_target = spot
+	await get_tree().physics_frame
+	wanted.dispatch = true
+	wanted.debug_set(p, 4)
+	var sent: Array = []
+	var block: Car = null
+	for i: int in 20:
+		await get_tree().create_timer(0.25).timeout
+		sent.clear()
+		for c: Node in get_tree().get_nodes_in_group(&"police"):
+			if c is Car and (c as Car).chase == p:
+				if (c as Car).roadblock:
+					block = c
+				else:
+					sent.append(c)
+		if not sent.is_empty() and block != null and block.crew_out.size() > 0:
+			break
+	var first: Car = sent[0] if not sent.is_empty() else null
+	_report(first != null and first.siren and first.heavy and first.crew_size == cfg.crew_per_star[4],
+			"4 stars: a police car is sent with its siren on (heavy crew of %d)" % (first.crew_size if first else 0))
+	var heavy_ok: bool = block != null and block.crew_out.size() == cfg.crew_per_star[4]
+	if block:
+		for o: PoliceOfficer in block.crew_out:
+			heavy_ok = heavy_ok and o.heavy and o._pistol.id == &"smg" and o.health == PoliceOfficer.HEAVY_HEALTH
+	_report(block != null and block.abandoned and block.siren and heavy_ok,
+			"4 stars: a road block across the road %s m away, heavy team with SMGs" % (
+			str(roundi(block.global_position.distance_to(p.global_position))) if block else "-"))
+	if block:
+		var along: float = absf(block.global_basis.z.dot(fast_route_dir(world, block)))
+		_report(along < 0.3, "the road block car stands across the road (|dot| %.2f)" % along)
+	Wanted.clear(p, "test")
+	await get_tree().create_timer(0.6).timeout
+	_report(block == null or not is_instance_valid(block) or block.is_queued_for_deletion(), "no stars: the road block is lifted")
+	_report(first == null or not is_instance_valid(first) or (first.chase == null or first.abandoned),
+			"no stars: the sent car stops chasing")
+	# Death clears the stars too.
+	wanted.debug_set(p, 2)
+	p.host_damage(1000, null)
+	await get_tree().physics_frame
+	_report(p.wanted_stars == 0, "dying clears the stars")
+	# Clean up: sent cars and their crews.
+	wanted.dispatch = false
+	Wanted.enabled = false
+	for c: Node in get_tree().get_nodes_in_group(&"police"):
+		if c is Car and ((c as Car).dispatched or (c as Car).chase != null or (c as Car).roadblock):
+			for o: PoliceOfficer in (c as Car).crew_out:
+				if is_instance_valid(o):
+					o.queue_free()
+			(c as Car).queue_free()
+	p.queue_free()
+	GameState.player_data.erase("Wanted1")
+	await get_tree().create_timer(0.5).timeout
+
+
+# --- police life (point 30) -------------------------------------------------------------
+
+func _check_police_life(world: Node3D) -> void:
+	PoliceOfficer.talk_time = Vector2(1.5, 2.0)
+	var station: Node3D = world.find_child("PoliceStation", true, false) as Node3D
+	var spot: Vector3 = station.global_position + station.global_basis.z * 4.5 + station.global_basis.x * 6.0
+	var ped: Pedestrian = world.call("_add_pedestrian", spot, 0)
+	var cop: PoliceOfficer = world.add_officer(spot + station.global_basis.x * 8.0, spot)
+	await get_tree().create_timer(1.8).timeout
+	cop.question(ped)
+	var talked: bool = false
+	var gap: float = INF
+	for i: int in 80:
+		await get_tree().create_timer(0.2).timeout
+		if cop.anim_state == Pedestrian.Anim.TALK or ped.anim_state == Pedestrian.Anim.TALK:
+			talked = true
+			gap = cop.global_position.distance_to(ped.global_position)
+			break
+	_report(talked and gap < 2.5 and ped.is_talking(), "a foot officer walks up to a passer-by and they talk (%.1f m apart)" % gap)
+	for i: int in 40:
+		if not cop._chatting:
+			break
+		await get_tree().create_timer(0.25).timeout
+	_report(not cop._chatting and not ped.is_talking() and cop.chats == 1, "after the chat both carry on")
+	cop.queue_free()
+	# A patrol car stops by someone on the pavement ahead, one officer has a word, back in, on.
+	var traffic: Traffic = world.get_node("Traffic")
+	var car: Car = traffic.spawn_police_car(3, 30.0)
+	await get_tree().create_timer(0.3).timeout
+	car.speed = 0.0
+	ped._finish_move(false)
+	ped.global_position = car.global_position - car.global_basis.z * 12.0 + car.global_basis.x * 3.2 + Vector3.UP * 0.2
+	await get_tree().physics_frame
+	car.question_in = 0.01
+	var stopped: bool = false
+	for i: int in 20:
+		await get_tree().create_timer(0.2).timeout
+		if car.abandoned:
+			stopped = true
+			break
+	_report(stopped and car.siren and car.crew_out.size() == 1,
+			"a patrol car stops (light bar on), one officer gets out to question a passer-by (%d out)" % car.crew_out.size())
+	var back: bool = false
+	var questioned: bool = false
+	for i: int in 160:
+		await get_tree().create_timer(0.25).timeout
+		for c: PoliceOfficer in car.crew_out:
+			if is_instance_valid(c) and c.chats > 0:
+				questioned = true
+		if not car.abandoned:
+			back = true
+			break
+	_report(questioned and back and not car.siren and car.crew_size == 2,
+			"the officer talked, got back in and the car drives on (crew %d)" % car.crew_size)
+	car.queue_free()
+	ped.queue_free()
+	PoliceOfficer.talk_time = Vector2(6.0, 10.0)
+	await get_tree().physics_frame
+
+
+## The driving direction of the route under a road block car.
+func fast_route_dir(world: Node3D, car: Car) -> Vector3:
+	var route: TrafficRoute = (world.get_node("Traffic") as Traffic).routes[car.route_id]
+	var a: Vector3 = route.sample(car.progress - 1.0)[0]
+	var b: Vector3 = route.sample(car.progress + 1.0)[0]
+	return (b - a).normalized()
 
 
 # --- traffic ---------------------------------------------------------------------------

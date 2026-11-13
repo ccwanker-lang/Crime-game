@@ -54,6 +54,10 @@ const HELP: Array = [
 	["F4 / F6 / F7", "Debug: hurt yourself / +€1000 / fast time (hold)"], ["F1", "This help"],
 ]
 var _clean_label: Label
+## Point 28: wanted stars under the money panel (blink while the police search for you).
+var _wanted_row: HBoxContainer
+var _wanted_stars: Array[HudIcon] = []
+var _wanted_seen: bool = true
 var _help: Control
 
 
@@ -95,6 +99,8 @@ func set_ammo(weapon_name: String, mag: int, reserve: int, drawn: bool, reloadin
 	else:
 		ammo_label.text = "%d / %d" % [mag, reserve]
 	ammo_label.add_theme_color_override("font_color", Color(1, 0.4, 0.3) if drawn and mag == 0 else Color.WHITE)
+	if ammo_label.get_parent() is HBoxContainer:
+		ammo_label.get_parent().visible = drawn  # (the bullet icon row, point 27)
 
 
 ## Sniper scope overlay (black outside the lens, reticle).
@@ -528,6 +534,26 @@ func _restyle_hud() -> void:
 		cap.add_theme_font_size_override("font_size", 13)
 		cap.modulate = Color(1, 1, 1, 0.55)
 		line.add_child(cap)
+	_wanted_row = HBoxContainer.new()
+	_wanted_row.alignment = BoxContainer.ALIGNMENT_END
+	_wanted_row.add_theme_constant_override("separation", 3)
+	_wanted_row.visible = false
+	box.add_child(_wanted_row)
+	for i: int in 5:
+		var star := HudIcon.make("star", ACCENT, 26)
+		_wanted_row.add_child(star)
+		_wanted_stars.append(star)
+
+
+## Point 28: show `stars` (0 = hidden); `seen` = the police see you (steady), else blinking.
+func set_wanted(stars: int, seen: bool) -> void:
+	if _wanted_row == null:
+		return
+	_wanted_row.visible = stars > 0
+	_wanted_seen = seen
+	for i: int in _wanted_stars.size():
+		_wanted_stars[i].color = ACCENT if i < stars else Color(1, 1, 1, 0.18)
+	_wanted_row.modulate.a = 1.0
 
 
 func _build_help_panel() -> void:
@@ -584,6 +610,8 @@ func _process(delta: float) -> void:
 	if dn:
 		clock_label.text = dn.clock_text() + (" >>" if dn.fast_forward else "")
 	damage_flash.color.a = move_toward(damage_flash.color.a, 0.0, delta * 0.8)
+	if _wanted_row and _wanted_row.visible:
+		_wanted_row.modulate.a = 1.0 if _wanted_seen else 0.45 + 0.55 * absf(sin(Time.get_ticks_msec() / 1000.0 * 3.0))
 	if _toast_time > 0.0:
 		_toast_time -= delta
 		_toast.modulate.a = clampf(_toast_time / 0.6, 0.0, 1.0)

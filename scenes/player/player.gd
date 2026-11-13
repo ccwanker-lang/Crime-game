@@ -98,6 +98,15 @@ var dead: bool = false:
 		if v != dead:
 			dead = v
 			_on_dead_changed()
+## Point 28: wanted stars (0-5) and whether the police see the player right now (Wanted).
+var wanted_stars: int = 0:
+	set(v):
+		wanted_stars = v
+		_on_wanted_changed()
+var wanted_seen: bool = false:
+	set(v):
+		wanted_seen = v
+		_on_wanted_changed()
 
 ## Test mode (self-test): walk straight to auto_target without mouse/camera.
 var auto_walk: bool = false
@@ -832,6 +841,7 @@ func host_damage(amount: int, attacker: Node, from: Vector3 = Vector3.INF) -> bo
 
 func _host_die(attacker: Player, from: Vector3 = Vector3.INF) -> void:
 	dead = true
+	Wanted.clear(self, "dead")
 	# Every peer lets the body fall as a ragdoll; the shot pushes it away from the shooter.
 	var away := Vector3(global_position.x - from.x, 0, global_position.z - from.z) if from != Vector3.INF else -global_basis.z
 	var impulse: Vector3 = away.normalized() * 90.0 + Vector3.UP * 15.0
@@ -894,6 +904,7 @@ func host_arrest(by: Node) -> void:
 	send_wallet()
 	combat.host_send_all_ammo()
 	get_tree().call_group(&"police", "on_arrested", self)
+	Wanted.clear(self, "arrested")
 	var what: String = ", ".join(taken) if not taken.is_empty() else "nothing"
 	print("[Police] %s arrested by %s: confiscated %s, fine €%d" % [player_name, by.name if by else "?", what, fine])
 	show_message("ARRESTED. Confiscated: %s. Fine: €%d. You're free to go." % [what, fine])
@@ -907,6 +918,12 @@ func _on_health_changed(old: int) -> void:
 		if health < old:
 			ui.flash_damage(old - health)
 			head.rotation.x = clampf(head.rotation.x + 0.03, -1.45, 1.45)  # small flinch
+
+
+## Every peer: wanted level changed (HostSync). Owner: HUD stars.
+func _on_wanted_changed() -> void:
+	if ui and is_inside_tree() and is_local():
+		ui.set_wanted(wanted_stars, wanted_seen)
 
 
 ## Every peer: dead flag changed (HostSync).

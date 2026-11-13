@@ -48,6 +48,8 @@ func _ready() -> void:
 
 	_set_debug_visible(false)
 	add_child(ScenarioMenu.new())  # F9
+	add_child(Wanted.new())  # point 28 (host logic, stars synced per player)
+	Pedestrian.jaywalk_chance = Pedestrian.JAYWALK_DEFAULT  # (a scenario may have raised it)
 	if "--screenshot" in OS.get_cmdline_user_args():
 		_start_screenshot_tour()
 	elif "--vmpreview" in OS.get_cmdline_user_args():
@@ -200,8 +202,8 @@ func _net_check() -> void:
 			get_tree().get_nodes_in_group(&"cars").size(), ", ".join(cars)])
 	for p: Node in players_root.get_children():
 		var pl := p as Player
-		print("[NetCheck]   player %s '%s' at %s local=%s crouch=%s move=%s" % [pl.name, pl.player_name,
-				pl.global_position.snapped(Vector3.ONE * 0.1), pl.is_local(), pl.net_crouch, pl.net_move])
+		print("[NetCheck]   player %s '%s' at %s local=%s crouch=%s move=%s wanted=%d" % [pl.name, pl.player_name,
+				pl.global_position.snapped(Vector3.ONE * 0.1), pl.is_local(), pl.net_crouch, pl.net_move, pl.wanted_stars])
 	await get_tree().create_timer(1.0).timeout
 	Net.leave_game()
 	get_tree().quit()
@@ -608,7 +610,7 @@ func _after_navmesh() -> void:
 				count = arg.trim_prefix("--npcs=").to_int()
 		spawn_pedestrians(count)
 		_customer_loop()
-		var cops: int = POLICE_COUNT
+		var cops: int = 0 if "--netcheck" in OS.get_cmdline_user_args() else POLICE_COUNT
 		for arg: String in OS.get_cmdline_user_args():
 			if arg.begins_with("--police="):
 				cops = arg.trim_prefix("--police=").to_int()
@@ -646,9 +648,9 @@ func spawn_pedestrians(count: int) -> void:
 # --- Police (point 10, host) -------------------------------------------------------------
 
 const POLICE_OFFICER := preload("res://prefabs/npc/police_officer.tscn")
-## Point 25: officers belong to a patrol car (Traffic.spawn_police_cars); no foot patrols
-## by default (`--police=N` still adds foot officers at the station, e.g. for tests).
-const POLICE_COUNT: int = 0
+## Point 25: officers belong to a patrol car (Traffic.spawn_police_cars). Point 30: two
+## officers patrol on foot from the station as well (`--police=N`; none with --netcheck).
+const POLICE_COUNT: int = 2
 
 
 ## Host: `count` officers on foot, starting at the police station's spawn markers.
@@ -663,8 +665,9 @@ func spawn_police(count: int) -> void:
 
 
 ## Host: a police officer at `p` that patrols around `home` (`car` = its patrol car).
-func add_officer(p: Vector3, home: Vector3, car: Node3D = null) -> PoliceOfficer:
+func add_officer(p: Vector3, home: Vector3, car: Node3D = null, heavy: bool = false) -> PoliceOfficer:
 	var cop: PoliceOfficer = POLICE_OFFICER.instantiate()
+	cop.heavy = heavy
 	cop.variant = PoliceOfficer.VARIANT
 	cop.color_seed = randi()
 	cop.position = p

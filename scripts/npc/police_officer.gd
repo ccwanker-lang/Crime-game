@@ -11,7 +11,8 @@ extends Pedestrian
 ## Point 25: a culprit who doesn't resist (weapon away, no shots for a few seconds, not
 ## running off) is not shot but cuffed: the officer walks up and arrests them
 ## (Player.host_arrest). Officers from a patrol car never go further than LEASH from it.
-## Later (heat system): wanted levels, bribes.
+## Point 28: the wanted level (Wanted, stars per player) decides arrest or shoot
+## (`_should_shoot`); heavy teams (4-5 stars) carry an SMG, take more hits, aim better.
 
 const UNIFORM: Dictionary = {
 	"White": Color(0.55, 0.68, 0.85),       # shirt: light blue
@@ -19,6 +20,14 @@ const UNIFORM: Dictionary = {
 	"LightBrown": Color(0.06, 0.07, 0.12),  # trousers: dark navy
 	"LightBlue": Color(0.05, 0.05, 0.05),   # shoes: black
 }
+const HEAVY_UNIFORM: Dictionary = {
+	"White": Color(0.16, 0.17, 0.2),        # shirt: dark grey
+	"Red_Dark": Color(0.04, 0.05, 0.08),    # vest: black
+	"LightBrown": Color(0.05, 0.05, 0.07),
+	"LightBlue": Color(0.03, 0.03, 0.03),
+}
+const HEAVY_PROFILE: NpcCombatProfile = preload("res://data/npc/police_heavy.tres")
+const HEAVY_HEALTH: int = 170
 const VARIANT: int = 7  # man_longsleeve (CharacterArmature: gun animations)
 const HEAR_RANGE: float = 45.0
 const MURDER_RANGE: float = 70.0
@@ -30,7 +39,10 @@ const FLEE_SPEED: float = 4.6       # running off faster than this = resisting
 const ARREST_DISTANCE: float = 2.6  # (the navmesh stops ~2.3 m from a player)
 const CUFF_TIME: float = 2.0
 const LEASH: float = 60.0           # car crews don't chase further than this from their car
-const PATROL_RADIUS: float = 45.0
+const PATROL_RADIUS: float = 80.0
+## Point 30: officers stop people for a chat (foot patrols now and then, patrol cars).
+const CHAT_RANGE: float = 14.0
+static var talk_time: Vector2 = Vector2(6.0, 10.0)  # (tests shorten it)
 ## Point 21: aim, reaction time, damage, fire rate, bursts (tune data/npc/police_combat.tres).
 const DEFAULT_PROFILE: NpcCombatProfile = preload("res://data/npc/police_combat.tres")
 const SIGHT_MASK: int = 1 | 2  # world, doors/cars
@@ -45,6 +57,8 @@ var last_known: Vector3 = Vector3.INF
 var home: Vector3 = Vector3.INF
 ## Host: set by a police car whose driver got out: don't patrol, the car calls it back.
 var from_car: Node3D = null
+## Point 28: heavy team (synced at spawn: the SMG and the dark uniform show on every peer).
+var heavy: bool = false
 
 var _gun: WeaponModel
 var _skeleton: Skeleton3D
@@ -63,10 +77,14 @@ var _hostile: Dictionary = {}  # Player -> true: shot at the police, never arres
 var _last_target_pos: Vector3 = Vector3.INF
 var _target_speed: float = 0.0
 var _pistol: WeaponData
+var _chatting: bool = false
+var _next_chat: float = 0.0
+## Point 30 (tests/debug): how many chats this officer had.
+var chats: int = 0
 
 
 func uniform_colors() -> Dictionary:
-	return UNIFORM
+	return HEAVY_UNIFORM if heavy else UNIFORM
 
 
 ## Point 11 hooks (Rival overrides them): its group, its head gear, and players it may not chase.
@@ -90,11 +108,15 @@ func _ready() -> void:
 	ambient = false
 	super._ready()
 	add_to_group(_group())
-	_pistol = ItemDB.get_item(&"pistol") as WeaponData
+	_pistol = ItemDB.get_item(&"smg" if heavy else &"pistol") as WeaponData
+	if heavy:
+		profile = HEAVY_PROFILE
+		health = HEAVY_HEALTH
 	_build_gear()
 	if _is_host():
 		if home == Vector3.INF:
 			home = global_position
+		_ready_chat()
 		_brain.call_deferred()
 
 
@@ -175,6 +197,10 @@ func _move_speed() -> float:
 	return RUN_SPEED if anim_state == Anim.RUN_GUN else WALK_SPEED
 
 
+func _ready_chat() -> void:
+	_next_chat = _now() + randf_range(10.0, 30.0)
+
+
 # --- Crimes (host) ---------------------------------------------------------------------
 
 ## Host (group "police"): `culprit` fired a gun at `origin` (murder = somebody died).
@@ -183,12 +209,14 @@ func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
 		return
 	if global_position.distance_to(origin) > (MURDER_RANGE if murder else HEAR_RANGE):
 		return
+	Wanted.report(culprit, &"heard", origin)  # point 28: the police heard it: at least 1 star
 	if target != null and target != culprit and is_instance_valid(target) and not target.dead:
 		return  # busy with someone else
 	_alert(culprit, origin)
 
 
 func _alert(culprit: Player, at: Vector3) -> void:
+	_chatting = false  # (a chat is cut short)
 	if target != culprit:
 		_log("%s goes after %s" % [name, culprit.player_name])
 		_next_shot = _now() + profile.reaction_time
@@ -211,6 +239,8 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 	health = maxi(0, health - amount)
 	if attacker is Player:
 		_hostile[attacker] = true
+		if _group() == &"police":
+			Wanted.report(attacker as Player, &"assault", (attacker as Player).global_position)
 		_alert(attacker as Player, (attacker as Player).global_position)
 	if health > 0:
 		return false
@@ -262,9 +292,11 @@ func _think() -> void:
 	if not sees:
 		_seen_now = false
 	_update_target_speed()
-	if sees and not resisting(target):
+	if sees and not _should_shoot(target):
 		_try_arrest()
 		return
+	if sees and _group() == &"police" and target.wanted_stars < 2:
+		Wanted.report(target, &"resist", target.global_position)  # point 28: resisting = 2 stars
 	if sees:
 		_seen = true
 		last_known = target.global_position
@@ -292,14 +324,23 @@ func _think() -> void:
 		_log("%s lost %s" % [name, target.player_name])
 		_drop_target()
 		return
-	# Run to where the culprit was last seen / heard.
+	# Run to where the culprit was last seen / heard (point 29: straight over the road when
+	# nothing is in the way, instead of round via a zebra).
 	if global_position.distance_to(last_known) > 1.5:
-		if not _moving or agent.target_position.distance_to(last_known) > 2.0:
-			_go(last_known, Anim.RUN_GUN)
+		if not _moving or move_target().distance_to(last_known) > 2.0:
+			_chase_to(last_known, Anim.RUN_GUN)
 	elif not _moving:
 		anim_state = Anim.AIM
 		rotation.y += 0.8  # look around
 		net_yaw = rotation.y
+
+
+## Point 29: straight there if the way is clear (over the road), else over the navmesh.
+func _chase_to(at: Vector3, anim: int) -> void:
+	if straight_way_clear(at, 30.0):
+		_go_direct(at, anim)
+	else:
+		_go(at, anim)
 
 
 func _drop_target() -> void:
@@ -316,6 +357,19 @@ func _update_target_speed() -> void:
 	if _last_target_pos != Vector3.INF:
 		_target_speed = Vector2(p.x - _last_target_pos.x, p.z - _last_target_pos.z).length() / 0.2
 	_last_target_pos = p
+
+
+## Host (point 28): shoot at `p`, or try to arrest them? By the wanted level: 1 star =
+## arrest unless they resist, 2 = shoot when they hold a weapon, 3+ = shoot on sight.
+func _should_shoot(p: Player) -> bool:
+	if _hostile.has(p):
+		return true
+	var cfg: WantedConfig = Wanted.current.config if Wanted.current else Wanted.CONFIG
+	if p.wanted_stars >= cfg.shoot_on_sight_stars:
+		return true
+	if p.wanted_stars >= cfg.shoot_armed_stars and p.net_weapon != 0:
+		return true
+	return resisting(p)
 
 
 ## Host: does `p` resist arrest (then the police shoot)?
@@ -344,8 +398,8 @@ func _try_arrest() -> void:
 	var d: float = global_position.distance_to(p.global_position)
 	if d > ARREST_DISTANCE:
 		_cuff_time = 0.0
-		if not _moving or agent.target_position.distance_to(p.global_position) > 1.0:
-			_go(p.global_position, Anim.RUN_GUN if d > 6.0 else Anim.WALK)
+		if not _moving or move_target().distance_to(p.global_position) > 1.0:
+			_chase_to(p.global_position, Anim.RUN_GUN if d > 6.0 else Anim.WALK)
 		return
 	if _moving:
 		_finish_move(false)
@@ -371,11 +425,73 @@ func on_arrested(p: Player) -> void:
 		_drop_target()
 
 
-func _patrol() -> void:
-	if _moving or from_car != null:
+## Host (group "police", point 28): `p` is no longer wanted (lost the police, arrested, dead).
+func on_wanted_cleared(p: Player) -> void:
+	on_arrested(p)
+
+
+## Host: busy with a culprit or a chat (a patrol car waits for its crew).
+func is_busy() -> bool:
+	return target != null or _chatting
+
+
+## Host (point 30): walk up to `npc`, have a word (a few seconds, both gesture), carry on.
+func question(npc: Pedestrian) -> void:
+	if _chatting or target != null or dead or npc == null or not npc.free_for_talk():
 		return
-	if anim_state in [Anim.AIM, Anim.RUN_GUN]:
+	_chatting = true
+	_next_chat = _now() + randf_range(30.0, 60.0)
+	npc.hold_for_talk(self, 30.0)
+	var away := Vector3(global_position.x - npc.global_position.x, 0, global_position.z - npc.global_position.z)
+	var spot: Vector3 = npc.global_position + (away.normalized() if away.length() > 0.1 else Vector3.FORWARD) * 1.2
+	var ok: bool = await walk_to(spot)
+	# The navmesh stops short of other bodies: the last step straight up to them.
+	if _chatting and is_instance_valid(npc) and global_position.distance_to(npc.global_position) > 1.6 			and straight_way_clear(spot, 6.0):
+		ok = await _go_direct(spot, Anim.WALK)
+	if ok and _chatting and target == null and is_instance_valid(npc) and not npc.dead and npc.is_talking():
+		_log("%s talks to %s" % [name, npc.name])
+		chats += 1
+		face(npc.global_position)
+		anim_state = Anim.TALK
+		npc.anim_state = Anim.TALK
+		var until: float = _now() + randf_range(talk_time.x, talk_time.y)
+		while is_inside_tree() and _chatting and target == null and _now() < until:
+			await get_tree().create_timer(0.3).timeout
+			if is_instance_valid(npc) and not npc.dead:
+				npc.anim_state = Anim.TALK if int(_now() * 0.5) % 2 == 0 else Anim.IDLE  # take turns
+				anim_state = Anim.IDLE if npc.anim_state == Anim.TALK else Anim.TALK
+	if is_instance_valid(npc):
+		npc.release_talk()
+	_chatting = false
+	if target == null and not dead and is_inside_tree():
 		anim_state = Anim.IDLE
+
+
+## A passer-by close enough for a chat (or null).
+func _pick_chat() -> Pedestrian:
+	var best: Pedestrian = null
+	var best_d: float = CHAT_RANGE
+	for n: Node in get_tree().get_nodes_in_group(&"npc"):
+		var p := n as Pedestrian
+		if p == null or p is PoliceOfficer or not p.free_for_talk():
+			continue
+		var d: float = p.global_position.distance_to(global_position)
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
+
+
+func _patrol() -> void:
+	if _moving or from_car != null or _chatting:
+		return
+	if anim_state in [Anim.AIM, Anim.RUN_GUN, Anim.TALK]:
+		anim_state = Anim.IDLE
+	if _group() == &"police" and _now() > _next_chat and randf() < 0.05:
+		var npc: Pedestrian = _pick_chat()
+		if npc:
+			question(npc)
+			return
 	if randf() < 0.08:
 		var p: Vector3 = Vector3.INF
 		for i: int in 4:
@@ -403,7 +519,7 @@ func _shoot_at(p: Player) -> void:
 		normal = hit["normal"]
 		surface = WeaponFX.surface_of(hit["collider"])
 		var victim: Node = hit["collider"]
-		if victim.has_method("host_damage") and not victim is PoliceOfficer:
+		if victim.has_method("host_damage") and not victim is PoliceOfficer and not (victim is Car and (victim as Car).police):
 			var killed: bool = victim.call("host_damage", profile.damage, self, origin)
 			_log("%s hit %s%s" % [name, victim.get("player_name") if victim is Player else victim.name,
 					" - killed" if killed else ""])

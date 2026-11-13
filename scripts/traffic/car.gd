@@ -100,6 +100,21 @@ var _bar_lights: Array[OmniLight3D] = []
 var crew_size: int = 2
 var crew_out: Array[PoliceOfficer] = []
 var _bar_meshes: Array[MeshInstance3D] = []
+## Point 28 (wanted system, host): sent after a wanted player (removed when done), the
+## player it is after, a heavy team (SMGs), parked across the road as a road block.
+var dispatched: bool = false
+var chase: Player = null
+var heavy: bool = false
+var roadblock: bool = false
+var _chase_t: float = 0.0
+var _chase_best: float = INF       # closest it got to the last known spot
+var _chase_at: Vector3 = Vector3.INF
+var _responded_at: Vector3 = Vector3.INF
+## Point 30 (host, patrol cars): seconds until it looks for someone to question; officers
+## that stayed in the car meanwhile.
+var question_in: float = -1.0
+var _in_car: int = 0
+const QUESTION_EVERY: Vector2 = Vector2(50.0, 110.0)
 var _flash_t: float = 0.0
 
 
@@ -251,6 +266,10 @@ func _physics_process(delta: float) -> void:
 		speed = move_toward(speed, 0.0, BRAKE * delta)
 		progress = fposmod(progress + speed * delta, route.length)
 		_place_on(route)
+		if roadblock:
+			# Point 28: across the road, over the middle line.
+			global_position -= global_basis.x * 1.75
+			rotation.y += PI / 2.0
 		_spin_wheels(speed, delta)
 		net_pos = global_position
 		net_yaw = rotation.y
@@ -259,11 +278,26 @@ func _physics_process(delta: float) -> void:
 	if not _uturn.is_empty():
 		_drive_uturn(delta)
 		return
+	if police and chase != null:
+		_chase_t -= delta
+		if _chase_t <= 0.0:
+			_chase_t = 0.4
+			_check_chase()
+	elif police and not dispatched and not roadblock and not siren and crew_size > 0:
+		if question_in < 0.0:
+			question_in = randf_range(QUESTION_EVERY.x, QUESTION_EVERY.y)
+		question_in -= delta
+		if question_in <= 0.0:
+			question_in = 4.0  # nobody there: look again in a moment
+			_try_question()
 	panic = maxf(0.0, panic - delta)
 	_swerve = maxf(0.0, _swerve - delta)
 	# Slow down for corners ahead, stop for anything in the way (faster when panicking).
+	var hurry: bool = panic > 0.0 or (police and siren)
 	var target: float = CRUISE * (PANIC_SPEED if panic > 0.0 else 1.0)
-	target = minf(target, _bend_speed(route) * (1.25 if panic > 0.0 else 1.0))
+	if police and siren and Wanted.current:
+		target = CRUISE * Wanted.current.config.siren_speed
+	target = minf(target, _bend_speed(route) * (1.25 if hurry else 1.0))
 	# Something in the lane: slow down by its distance, stop when it's close.
 	var seen: Array = _sense(route)
 	var blocker: String = seen[0] if seen[1] == 0 else ""
@@ -486,6 +520,7 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 	if health == 0:
 		wrecked = true
 	if police and attacker is Player:
+		Wanted.report(attacker as Player, &"assault", (attacker as Player).global_position)
 		if not abandoned:
 			report_crime(attacker as Player, from if from != Vector3.INF else global_position, false)
 		elif is_instance_valid(_driver) and _driver is PoliceOfficer:
@@ -508,9 +543,33 @@ func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
 		return
 	if global_position.distance_to(origin) > (PoliceOfficer.MURDER_RANGE if murder else PoliceOfficer.HEAR_RANGE):
 		return
+	Wanted.report(culprit, &"heard", origin)  # point 28: the police heard it: at least 1 star
+	respond(culprit, origin)
+
+
+## Host (point 28): the car can see `p` (from the roof, nothing solid in between).
+func can_see(p: Player) -> bool:
+	var eye: Vector3 = global_position + Vector3.UP * 1.6
+	var chest: Vector3 = p.global_position + Vector3.UP * 1.2
+	var q := PhysicsRayQueryParameters3D.create(eye, chest, 1 | 2, [get_rid()])
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
+## Host: go after `culprit` (seen / heard at `origin`): stop, crew out. A crew already out
+## (or at a road block) takes the culprit on if it isn't busy.
+func respond(culprit: Player, origin: Vector3) -> void:
+	if not _is_host() or not police or wrecked or culprit == null or culprit.dead or crew_size <= 0:
+		return
+	if abandoned:
+		for c: PoliceOfficer in _crew_alive():
+			if c.target == null:
+				c._alert(culprit, origin)
+		return
 	var world: Node = get_tree().current_scene
 	if world == null or not world.has_method("add_officer"):
 		return
+	chase = culprit
+	_responded_at = origin
 	abandoned = true
 	panic = 0.0
 	_swerve = 0.0
@@ -519,7 +578,7 @@ func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
 	for i: int in crew_size:
 		var side: Vector3 = global_position + global_basis.x * (1.4 if i == 0 else -1.4)
 		side.y = global_position.y + 0.1
-		var cop: PoliceOfficer = world.call("add_officer", side, global_position, self)
+		var cop: PoliceOfficer = world.call("add_officer", side, global_position, self, heavy)
 		cop._alert(culprit, origin)
 		crew_out.append(cop)
 	_driver = crew_out[0]
@@ -538,9 +597,49 @@ func _crew_alive() -> Array[PoliceOfficer]:
 
 func _crew_busy() -> bool:
 	for c: PoliceOfficer in _crew_alive():
-		if c.target != null:
+		if c.is_busy():
 			return true
 	return false
+
+
+## Host (point 30): a pedestrian on the pavement just ahead on the right: stop (light bar
+## on), one officer gets out, has a word with them, gets back in, and the car drives on.
+func _try_question() -> void:
+	var world: Node = get_tree().current_scene
+	if world == null or not world.has_method("add_officer"):
+		return
+	var fwd: Vector3 = -global_basis.z
+	var right: Vector3 = global_basis.x
+	var pick: Pedestrian = null
+	for n: Node in get_tree().get_nodes_in_group(&"npc"):
+		var p := n as Pedestrian
+		if p == null or p is PoliceOfficer or not p.free_for_talk():
+			continue
+		var d: Vector3 = p.global_position - global_position
+		var ahead: float = d.dot(fwd)
+		var side: float = d.dot(right)
+		if ahead > 4.0 and ahead < 22.0 and side > 1.5 and side < 7.0:
+			pick = p
+			break
+	if pick == null:
+		return
+	question_in = randf_range(QUESTION_EVERY.x, QUESTION_EVERY.y)
+	abandoned = true
+	panic = 0.0
+	siren = true
+	_in_car = crew_size - 1
+	var door: Vector3 = global_position + right * 1.4
+	door.y = global_position.y + 0.1
+	var cop: PoliceOfficer = world.call("add_officer", door, global_position, self, heavy)
+	crew_out.clear()
+	crew_out.append(cop)
+	_driver = cop
+	print("[Police] patrol car %s stops to question %s" % [name, pick.name])
+	await get_tree().create_timer(0.6).timeout  # (the officer's brain starts)
+	if is_instance_valid(cop) and is_instance_valid(pick):
+		cop.question(pick)
+	await get_tree().create_timer(0.5).timeout
+	_police_come_back()
 
 
 func _police_come_back() -> void:
@@ -550,7 +649,7 @@ func _police_come_back() -> void:
 	if not is_inside_tree():
 		return
 	var alive: Array[PoliceOfficer] = _crew_alive()
-	crew_size = alive.size()
+	crew_size = alive.size() + _in_car
 	if alive.is_empty():
 		# The whole crew is down: the car is towed and a new patrol turns up.
 		await get_tree().create_timer(WRECK_TIME).timeout
@@ -581,8 +680,96 @@ func _police_come_back() -> void:
 		c.queue_free()
 	crew_out.clear()
 	_driver = null
-	siren = false
+	_in_car = 0
 	abandoned = false
+	# Point 28: still wanted -> drive on with the siren and look again; otherwise a sent
+	# car drives off and disappears.
+	var still: bool = chase != null and is_instance_valid(chase) and not chase.dead and chase.wanted_stars > 0
+	siren = still
+	_chase_best = INF
+	if not still:
+		chase = null
+		if dispatched:
+			_leave()
+
+
+## Host (point 28): a sent car is near the last known spot (or passing it, or sees the
+## player): stop and get out. No longer wanted: drive off.
+func _check_chase() -> void:
+	if not is_instance_valid(chase) or chase.dead or chase.wanted_stars == 0:
+		chase = null
+		siren = false
+		if dispatched:
+			_leave()
+		return
+	var at: Vector3 = Wanted.last_known(chase)
+	if _chase_at == Vector3.INF or at.distance_to(_chase_at) > 10.0:
+		_chase_at = at
+		_chase_best = INF
+	var d: float = global_position.distance_to(at)
+	var sees: bool = global_position.distance_to(chase.global_position) < 30.0 and can_see(chase)
+	var fresh: bool = _responded_at == Vector3.INF or at.distance_to(_responded_at) > 10.0
+	var arrive: float = Wanted.current.config.arrive_distance if Wanted.current else 25.0
+	var passing: bool = _chase_best < 60.0 and d > _chase_best + 3.0
+	_chase_best = minf(_chase_best, d)
+	if sees or (fresh and (d < arrive or passing)):
+		respond(chase, chase.global_position if sees else at)
+
+
+## Host: a sent car leaves; it is removed once no player is close.
+func _leave() -> void:
+	if not dispatched or is_queued_for_deletion():
+		return
+	dispatched = false  # (once)
+	while is_inside_tree():
+		await get_tree().create_timer(2.0).timeout
+		if not is_inside_tree() or abandoned:
+			return
+		var near: bool = false
+		for pl: Node in get_tree().get_nodes_in_group(&"players"):
+			if (pl as Node3D).global_position.distance_to(global_position) < 55.0:
+				near = true
+		if not near:
+			print("[Police] sent car %s goes off duty" % name)
+			for j: int in Traffic.JUNCTIONS.size():
+				(get_parent() as Traffic).release_junction(j, self)
+			queue_free()
+			return
+
+
+## Host (point 28): park across the road with the light bar on; the crew stands guard
+## next to it and takes on the wanted player when they see them (Wanted ticks).
+func start_roadblock() -> void:
+	roadblock = true
+	abandoned = true
+	speed = 0.0
+	siren = true
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var world: Node = get_tree().current_scene
+	if not is_inside_tree() or world == null or not world.has_method("add_officer"):
+		return
+	crew_out.clear()
+	for i: int in crew_size:
+		# Along the road (the car's local X now), on both sides of the car.
+		var side: float = 3.4 if i % 2 == 0 else -3.4
+		var at: Vector3 = global_position + global_basis.x * side + global_basis.z * (1.2 * float(i / 2))
+		at.y = global_position.y + 0.1
+		crew_out.append(world.call("add_officer", at, global_position, self, heavy))
+
+
+## Host: the road block is lifted: crew and car disappear.
+func end_roadblock() -> void:
+	if is_queued_for_deletion():
+		return
+	print("[Police] road block %s lifted" % name)
+	for c: PoliceOfficer in crew_out:
+		if is_instance_valid(c):
+			c.queue_free()
+	crew_out.clear()
+	for j: int in Traffic.JUNCTIONS.size():
+		(get_parent() as Traffic).release_junction(j, self)
+	queue_free()
 
 
 ## Host: stop; the driver gets out on the kerb side and runs from `origin`, comes back later.

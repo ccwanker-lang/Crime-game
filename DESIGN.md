@@ -150,10 +150,20 @@ textures anywhere. Still a believable Belgian/European town at human scale (1 un
 
 ## Police and the wanted level
 - Police station; patrol cars with a crew of 2 who get out for a call and never leave their car behind
-  (point 25); foot patrols and police life on the street come back with point 30.
+  (point 25). Point 30: two officers patrol on foot from the station (80 m around it) and now and then stop a
+  passer-by for a chat; a patrol car stops every 1-2 minutes next to someone on the pavement ahead (light bar on),
+  one officer gets out, has a word and gets back in.
 - Wanted level (point 28, replaces "heat"): 1-5 stars per player, GTA style (see Roadmap 28). Low stars = an
   arrest (illegal items + fine, released at the station), higher stars = chases and shooting, 4-5 = the whole
   force with road blocks. Stars drop out of sight / inside your own property / with a bribe (rank 5).
+  Built (point 28): `Wanted` (host, under World) + `data/police/wanted.tres`. Stars: a gun heard by the police or a
+  weapon an officer / patrol car sees within 22 m = 1; kills add heat (1 kill = 1 star, 6 = 2, 12 = 3, 20 = 4,
+  30 = 5); an officer killed = 3 heat and at least 2 stars; shooting at the police or resisting arrest = 2.
+  Treatment: 1 star = arrest (shot only when resisting), 2 = shot when holding a weapon, 3+ = shot on sight.
+  Response: police cars are sent along the roads (1 per star, crews 1/2/2/3/3, siren, 45% faster), from 4 stars
+  heavy teams (dark uniform, SMG, 170 health, sharper aim) and a road block (a patrol car across the road 35-60 m
+  ahead of you, its crew on guard). Out of sight 20/30/45/60/80 s per star (3x faster inside your own property);
+  the HUD stars blink while they search. Arrest or death clears the stars.
 - Later: the corrupt cop from the story.
 
 ## Vehicles (milestone 2)
@@ -267,14 +277,15 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     1 star: weapon drawn in sight of police or 1-2 kills -> one officer comes to cuff you, doesn't shoot.
     2: killed an officer or ~6+ kills -> chase, shoot if you are armed. 3: ~12+ kills -> several cars, shoot at
     once. 4-5: the whole force, road blocks, heavy teams. Stars drop when you stay out of sight, hide in your own
-    property, or (later) bribe. Police react BEFORE you holster. Thresholds/times in a resource - todo
-29. Pedestrians and police may walk on the road (not only pavement/zebras); cars brake for them - todo
+    property, or (later) bribe. Police react BEFORE you holster. Thresholds/times in a resource - done
+    (bribes come with the corrupt cop later)
+29. Pedestrians and police may walk on the road (not only pavement/zebras); cars brake for them - done
 30. Police life: a patrol car sometimes stops (light bar) to question an NPC; officers also patrol on foot and talk
-    to passers-by - todo
+    to passers-by - done
 31. Black Crows rework: spread over their whole fenced yard (no single spawn point); they only attack on their
     turf or if a member saw you there (memory); new spawns that never saw you leave you alone outside. At night one
     small group patrols the streets (the night threat), the rest stays in the yard. The dead are replaced only
-    after 1-2 minutes. Weapon variety (some carry an AK) - todo
+    after 1-2 minutes. Weapon variety (some carry an AK) - in progress (draft docs/wip/rival_point31_draft.gd.txt, see HANDOFF.md)
 32. Traffic + panic: cars that are shot at or hear shots flee in full panic and never stop (also not at a
     junction: right of way is dropped). Pedestrians flee until they are really away from you and out of sight - todo
 33. Street lamps on both sides of every street (the barber's street has none); the kerb sometimes blocks you
@@ -294,6 +305,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     -> €4500 clean tomorrow") and another one when the clean money comes in; a screen in the business with what
     is pending - todo
 41. Mouse wheel scrolls through the hotbar (in build mode it rotates) - todo
+42. Polish (later): animations for planting, watering, harvesting and packaging - todo
 Then the rest of milestone 2: 12 park, 13 agora, 14 car dealer + driving.
 Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; lawyer, bribes
 (heat = the wanted system of point 28); rival territories, lab raids, story missions (acts 1-5); the full city
@@ -414,6 +426,33 @@ Choices made while working autonomously (what + why).
   clean money now sit on two lines with their own icon (part of point 40's clearer money), clock under them. The
   long key bar is gone: "F1 help" bottom left opens a 4-column controls panel. `--scenario-shot` (+ `--help`)
   saves a screenshot of a scenario for visual checks.
+- Point 28 (wanted system): one host node `Wanted` keeps heat/timers per player and syncs only the result
+  (Player.wanted_stars / wanted_seen in HostSync), so clients need no police logic. Every number is in
+  `WantedConfig` (data/police/wanted.tres). The police sight check runs 4x a second, so drawing a gun in front of an
+  officer gives the star before you can holster. The existing officer brain stays: the star count only decides
+  shoot or arrest (`PoliceOfficer._should_shoot`), so point 25's arrest is simply the 1-star response. Sent cars are
+  normal patrol cars (`Car.dispatched`, `chase`) spawned 75 m upstream on the nearest traffic route, so they arrive
+  by road with the siren and need no new driving code; they get out at the last known spot (or when passing it,
+  or when they see you) and drive off and disappear when you are no longer wanted. Road blocks are a stopped
+  patrol car turned across the road (`Car.roadblock`), lifted when the stars drop below 4 or you are 130 m away.
+  Kills of Crows only count when the police see it (gang fights at night shouldn't make you the town's most
+  wanted). PvP kills count like civilian kills. The self-test switches the stars off for the other checks (they
+  test the plain AI) and on for its own "wanted" check; scenarios without police switch them off too.
+- Point 29 (walking on the road): the navmesh keeps carving the asphalt (paths still prefer pavements and zebras,
+  and wandering never ends up in the middle of the road), but people can leave it on purpose with a straight walk
+  (`Pedestrian._go_direct`). A wander step crosses the road with 20% chance when the pedestrian stands next to one:
+  it looks for the shortest straight way over the asphalt to the opposite pavement (max 16 m, nothing solid in the
+  way, the far end on the navmesh), waits at the kerb while a car is closer than 22 m (up to ~8 s), then walks
+  over. Police and Crows run straight at their target / last known spot when the way is clear (`_chase_to`),
+  across roads too, else over the navmesh. Cars already brake for anything in their lane (their sense boxes see
+  layer 3), so no car change was needed. Rebuilding the navmesh with costly road areas was rejected: Godot bakes
+  one cost per region, and joining a separate road region to the carved pavement edges is fragile.
+- Point 30 (police life): a chat is a host routine on the officer (`question(npc)`): the pedestrian is held
+  (`hold_for_talk`, faces the officer), the officer walks up (the last metre straight, the navmesh stops short of
+  bodies), then both take turns gesturing (new Anim.TALK = the "Interact" animation; models without it stand).
+  Any crime cuts the chat short (`_alert`). A patrol car only questions when it isn't chasing anyone; the other
+  crew member stays in the car (`Car._in_car`), so its crew size survives. Foot patrols are back (2, not in the
+  netcheck, which must stay deterministic); they use the same arrest/wanted rules as car crews.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

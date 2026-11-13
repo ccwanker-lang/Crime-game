@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="NpcCombatProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/npc/npc_combat_profile.gd" id="1_p"]
+
+[resource]
+script = ExtResource("1_p")
+accuracy = 0.62
+reaction_time = 0.9
+damage = 8
+fire_rate = 5.0
+burst_size = 4
+burst_pause = 1.5
+spread_per_metre = 0.0035
+moving_spread = 0.08
+sight_range = 38.0
