@@ -33,6 +33,9 @@ func _rebuild() -> void:
 	rng.seed = hedge_seed
 	var b := MeshBuilder.new()
 	var h: Vector3 = size * 0.5
+	if ArtStyle.stylized:
+		_build_stylized(b, rng)
+		return
 	var core_inset: float = 0.12
 	b.box(&"hedge_core", Vector3(0, h.y - core_inset / 2.0, 0), size - Vector3(core_inset, core_inset, core_inset) * 2.0, 0.1)
 	var uv := PackedVector2Array([Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)])
@@ -58,6 +61,31 @@ func _rebuild() -> void:
 			var nn: Vector3 = (n + a1 * rng.randf_range(-0.3, 0.3) + Vector3.UP * 0.2).normalized()
 			b.color = Color(0.25, 0, 0)
 			b.card(&"leaves", c - u - v, c + u - v, c + u + v, c - u + v, nn, uv)
+	b.color = Color.WHITE
+	var mi := MeshInstance3D.new()
+	mi.mesh = b.build()
+	add_child(mi)
+	_generated.append(mi)
+	var cs := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	cs.shape = shape
+	cs.position.y = h.y
+	add_child(cs)
+	_generated.append(cs)
+
+
+## Point 27 art direction: a rounded green box with a row of soft faceted bumps on top
+## (no leaf cards).
+func _build_stylized(b: MeshBuilder, rng: RandomNumberGenerator) -> void:
+	var h: Vector3 = size * 0.5
+	b.color = Palette.color(&"leaf_dark")
+	b.box(&"leaves", Vector3(0, h.y * 0.92, 0), Vector3(size.x - 0.1, size.y * 0.92, size.z - 0.1), 0.12)
+	var n: int = maxi(2, int(size.x / 0.7))
+	for i: int in n:
+		var x: float = -h.x + 0.35 + (size.x - 0.7) * float(i) / maxf(1.0, n - 1)
+		b.blob(&"leaves", Vector3(x, size.y * 0.86, 0), 1.0, Vector3(0.42, 0.22, h.z * 1.02), rng,
+				ArtStyle.colors(["leaf_dark", "leaf", "leaf_light"]), 0.12, 1, -0.2)
 	b.color = Color.WHITE
 	var mi := MeshInstance3D.new()
 	mi.mesh = b.build()

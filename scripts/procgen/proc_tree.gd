@@ -46,6 +46,9 @@ func _rebuild() -> void:
 	_generated.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = tree_seed
+	if ArtStyle.stylized:
+		_rebuild_stylized(rng)
+		return
 	var b := MeshBuilder.new()
 
 	var trunk_h: float = height * rng.randf_range(0.42, 0.52)
@@ -100,6 +103,47 @@ func _rebuild() -> void:
 	_generated.append(_mesh_instance)
 	_apply_tint()
 
+	var cs := CollisionShape3D.new()
+	var shape := CylinderShape3D.new()
+	shape.radius = trunk_radius * 1.2
+	shape.height = trunk_h
+	cs.shape = shape
+	cs.position.y = trunk_h / 2.0
+	add_child(cs)
+	_generated.append(cs)
+
+
+## Point 27 art direction: a plain tapered trunk with two stubby branches and a crown of
+## a few overlapping faceted blobs in three greens (no leaf cards).
+func _rebuild_stylized(rng: RandomNumberGenerator) -> void:
+	var b := MeshBuilder.new()
+	var trunk_h: float = height * rng.randf_range(0.38, 0.46)
+	var crown_r := Vector3(crown_radius, maxf((height - trunk_h) * 0.5, crown_radius * 0.75), crown_radius)
+	var crown_c := Vector3(0, height - crown_r.y, 0)
+	var top := Vector3(0, trunk_h + crown_r.y * 0.3, 0)
+	b.cylinder(&"bark", Vector3(0, -0.1, 0), top, trunk_radius * 1.35, trunk_radius * 0.75, 7, false, 1.0)
+	for i: int in 2:
+		var a: float = rng.randf() * TAU
+		var start: Vector3 = Vector3(0, trunk_h * rng.randf_range(0.75, 0.95), 0)
+		var end: Vector3 = start + Vector3(cos(a) * crown_r.x * 0.5, crown_r.y * 0.45, sin(a) * crown_r.z * 0.5)
+		b.cylinder(&"bark", start, end, trunk_radius * 0.5, trunk_radius * 0.3, 5, false, 1.0)
+	var greens: Array[Color] = ArtStyle.colors(["leaf_dark", "leaf", "leaf_light"])
+	# A slightly different green per tree.
+	var shift: float = rng.randf_range(-0.04, 0.04)
+	for i: int in greens.size():
+		greens[i] = Color.from_hsv(fposmod(greens[i].h + shift, 1.0), greens[i].s, greens[i].v)
+	b.blob(&"leaves", crown_c, 1.0, crown_r, rng, greens, 0.1)
+	var lobes: int = rng.randi_range(3, 4)
+	for i: int in lobes:
+		var a: float = TAU * float(i) / lobes + rng.randf_range(-0.4, 0.4)
+		var c: Vector3 = crown_c + Vector3(cos(a) * crown_r.x * 0.62, rng.randf_range(-0.35, 0.25) * crown_r.y,
+				sin(a) * crown_r.z * 0.62)
+		b.blob(&"leaves", c, 1.0, crown_r * rng.randf_range(0.5, 0.65), rng, greens, 0.1)
+	b.blob(&"leaves", crown_c + Vector3(0, crown_r.y * 0.55, 0), 1.0, crown_r * 0.55, rng, greens, 0.1)
+	_mesh_instance = MeshInstance3D.new()
+	_mesh_instance.mesh = b.build()
+	add_child(_mesh_instance)
+	_generated.append(_mesh_instance)
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = trunk_radius * 1.2

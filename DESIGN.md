@@ -79,27 +79,49 @@ Ending: the Crows work for the player (dealers/guards), Viktor runs the harbor. 
 opens with a new rival.
 
 ## Art direction
-**Style: low-poly but detailed and grounded — NOT Roblox-like, not toy-like, not cartoon-bright.**
-A believable Belgian/European town at human scale (1 unit = 1 m, people ~1.75 m).
-- Architecture: Belgian row houses (brick in red/yellow/white, plaster, bluestone plinths, sills,
-  string courses, dormers, bay windows), narrow plots, shops with awnings, cobbled squares,
-  raised sidewalks with curbs, zebra crossings, cast-iron street lamps, street-name signs.
-- Materials: PBR (albedo/normal/roughness) from CC0 sources, slightly desaturated, real-world scale.
-  Lighting: HDRI sky, sun with shadows, SSAO + SSIL (no SDFGI: it smears dark blocks on moving
-  characters), light fog for depth.
+**Style (user decision, point 27): STYLIZED LOW-POLY, the style of the characters and the cars.**
+The characters are low-poly with plain flat colours, so the whole world follows them: no photo
+textures anywhere. Still a believable Belgian/European town at human scale (1 unit = 1 m, people
+~1.75 m), just painted in flat, warm colours.
+- Colours: ONE shared palette for the whole game, max ~40 colours, a little saturated and warm,
+  in one palette texture (`assets/palette/palette.png`, made by `tools/generators/gen_palette.py`,
+  names in `Palette`). World materials pick a swatch; buildings vary it with their wall/roof tint.
+- Materials: flat colours, or a very simple procedural pattern on top of one base colour
+  (`stylized.gdshader`): bricks = one colour with faint joints and a few slightly different
+  stones, roof tiles = rows, paving = tiles with clear joints, asphalt = flat with very soft
+  patches. No photo or noise textures.
+- Buildings: simple shapes with clear silhouettes, slightly bevelled edges, thick window frames,
+  sills, lintels, cornices and fascias, few small details (no string courses, quoins, downpipes,
+  transoms). Variety comes from colour, height (2-3 floors) and roof type (gable/hip/flat).
+  Windows: flat glass with a simple sky reflection + a few flat curtains; at night most glow warm
+  (`stylized_window.gdshader`, global `night_lights`).
+- Nature: trees with a plain tapered trunk and a crown of faceted blobs in 2-3 greens
+  (`MeshBuilder.blob`), grass as a soft colour field with low, broad tufts, shrubs and hedges as
+  faceted blobs (`ProcShrub`, `Hedge`).
+- Roads: flat asphalt, crisp white lines, paving tiles with clear joints, light kerbs.
+- Light: one look for everything: clear painted sky, warm sun, soft shadows, light ambient
+  occlusion, slightly warmer colours, a light clear haze instead of grey fog. Every material uses
+  the same light model (lambert wrap, matte, little specular): world shaders and the
+  StandardMaterial3Ds of characters, cars, items and weapons alike.
+- World edge: the map never ends in an empty plane: tree rows, bushes and two rings of soft hills
+  around it (`ProcBackdrop`).
 - Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts or imported
-  models); lamps always come with their pole/mount in one prefab.
+  models); lamps always come with their pole/mount in one prefab. Imported models must fit the
+  flat style (Quaternius characters do; photo-real Poly Haven models get replaced).
 - People: Quaternius CC0 animated characters with realistic proportions (no chibi/big-head
   packs), matte materials, random clothing colours. One prefab base (`prefabs/npc/pedestrian.tscn`)
   for pedestrians, customers, dealers, police and rivals.
-- Asset sources, in this order: (1) CC0 — Quaternius, Poly Haven, ambientCG, Kenney (only packs that
-  fit the grounded style); (2) Sketchfab CC-BY, credits kept in `CREDITS.md`; (3) if nothing is good
-  enough, propose a paid pack (e.g. Synty POLYGON) with its price and let the user decide.
+- HUD: tight and in the same style (own font, icons, hotbar with clear frames); key help behind F1
+  instead of a long key bar.
+- Asset sources, in this order: (1) CC0 — Quaternius, Kenney, Poly Pizza (only what fits the flat
+  style); (2) Sketchfab CC-BY, credits kept in `CREDITS.md`; (3) if nothing is good enough, propose
+  a paid pack (e.g. Synty POLYGON) with its price and let the user decide.
   Every asset folder keeps a LICENSE.txt; every non-CC0 asset is listed in `CREDITS.md`.
 
 ### Weapons (from milestone step 4)
-- Realistic low-poly firearms: pistol, SMG, shotgun, rifle. PBR textures with metal, wear and
-  scratches. **No toy or sci-fi blasters** (so not the Kenney Blaster Kit).
+- Low-poly firearms with real shapes (pistol, SMG, shotgun, rifle) in the flat style: plain
+  colours for metal, polymer and wood (point 27; the photo-real pistol is replaced by a procedural
+  one like the AK and SMG). **No toy or sci-fi blasters** (so not the Kenney Blaster Kit).
 - Sources: CC0 first (Quaternius, Poly Haven); otherwise Sketchfab CC-BY with credits in
   `CREDITS.md`. If nothing is good enough: propose a paid pack (e.g. Synty POLYGON Military /
   Gang Warfare, roughly US$ 40–100 per pack, check the current price) before buying anything.
@@ -228,11 +250,15 @@ Feedback round 2 (MUST first, then balance, traffic, police, map):
 Test scenarios (F9 / --scenario=<id>, one per feature, real save never touched) - done
 Feedback round 3 (after playing every scenario). APPROVED, don't change how they work: all weapons incl. the
 sniper scope, growing/drying/packaging, the black market, storage. Order: 27 first, then 28-41, then 12-14.
-27. Art style: ONE consistent style. Comparison scene scenes/art_test/style_compare.tscn (--scenario=style_compare)
-    with 3 proposals side by side (A stylized low-poly flat/soft textures, B low-poly + PBR, C own proposal), each a
-    piece of street with 3 houses, a car, an NPC and pistol + AK viewmodels; screenshots to the user. The real map
-    is NOT changed until the user has chosen; then everything is pulled into that style - comparison: done,
-    conversion: waiting for the user's choice
+27. Art style: ONE consistent style - CHOSEN: stylized low-poly like the characters and cars (see Art direction).
+    a. Comparison of 3 proposals (A/B/C) - done (superseded by the user's decision)
+    b. Art test street in the new style in scenes/art_test/style_compare.tscn (--scenario=style_compare): houses,
+       trees, grass, shrubs, hedge, cars, NPCs, player characters, pistol + AK, horizon hills; palette, materials,
+       light, sky - done, waiting for the user's approval
+    c. Rollout over all prefabs (NOT the map by hand), only after approval: stylized materials over the photo
+       ones, ArtStyle.stylized on, building tints from the palette, Poly Haven shrubs/props replaced, new
+       pistol model, ProcBackdrop around the map - todo
+    d. HUD in the same style (own font, icons, framed hotbar), key bar replaced by F1 help - todo (with c)
 28. Wanted system (GTA style, replaces the current police behaviour and "heat"): 1-5 stars in the HUD.
     1 star: weapon drawn in sight of police or 1-2 kills -> one officer comes to cuff you, doesn't shoot.
     2: killed an officer or ~6+ kills -> chase, shoot if you are armed. 3: ~12+ kills -> several cars, shoot at
@@ -356,15 +382,18 @@ Choices made while working autonomously (what + why).
   their mechanics, feel and UI stay as they are. The art style conversion (point 27) may still change how their
   models look, so everything matches the chosen style. Point 25's arrest stays: it becomes the 1-star response of
   the wanted system (28). Point 41 + 36 together: the mouse wheel scrolls the hotbar, and rotates only in build mode.
-- Point 27 (style comparison): the three proposals re-dress the SAME prefabs by swapping materials at run time
-  (`Stylizer`, scripts/art/stylizer.gd + shaders stylized_flat/toon/outline), so the user compares style, not
-  different models, and the chosen style can later be applied to the whole map the same way (or baked into the
-  generators). A = one flat colour per surface (texture average, +35% saturation), soft wrapped light, no specular,
-  simpler houses (no bays/dormers/chimneys). B = the current PBR materials with the richer houses (bays, dormers,
-  chimneys). C (own proposal) = A's simple houses + faint texture detail, two-band toon light and a screen-space
-  outline (2 px world, 3 px viewmodel) on people, cars and weapons only: outlines on whole buildings got noisy at
-  distance. Texture atlases (pistol, characters) keep their texture but posterized, else they turn monochrome.
-
+- Point 27 (art style, user decision): stylized low-poly for everything, so the A/B/C comparison and its
+  run-time Stylizer (flat/toon/outline shaders) are removed. How: the stylized materials are generated with the SAME
+  file names into prefabs/materials/stylized/ (gen_materials.py), so the art test swaps them by name
+  (`ArtStyle.restyle`) and the rollout simply writes them over the photo materials - no prefab has to change its
+  material references. Geometry that has to look different (blob tree crowns, tufts, hedges, chunky window frames)
+  sits behind `ArtStyle.stylized` in the generators. Objects keep StandardMaterial3D (cars duplicate car_paint per
+  car, the viewmodel copies StandardMaterial inputs) but with diffuse_mode lambert wrap, the same light model as
+  the world shader. Palette = 40 swatches in an 8x5 PNG read with texelFetch (lossless import, no mipmaps), names
+  in the generated `Palette` class. Bricks are drawn larger than real (0.42 x 0.14 m) so they read as a pattern,
+  not as noise, and pattern lines fade out when cells get tiny on screen (no shimmering). The sky keeps the
+  panorama only as a cloud mask (blurred, crisp edge) over a painted gradient, so nothing moves and no new asset is
+  needed. Buildings in the art test aim their tint at a palette swatch (`_tint`: target / material colour).
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

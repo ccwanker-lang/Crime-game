@@ -20,6 +20,13 @@ uniform float twilight = 0.0;
 uniform vec4 twilight_color : source_color = vec4(1.0, 0.45, 0.2, 1.0);
 uniform vec4 night_zenith : source_color = vec4(0.004, 0.008, 0.025, 1.0);
 uniform vec4 night_horizon : source_color = vec4(0.025, 0.04, 0.075, 1.0);
+// Point 27 art direction: a painted sky instead of the photo panorama (gradient + soft
+// flat clouds, made from the panorama's cloud shapes so nothing moves).
+uniform bool stylized = false;
+uniform vec4 day_zenith : source_color = vec4(0.36, 0.6, 0.9, 1.0);
+uniform vec4 day_horizon : source_color = vec4(0.78, 0.88, 0.96, 1.0);
+uniform vec4 cloud_color : source_color = vec4(1.0, 0.99, 0.96, 1.0);
+uniform vec4 cloud_shade : source_color = vec4(0.82, 0.86, 0.93, 1.0);
 
 float hash3(vec3 p) {
 	p = fract(p * 0.3183099 + 0.1);
@@ -35,6 +42,25 @@ void sky() {
 
 	// --- Day (with sunrise / sunset tint) ---
 	vec3 day_col = hd * mix(vec3(1.0), vec3(1.0, 0.62, 0.5), twilight * 0.75);
+	if (stylized) {
+		vec3 sky_c = mix(day_horizon.rgb, day_zenith.rgb, pow(clamp(d.y, 0.0, 1.0), 0.55));
+		// The panorama's clouds, blurred (9 taps) into soft blobs with a crisp edge.
+		float l = 0.0;
+		float hz = 0.0;
+		for (int i = -1; i <= 1; i++) {
+			for (int j = -1; j <= 1; j++) {
+				vec2 o = vec2(float(i) * 0.006, float(j) * 0.009);
+				l += dot(texture(hdri, SKY_COORDS + o).rgb, vec3(0.333));
+				hz += dot(texture(hdri, SKY_COORDS + o + vec2(0.0, 0.012)).rgb, vec3(0.333));
+			}
+		}
+		l /= 9.0;
+		hz /= 9.0;
+		float cl = smoothstep(0.47, 0.53, l) * smoothstep(-0.02, 0.1, d.y);
+		vec3 cc = mix(cloud_shade.rgb, cloud_color.rgb, smoothstep(-0.02, 0.06, hz - l + 0.03));
+		day_col = mix(sky_c, cc, cl) * mix(vec3(1.0), vec3(1.0, 0.7, 0.55), twilight * 0.75);
+		hd = vec3(l);
+	}
 	day_col += twilight_color.rgb * twilight * (pow(to_sun, 6.0) * 1.6 + horizon * 0.35);
 	// Sun disc + halo (only above the horizon).
 	float above = smoothstep(-0.03, 0.02, sun_dir.y);

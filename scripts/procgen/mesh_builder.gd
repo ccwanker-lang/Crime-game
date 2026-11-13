@@ -291,6 +291,51 @@ func sphere(key: StringName, center: Vector3, radius: float, rings: int = 6, seg
 				st.add_vertex(xform * (center + d[j] * radius * scale))
 
 
+## Point 27 (stylized low-poly): a faceted, slightly lumpy blob (subdivided icosahedron)
+## for tree crowns, shrubs, hedges and hills. Each face gets one of `colors` (dark ->
+## light), lighter towards the top, with a little randomness: flat-shaded facets.
+func blob(key: StringName, center: Vector3, radius: float, scale: Vector3, rng: RandomNumberGenerator,
+		colors: Array[Color], jitter: float = 0.12, subdiv: int = 1, flat_bottom: float = -2.0) -> void:
+	var t: float = (1.0 + sqrt(5.0)) / 2.0
+	var verts: Array[Vector3] = []
+	for v: Vector3 in [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
+			Vector3(0, -1, t), Vector3(0, 1, t), Vector3(0, -1, -t), Vector3(0, 1, -t),
+			Vector3(t, 0, -1), Vector3(t, 0, 1), Vector3(-t, 0, -1), Vector3(-t, 0, 1)]:
+		verts.append(v.normalized())
+	var faces: Array = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4],
+			[11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+			[4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]]
+	for level: int in subdiv:
+		var mid: Dictionary = {}
+		var next: Array = []
+		for f: Array in faces:
+			var m: Array[int] = []
+			for e: Array in [[f[0], f[1]], [f[1], f[2]], [f[2], f[0]]]:
+				var k: Vector2i = Vector2i(mini(e[0], e[1]), maxi(e[0], e[1]))
+				if not mid.has(k):
+					verts.append((verts[e[0]] + verts[e[1]]).normalized())
+					mid[k] = verts.size() - 1
+				m.append(mid[k])
+			next += [[f[0], m[0], m[2]], [f[1], m[1], m[0]], [f[2], m[2], m[1]], [m[0], m[1], m[2]]]
+		faces = next
+	var pts: Array[Vector3] = []
+	for v: Vector3 in verts:
+		var d: Vector3 = v * (1.0 + rng.randf_range(-jitter, jitter))
+		d.y = maxf(d.y, flat_bottom)
+		pts.append(center + d * radius * scale)
+	var keep: Color = color
+	for f: Array in faces:
+		var a: Vector3 = pts[f[0]]
+		var b: Vector3 = pts[f[1]]
+		var c: Vector3 = pts[f[2]]
+		var mid_p: Vector3 = (a + b + c) / 3.0
+		var n: Vector3 = (mid_p - center).normalized()
+		var shade: float = clampf(n.y * 0.5 + 0.5 + rng.randf_range(-0.22, 0.22), 0.0, 0.999)
+		color = colors[int(shade * colors.size())]
+		poly(key, PackedVector3Array([a, b, c]), mid_p - center)
+	color = keep
+
+
 # --- Extruded 2D shapes (roads, pavements) -------------------------------------
 
 ## Extrudes a 2D outline (in XZ) into a slab with a top face at y_top.

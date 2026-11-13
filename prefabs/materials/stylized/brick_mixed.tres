@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/stylized.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/palette/palette.png" id="2_tx"]
+
+[resource]
+shader = ExtResource("1_sh")
+shader_parameter/palette = ExtResource("2_tx")
+shader_parameter/swatch = 0
+shader_parameter/pattern = 1
+shader_parameter/cell = Vector2(0.42, 0.14)
+shader_parameter/line_width = 0.018
+shader_parameter/line_amount = 0.35
+shader_parameter/odd_share = 0.1
+shader_parameter/odd_amount = 0.07
+shader_parameter/swatch2 = 3
+shader_parameter/tint_channel = 1
+shader_parameter/ground_shade = 0.1

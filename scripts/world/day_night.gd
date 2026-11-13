@@ -54,6 +54,9 @@ const MOON_COLOR := Color(0.55, 0.66, 0.95)
 const DAY_FOG := Color(0.72, 0.77, 0.83)
 const DUSK_FOG := Color(0.75, 0.55, 0.45)
 const NIGHT_FOG := Color(0.04, 0.055, 0.09)
+## Point 27 art direction: a warmer sun and a light, clear haze (no grey fog).
+const STYLIZED_SUN := Color(1.0, 0.92, 0.8)
+const STYLIZED_FOG := Color(0.8, 0.87, 0.94)
 
 
 func _ready() -> void:
@@ -61,6 +64,8 @@ func _ready() -> void:
 	add_to_group("net_state")
 	_env = world_env.environment
 	_sky_mat = _env.sky.sky_material as ShaderMaterial
+	if _sky_mat:
+		_sky_mat.set_shader_parameter("stylized", ArtStyle.stylized)
 	hours = start_hour
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--time="):
@@ -179,7 +184,7 @@ func _apply(update_sky: bool) -> void:
 	var light_dir: Vector3
 	if e > -0.04:
 		light_dir = sun_dir
-		sun.light_color = LOW_SUN_COLOR.lerp(DAY_SUN_COLOR, smoothstep(0.0, 0.35, e))
+		sun.light_color = LOW_SUN_COLOR.lerp(STYLIZED_SUN if ArtStyle.stylized else DAY_SUN_COLOR, smoothstep(0.0, 0.35, e))
 		sun.light_energy = 1.25 * smoothstep(-0.04, 0.12, e)
 	else:
 		light_dir = moon_dir
@@ -193,9 +198,10 @@ func _apply(update_sky: bool) -> void:
 		sun.global_basis = Basis.looking_at(-shine, up)
 
 	# Environment.
-	_env.ambient_light_energy = lerpf(0.4, 0.9, day)
-	_env.tonemap_exposure = lerpf(1.45, 0.95, day)
-	var fog: Color = NIGHT_FOG.lerp(DUSK_FOG, twilight * 0.8).lerp(DAY_FOG, day * (1.0 - twilight * 0.6))
+	var sty: bool = ArtStyle.stylized
+	_env.ambient_light_energy = lerpf(0.45 if sty else 0.4, 1.05 if sty else 0.9, day)
+	_env.tonemap_exposure = lerpf(1.45, 1.0 if sty else 0.95, day)
+	var fog: Color = NIGHT_FOG.lerp(DUSK_FOG, twilight * 0.8).lerp(STYLIZED_FOG if sty else DAY_FOG, day * (1.0 - twilight * 0.6))
 	_env.fog_light_color = fog
 	_env.fog_light_energy = lerpf(0.5, 1.0, day)
 	_env.fog_sun_scatter = 0.05 + 0.25 * twilight

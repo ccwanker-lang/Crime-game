@@ -61,9 +61,13 @@ Godot console exe:
   `screenshots/vm_view.png` (player view) + `vm_side.png` (side view) of the first-person arms + weapon.
   `--script res://scripts/debug/model_preview.gd -- --scene=res://... --size=0.3` renders any scene (no autoloads).
 
-- Art style (point 27): `Stylizer.apply(root, "A"|"B"|"C", outline_px)` swaps materials at run time (shaders
-  `prefabs/materials/shaders/stylized_*`, `outline`); comparison `scenes/art_test/style_compare.tscn`, `--style-shots` saves
-  `screenshots/style_*.png`.
+- Art style (point 27, DESIGN "Art direction"): stylized low-poly. Palette `assets/palette/palette.png` + `Palette`
+  (`gen_palette.py`); stylized materials (same names) in `prefabs/materials/stylized/` (`gen_materials.py`, shaders
+  `stylized.gdshader` / `stylized_window.gdshader`); `ArtStyle.stylized` switches generator geometry (ProcTree,
+  GrassField, Hedge, Building trim), `ArtStyle.restyle(root)` swaps materials by name. New: `ProcShrub`,
+  `ProcBackdrop` (hills/tree rows around an area), `MeshBuilder.blob`, ProcGun `PISTOL` (`prefabs/weapons/
+  pistol_stylized.tscn`). Art test: `scenes/art_test/style_compare.tscn`, `--style-shots [--shots=street,...]` saves
+  `screenshots/style_<spot>.png`. Until the rollout the real map still uses the photo materials.
 - Scenarios: `Scenarios` (static, `pending`, `run(world, id)`, `restart_into(tree, id)`) + `ScenarioMenu` (F9, in World).
   A scenario restarts the host into a FRESH game on `user://scenario_test.json` (`SaveManager.use_scenario_save`,
   `scenario_mode`); the real save is written once before and never touched; the main menu switches back

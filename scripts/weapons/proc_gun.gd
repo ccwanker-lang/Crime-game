@@ -7,7 +7,7 @@ extends Node3D
 ##   Body, Bolt (charging handle / pump: moves towards the shooter), Magazine.
 ## Materials: gun_metal, gun_wood, gun_polymer (prefabs/materials, PBR with wear).
 
-enum Kind { RIFLE_AK, SMG, SHOTGUN }
+enum Kind { RIFLE_AK, SMG, SHOTGUN, PISTOL }
 
 @export var kind: Kind = Kind.RIFLE_AK:
 	set(v):
@@ -43,6 +43,8 @@ func _rebuild() -> void:
 			_build_smg(body, bolt, mag)
 		Kind.SHOTGUN:
 			_build_shotgun(body, bolt, mag)
+		Kind.PISTOL:
+			_build_pistol(body, bolt, mag)
 	_add_part("Body", body)
 	_add_part("Bolt", bolt)
 	_add_part("Magazine", mag)
@@ -201,3 +203,29 @@ static func _build_shotgun(b: MeshBuilder, bolt: MeshBuilder, _mag: MeshBuilder)
 	_prism(bolt, &"gun_wood", PackedVector2Array([
 		Vector2(-0.48, 0.036), Vector2(-0.3, 0.036), Vector2(-0.3, 0.0), Vector2(-0.31, -0.008),
 		Vector2(-0.47, -0.008), Vector2(-0.48, 0.0)]), 0.024)
+
+
+# --- Service pistol (~0.2 m, point 27 art direction: replaces the photo-real model) ---
+
+static func _build_pistol(b: MeshBuilder, slide: MeshBuilder, mag: MeshBuilder) -> void:
+	# Polymer frame with a dust-cover rail and a chunky slanted grip.
+	_box(b, &"gun_polymer", Vector3(-0.012, 0.0, -0.165), Vector3(0.012, 0.032, 0.03), 0.004)
+	_grip(b, &"gun_polymer", -0.022, 0.034, 0.112, 0.016, 0.24)
+	_box(b, &"gun_polymer", Vector3(-0.0165, -0.03, -0.012), Vector3(0.0165, -0.006, 0.03), 0.004)  # grip panel bulge
+	_box(b, &"gun_polymer", Vector3(-0.013, 0.0, 0.028), Vector3(0.013, 0.03, 0.045), 0.006)  # beavertail
+	_trigger_guard(b, -0.07, -0.02, -0.03)
+	# Slide (Bolt part: moves back when firing): metal block, a few grooves, sights.
+	_box(slide, &"gun_metal", Vector3(-0.0135, 0.032, -0.176), Vector3(0.0135, 0.074, 0.038), 0.004)
+	for i: int in 4:
+		var z: float = 0.004 + i * 0.008
+		_box(slide, &"gun_polymer", Vector3(-0.0142, 0.042, z), Vector3(0.0142, 0.068, z + 0.003), 0.0)
+	_box(slide, &"gun_polymer", Vector3(0.0136, 0.05, -0.07), Vector3(0.0142, 0.066, -0.02), 0.0)  # ejection port
+	_box(slide, &"gun_metal", Vector3(-0.0025, 0.074, -0.17), Vector3(0.0025, 0.082, -0.16), 0.001)  # front sight
+	_box(slide, &"gun_metal", Vector3(-0.012, 0.074, 0.02), Vector3(-0.003, 0.082, 0.03), 0.001)  # rear sight, notch
+	_box(slide, &"gun_metal", Vector3(0.003, 0.074, 0.02), Vector3(0.012, 0.082, 0.03), 0.001)
+	_tube(slide, &"gun_metal", 0, 0.06, -0.176, -0.18, 0.006, -1.0, 8)  # barrel crown
+	# Magazine: seated in the grip, only the base plate shows.
+	_prism(mag, &"gun_metal", PackedVector2Array([
+		Vector2(-0.016, -0.004), Vector2(0.024, -0.004), Vector2(0.024 + 0.105 * 0.24, -0.108),
+		Vector2(-0.016 + 0.105 * 0.24, -0.108)]), 0.011)
+	_box(mag, &"gun_polymer", Vector3(-0.015, -0.12, -0.016 + 0.11 * 0.24), Vector3(0.015, -0.108, 0.034 + 0.11 * 0.24), 0.003)

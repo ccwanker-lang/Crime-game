@@ -283,9 +283,11 @@ func _facade(b: MeshBuilder, frame: Transform3D, length: float, bay_count: int, 
 	elif eaves:
 		# Cornice and gutter along the eaves.
 		var so: float = _side_overhang()
-		b.box_mm(&"trim_paint", Vector3(-half - so, _H - 0.28, -0.05), Vector3(half + so, _H, 0.16), 0.02)
+		var sty: bool = ArtStyle.stylized
+		b.box_mm(&"trim_paint", Vector3(-half - so, _H - (0.42 if sty else 0.28), -0.05), Vector3(half + so, _H, 0.24 if sty else 0.16),
+				0.04 if sty else 0.02)
 		b.box_mm(&"zinc", Vector3(-half - so, _H - 0.04, 0.16), Vector3(half + so, _H + 0.08, 0.3), 0.03)
-		if is_front:
+		if is_front and not sty:
 			var px: float = half - 0.22
 			b.cylinder(&"zinc", Vector3(px, 0.15, 0.1), Vector3(px, _H - 0.32, 0.1), 0.045, 0.045, 8, false)
 			b.cylinder(&"zinc", Vector3(px, _H - 0.32, 0.1), Vector3(px, _H, 0.23), 0.045, 0.045, 8, false)
@@ -358,14 +360,21 @@ func _window(b: MeshBuilder, wx0: float, wx1: float, wy0: float, wy1: float, gla
 	var r: float = 0.12
 	var ft: float = 0.065
 	var fd: float = 0.07
+	var sty: bool = ArtStyle.stylized  # point 27: chunky frames, fewer small parts
+	var bev: float = 0.01
+	if sty:
+		ft = 0.11
+		fd = 0.1
+		bev = 0.025
+		transom = false
 	var z0: float = -r - fd
 	var z1: float = -r
 	var c: bool = b.collide
 	b.collide = false
-	b.box_mm(&"trim_paint", Vector3(wx0, wy0, z0), Vector3(wx0 + ft, wy1, z1), 0.01)
-	b.box_mm(&"trim_paint", Vector3(wx1 - ft, wy0, z0), Vector3(wx1, wy1, z1), 0.01)
-	b.box_mm(&"trim_paint", Vector3(wx0 + ft, wy0, z0), Vector3(wx1 - ft, wy0 + ft, z1), 0.01)
-	b.box_mm(&"trim_paint", Vector3(wx0 + ft, wy1 - ft, z0), Vector3(wx1 - ft, wy1, z1), 0.01)
+	b.box_mm(&"trim_paint", Vector3(wx0, wy0, z0), Vector3(wx0 + ft, wy1, z1), bev)
+	b.box_mm(&"trim_paint", Vector3(wx1 - ft, wy0, z0), Vector3(wx1, wy1, z1), bev)
+	b.box_mm(&"trim_paint", Vector3(wx0 + ft, wy0, z0), Vector3(wx1 - ft, wy0 + ft, z1), bev)
+	b.box_mm(&"trim_paint", Vector3(wx0 + ft, wy1 - ft, z0), Vector3(wx1 - ft, wy1, z1), bev)
 	var mullion_top: float = wy1 - ft
 	if transom and wy1 - wy0 > 1.3:
 		var ty: float = wy0 + (wy1 - wy0) * 0.72
@@ -373,7 +382,8 @@ func _window(b: MeshBuilder, wx0: float, wx1: float, wy0: float, wy1: float, gla
 		mullion_top = ty - 0.03
 	if wx1 - wx0 > 0.95:
 		var cx: float = (wx0 + wx1) / 2.0
-		b.box_mm(&"trim_paint", Vector3(cx - 0.03, wy0 + ft, z0 + 0.01), Vector3(cx + 0.03, mullion_top, z1 - 0.005), 0.008)
+		var mw: float = 0.045 if sty else 0.03
+		b.box_mm(&"trim_paint", Vector3(cx - mw, wy0 + ft, z0 + 0.01), Vector3(cx + mw, mullion_top, z1 - 0.005), 0.008)
 	# Glass with UV 0..1 across the opening (needed for the fake interior).
 	var gz: float = z0 + fd * 0.4
 	b.color = _room_color()
@@ -381,9 +391,13 @@ func _window(b: MeshBuilder, wx0: float, wx1: float, wy0: float, wy1: float, gla
 			Vector3(wx1 - ft, wy1 - ft, gz), Vector3(wx0 + ft, wy1 - ft, gz), Vector3.BACK,
 			PackedVector2Array([Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]))
 	b.color = Color.WHITE
-	if sill:
+	if sill and sty:
+		b.box_mm(&"trim_paint", Vector3(wx0 - 0.1, wy0 - 0.1, -r - 0.02), Vector3(wx1 + 0.1, wy0, 0.09), 0.025)
+	elif sill:
 		b.box_mm(&"bluestone", Vector3(wx0 - 0.06, wy0 - 0.07, -r - 0.02), Vector3(wx1 + 0.06, wy0, 0.05), 0.012)
-	if wall_material != "plaster" and wall_material != "concrete":
+	if sty:
+		b.box_mm(&"trim_paint", Vector3(wx0 - 0.08, wy1, -0.02), Vector3(wx1 + 0.08, wy1 + 0.16, 0.05), 0.025)
+	elif wall_material != "plaster" and wall_material != "concrete":
 		b.box_mm(&"bluestone", Vector3(wx0 - 0.05, wy1, -0.02), Vector3(wx1 + 0.05, wy1 + 0.13, 0.012), 0.008)
 	b.collide = c
 
@@ -691,7 +705,7 @@ func _ridge_cap(b: MeshBuilder, key: StringName, center: Vector3, length: float)
 
 
 func _fascia_rect(b: MeshBuilder, a: float, c: float, ye: float, zc: float) -> void:
-	var th: float = 0.16
+	var th: float = 0.26 if ArtStyle.stylized else 0.16
 	b.quad(&"trim_paint", Vector3(-a, ye, zc + c), Vector3(a, ye, zc + c), Vector3(a, ye - th, zc + c), Vector3(-a, ye - th, zc + c), Vector3.BACK)
 	b.quad(&"trim_paint", Vector3(-a, ye, zc - c), Vector3(a, ye, zc - c), Vector3(a, ye - th, zc - c), Vector3(-a, ye - th, zc - c), Vector3.FORWARD)
 	b.quad(&"trim_paint", Vector3(a, ye, zc - c), Vector3(a, ye, zc + c), Vector3(a, ye - th, zc + c), Vector3(a, ye - th, zc - c), Vector3.RIGHT)
