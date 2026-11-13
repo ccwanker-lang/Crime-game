@@ -84,9 +84,14 @@ func role_lock(role: String) -> String:
 ## Short status line of a member (every peer).
 func describe(rec: Dictionary) -> String:
 	if rec["role"] == "dealer":
-		return "%s - %d bags, €%d to collect, %d%% cut, loyalty %d" % [district_name(str(rec["district"])),
-				int(rec["stock"]), int(rec["cash"]), roundi(float(rec["commission"]) * 100.0), roundi(float(rec["loyalty"]))]
+		return "%s - %d bags%s, €%d to collect, %d%% cut, loyalty %d" % [district_name(str(rec["district"])),
+				int(rec["stock"]), meth_text(rec), int(rec["cash"]), roundi(float(rec["commission"]) * 100.0), roundi(float(rec["loyalty"]))]
 	return "%s - %s (€%d/day)" % [_property_name(str(rec["property"])), str(rec.get("status", "")), int(rec["wage"])]
+
+
+## " (3 meth)" when a dealer holds meth, else "".
+func meth_text(rec: Dictionary) -> String:
+	return " (%d meth)" % int(rec.get("meth", 0)) if int(rec.get("meth", 0)) > 0 else ""
 
 
 func _property_name(id: String) -> String:
@@ -218,11 +223,18 @@ func _pay_wages() -> void:
 # --- Host: workers -------------------------------------------------------------------------
 
 func _worker_tick(rec: Dictionary, hours: float) -> void:
-	var rate: float = config.grower_actions_per_hour if rec["role"] == "grower" else config.packager_bags_per_hour
+	var rate: float = config.packager_bags_per_hour
+	match str(rec["role"]):
+		"grower": rate = config.grower_actions_per_hour
+		"cook": rate = config.cook_actions_per_hour
 	rec["work"] = minf(float(rec.get("work", 0.0)) + hours * rate, 3.0)
 	var did: int = 0
 	while float(rec["work"]) >= 1.0:
-		var what: String = _grower_step(rec) if rec["role"] == "grower" else _packager_step(rec)
+		var what: String = ""
+		match str(rec["role"]):
+			"grower": what = _grower_step(rec)
+			"cook": what = _cook_step(rec)
+			_: what = _packager_step(rec)
 		if what == "":
 			rec["work"] = minf(float(rec["work"]), 1.0)  # nothing to do: wait
 			break
@@ -367,24 +379,81 @@ func _packager_step(rec: Dictionary) -> String:
 	if tables.is_empty():
 		_set_status(rec, "needs a packaging table here")
 		return ""
-	if _locker_count(lockers, "weed_bud") <= 0:
-		_set_status(rec, "waiting for dried weed")
+	# Weed first, then meth (PackagingTable.PACKS: product -> bag).
+	var product: Array = []
+	for pk: Array in PackagingTable.PACKS:
+		if _locker_count(lockers, pk[0]) > 0:
+			product = pk
+			break
+	if product.is_empty():
+		_set_status(rec, "waiting for dried weed / meth shards")
 		return ""
 	if _locker_count(lockers, "baggie") <= 0:
 		_set_status(rec, "needs Baggies in the locker")
 		return ""
 	var room: int = 0
 	for l: StorageLocker in lockers:
-		room += _locker_room(l, "weed_bag")
+		room += _locker_room(l, product[1])
 	if room <= 0:
 		_set_status(rec, "the locker is full")
 		return ""
-	_locker_take(lockers, "weed_bud", 1)
+	_locker_take(lockers, product[0], 1)
 	_locker_take(lockers, "baggie", 1)
-	_locker_put(lockers, "weed_bag", 1)
+	_locker_put(lockers, product[1], 1)
 	for l: StorageLocker in lockers:
 		l.changed()
-	return _did(rec, tables[0], "packaged a bag")
+	return _did(rec, tables[0], "packaged a bag of %s" % Products.short_name(product[1]))
+
+
+## Host: one cook action (milestone 3, meth): break cooled trays into shards (locker), move hot trays
+## from the cooking stations onto free cooling plates, stir a cook that needs it, start a new cook with
+## Lab Chemicals + Activator from the locker. Trays that find no free plate wait on the station.
+func _cook_step(rec: Dictionary) -> String:
+	var prop: String = str(rec["property"])
+	var cookers: Array = _stations_in(prop, CookStation)
+	if cookers.is_empty():
+		_set_status(rec, "no cooking station here")
+		return ""
+	var lockers: Array = _stations_in(prop, StorageLocker)
+	if lockers.is_empty():
+		_set_status(rec, "needs a storage locker here")
+		return ""
+	var plates: Array = _stations_in(prop, CoolingPlate)
+	var put: Callable = func(id: String, n: int) -> int: return _locker_put(lockers, id, n)
+	var have: Callable = func(id: String) -> int: return _locker_count(lockers, id)
+	var take: Callable = func(id: String, n: int) -> bool: return _locker_take(lockers, id, n)
+	for pl: CoolingPlate in plates:
+		if int(pl.state["stage"]) == ProcessStation.Stage.DONE and pl.staff_take(put) > 0:
+			return _did(rec, pl, "broke a tray into Meth Shards")
+	for c: CookStation in cookers:
+		if c.staff_attend():
+			return _did(rec, c, "stirred the batch")
+	for c: CookStation in cookers:
+		if int(c.state["stage"]) != ProcessStation.Stage.DONE:
+			continue
+		for pl: CoolingPlate in plates:
+			if int(pl.state["stage"]) == ProcessStation.Stage.IDLE:
+				c.state["out"] = int(c.state["out"]) - 1
+				if int(c.state["out"]) <= 0:
+					c.state["stage"] = ProcessStation.Stage.IDLE
+					c.state["out"] = 0
+					c.state["progress"] = 0.0
+				c.changed()
+				pl.state["stage"] = ProcessStation.Stage.RUNNING
+				pl.state["progress"] = 0.0
+				return _did(rec, pl, "poured a tray onto a cooling plate")
+	for c: CookStation in cookers:
+		if int(c.state["stage"]) == ProcessStation.Stage.IDLE and c.staff_load(have, take):
+			return _did(rec, c, "started a cook")
+	if plates.is_empty():
+		_set_status(rec, "needs a cooling plate here")
+	elif cookers.any(func(c: CookStation) -> bool: return int(c.state["stage"]) == ProcessStation.Stage.RUNNING):
+		_set_status(rec, "cooking")
+	elif cookers.any(func(c: CookStation) -> bool: return int(c.state["stage"]) == ProcessStation.Stage.DONE):
+		_set_status(rec, "waiting for a free cooling plate")
+	else:
+		_set_status(rec, "needs Lab Chemicals + Activator in the locker")
+	return ""
 
 
 # --- Host: locker helpers -------------------------------------------------------------------
@@ -449,6 +518,9 @@ func _dealer_tick(rec: Dictionary, hours: float) -> void:
 			rec["sell"] = float(rec["sell"]) - 1.0
 			rec["stock"] = int(rec["stock"]) - 1
 			var price: int = int(dist.get("price", 60))
+			if int(rec.get("meth", 0)) > 0:
+				rec["meth"] = int(rec["meth"]) - 1
+				price = Products.price("meth_bag", price)
 			rec["cash"] = int(rec["cash"]) + roundi(price * (1.0 - float(rec["commission"])))
 			rec["sold"] = int(rec.get("sold", 0)) + 1
 			sold += 1
@@ -532,7 +604,7 @@ func host_hire(who: String, index: int, place: String) -> String:
 		for r: Dictionary in _members().values():
 			if r["role"] == "dealer" and str(r["district"]) == place:
 				return "!%s already works %s." % [r["name"], district_name(place)]
-		rec.merge({"district": place, "stock": 0, "cash": 0, "loyalty": config.start_loyalty, "sold": 0, "sell": 0.0})
+		rec.merge({"district": place, "stock": 0, "meth": 0, "cash": 0, "loyalty": config.start_loyalty, "sold": 0, "sell": 0.0})
 		_place_dealer(rec)
 	else:
 		var prop: Property = property_node(place)
@@ -549,7 +621,7 @@ func host_hire(who: String, index: int, place: String) -> String:
 		_place_worker(rec, prop)
 	_members()[rec["uid"]] = rec
 	cands.remove_at(index)
-	cands.append(_make_candidate(["grower", "packager", "dealer"].pick_random()))
+	cands.append(_make_candidate(["grower", "packager", "dealer", "cook"].pick_random()))
 	_mark()
 	print("[Staff] %s hired %s as %s (%s)" % [who, rec["name"], role, place])
 	if role == "dealer":
@@ -612,7 +684,9 @@ func host_fire(who: String, uid: String) -> String:
 	_mark()
 	print("[Staff] %s fired %s" % [who, rec["name"]])
 	if rec["role"] == "dealer":
-		var left: Array = GameState.give(who, int(rec["cash"]), [{"id": "weed_bag", "count": int(rec["stock"])}])
+		var meth: int = int(rec.get("meth", 0))
+		var left: Array = GameState.give(who, int(rec["cash"]), [{"id": "weed_bag", "count": int(rec["stock"]) - meth},
+				{"id": "meth_bag", "count": meth}])
 		_send_wallet(who)
 		var lost: int = 0
 		for it: Dictionary in left:
@@ -632,10 +706,15 @@ func host_dealer(player: Player, uid: String, action: String) -> String:
 	var who: String = player.player_name
 	match action:
 		"give":
-			var n: int = mini(GameState.count_item(who, "weed_bag"), config.dealer_capacity - int(rec["stock"]))
+			# Weed and meth bags (Products.BAGS); "stock" = all bags, "meth" = how many of them are meth.
+			var carried: int = GameState.count_item(who, "weed_bag") + GameState.count_item(who, "meth_bag")
+			var n: int = mini(carried, config.dealer_capacity - int(rec["stock"]))
 			if n <= 0:
-				return "!You have no bags to give." if GameState.count_item(who, "weed_bag") == 0 else "!%s can't carry more." % rec["name"]
-			GameState.remove_item(who, "weed_bag", n)
+				return "!You have no bags to give." if carried == 0 else "!%s can't carry more." % rec["name"]
+			var meth: int = mini(GameState.count_item(who, "meth_bag"), n)
+			GameState.remove_item(who, "meth_bag", meth)
+			GameState.remove_item(who, "weed_bag", n - meth)
+			rec["meth"] = int(rec.get("meth", 0)) + meth
 			rec["stock"] = int(rec["stock"]) + n
 			_mark()
 			player.send_wallet()

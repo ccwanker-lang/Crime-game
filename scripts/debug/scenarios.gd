@@ -50,6 +50,10 @@ const LIST: Array = [
 	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
 	["staff_workers", "Rank 2: a grower + a packager in your Starter Room", "Hold F7 to speed up time and watch: the grower fills the pots with soil, plants, waters and harvests onto the drying rack; the packager takes the dried weed off and packages it (bags end up in the locker: E on it). E on a worker = what they are doing. Tab > Crew: your staff, wages, Fire, and Benny's candidates (Hire tab)."],
 	["dealers", "Rank 1, 10 bags, next to your dealer in Old Town", "E on the dealer: Give all my bags, then hold F7: they sell about 1 bag per in-game hour (+XP, top-left panel). E again: Collect. Tab > Crew > Hire: Benny's people (pick a district or a property). Rank 1 allows 1 dealer: F8 a few times for more."],
+	["meth_market", "Rank 2, night, €5,000 at Rook's black market", "Rook now also sells Lab Chemicals, Activator, the Cooking Station and the Cooling Plate (rank 2). Buy a station: it goes into your pockets (place it with B in your own property)."],
+	["meth_lab", "Rank 2: cooking station + cooling plate in your Starter Room, supplies in your pockets", "E on the cooking station: start a cook. Hold F7: halfway it shows STIR! (E) - stirred = 2 Hot Trays, not stirred = 1. Take the trays, E on the cooling plate, F7, E = Meth Shards. Then the packaging table: shards + baggies = Bags of Meth."],
+	["meth_cook", "Rank 2: a cook + a packager run the meth lab in your Starter Room", "Hold F7 and watch: the cook starts a cook (supplies from the locker), stirs, pours the trays on the cooling plate and breaks them; the packager bags the shards (into the locker: E on it). E on a worker = what they are doing."],
+	["meth_dealer", "Rank 1, 6 Bags of Meth + 4 Bags of Weed, next to your dealer", "E on the dealer: Give all my bags (weed + meth). Hold F7: they sell meth first, for about twice the price of weed. E again: Collect."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -390,6 +394,39 @@ static func run(world: Node, id: String) -> bool:
 			var yaw: float = float(dealer.get("yaw", 0.0))
 			var dfwd := Vector3(-sin(yaw), 0, -cos(yaw))  # where the dealer looks
 			_place(me, dpos + dfwd * 2.2 + Vector3.UP * 0.2, dpos + Vector3.UP * 1.4, dn, 15.0)
+		"meth_market":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			_kit(me, 5000, [])
+			_place(me, Vector3(23.0, 0.2, 48.6), Vector3(16.4, 1.2, 45.0), dn, 23.0)
+		"meth_lab", "meth_cook":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			var lab: Array = await meth_lab(world, sr)
+			world.call("debug_weed_corner")  # the packaging table (+ pots, rack)
+			await world.get_tree().physics_frame
+			if id == "meth_lab":
+				_kit(me, 2000, [["lab_chemicals", 4], ["activator", 2], ["baggie", 20]])
+			else:
+				_kit(me, 3000, [])
+				for l: StorageLocker in Staff._stations_in("starter_room", StorageLocker):
+					l.state["items"] = [{"id": "lab_chemicals", "count": 4}, {"id": "activator", "count": 2}, {"id": "baggie", "count": 20}]
+					l.changed()
+				Staff.debug_hire(me.player_name, "cook", "starter_room")
+				Staff.debug_hire(me.player_name, "packager", "starter_room")
+			var spot: Vector3 = sr.building().to_global(Vector3(0.6, 0.2, -6.6))
+			_place(me, spot, (lab[0] as Node3D).global_position + Vector3.UP * 0.9 if not lab.is_empty() else at_home, dn, 10.0)
+		"meth_dealer":
+			Progression.force_gates = true
+			Progression.debug_set_rank(1)
+			_kit(me, 1000, [["meth_bag", 6], ["weed_bag", 4]])
+			Staff.debug_hire(me.player_name, "dealer", "old_town")
+			var dealer: Dictionary = {}
+			for rec: Dictionary in Staff._members().values():
+				dealer = rec
+			var dpos: Vector3 = dealer.get("pos", Vector3(-24, 0, -4.6))
+			var yaw: float = float(dealer.get("yaw", 0.0))
+			_place(me, dpos + Vector3(-sin(yaw), 0, -cos(yaw)) * 2.2 + Vector3.UP * 0.2, dpos + Vector3.UP * 1.4, dn, 15.0)
 	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()
@@ -500,6 +537,24 @@ static func outdoor_bin_spot(world: Node, prop: Property) -> Vector3:
 
 
 ## Inventory = exactly `items` ([id, count]), `cash` dirty money, no clean money.
+## Milestone 3 meth: the Starter Room's sofa + table make way for a cooking station + cooling plate.
+## Returns [cook station, cooling plate].
+static func meth_lab(world: Node, sr: Property) -> Array:
+	var b: Node3D = sr.building()
+	var spots: Array = [["cook_station", Vector3(1.5, 0.15, -8.2)], ["cooling_plate", Vector3(1.6, 0.15, -6.9)]]
+	var placed: Dictionary = GameState.world.get("placed", {})
+	for uid: String in placed.keys():
+		for sp: Array in spots:
+			if (placed[uid]["pos"] as Vector3).distance_to(b.to_global(sp[1])) < 1.0:
+				world.call("host_remove_placed", uid)
+				break
+	var out: Array = []
+	for sp: Array in spots:
+		out.append(world.call("host_place", sp[0], b.to_global(sp[1]), b.global_rotation.y))
+	await world.get_tree().physics_frame
+	return out
+
+
 static func _kit(me: Player, cash: int, items: Array) -> void:
 	var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 	me.combat.host_unload()

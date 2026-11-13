@@ -8,8 +8,9 @@ extends Resource
 	"grower": {"name": "Grower", "rank": 1, "wage": 80,
 			"about": "Fills, plants, waters and harvests the pots in a property; hangs the harvest on the racks."},
 	"packager": {"name": "Packager", "rank": 2, "wage": 100,
-			"about": "Takes dried weed off the racks and packages it at a packaging table (baggies from the locker)."},
-	"cook": {"name": "Cook", "rank": 2, "wage": 150, "later": true, "about": "Runs the meth stations (comes with meth)."},
+			"about": "Takes dried weed off the racks and packages weed + meth shards at a packaging table (baggies from the locker)."},
+	"cook": {"name": "Cook", "rank": 2, "wage": 150,
+			"about": "Runs the meth stations in a property: starts cooks (Lab Chemicals + Activator from the locker), stirs, cools the trays and breaks them into shards (into the locker)."},
 	"courier": {"name": "Courier", "rank": 3, "wage": 120, "later": true,
 			"about": "Fetches supplies and restocks your dealers (later)."},
 	"dealer": {"name": "Dealer", "rank": 1, "wage": 0,
@@ -18,6 +19,8 @@ extends Resource
 ## Worker actions per in-game hour (one action = water/plant/fill/harvest one pot, or package one bag).
 @export var grower_actions_per_hour: float = 4.0
 @export var packager_bags_per_hour: float = 6.0
+## Cook actions per in-game hour (start a cook, stir, pour a tray, break a tray).
+@export var cook_actions_per_hour: float = 3.0
 ## Workers in one property: at most one per bed or storage locker placed in it.
 @export var bed_items: PackedStringArray = ["bed", "storage_locker"]
 

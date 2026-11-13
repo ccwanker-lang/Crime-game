@@ -125,3 +125,59 @@ scenarios `staff_workers` + `dealers`, self-test check `staff`. Cook + courier a
   `answer`, `debug_hire`), `StaffConfig` in `data/staff/staff.tres` (roles, rates, districts), visuals
   `StaffViews`/`StaffNPC` (local), UI `CrewWindow` (phone app "Crew", E on a dealer). Scenarios staff_workers,
   dealers; self-test check staff.
+
+
+# Part 3: meth (DESIGN "Products": buy raw materials -> cook in steps -> cool -> break)
+
+## Status
+In progress (code written, self-test check `meth` + scenarios). Customers buying meth needs a hook from A (see below).
+
+## How it works
+- Items (hand-made .tres, illegal): `lab_chemicals` (€110), `activator` (€70) = supplies (black market only),
+  `meth_tray` "Hot Tray", `meth_shard` "Meth Shards", `meth_bag` "Bag of Meth" (€130). Models: `ProcItem` kinds
+  chem_jug / activator / meth_tray / meth_shard / meth_bag (`prefabs/items/<id>.tscn`).
+- Stations (gen_items.py STATIONS, prefabs/stations/): `ProcessStation` (new generic base, scripts/stations/
+  process_station.gd: inputs -> hours -> output, stages IDLE/RUNNING/DONE, `staff_load/staff_take/staff_attend`;
+  cocaine reuses it). `CookStation` (`cook_station`, €900): 2 Lab Chemicals + 1 Activator -> 3 in-game hours; at 40%
+  it needs a STIR (E, Label3D "STIR!"): stirred = 2 Hot Trays, never stirred = 1. `CoolingPlate` (`cooling_plate`,
+  €400): 1 Hot Tray -> 1.5 h -> 6 Meth Shards. `PackagingTable.PACKS`: Meth Shards + Baggie -> Bag of Meth (and weed).
+- Black market: `Products` autoload (new, autoload/products.gd) appends `BLACK_MARKET_EXTRA` to Rook's stock at
+  runtime (node_added on a night_only Shopkeeper) - the garage prefab is untouched. Rank 2 gates (ranks item_rank).
+- Cook (staff, rank 2, €150/day): `Staff._cook_step` - break cooled trays into shards (locker), stir, pour hot trays
+  onto free cooling plates, start a cook from locker supplies. `cook_actions_per_hour` 3. Packager also bags shards.
+- Dealers sell meth: record `stock` = all bags, `meth` = how many of those are meth; meth sells first at
+  `Products.price("meth_bag", district price)` (x2.2). Give hands over weed + meth; firing returns both.
+- Customers: `Products.pick_customer_product()` (meth 35% once the crew is rank 2) is ready for A's customer code.
+
+## Decisions (what + why)
+- Abstract steps only (load, stir, pour, break) - DESIGN "abstract game mechanics, no realistic procedures".
+  The stir is the "cook in steps" skill moment: miss it = half the batch. Easy for co-op, readable for the player.
+- One generic `ProcessStation` for all timed machines (cooling plate now; coca processing + refinery next). Why: one
+  tested code path for player use, staff, save and sync.
+- Supplies are added to Rook's stock at runtime instead of editing garage.tscn / gen_prefabs.py. Why: the map and
+  building prefabs are session A's; A can move the ids into gen_prefabs `shopkeeper(...)` stock at merge time.
+- Economy: one cook = €290 supplies (black market -10% = ~€260) -> 12 bags x ~€130 (dealer: x2.2 the district weed
+  price). About 4x the money per hour of a weed pot, but €1,300 of stations and rank 2 first.
+- Meth goes through the existing packaging table (no new table), dealers carry both products in one stock.
+
+## Existing files changed (part 3)
+- project.godot: autoload `Products`.
+- tools/generators/gen_items.py: 2 STATIONS entries (cook_station, cooling_plate) -> data/items/*.tres.
+- scripts/stations/packaging_table.gd: PACKS (weed + meth), messages "Packaged 3 Bags of Meth".
+- scripts/procgen/proc_item.gd: 5 new kinds. scripts/progression/rank_config.gd: rank 2 items + unlock text.
+- autoload/staff.gd, scripts/staff/staff_config.gd, scripts/staff/staff_npc.gd, scripts/ui/crew_window.gd: cook +
+  meth for dealers. scripts/debug/staff_test.gd: "not in the game yet" now tests the courier.
+- scripts/debug/self_test.gd: "meth" at the end of CHECKS + `_check_meth`. scenarios.gd: meth_market, meth_lab,
+  meth_cook, meth_dealer (+ helper `Scenarios.meth_lab`).
+
+## Te testen door Curry
+- `meth_market` (F9): nacht bij Rook, rang 2: Lab Chemicals, Activator, Cooking Station, Cooling Plate in de lijst.
+- `meth_lab`: kook zelf: E op het kookstation, F7, STIR! (E), trays pakken, koelplaat, shards, verpakken.
+- `meth_cook`: een kok + packager doen het met F7 vanzelf (spullen in de locker).
+- `meth_dealer`: dealer krijgt wiet + meth, verkoopt meth eerst voor ~2x de prijs.
+
+## For CLAUDE.md (suggested lines)
+- Meth (milestone 3): `ProcessStation` (generic timed machine, staff_load/take/attend), `CookStation` (stir at 40%),
+  `CoolingPlate`; items lab_chemicals/activator/meth_tray/meth_shard/meth_bag; `PackagingTable.PACKS`; `Products`
+  autoload (BAGS + prices, Rook's extra stock at runtime, `pick_customer_product`); Staff role cook (`_cook_step`),
+  dealers carry `meth`. Scenarios meth_market/meth_lab/meth_cook/meth_dealer, self-test check meth.

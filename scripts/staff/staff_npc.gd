@@ -57,7 +57,7 @@ func update(r: Dictionary) -> void:
 
 func get_interaction_prompt() -> String:
 	if rec.get("role") == "dealer":
-		return "Talk to %s (dealer): %d bags, €%d waiting" % [rec["name"], int(rec["stock"]), int(rec["cash"])]
+		return "Talk to %s (dealer): %d bags%s, €%d waiting" % [rec["name"], int(rec["stock"]), Staff.meth_text(rec), int(rec["cash"])]
 	return "Talk to %s (%s)" % [rec["name"], Staff.role_name(str(rec["role"]))]
 
 

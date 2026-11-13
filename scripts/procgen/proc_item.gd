@@ -5,7 +5,7 @@ extends Node3D
 ## rendered as its icon). Origin = where the hand grips it; front = -Z.
 ## Prefabs in res://prefabs/items/ (written by tools/generators/gen_prefabs.py).
 
-@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste")
+@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste", "chem_jug", "activator", "meth_tray", "meth_shard", "meth_bag")
 var kind: String = "soil_bag":
 	set(v): kind = v; _queue_rebuild()
 ## Main colour (ammo box print, seed packet label...).
@@ -46,6 +46,11 @@ func _rebuild() -> void:
 		"ammo_box": _ammo_box(b)
 		"empty_box": _empty_box(b)
 		"plant_waste": _plant_waste(b)
+		"chem_jug": _chem_jug(b)
+		"activator": _activator(b)
+		"meth_tray": _meth_tray(b)
+		"meth_shard": _shards(b, Vector3.ZERO, 1.0)
+		"meth_bag": _meth_bag(b)
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = b.build()
 	_mesh.visibility_range_end = 40.0
@@ -194,3 +199,52 @@ func _plant_waste(b: MeshBuilder) -> void:
 		_leaf(b, at, Vector3((i - 1.5) * 0.5, -1.0, 0).normalized(), 0.08, leaf)
 	b.color = Color(0.3, 0.25, 0.15)
 	b.cylinder(&"item_matte", Vector3(0, -0.06, 0), Vector3(0, 0.0, 0), 0.025, 0.025, 8)  # twine
+
+
+# --- Meth (milestone 3, session B): abstract props, no labels ------------------------------
+
+## Plastic jerrycan of lab chemicals, gripped at the handle on top.
+func _chem_jug(b: MeshBuilder) -> void:
+	b.color = Color(0.86, 0.84, 0.76)
+	b.box(&"item_matte", Vector3(0, -0.14, 0), Vector3(0.16, 0.22, 0.1), 0.012)
+	b.box(&"item_matte", Vector3(0, -0.01, 0.0), Vector3(0.04, 0.03, 0.08), 0.005)  # handle
+	b.color = Color(0.85, 0.25, 0.08)
+	b.cylinder(&"item_glossy", Vector3(0.05, -0.03, 0), Vector3(0.05, 0.0, 0), 0.018, 0.018, 8, true)  # cap
+	b.color = Color(0.95, 0.75, 0.1)
+	b.box(&"item_matte", Vector3(0, -0.15, 0.051), Vector3(0.1, 0.07, 0.003))  # hazard label band
+
+
+## Small brown glass bottle with a blue cap.
+func _activator(b: MeshBuilder) -> void:
+	b.color = Color(0.42, 0.22, 0.08, 0.9)
+	b.cylinder(&"item_glossy", Vector3(0, -0.07, 0), Vector3(0, 0.0, 0), 0.025, 0.025, 10, true)
+	b.cylinder(&"item_glossy", Vector3(0, 0.0, 0), Vector3(0, 0.018, 0), 0.025, 0.01, 10, false)
+	b.color = Color(0.15, 0.35, 0.8)
+	b.cylinder(&"item_matte", Vector3(0, 0.018, 0), Vector3(0, 0.035, 0), 0.012, 0.012, 8, true)
+
+
+## Shallow steel tray with a pale slab in it.
+func _meth_tray(b: MeshBuilder) -> void:
+	b.color = Color(0.6, 0.6, 0.63)
+	b.box(&"item_metal", Vector3(0, -0.02, -0.1), Vector3(0.3, 0.025, 0.22), 0.004)
+	b.color = Color(0.85, 0.92, 0.97)
+	b.box(&"item_glossy", Vector3(0, -0.005, -0.1), Vector3(0.27, 0.01, 0.19))
+
+
+## A handful of pale blue crystal shards.
+func _shards(b: MeshBuilder, at: Vector3, s: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	for i: int in 7:
+		b.color = Color(0.72, 0.88, 0.98).lerp(Color(0.95, 0.98, 1.0), rng.randf())
+		var p := Vector3(rng.randf_range(-0.018, 0.018), rng.randf_range(-0.012, 0.012), rng.randf_range(-0.012, 0.012)) * s
+		b.box(&"item_glossy", at + p, Vector3(rng.randf_range(0.01, 0.022), rng.randf_range(0.008, 0.016), rng.randf_range(0.008, 0.014)) * s)
+
+
+## Zip bag with shards and a blue zip strip.
+func _meth_bag(b: MeshBuilder) -> void:
+	_shards(b, Vector3(0, -0.015, 0), 0.8)
+	b.color = Color(0.95, 0.97, 1.0, 0.28)
+	b.box(&"item_clear", Vector3(0, 0, 0), Vector3(0.07, 0.09, 0.016), 0.002)
+	b.color = Color(0.1, 0.35, 0.85)
+	b.box(&"item_glossy", Vector3(0, 0.037, 0), Vector3(0.07, 0.005, 0.017))

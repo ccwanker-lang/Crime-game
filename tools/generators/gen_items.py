@@ -53,6 +53,9 @@ STATIONS = {
     "packaging_table": ("Packaging Table", 100, 2, "Packs Dried Weed + Baggies into Bags of Weed."),
     "storage_locker": ("Storage Locker", 150, 2, "A lockable cabinet with room for 16 stacks. Shared with your crew."),
     "trash_bin": ("Trash Bin", 60, 2, "A wheelie bin for empty boxes and plant waste. Put it outside your property: the garbage truck empties it every morning."),
+    # Milestone 3 (session B): meth.
+    "cook_station": ("Cooking Station", 900, 1, "Cooks 2 Lab Chemicals + 1 Activator into Hot Trays. Stir it halfway for a full batch."),
+    "cooling_plate": ("Cooling Plate", 400, 2, "Cools a Hot Tray; then break it into Meth Shards."),
 }
 
 

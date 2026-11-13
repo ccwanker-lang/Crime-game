@@ -12,7 +12,7 @@ extends Resource
 @export var unlock_text: PackedStringArray = [
 	"Weed, pistol, phone + webshop, Starter Room",
 	"Grow lamp, shotgun, Small House, a grower, 1 dealer. (Later: first car)",
-	"SMG, Bakery front, Family House, packagers. (Later: meth, cook)",
+	"Meth (cooking station, cooling plate, lab supplies at the black market), a cook, SMG, Bakery front, Family House, packagers",
 	"AK-47, Barber + Laundromat fronts, 2 dealers. (Later: couriers)",
 	"Sniper rifle, South Warehouse. (Later: cocaine, bulk deals, guards, lawyer)",
 	"Up to 4 dealers. (Later: bribe the police, roadside team)",
@@ -22,6 +22,7 @@ extends Resource
 @export var item_rank: Dictionary = {
 	&"grow_lamp": 1, &"shotgun": 1,
 	&"smg": 2,
+	&"cook_station": 2, &"cooling_plate": 2, &"lab_chemicals": 2, &"activator": 2,
 	&"ak47": 3,
 	&"sniper": 4,
 }

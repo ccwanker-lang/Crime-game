@@ -166,7 +166,7 @@ func _row() -> HBoxContainer:
 func _fill_crew() -> void:
 	_title.text = "Your crew"
 	if Staff.members.is_empty():
-		_list.add_child(_label("Nobody works for you yet. Benny can find people (Hire tab). Growers and packagers work in a property you own (one per bed or storage locker there); dealers sell your bags in a district.", 15, Color(0.7, 0.7, 0.75)))
+		_list.add_child(_label("Nobody works for you yet. Benny can find people (Hire tab). Growers, cooks and packagers work in a property you own (one per bed or storage locker there); dealers sell your bags in a district.", 15, Color(0.7, 0.7, 0.75)))
 	for uid: String in Staff.members:
 		var rec: Dictionary = Staff.members[uid]
 		var row := _row()
@@ -232,12 +232,12 @@ func _fill_dealer() -> void:
 		_list.add_child(_label("They're gone.", 16, BAD))
 		return
 	_title.text = "%s - your dealer in %s" % [rec["name"], Staff.district_name(str(rec["district"]))]
-	_list.add_child(_label("Stock: %d / %d bags      Waiting for you: €%d      Their cut: %d%%      Loyalty: %d      Sold so far: %d" % [
-			int(rec["stock"]), Staff.config.dealer_capacity, int(rec["cash"]), roundi(float(rec["commission"]) * 100.0),
+	_list.add_child(_label("Stock: %d / %d bags%s      Waiting for you: €%d      Their cut: %d%%      Loyalty: %d      Sold so far: %d" % [
+			int(rec["stock"]), Staff.config.dealer_capacity, Staff.meth_text(rec), int(rec["cash"]), roundi(float(rec["commission"]) * 100.0),
 			roundi(float(rec["loyalty"])), int(rec.get("sold", 0))], 16))
 	_list.add_child(_label("Collect often: a dealer sitting on a lot of your money gets ideas.", 14, Color(0.7, 0.7, 0.75)))
 	var row := _row()
-	var give := _button("Give all my bags")
+	var give := _button("Give all my bags (weed + meth)")
 	give.pressed.connect(func() -> void:
 		_msg.text = "..."
 		Staff.request("give", dealer_uid))
