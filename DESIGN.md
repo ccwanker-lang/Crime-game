@@ -282,8 +282,8 @@ the start for now; rank gates (see Progression) come later.
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - done
 10. Police station + patrolling police reacting to gunfire and murder - done (since 25: patrol cars with a crew of 2, no foot patrols; reworked by 28 + 30)
 11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done (reworked by 31: they live in the yard)
-12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
-13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
+12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - done (built as 46)
+13. Agora: fenced mini football pitch, NPCs playing sometimes - done (built as 46)
 14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
 Added after playing (A-F; E = point 4, C extends point 6):
 15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - done
@@ -375,7 +375,7 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
   43. Ranks + XP + unlocks (Progression) - todo
   44. Staff + dealers - todo
   45. = point 14: car dealer + driving yourself - todo
-  46. = points 12-13: park, agora - todo
+  46. = points 12-13: park, agora - done
   47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
       point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - todo
@@ -598,6 +598,25 @@ Choices made while working autonomously (what + why).
   the yard is filled back up to 6 from it; every replacement (day or night) takes one from it. Kept on the host
   only, not saved (a reload simply starts with a full pool). World `rival_night_pool` / `rival_pool_left`.
 - Admin mode (F10/F11/F12) was already built and committed before round 4; nothing to add.
+- Order after round 4 (user, 2026-11-13, second message): park + agora, car dealer + driving, cover garage,
+  territory per district, the remote prison + tutorial intro + late-join intro, the full village map, then the
+  chapter 1 story missions. Meth/cocaine (48) is being built by session B (B.md), so A skips it.
+- Point 46 (park + agora): the park fills the empty lawn between the square (Mill Lane / Main Street) and the backs
+  of South Street: earth paths (PavedArea "soil", 0.12 m high so ambient pedestrians count them as pavement and
+  stroll there too) in a loop + a cross path to the agora, 5 benches with bins, lamps, trees, shrubs, a hedge
+  towards the back gardens. Placed with its own random stream so the rest of the map keeps its exact layout.
+- Point 46: park people are a Pedestrian subclass `ParkGoer` with a spawn-synced `role` (DOG, SMOKER, FOOTBALL)
+  and `team`; the looks follow from the role on every peer, so the dog (`ProcDog`, procedural, on a lead) and the
+  smoke puffs are local visuals with no extra network traffic. Regulars are kept by World `_park_loop`: 2 dog
+  walkers 07-21 h (2-4 laps, then they go home and a new one comes), one group of 3 youths 14-02 h (stay 4-10 min).
+  Sitting on benches is the existing pedestrian behaviour (the park benches are bench seats too). Only the
+  smokers can become customers (`Pedestrian.can_be_customer`): they stand still, so a deal meeting works there.
+- Point 46: the agora is a procedural `Agora` node (18 x 11 m pitch, boards + 3.2 m wire fence, gate on the park
+  side, two small goals, score board). The ball is simulated by the host and sent as state (pos, vel, score) on
+  every kick / goal and once a second; the other peers roll it the same way in between (cheap, late joiners catch
+  up within a second). No physics body: players and NPCs "kick" it by walking into it (host check, 0.6 m), so the
+  player controller needed no change. Matches: every 20 s between 09-20 h a 12% chance that 2 or 4 NPCs come and
+  play 3-6 minutes (red / blue shirts; only models whose shirt takes the colour), then they walk off.
 - Story + world (user, 2026-11-13): recorded in "Rivals & story", Map layout, Buildings and Roadmap 49-55, not built
   yet. Changed to match: the map is open from the start, so the Progression table's "District" column became
   "Area" (where the property stands) and rank 6 no longer opens a highway (it is always open; rank 6 starts the

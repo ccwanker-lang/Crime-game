@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1780,6 +1780,102 @@ func _check_police_vs_crows(world: Node3D) -> void:
 		if n is LootBag and (n as LootBag).owner_name == "Black Crows":
 			n.queue_free()
 	dn.set_hours(hours0)
+	await get_tree().physics_frame
+
+
+# --- Park + agora (point 46) -------------------------------------------------------------
+
+func _check_park(world: Node3D) -> void:
+	var ag: Agora = world.find_child("Agora", true, false) as Agora
+	var path: Array[Vector3] = world.park_path()
+	var smoke: Node3D = world.find_child("ParkSmokeSpot", true, false) as Node3D
+	_report(ag != null and path.size() == 4 and smoke != null, "park: the agora, the dog walkers' loop (4) and the smoke spot")
+	if ag == null or path.size() < 4 or smoke == null:
+		return
+	var map: RID = (world.get_node("NavRegion") as NavigationRegion3D).get_navigation_map()
+	var mid: Vector3 = Vector3.ZERO
+	for i: int in 40:  # (right after the bake the map can still answer zero)
+		mid = NavigationServer3D.map_get_closest_point(map, ag.global_position + Vector3.UP * 0.1)
+		if mid != Vector3.ZERO:
+			break
+		await get_tree().create_timer(0.25).timeout
+	var through: PackedVector3Array = NavigationServer3D.map_get_path(map, ag.gate(true) + Vector3(0, 0, 3), mid, true)
+	_report(Vector2(mid.x - ag.global_position.x, mid.z - ag.global_position.z).length() < 0.3 and through.size() > 1
+			and through[through.size() - 1].distance_to(mid) < 0.5, "navmesh on the pitch, reachable through the gate (mid %s, path %d pts, end %s)" % [
+			mid.snapped(Vector3.ONE * 0.1), through.size(), through[through.size() - 1].snapped(Vector3.ONE * 0.1) if through.size() > 0 else Vector3.INF])
+	# The ball: a goal, a bounce, a player walking into it kicks it.
+	ag.ball_pos = Vector3(Agora.LENGTH / 2.0 - 1.0, Agora.TURF_TOP + Agora.BALL_R, 0.2)
+	ag.ball_vel = Vector3(6, 0, 0)
+	var g0: int = ag.goals
+	await get_tree().create_timer(0.6).timeout
+	_report(ag.goals == g0 + 1 and ag.score[0] >= 1, "the ball rolling into the +X goal: a goal for red (%s)" % ag._score_text())
+	await get_tree().create_timer(2.2).timeout
+	_report(ag.ball_pos.distance_to(Vector3(0, Agora.TURF_TOP + Agora.BALL_R, 0)) < 0.05, "after a goal the ball is back on the centre spot")
+	ag.ball_pos = Vector3(0, Agora.TURF_TOP + Agora.BALL_R, Agora.WIDTH / 2.0 - 1.0)
+	ag.ball_vel = Vector3(0, 0, 5)
+	await get_tree().create_timer(0.5).timeout
+	_report(ag.ball_vel.z < 0.0 and ag.ball_pos.z < Agora.WIDTH / 2.0, "the ball bounces off the boards (vel z %.1f)" % ag.ball_vel.z)
+	ag.ball_vel = Vector3.ZERO
+	ag.ball_pos = Vector3(0, Agora.TURF_TOP + Agora.BALL_R, 0)
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Kicker"
+	var start: Vector3 = ag.to_global(Vector3(-0.45, 0.3, 0))
+	p.auto_target = start
+	world.get_node("Players").add_child(p)
+	p.global_position = start
+	var k0: int = ag.kicks
+	for i: int in 20:
+		await get_tree().physics_frame
+	_report(ag.kicks > k0 and ag.ball_vel.length() > 1.0, "a player next to the ball kicks it (%d kick(s), %.1f m/s)" % [ag.kicks - k0, ag.ball_vel.length()])
+	p.queue_free()
+	GameState.player_data.erase("Kicker")
+	# A match: four NPCs in two teams play (kicks), then walk off.
+	ag.ball_vel = Vector3.ZERO
+	ag.ball_pos = Vector3(0, Agora.TURF_TOP + Agora.BALL_R, 0)
+	ag.start_match(4, 1.0)
+	var team_ok: bool = ag.players.size() == 4 and ag.players[0].team != ag.players[1].team
+	k0 = ag.kicks
+	var on: int = 0
+	for i: int in 60:
+		await get_tree().create_timer(0.5).timeout
+		on = 0
+		for q: ParkGoer in ag._alive():
+			if ag.on_pitch(q.global_position):
+				on += 1
+		if on == 4 and ag.kicks >= k0 + 3:
+			break
+	_report(team_ok and on == 4 and ag.kicks >= k0 + 3, "a 2-against-2 match: all on the pitch, %d kicks" % (ag.kicks - k0))
+	var mates: Array[ParkGoer] = ag._alive()
+	ag.end_match()
+	await get_tree().create_timer(0.5).timeout
+	var leaving: bool = mates.all(func(q: ParkGoer) -> bool: return not is_instance_valid(q) or q.leaving)
+	_report(leaving and ag.players.is_empty(), "match over: the players walk off")
+	for q: ParkGoer in mates:
+		if is_instance_valid(q):
+			q.queue_free()
+	# A dog walker with its dog walks the loop; the smokers gather at their spot.
+	var walker: ParkGoer = world.add_park_goer(path[0], ParkGoer.Role.DOG)
+	var smokers: Array[ParkGoer] = []
+	for i: int in 3:
+		var y: ParkGoer = world.add_park_goer(smoke.global_position + Vector3(2.0 + i, 0.1, 0.5), ParkGoer.Role.SMOKER)
+		y.slot = TAU * i / 3.0
+		smokers.append(y)
+	var from: Vector3 = walker.global_position
+	await get_tree().create_timer(9.0).timeout
+	var dog: ProcDog = walker.get_node_or_null("Dog") as ProcDog
+	_report(dog != null and dog.global_position.distance_to(walker.global_position) < 2.0
+			and walker.global_position.distance_to(from) > 3.0, "a dog walker walks the park loop with its dog next to it (%.1f m)" % walker.global_position.distance_to(from))
+	var gathered: int = 0
+	for y: ParkGoer in smokers:
+		if Vector2(y.global_position.x - smoke.global_position.x, y.global_position.z - smoke.global_position.z).length() < 1.5:
+			gathered += 1
+	_report(gathered == 3 and smokers[0].get_node_or_null("Smoke") != null, "three youths stand smoking at their spot (%d/3)" % gathered)
+	_report(not walker.can_be_customer() and smokers[0].can_be_customer(), "only the smokers can become customers (they stay put)")
+	walker.queue_free()
+	for y: ParkGoer in smokers:
+		y.queue_free()
 	await get_tree().physics_frame
 
 

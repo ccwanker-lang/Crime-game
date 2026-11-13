@@ -159,6 +159,16 @@ func _net_check() -> void:
 		# Point 11: a Crow standing in its yard (far from the players): the client must see it.
 		Rival.obey_daylight = false
 		var crow: Rival = add_rival()
+		# Point 46: a dog walker + a smoker in the park and a rolling ball (the client must see them).
+		var ppath: Array[Vector3] = park_path()
+		if not ppath.is_empty():
+			add_park_goer(ppath[0], ParkGoer.Role.DOG)
+		var smoke_at := find_child("ParkSmokeSpot", true, false) as Node3D
+		if smoke_at:
+			add_park_goer(smoke_at.global_position, ParkGoer.Role.SMOKER)
+		var pitch := find_child("Agora", true, false) as Agora
+		if pitch:
+			pitch.kick(pitch.global_basis.x + pitch.global_basis.z * 0.3, 3.0)
 		# Start the timeline once a client's world is loaded (slow under load), max 90 s.
 		for i: int in 180:
 			if not Net.peers_in_world.is_empty():
@@ -200,6 +210,18 @@ func _net_check() -> void:
 	for npc: Node in npcs.get_children().slice(0, 3):
 		parts.append("%s@%s anim=%d" % [npc.name, (npc as Node3D).global_position.snapped(Vector3.ONE * 0.1), npc.get("anim_state")])
 	print("[NetCheck] %s sees %d NPCs: %s" % ["host" if multiplayer.is_server() else "client", npcs.get_child_count(), ", ".join(parts)])
+	# Point 46: park people (role synced at spawn -> dog / smoke on this peer) and the agora ball.
+	var dogs: int = 0
+	var smokers: int = 0
+	for n: Node in get_tree().get_nodes_in_group(&"park_goers"):
+		if (n as ParkGoer).role == ParkGoer.Role.DOG and n.has_node("Dog"):
+			dogs += 1
+		elif (n as ParkGoer).role == ParkGoer.Role.SMOKER and n.has_node("Smoke"):
+			smokers += 1
+	var ag := find_child("Agora", true, false) as Agora
+	print("[NetCheck] %s sees the park: %d dog walker(s) with a dog, %d smoker(s), ball at %s" % [
+			"host" if multiplayer.is_server() else "client", dogs, smokers,
+			ag.ball_pos.snapped(Vector3.ONE * 0.1) if ag else Vector3.INF])
 	var cars: PackedStringArray = []
 	for car: Node in get_tree().get_nodes_in_group(&"cars").slice(0, 3):
 		cars.append("%s@%s v=%.1f" % [car.name, (car as Node3D).global_position.snapped(Vector3.ONE * 0.1), car.get("net_speed")])
@@ -627,6 +649,7 @@ func _after_navmesh() -> void:
 			if arg.begins_with("--police="):
 				cops = arg.trim_prefix("--police=").to_int()
 		spawn_police(cops)
+		_park_loop()
 	if multiplayer.is_server() and not ("--selftest" in OS.get_cmdline_user_args()
 			or "--netcheck" in OS.get_cmdline_user_args()):
 		for arg: String in OS.get_cmdline_user_args():
@@ -689,6 +712,106 @@ func add_officer(p: Vector3, home: Vector3, car: Node3D = null, heavy: bool = fa
 	cop.from_car = car
 	npcs.add_child(cop, true)
 	return cop
+
+
+# --- Park (point 46, host) ---------------------------------------------------------------
+
+const PARK_GOER := preload("res://prefabs/npc/park_goer.tscn")
+## Park regulars: dog walkers (07-21 h) and one group of youths smoking (14-02 h).
+var park_dogs: int = 2
+var park_smokers: int = 3
+## Models: youths in hoodies / punk / casual; footballers in the CharacterArmature models.
+const SMOKER_VARIANTS: Array[int] = [10, 11, 3, 4, 0]
+const FOOTBALL_VARIANTS: Array[int] = [7, 13]  # (models whose shirt takes the team colour)
+
+
+## Host: one park goer (role = ParkGoer.Role) at `at`.
+func add_park_goer(at: Vector3, role: int, team: int = 0) -> ParkGoer:
+	var p: ParkGoer = PARK_GOER.instantiate()
+	p.role = role
+	p.team = team
+	match role:
+		ParkGoer.Role.SMOKER:
+			p.variant = SMOKER_VARIANTS.pick_random()
+		ParkGoer.Role.FOOTBALL:
+			p.variant = FOOTBALL_VARIANTS.pick_random()
+		_:
+			p.variant = randi() % Pedestrian.VARIANTS.size()
+	p.color_seed = randi()
+	p.position = at
+	p.rotation.y = randf() * TAU
+	if role == ParkGoer.Role.DOG:
+		p.path = park_path()
+		p.laps_left = randi_range(2, 4)
+	elif role == ParkGoer.Role.SMOKER:
+		var m: Node3D = find_child("ParkSmokeSpot", true, false) as Node3D
+		p.spot = m.global_position if m else Vector3.INF
+		p.stay_until = Time.get_ticks_msec() / 1000.0 + randf_range(240.0, 600.0)
+	npcs.add_child(p, true)
+	return p
+
+
+## The dog walkers' loop (Markers/ParkPath), in order.
+func park_path() -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	var root: Node = find_child("ParkPath", true, false)
+	if root:
+		for m: Node in root.get_children():
+			if m is Marker3D:
+				out.append((m as Marker3D).global_position)
+	return out
+
+
+func _park_of(role: int) -> Array[ParkGoer]:
+	var out: Array[ParkGoer] = []
+	for n: Node in get_tree().get_nodes_in_group(&"park_goers"):
+		var p := n as ParkGoer
+		if p and p.role == role and not p.dead and not p.leaving:
+			out.append(p)
+	return out
+
+
+## Host: a pavement spot out of every player's sight (> 25 m), or INF.
+func _far_sidewalk_point() -> Vector3:
+	for attempt: int in 10:
+		var p: Vector3 = Pedestrian.random_sidewalk_point(self, 20)
+		if p == Vector3.INF:
+			continue
+		var ok: bool = true
+		for pl: Node in players_root.get_children():
+			if (pl as Node3D).global_position.distance_to(p) < 25.0:
+				ok = false
+		if ok:
+			return p
+	return Vector3.INF
+
+
+## Host: keep the park's regulars there at their hours; extra ones walk off.
+func _park_loop() -> void:
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	await get_tree().create_timer(3.0).timeout
+	while is_inside_tree():
+		var h: float = dn.hours if dn else 12.0
+		var want_dogs: int = park_dogs if h >= 7.0 and h < 21.0 else 0
+		var dogs: Array[ParkGoer] = _park_of(ParkGoer.Role.DOG)
+		if dogs.size() < want_dogs:
+			var at: Vector3 = _far_sidewalk_point()
+			if at != Vector3.INF:
+				add_park_goer(at, ParkGoer.Role.DOG)
+		for i: int in range(want_dogs, dogs.size()):
+			dogs[i].leaving = true
+		var want_smokers: int = park_smokers if h >= 14.0 or h < 2.0 else 0
+		var smokers: Array[ParkGoer] = _park_of(ParkGoer.Role.SMOKER)
+		if smokers.is_empty() and want_smokers > 0:
+			for i: int in want_smokers:
+				var at: Vector3 = _far_sidewalk_point()
+				if at != Vector3.INF:
+					var p: ParkGoer = add_park_goer(at, ParkGoer.Role.SMOKER)
+					p.slot = TAU * i / float(want_smokers)
+		elif want_smokers == 0:
+			for p: ParkGoer in smokers:
+				p.leaving = true
+		await get_tree().create_timer(15.0).timeout
 
 
 # --- Black Crows (points 11 + 31, host) -------------------------------------------------
@@ -869,7 +992,7 @@ func make_customer(npc: Pedestrian = null) -> Pedestrian:
 		var free: Array[Pedestrian] = []
 		for n: Node in get_tree().get_nodes_in_group(&"npc"):
 			var p := n as Pedestrian
-			if p and not p.dead and p.wants == 0 and not p.is_fleeing() and not p is PoliceOfficer:
+			if p and not p.dead and p.wants == 0 and not p.is_fleeing() and not p is PoliceOfficer and p.can_be_customer():
 				free.append(p)
 		if free.is_empty():
 			return null

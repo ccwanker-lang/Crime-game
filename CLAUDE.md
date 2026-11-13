@@ -233,6 +233,12 @@ Godot console exe:
   `is_enemy`, `_rally`, `_fight_foe`), group call `report_npc_crime(shooter, origin)` on "police" (officers +
   `Car.respond(null, origin, npc)`); street Crows attack officers (`Rival.spot_cop`). 31b: World `rival_night_pool`
   (20) / `rival_pool_left` / `refill_rival_pool()` at dusk, `rival_respawn`. Scenarios wanted_timer, police_vs_crows.
+- Park + agora (point 46): `ParkGoer` (`scripts/npc/park_goer.gd`, `prefabs/npc/park_goer.tscn`, Pedestrian subclass,
+  group `park_goers`, spawn-synced `role` DOG/SMOKER/FOOTBALL + `team`, `leaving`), `ProcDog` (local visual child),
+  World `add_park_goer(at, role, team)` / `park_path()` (Markers/ParkPath) / `_park_loop` (`park_dogs`, `park_smokers`,
+  Markers/ParkSmokeSpot), `Pedestrian.can_be_customer()`. `Agora` (`scripts/world/agora.gd`, @tool, node NavRegion/Agora):
+  host ball sim + `_apply_ball` RPC, `kick(dir, power, by)`, `start_match(n, minutes)` / `end_match`, `football_step(p)`,
+  `kicks`/`goals`/`score`. Generator: `PARK_PATHS` / `AGORA_POS` in gen_world.py (own `prng`). Scenarios park, agora.
 - Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
   pedestrians `_flee_loop` until `flee_safe()` (40 m + out of sight, max 45 s). Scenario panic. Kerb check: `--only=kerb`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;

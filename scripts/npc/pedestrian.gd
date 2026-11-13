@@ -664,6 +664,11 @@ func face(p: Vector3) -> void:
 
 
 ## Host (point 30): could an officer stop this one for a chat?
+## Host (point 46): may World.make_customer pick this NPC? (ParkGoer: only the smokers.)
+func can_be_customer() -> bool:
+	return ambient
+
+
 func free_for_talk() -> bool:
 	return ambient and not dead and not _sitting and not is_fleeing() and not is_talking() and wants <= 0 \
 			and not crossing_road and not stationary

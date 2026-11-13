@@ -42,6 +42,8 @@ const LIST: Array = [
 	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the search runs 3x faster (~7 s instead of 20 s), then both stars go at once. Outside they come for you."],
 	["wanted_timer", "3 stars at once, in front of the Small House door, AK-47", "The police know where you are and send 2 cars. Step through the door behind you (E) and stay out of sight: the stars blink and ONE 30 s search timer runs (3 stars x 10 s). Then all 3 stars go at once, and the extra police cars drive off. Let them see you again: the 30 s start over. With 0 stars the town has just its 2 patrol cars again."],
 	["police_vs_crows", "23:00 on South Street: a Crow, an officer and a patrol car close by", "Just watch (you stand out of the Crow's reach): the street Crow opens fire on the officer, the officer fires back, the patrol car hears it and its crew gets out. Nobody gets stars for it. Crows killed at night are replaced from a pool of 20 per night; when it's used up no more Crows come until the next night."],
+	["park", "15:00 at the park entrance", "Walk through the new park: gravel paths, benches, trees. Two people walk their dog on a lead round the loop (the dog sniffs when they stop). Three youths stand smoking in a circle on the lawn (puffs of smoke). People sit on the benches. The agora (fenced football pitch) is at the end of the cross path."],
+	["agora", "15:00 on the agora, a 2-against-2 match going on", "Four NPCs in red and blue shirts play football (passes, shots, GOAL! + score board). Walk into the ball to kick it yourself (Shift = harder). The match ends after a few minutes and they walk off; on a normal day a match starts now and then between 09:00 and 20:00."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -261,6 +263,26 @@ static func run(world: Node, id: String) -> bool:
 			crow.home = crow.global_position
 			var traffic2: Traffic = world.get_node("Traffic")
 			traffic2.spawn_police_car(3, fposmod(_progress_near(traffic2.routes[3], spot) - 40.0, traffic2.routes[3].length))
+		"park":
+			_kit(me, 300, [["weed_bag", 3]])
+			_place(me, Vector3(-7.0, 0.3, 19.0), Vector3(-2.0, 1.2, 30.0), dn, 15.0)
+			var path: Array[Vector3] = world.call("park_path")
+			if path.size() >= 4:
+				world.call("add_park_goer", path[0] + Vector3(0.0, 0.0, 3.0), ParkGoer.Role.DOG)
+				world.call("add_park_goer", path[2], ParkGoer.Role.DOG)
+			var smoke: Node3D = world.find_child("ParkSmokeSpot", true, false) as Node3D
+			if smoke:
+				for i: int in 3:
+					var y: ParkGoer = world.call("add_park_goer", smoke.global_position + Vector3(cos(TAU * i / 3.0), 0.1, sin(TAU * i / 3.0)) * 0.9, ParkGoer.Role.SMOKER)
+					y.slot = TAU * i / 3.0
+		"agora":
+			_kit(me, 300, [])
+			var ag: Agora = world.find_child("Agora", true, false) as Agora
+			if ag:
+				_place(me, ag.to_global(Vector3(-2.0, 0.3, 3.5)), ag.to_global(Vector3(2.0, 0.8, -1.0)), dn, 15.0)
+				ag.start_match(4, 6.0)
+				for p: ParkGoer in ag.players:
+					p.global_position = ag.to_global(Vector3(randf_range(-5.0, 5.0), 0.1, randf_range(-3.0, 3.0)))
 		"wanted_hide":
 			var small: Property = world.find_child("SmallHouse", true, false).get_node("Property") as Property
 			small.host_set_owned(me.player_name)
@@ -309,7 +331,7 @@ static func run(world: Node, id: String) -> bool:
 	me.show_message("SCENARIO '%s': %s" % [id, check_text(id)])
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash"] else 4.0).timeout
+		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash", "agora"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):

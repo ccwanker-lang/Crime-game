@@ -179,6 +179,13 @@ def garden_dressing(gardens, z_from, z_to):
 
 
 GRASS_HOLES = [(-38.5, 21.8, -33.0, 27.8), (-36.1, 5.0, -32.9, 22.0)]  # world x0, z0, x1, z1
+# Point 46: park paths (centre x, z, size x, z) and the agora pitch; no grass on them.
+PARK_PATHS = [(-7.0, 29.0, 2.2, 22.0), (-1.4, 22.0, 13.4, 2.0), (4.3, 29.5, 2.0, 15.0),
+              (1.55, 36.0, 31.1, 2.2), (16.0, 34.25, 2.2, 1.3)]
+AGORA_POS = (16.0, 28.0)
+for (cx, cz, sx, sz) in PARK_PATHS:
+    GRASS_HOLES.append((cx - sx / 2, cz - sz / 2, cx + sx / 2, cz + sz / 2))
+GRASS_HOLES.append((AGORA_POS[0] - 9.2, AGORA_POS[1] - 5.7, AGORA_POS[0] + 9.2, AGORA_POS[1] + 5.7))
 
 
 def grass(cx, cz, sx, sz, seed):
@@ -477,6 +484,34 @@ for i in range(18):
     put("nature/tree_medium.tscn", (-75 + rng.uniform(-1, 1), 0, z), rng.uniform(0, 360),
         props={"tree_seed": str(800 + i)})
 
+# --------------------------------------------------------------------------- park + agora (point 46)
+# Own random stream: everything above keeps its exact layout.
+prng = random.Random(46)
+for i, (cx, cz, sx, sz) in enumerate(PARK_PATHS):
+    sc.node(f"ParkPath{i + 1}", "StaticBody3D", NAV, props={
+        "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((cx, 0, cz)),
+        "size": f"Vector2({sx:g}, {sz:g})", "surface": q("soil"), "height": "0.12", "edge": "false"})
+grass(-4, 38.5, 20, 7, 46)
+grass(13, 38.5, 14, 6, 47)
+# Benches along the paths (rot 90 faces +X, 180 faces -Z), a bin next to each.
+for pos, rot in [((-8.75, 0.12, 24.0), 90), ((-8.75, 0.12, 28.0), 90), ((-9.0, 0.12, 37.75), 180),
+                 ((0.5, 0.12, 37.75), 180), ((10.0, 0.12, 37.75), 180)]:
+    put("props/bench.tscn", pos, rot)
+    off = (0, 0, 1.6) if rot == 90 else (1.6, 0, 0)
+    put("props/trash_can.tscn", (pos[0] + off[0], pos[1], pos[2] + off[2]), prng.uniform(0, 90))
+for pos in [(-8.6, 0.12, 33.5), (3.0, 0.12, 37.6), (13.0, 0.12, 37.6), (-5.6, 0.12, 20.0)]:
+    put("props/street_lamp.tscn", pos, 0)
+for i, (x, z) in enumerate([(-12.8, 21.0), (0.5, 31.5), (-1.0, 40.0), (8.5, 40.0), (-12.5, 37.5)]):
+    put("nature/tree_large.tscn" if i % 2 else "nature/tree_medium.tscn", (x, 0, z), prng.uniform(0, 360),
+        props={"tree_seed": str(4600 + i)})
+for (x, z) in [(-13.4, 30.2), (-13.2, 34.2), (-10.2, 33.9), (-13.0, 24.5), (5.0, 39.5), (-6.0, 40.5), (-2.5, 24.5)]:
+    put(f"nature/shrub_{prng.choice('abcd')}.tscn", (x, 0, z), prng.uniform(0, 360))
+put("nature/flower_bed.tscn", (-1.0, 0.0, 27.0), 0, props={"size": "Vector2(3, 1.4)", "bed_seed": "46"})
+put("nature/hedge.tscn", (-4, 0, 41.8), 0, props={"size": v3(20, 1.2, 0.8), "hedge_seed": "460"})
+# The agora: fenced mini pitch, gate on the park side.
+sc.node("Agora", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/world/agora.gd"), "transform": xform((AGORA_POS[0], 0, AGORA_POS[1]))})
+
 # --------------------------------------------------------------------------- invisible walls
 sc.node("Bounds", "StaticBody3D", ".")
 for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150, 10, 1)),
@@ -510,7 +545,13 @@ def debug_label(parent, text):
         "outline_size": "12", "modulate": col(1, 0.95, 0.75), "no_depth_test": "true"})
 
 
+# Point 46: the dog walkers' loop and the youths' smoke spot in the park.
+sc.node("ParkPath", "Node3D", "Markers")
+for i, (x, z) in enumerate([(-7.0, 22.0), (4.3, 22.0), (4.3, 36.0), (-7.0, 36.0)]):
+    sc.node(f"P{i + 1}", "Marker3D", "Markers/ParkPath", props={"transform": xform((x, 0.12, z))})
+sc.node("ParkSmokeSpot", "Marker3D", "Markers", props={"transform": xform((-11.5, 0.05, 31.0))})
 debug_label("Markers/CustomerMeetPoint", "MEET POINT")
+debug_label("Markers/ParkSmokeSpot", "SMOKE SPOT")
 debug_label("Markers/CustomerSpawn", "CUSTOMER SPAWN")
 sc.node("RivalPatrol", "Node3D", "Markers")
 for i, (x, z) in enumerate([(42, 12), (58, 12), (58, 28), (42, 28)]):
@@ -523,7 +564,7 @@ for i in range(4):
 # Host spawns pedestrians under NPCs; the spawner replicates them to clients.
 sc.node("NPCs", "Node3D", ".")
 sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
-    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn", "res://prefabs/npc/rival.tscn")',
+    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn", "res://prefabs/npc/rival.tscn", "res://prefabs/npc/park_goer.tscn")',
     "spawn_path": 'NodePath("../NPCs")'})
 
 # --------------------------------------------------------------------------- traffic

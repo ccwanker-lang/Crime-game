@@ -14,13 +14,15 @@
   then all stars go), extra police units per star that withdraw, police vs Crows (`PoliceOfficer.foe`,
   `report_npc_crime`), Crows night pool (20). Targeted self-test checks pass (police, wanted, police_life, rivals,
   police_vs_crows, pedestrians, npc_combat). Admin mode (F10/F11/F12) was already done.
-- The FULL self-test on the round-4 commit: see the next line (updated when it has run).
-- Full self-test round 4: NOT YET RUN.
+- Point 46 (park + agora) built + committed: targeted check `park` passes, netcheck passes (client sees dog
+  walkers with dogs, smokers, the ball at the same spot).
+- Full self-test on the round-4 commit: running at the time of writing (no FAIL so far); rerun on the latest
+  commit if this line is not updated.
 
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
-3. Roadmap in the user's order: park + agora (46 = 12-13), car dealer + driving (45 = 14), cover garage (52),
+3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14), cover garage (52),
    territory per district (51), the remote prison + tutorial intro + late-join intro (49-50), the full village
    map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
 
@@ -31,10 +33,13 @@
 - wanted_three / wanted_hide: the new search timer (30 s / ~7 s at home), all stars at once.
 - police_vs_crows: 23:00 on South Street, just watch: a Crow and an officer shoot it out, the patrol car crew
   joins; no stars for you.
+- park: 15:00 at the park entrance: paths, benches, dog walkers with dogs, youths smoking in a circle.
+- agora: 15:00 on the pitch, a 2-against-2 match; walk into the ball to kick it, GOAL! + score board.
 - (from before, still untested by you) trash, launder, grow (work animations + mouse wheel), sleep, bookshelf.
 
 ## Known
 - The "activities" pedestrian check is random and fails now and then.
 - `--only=npc_combat` needs `pedestrians` in the same run (it uses the pedestrians that check spawns).
+- No git push: `origin` (github.com/ccwanker-lang/game) answers "Repository not found" - commits stay local.
 - Netcheck: after the respawn the client's 5 m crouch walk bumps into the host (both stand at the hospital spawn);
   harmless, it has always been like that.
