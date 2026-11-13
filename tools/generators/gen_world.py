@@ -494,12 +494,12 @@ for i, (cx, cz, sx, sz) in enumerate(PARK_PATHS):
 grass(-4, 38.5, 20, 7, 46)
 grass(13, 38.5, 14, 6, 47)
 # Benches along the paths (rot 90 faces +X, 180 faces -Z), a bin next to each.
-for pos, rot in [((-8.75, 0.12, 24.0), 90), ((-8.75, 0.12, 28.0), 90), ((-9.0, 0.12, 37.75), 180),
-                 ((0.5, 0.12, 37.75), 180), ((10.0, 0.12, 37.75), 180)]:
+for pos, rot in [((-8.75, 0, 24.0), 90), ((-8.75, 0, 28.0), 90), ((-9.0, 0, 37.75), 180),
+                 ((0.5, 0, 37.75), 180), ((10.0, 0, 37.75), 180)]:
     put("props/bench.tscn", pos, rot)
     off = (0, 0, 1.6) if rot == 90 else (1.6, 0, 0)
     put("props/trash_can.tscn", (pos[0] + off[0], pos[1], pos[2] + off[2]), prng.uniform(0, 90))
-for pos in [(-8.6, 0.12, 33.5), (3.0, 0.12, 37.6), (13.0, 0.12, 37.6), (-5.6, 0.12, 20.0)]:
+for pos in [(-8.6, 0, 33.5), (3.0, 0, 37.6), (13.0, 0, 37.6), (-5.6, 0, 20.0)]:
     put("props/street_lamp.tscn", pos, 0)
 for i, (x, z) in enumerate([(-12.8, 21.0), (0.5, 31.5), (-1.0, 40.0), (8.5, 40.0), (-12.5, 37.5)]):
     put("nature/tree_large.tscn" if i % 2 else "nature/tree_medium.tscn", (x, 0, z), prng.uniform(0, 360),
