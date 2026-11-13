@@ -8,6 +8,11 @@
 - Work in small, testable steps. After each step: how to test solo, with 2 local instances
   (Debug > Customize Run Instances), and over LAN. Wait for feedback unless told "ga door".
 - Commit after each working step.
+- FIXED RULE (progress docs): after EVERY finished point update DESIGN.md (Roadmap status line + a Decisions entry
+  for every choice made) and add a CHANGELOG.md line, in the same commit. "ga verder volgens de Roadmap" in a new
+  session = read the Roadmap and continue with the first point that is not done, in the order it gives.
+- Work autonomously: test yourself, commit per point, ask no questions (choose, and write the choice + why in
+  DESIGN.md Decisions).
 - FIXED RULE (test scenarios): every time you ask the user to test something, first make a scenario for it in
   `scripts/debug/scenarios.gd` (`Scenarios.LIST` + a `match` branch in `run`) and give them its name (F9 in the game,
   or `--scenario=<name>`). Never ask the user to test something for which they would first have to collect or make

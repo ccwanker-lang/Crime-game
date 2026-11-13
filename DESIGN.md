@@ -124,15 +124,17 @@ A believable Belgian/European town at human scale (1 unit = 1 m, people ~1.75 m)
 - Deposit dirty cash in a business (E at its counter). Each in-game day it turns up to its daily maximum into
   clean money for the owner, minus a small fee (e.g. 10%).
 
-## Police (basic, milestone 2) and heat (later)
-- Police station with officers who patrol on foot or in a police car.
-- Basic reaction: an officer who sees a murder or hears gunshots nearby comes to look and shoots the culprit.
-- Later: heat/wanted level per player (rises with crimes seen, decays over time), searches, arrests, bribes
-  (rank 5), the corrupt cop from the story.
+## Police and the wanted level
+- Police station; patrol cars with a crew of 2 who get out for a call and never leave their car behind
+  (point 25); foot patrols and police life on the street come back with point 30.
+- Wanted level (point 28, replaces "heat"): 1-5 stars per player, GTA style (see Roadmap 28). Low stars = an
+  arrest (illegal items + fine, released at the station), higher stars = chases and shooting, 4-5 = the whole
+  force with road blocks. Stars drop out of sight / inside your own property / with a bribe (rank 5).
+- Later: the corrupt cop from the story.
 
 ## Vehicles (milestone 2)
-- AI traffic: procedural cars on smooth right-hand routes (curves), react to gunfire (speed up, honk,
-  swerve or stop and the driver flees on foot); a car that is shot stops.
+- AI traffic: procedural cars on smooth right-hand routes (curves). Gunfire: drivers stay in and flee in
+  panic (U-turn or speed off, point 24; full panic through junctions with point 32); wrecks are towed.
 - Car dealer (building + NPC): buy cars. Your own cars: F to get in/out, WASD drives (VehicleBody3D), chase
   camera; other players can ride along as passengers. Saved in the savegame, they spawn at your property.
 
@@ -190,15 +192,15 @@ Milestone 2 (feedback after playing milestone 1). Ranks don't exist yet: everyth
 the start for now; rank gates (see Progression) come later.
 1. Smooth car curves (Curve3D routes, heading along the axles, steered front wheels, brake before / accelerate after bends) - done
 2. Stairs work for players and NPCs (invisible ramp over each flight, furniture keeps the stair way free, walker climbs every stair + navmesh path to every top floor) - done
-3. Cars react to gunfire and murders (speed up, honk, swerve or stop + driver flees and comes back; shot car stops, wreck towed + replaced) - done
+3. Cars react to gunfire and murders (speed up, honk, swerve; shot car flees; wreck towed + replaced) - done (drivers getting out: replaced by 24, panic reworked again in 32)
 4. Item icons (renders of the 3D models) with counts in hotbar/inventory (asked again as E) - done
 5. Held items visible in first and third person (seeds, watering can, soil, baggies...) - done
 6. Furnishing: buy stations as items, place/rotate/pick up in your own properties; empty Starter Room - done
 7. Black market in the garage, behind a fence, open only at night; sells stations + illegal goods - done
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - done
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - done
-10. Police station + patrolling police (foot / car) reacting to gunfire and murder - done
-11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done
+10. Police station + patrolling police reacting to gunfire and murder - done (since 25: patrol cars with a crew of 2, no foot patrols; reworked by 28 + 30)
+11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done (reworked by 31)
 12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
 13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
 14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
@@ -223,8 +225,50 @@ Feedback round 2 (MUST first, then balance, traffic, police, map):
     instead of shot -> illegal items confiscated + fine, released at the police station - done
 26. Spread the properties for sale over the map: at least a street apart, different neighbourhoods, not next to
     the police station; agent list + existing saves follow (owned property moves with its contents) - done
-Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; heat, lawyer, bribes;
-rival territories, lab raids, story missions (acts 1-5); the full city (Map layout); roadside team, fuel station, garage.
+Test scenarios (F9 / --scenario=<id>, one per feature, real save never touched) - done
+Feedback round 3 (after playing every scenario). APPROVED, don't change how they work: all weapons incl. the
+sniper scope, growing/drying/packaging, the black market, storage. Order: 27 first, then 28-41, then 12-14.
+27. Art style: ONE consistent style. Comparison scene scenes/art_test/style_compare.tscn (--scenario=style_compare)
+    with 3 proposals side by side (A stylized low-poly flat/soft textures, B low-poly + PBR, C own proposal), each a
+    piece of street with 3 houses, a car, an NPC and pistol + AK viewmodels; screenshots to the user. The real map
+    is NOT changed until the user has chosen; then everything is pulled into that style - comparison: todo,
+    conversion: waiting for the user's choice
+28. Wanted system (GTA style, replaces the current police behaviour and "heat"): 1-5 stars in the HUD.
+    1 star: weapon drawn in sight of police or 1-2 kills -> one officer comes to cuff you, doesn't shoot.
+    2: killed an officer or ~6+ kills -> chase, shoot if you are armed. 3: ~12+ kills -> several cars, shoot at
+    once. 4-5: the whole force, road blocks, heavy teams. Stars drop when you stay out of sight, hide in your own
+    property, or (later) bribe. Police react BEFORE you holster. Thresholds/times in a resource - todo
+29. Pedestrians and police may walk on the road (not only pavement/zebras); cars brake for them - todo
+30. Police life: a patrol car sometimes stops (light bar) to question an NPC; officers also patrol on foot and talk
+    to passers-by - todo
+31. Black Crows rework: spread over their whole fenced yard (no single spawn point); they only attack on their
+    turf or if a member saw you there (memory); new spawns that never saw you leave you alone outside. At night one
+    small group patrols the streets (the night threat), the rest stays in the yard. The dead are replaced only
+    after 1-2 minutes. Weapon variety (some carry an AK) - todo
+32. Traffic + panic: cars that are shot at or hear shots flee in full panic and never stop (also not at a
+    junction: right of way is dropped). Pedestrians flee until they are really away from you and out of sight - todo
+33. Street lamps on both sides of every street (the barber's street has none); the kerb sometimes blocks you
+    stepping up from the road onto the pavement: fix (step height / collision) - todo
+34. Deals by phone: the customer sends a proposal (amount, price, place); accept, decline or counter-offer (the
+    customer accepts or refuses depending on how far you go); only an accepted deal fixes the meeting. At the
+    meeting a short conversation with "Confirm deal" instead of plain E. Fix the sell_weed scenario: right in front
+    of a customer with a green € sign - todo
+35. Own properties on the map: icon + name after buying, a name plate on the building; the estate agent shows
+    where a property is on the map BEFORE you buy - todo
+36. Build mode (B): only in build mode can furniture and stations be picked up, moved and rotated. Outside it E
+    only uses things (plant, water, harvest, open a locker) (changes 6/17) - todo
+37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - todo
+38. Bookcase = storage too, like the locker - todo
+39. Trash: throw cardboard boxes and rubbish in a bin, put the bin outside, a garbage truck comes by and empties it - todo
+40. Money: HUD shows dirty and clean money apart; depositing in a front business shows a message ("€5000 deposited
+    -> €4500 clean tomorrow") and another one when the clean money comes in; a screen in the business with what
+    is pending - todo
+41. Mouse wheel scrolls through the hotbar (in build mode it rotates) - todo
+Then the rest of milestone 2: 12 park, 13 agora, 14 car dealer + driving.
+Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; lawyer, bribes
+(heat = the wanted system of point 28); rival territories, lab raids, story missions (acts 1-5); the full city
+(Map layout); roadside team, fuel station, garage.
+Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
 Choices made while working autonomously (what + why).
@@ -308,6 +352,10 @@ Choices made while working autonomously (what + why).
   restarts the host into a fresh game on a separate file (user://scenario_test.json) after saving the real game once,
   so real progress can never be changed by a test. Co-op clients are disconnected by it (it is a solo check tool).
   One scenario per feature; every manual check asked of the user gets one first (rule in CLAUDE.md).
+- Feedback round 3: "approved" (weapons incl. sniper scope, growing/drying/packaging, black market, storage) means
+  their mechanics, feel and UI stay as they are. The art style conversion (point 27) may still change how their
+  models look, so everything matches the chosen style. Point 25's arrest stays: it becomes the 1-star response of
+  the wanted system (28). Point 41 + 36 together: the mouse wheel scrolls the hotbar, and rotates only in build mode.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

@@ -22,3 +22,4 @@ One line per finished part.
 - Point 26: the properties for sale are spread over four neighbourhoods (none next to the police station); old saves carry the contents of an owned property along.
 - Point 11: the Black Crows' house in their yard; at night Crows roam the town and attack players they see (safe inside your own property), dropping cash and loot when killed, going home at daybreak.
 - Test scenarios: F9 menu / --scenario=<id> sets you up for a manual check (items, money, time, place, NPCs) in a separate test game; the real save stays untouched.
+- Roadmap: feedback round 3 added as points 27-41 (art style, wanted stars, police life, Crows rework, panic, lamps/kerbs, phone deals, property map icons, build mode, bed, bookcase storage, trash, money messages, hotbar wheel); stale statuses corrected.
