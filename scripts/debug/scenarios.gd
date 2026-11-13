@@ -30,6 +30,7 @@ const LIST: Array = [
 	["launder", "Own the bakery, €8,000 dirty", "E on the safe in the back office: deposit dirty cash. Hold F7: it comes back as clean money (90%), max per day."],
 	["houses", "Inside the Family House", "Walk all floors: stairs, railings, balconies (E opens the balcony door), furniture."],
 	["death_respawn", "Low health, cash + items", "Press F4 a few times: you die and drop a loot bag; you respawn at the hospital. Go back and take your bag."],
+	["sleep", "22:30 next to your bed", "E on the bed: the screen goes dark and the clock jumps to 07:00 (plants and racks catch up). Before 20:00 it says you're not tired. Moving gets you out of bed. In co-op everyone has to be in bed."],
 	["health_regen", "30 health, safe at home", "Wait ~8 s: health slowly comes back to 100. F4 (hurt) pauses it again."],
 	["road_crossing", "Main road, people crossing everywhere", "Pedestrians cross the road anywhere (not only at zebras): they wait at the kerb for close cars, then walk straight over. Cars brake for them. (Crossing is made 4x more common here.)"],
 	["police_life", "South Street at the police station", "Watch the police: two officers on foot stop passers-by for a chat; a patrol car stops with its light bar on, one officer gets out, talks to someone and gets back in."],
@@ -244,6 +245,19 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 200, [])
 			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 12.0)
 			me.health = 30
+		"sleep":
+			_kit(me, 200, [])
+			var bed: Node3D = null
+			for n: Node in world.get_tree().get_nodes_in_group(&"placed"):
+				if n is PlacedFurniture and (n as PlacedFurniture).item_id == "bed":
+					bed = n as Node3D
+			var spot: Vector3 = at_home
+			if bed:
+				var nav: Vector3 = NavigationServer3D.map_get_closest_point(world.get_world_3d().navigation_map,
+						bed.global_position + (at_home - bed.global_position).normalized() * 1.3)
+				spot = nav + Vector3.UP * 0.1
+			_place(me, spot, bed.global_position + Vector3.UP * 0.3 if bed else at_home, dn, 22.5)
+			me.head.rotation.x = -0.45
 	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()

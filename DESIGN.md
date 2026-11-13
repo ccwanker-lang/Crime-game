@@ -357,7 +357,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     where a property is on the map BEFORE you buy - done
 36. Build mode (B): only in build mode can furniture and stations be picked up, moved and rotated. Outside it E
     only uses things (plant, water, harvest, open a locker) (changes 6/17) - done
-37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - todo
+37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - done
 38. Bookcase = storage too, like the locker - todo
 39. Trash: throw cardboard boxes and rubbish in a bin, put the bin outside, a garbage truck comes by and empties it - todo
 40. Money: HUD shows dirty and clean money apart; depositing in a front business shows a message ("€5000 deposited
@@ -590,6 +590,12 @@ Choices made while working autonomously (what + why).
   moving: one simple rule ("building = B"); outside it a selected placeable item just shows "[B] Build mode to
   place X". In build mode a short E tap still uses the thing (water a plant, open a locker), hold E picks it up.
   A blue "BUILD MODE" line sits above the hotbar while it is on.
+- Point 37 (sleep): only your crew's own beds (placed furniture "bed", so every bed in an owned property, incl. the
+  Starter Room's) and only from 20:00 to 06:00, never while wanted. Co-op = everyone must be in bed (no vote: a
+  vote would let one player skip the night under another's feet); the sleeping players see a dark screen with
+  "x/y in bed", moving gets you up. When all sleep the host jumps to 07:00, every station ticks the skipped hours
+  at once (plants grow, racks dry, safes/deliveries progress) and sleepers wake healed. Logic in one host node
+  World/Sleep (`scripts/world/sleep.gd`); a leaving player is dropped from the count.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

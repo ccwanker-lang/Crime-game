@@ -133,6 +133,8 @@ var locker: StorageLocker = null
 ## Owner (point 34): the customer whose deal window is open (null = none).
 var deal_npc: Pedestrian = null
 ## Admin mode (host only, debug builds): F10 noclip, F11 god mode (no damage, endless ammo), F12 clear wanted.
+## Owner (point 37): in bed, waiting for the night to pass (input only gets you out).
+var sleeping: bool = false
 var admin_noclip: bool = false
 var admin_god: bool = false
 const NOCLIP_SPEED: float = 9.0
@@ -410,6 +412,14 @@ func _set_third_person(on: bool) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not is_local() or auto_walk:
 		return
+	if sleeping:
+		# In bed: moving, jumping, E or Esc gets you up.
+		for a: String in ["move_forward", "move_back", "move_left", "move_right", "jump", "interact", "release_mouse"]:
+			if event.is_action_pressed(a):
+				request_sleep(false)
+				get_viewport().set_input_as_handled()
+				break
+		return
 	if ui and ui.phone.is_open():
 		# Phone out: mouse free for it, you can still walk; Tab or Esc puts it away.
 		if event.is_action_pressed("phone") or event.is_action_pressed("release_mouse"):
@@ -581,6 +591,8 @@ func _physics_process(delta: float) -> void:
 	if is_local():
 		if admin_noclip:
 			_admin_fly(delta)
+		elif sleeping:
+			velocity = Vector3.ZERO
 		else:
 			_local_move(delta)
 		net_pos = global_position
@@ -814,6 +826,47 @@ func close_deal() -> void:
 		ui.close_deal()
 	if not auto_walk:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Owner (point 37): get into bed / out of it (the host checks time, bed, wanted).
+func request_sleep(on: bool) -> void:
+	if multiplayer.is_server():
+		_host_request_sleep(on)
+	else:
+		_request_sleep.rpc_id(1, on)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_sleep(on: bool) -> void:
+	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
+		_host_request_sleep(on)
+
+
+func _host_request_sleep(on: bool) -> void:
+	var s: Sleep = Sleep.current(get_tree())
+	if s:
+		s.host_set(self, on)
+
+
+## Host -> owner: asleep (dark screen + text) or awake.
+func host_sleep_state(on: bool, text: String) -> void:
+	if not multiplayer.is_server():
+		return
+	if peer_id == multiplayer.get_unique_id():
+		_sleep_state(on, text)
+	else:
+		_sleep_state.rpc_id(peer_id, on, text)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _sleep_state(on: bool, text: String) -> void:
+	if multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	sleeping = on
+	if ui:
+		ui.set_sleep(on, text)
+		if not on and text != "":
+			ui.toast(text)
 
 
 ## Owner: phone out (frees the mouse) / away.

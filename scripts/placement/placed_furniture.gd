@@ -19,8 +19,19 @@ func _ready() -> void:
 
 func get_interaction_prompt() -> String:
 	var item: ItemData = ItemDB.get_item(StringName(item_id))
-	return "Hold to pick up %s" % (item.display_name if item else item_id)
+	if item_id == "bed":  # point 37
+		var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+		if dn and Sleep.is_sleep_time(dn.hours):
+			return "Sleep until morning"
+		return "Bed (you can sleep from %02d:00)" % int(Sleep.SLEEP_FROM)
+	return item.display_name if item else item_id
 
 
+## E: a bed puts you to sleep (point 37); other furniture does nothing (build mode moves it).
 func interact() -> void:
-	pass
+	if item_id != "bed":
+		return
+	for n: Node in get_tree().get_nodes_in_group(&"players"):
+		var p := n as Player
+		if p and p.is_local():
+			p.request_sleep(true)

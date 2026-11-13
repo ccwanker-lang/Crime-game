@@ -609,6 +609,31 @@ func _build_help_panel() -> void:
 	_help = center
 
 
+var _sleep_panel: ColorRect
+var _sleep_text: Label
+
+
+## Point 37: a dark screen while you sleep, with how many are in bed.
+func set_sleep(on: bool, text: String) -> void:
+	if _sleep_panel == null:
+		_sleep_panel = ColorRect.new()
+		_sleep_panel.color = Color(0.01, 0.01, 0.03, 0.88)
+		_sleep_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_sleep_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_sleep_panel)
+		_sleep_text = Label.new()
+		_sleep_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_sleep_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_sleep_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_sleep_text.add_theme_font_size_override("font_size", 26)
+		_sleep_text.add_theme_color_override("font_color", Color(0.75, 0.8, 1.0))
+		_sleep_panel.add_child(_sleep_text)
+	_sleep_panel.visible = on
+	_sleep_text.text = "Zzz...
+
+" + text if on else ""
+
+
 var _build_label: Label
 
 

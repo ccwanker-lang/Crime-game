@@ -186,6 +186,9 @@ Godot console exe:
 - Map icons (point 35): `PhoneMap` draws owned properties (green) + `show_for_sale` pins (orange) + `focus`
   (`PhoneMap.property_spot(p)`); the estate window (`PlayerHUD._fill_estate`) embeds one with "Where?" buttons.
   Screenshot flags for `--scenario-shot`: `--help`, `--deal`, `--shop` (nearest shopkeeper), `--phone-map`.
+- Sleep (point 37): World/Sleep (`Sleep`, host): `Player.request_sleep(on)` -> `Sleep.host_set` (time window, own bed =
+  PlacedFurniture item "bed", not wanted); all players in bed -> `_morning()` (07:00, stations `tick(skipped)`);
+  owner `sleeping` + HUD `set_sleep`. Scenario sleep, self-test check sleep.
 - Laundering (point 9): player_data "cash" = dirty, "clean" = laundered (`GameState.add_cash(name, -x, legal)` pays
   from both pots, legal = clean first; `add_clean`; death drops only dirty). `LaunderSafe` station
   (`prefabs/stations/launder_safe.tscn`, `daily_max`) in `prefabs/buildings/bakery|barber|laundromat.tscn`; its

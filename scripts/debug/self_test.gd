@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1608,6 +1608,64 @@ func _check_build_mode(world: Node3D) -> void:
 	_report(not pl.is_active(), "B again: build mode off, ghost gone")
 	p.queue_free()
 	GameState.player_data.erase("Builder")
+	await get_tree().physics_frame
+
+
+# --- Sleep (point 37) -----------------------------------------------------------------
+
+func _check_sleep(world: Node3D) -> void:
+	var bed: PlacedFurniture = null
+	for n: Node in get_tree().get_nodes_in_group(&"placed"):
+		if n is PlacedFurniture and (n as PlacedFurniture).item_id == "bed":
+			bed = n as PlacedFurniture
+	_report(bed != null, "an own bed to sleep in (the Starter Room's, adopted)")
+	if bed == null:
+		return
+	var sleep: Sleep = Sleep.current(get_tree())
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	var hours0: float = dn.hours
+	var ps: Array[Player] = []
+	for i: int in 2:
+		var p: Player = WALKER.instantiate()
+		p.auto_walk = true
+		p.name = str(i + 1)
+		p.player_name = "Sleeper%d" % i
+		var at: Vector3 = bed.global_position + Vector3(0.6 * i - 0.3, 0.1, 0.0)
+		p.auto_target = at
+		world.get_node("Players").add_child(p)
+		p.global_position = at
+		ps.append(p)
+	for i: int in 5:
+		await get_tree().physics_frame
+	dn.set_hours(12.0)
+	ps[0]._host_request_sleep(true)
+	_report(not sleep.sleepers.has(ps[0]) and ps[0].last_message.contains("not tired"),
+			"no sleeping at noon ('%s')" % ps[0].last_message)
+	dn.set_hours(23.0)
+	# A pot that grows overnight.
+	var pot: GrowPot = (await _weed_corner(world))["Pot1"] as GrowPot
+	if pot:
+		pot.state.merge({"stage": GrowPot.Stage.GROWING, "growth": 0.1, "water": 1.0, "seed": 5}, true)
+	var growth0: float = float(pot.state["growth"]) if pot else 0.0
+	ps[0].health = 50
+	ps[0]._host_request_sleep(true)
+	_report(sleep.sleepers.has(ps[0]) and ps[0].sleeping and absf(dn.hours - 23.0) < 0.1,
+			"one player in bed: asleep, waiting for the other (it's still %s)" % dn.clock_text())
+	ps[1]._host_request_sleep(true)
+	await get_tree().physics_frame
+	_report(absf(dn.hours - Sleep.WAKE_HOUR) < 0.1 and not ps[0].sleeping and not ps[1].sleeping and sleep.sleepers.is_empty()
+			and ps[0].health == Player.MAX_HEALTH, "both in bed: it's %s, everyone awake and rested" % dn.clock_text())
+	if pot:
+		_report(float(pot.state["growth"]) > growth0, "the plant grew during the night (%.2f -> %.2f)" % [growth0, float(pot.state["growth"])])
+	# Getting up again.
+	dn.set_hours(22.0)
+	ps[0]._host_request_sleep(true)
+	ps[0]._host_request_sleep(false)
+	_report(not sleep.sleepers.has(ps[0]) and not ps[0].sleeping, "getting out of bed works")
+	dn.set_hours(hours0)
+	for p: Player in ps:
+		GameState.player_data.erase(p.player_name)
+		p.queue_free()
 	await get_tree().physics_frame
 
 
