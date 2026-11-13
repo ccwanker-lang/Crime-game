@@ -378,16 +378,18 @@ for z in range(8, 46, 2):
 for x in range(38, 62, 2):
     put("props/chainlink_fence.tscn", (x, 0.05, 46))
 put("buildings/warehouse.tscn", (50, 0.05, 32), 180, name="Warehouse")
+# Point 11: the Black Crows' house in their yard, front to the gate (they come out here at night).
+put("buildings/crows_house.tscn", (55.75, 0.05, 17), 180, name="CrowsHouse")
 put("props/container_12m.tscn", (41.6, 0.05, 22), 90, props={"color": col(0.55, 0.12, 0.08)})
 put("props/container_6m.tscn", (45.5, 0.05, 13.5), 0, props={"color": col(0.12, 0.3, 0.5)})
 put("props/container_6m.tscn", (45.5, 2.66, 13.5), 3, props={"color": col(0.15, 0.4, 0.2)})
-put("props/container_6m.tscn", (57.5, 0.05, 20), 75, props={"color": col(0.6, 0.45, 0.1)})
+put("props/container_6m.tscn", (60.0, 0.05, 38), 90, props={"color": col(0.6, 0.45, 0.1)})
 sc.node("Graffiti", "Label3D", NAV, props={
     "transform": xform((45.5, 1.6, 12.27), 0), "text": q("BLACK CROWS"), "font_size": "96",
     "pixel_size": "0.012", "modulate": col(0.85, 0.85, 0.85, 0.9), "outline_size": "0", "double_sided": "false"})
 for pos, rot, pf in [((53, 0.05, 11), 10, "crate_long"), ((53.6, 0.05, 11.9), 80, "crate_long"),
-                     ((53.2, 0.51, 11.3), 20, "crate_flat"), ((55, 0.05, 25), 0, "barrel"),
-                     ((55.7, 0.05, 25.6), 0, "barrel"), ((40, 0.05, 30), 0, "barrel"),
+                     ((53.2, 0.51, 11.3), 20, "crate_flat"), ((40.2, 0.05, 32.6), 0, "barrel"),
+                     ((40.9, 0.05, 33.3), 0, "barrel"), ((40, 0.05, 30), 0, "barrel"),
                      ((44, 0.05, 28), 30, "crate_long"), ((51, 0.05, 15.5), 0, "trash_can_rusty"),
                      ((47, 0.05, 10), 0, "road_barrier"), ((51.2, 0.05, 10), 0, "road_barrier"),
                      ((59, 0.05, 30), 0, "utility_box")]:
@@ -496,7 +498,7 @@ for i in range(4):
 # Host spawns pedestrians under NPCs; the spawner replicates them to clients.
 sc.node("NPCs", "Node3D", ".")
 sc.node("NPCSpawner", "MultiplayerSpawner", ".", props={
-    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn")',
+    "_spawnable_scenes": 'PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn", "res://prefabs/npc/rival.tscn")',
     "spawn_path": 'NodePath("../NPCs")'})
 
 # --------------------------------------------------------------------------- traffic

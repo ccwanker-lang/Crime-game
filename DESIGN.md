@@ -198,7 +198,7 @@ the start for now; rank gates (see Progression) come later.
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - done
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - done
 10. Police station + patrolling police (foot / car) reacting to gunfire and murder - done
-11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - todo
+11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done
 12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
 13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
 14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
@@ -295,6 +295,15 @@ Choices made while working autonomously (what + why).
   police). South Street is now ordinary row houses + the agent + the police station. Old saves (World.migrate_layout,
   world["layout"] 1 -> 2): placed things, loot bags and saved player positions inside a moved building's old
   footprint move along with the same offset/rotation, so an owned property keeps its contents.
+- Point 11: the Black Crows' house is a dark corner house in their fenced yard (Rival Turf), front to the gate.
+  At night up to 3 Crows (`--rivals=N`) come out one by one (every 5 s) and roam the whole town (75 m around the
+  house). They attack any player they see within 22 m - no warning, no arrest - with their own weak profile
+  (`data/npc/rival_combat.tres`: 8 damage, bursts of 2, 1 s reaction). A player inside a crew-owned property is
+  safe: they never pick or follow you there. Killed Crows drop a bag with €40-220 dirty cash, 50% 1-3 weed bags,
+  35% 9mm rounds, 10% a pistol; they don't respawn by themselves, the night loop sends new ones. At daybreak they
+  walk home and disappear. The first Crow of each night sends everyone a warning text. Police and Crows ignore
+  each other for now (the corrupt-cop story comes in milestone 3). Rival = PoliceOfficer subclass (same armed
+  brain), so balance changes to one apply to both.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

@@ -69,10 +69,27 @@ func uniform_colors() -> Dictionary:
 	return UNIFORM
 
 
+## Point 11 hooks (Rival overrides them): its group, its head gear, and players it may not chase.
+func _group() -> StringName:
+	return &"police"
+
+
+func _head_mesh() -> ArrayMesh:
+	return _cap_mesh()
+
+
+func _target_off_limits(_p: Player) -> bool:
+	return false
+
+
+func _log(text: String) -> void:
+	print("[Police] " + text)
+
+
 func _ready() -> void:
 	ambient = false
 	super._ready()
-	add_to_group(&"police")
+	add_to_group(_group())
 	_pistol = ItemDB.get_item(&"pistol") as WeaponData
 	_build_gear()
 	if _is_host():
@@ -98,7 +115,7 @@ func _build_gear() -> void:
 		att.bone_idx = head
 		_skeleton.add_child(att)
 		var cap := MeshInstance3D.new()
-		cap.mesh = _cap_mesh()
+		cap.mesh = _head_mesh()
 		# Bone space may be scaled (model scale, armature import scale): cap in metres.
 		var s: float = maxf(0.001, _skeleton.global_basis.get_scale().x / global_basis.get_scale().x)
 		cap.scale = Vector3.ONE / s
@@ -173,7 +190,7 @@ func report_crime(culprit: Player, origin: Vector3, murder: bool) -> void:
 
 func _alert(culprit: Player, at: Vector3) -> void:
 	if target != culprit:
-		print("[Police] %s goes after %s" % [name, culprit.player_name])
+		_log("%s goes after %s" % [name, culprit.player_name])
 		_next_shot = _now() + profile.reaction_time
 		_burst_left = profile.burst_size
 		_warned_at = -1.0
@@ -231,11 +248,14 @@ func _think() -> void:
 		target = null
 		if _moving:
 			_finish_move(false)
+	if target != null and _target_off_limits(target):
+		_log("%s: %s is somewhere it can't follow" % [name, target.player_name])
+		_drop_target()
 	if target == null:
 		_patrol()
 		return
 	if from_car != null and is_instance_valid(from_car) and last_known.distance_to(from_car.global_position) > LEASH:
-		print("[Police] %s: %s got away" % [name, target.player_name])
+		_log("%s: %s got away" % [name, target.player_name])
 		_drop_target()
 		return
 	var sees: bool = can_see(target)
@@ -269,7 +289,7 @@ func _think() -> void:
 				_next_shot = _now() + 1.0 / maxf(0.1, profile.fire_rate) * randf_range(0.85, 1.25)
 		return
 	if _now() > _search_until:
-		print("[Police] %s lost %s" % [name, target.player_name])
+		_log("%s lost %s" % [name, target.player_name])
 		_drop_target()
 		return
 	# Run to where the culprit was last seen / heard.
@@ -340,7 +360,7 @@ func _try_arrest() -> void:
 		p.show_message("You're under arrest. Hands behind your back...")
 	_cuff_time += 0.2
 	if _cuff_time >= CUFF_TIME:
-		print("[Police] %s arrests %s" % [name, p.player_name])
+		_log("%s arrests %s" % [name, p.player_name])
 		p.host_arrest(self)
 
 
@@ -385,7 +405,7 @@ func _shoot_at(p: Player) -> void:
 		var victim: Node = hit["collider"]
 		if victim.has_method("host_damage") and not victim is PoliceOfficer:
 			var killed: bool = victim.call("host_damage", profile.damage, self, origin)
-			print("[Police] %s hit %s%s" % [name, victim.get("player_name") if victim is Player else victim.name,
+			_log("%s hit %s%s" % [name, victim.get("player_name") if victim is Player else victim.name,
 					" - killed" if killed else ""])
 	get_tree().call_group(&"npc", "hear_gunshot", origin)
 	_shot_fx(origin, end, normal, surface)

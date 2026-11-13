@@ -103,6 +103,9 @@ const SHOTS: Array[Array] = [
 	["74_small_house_square", Vector3(-10, 2.2, -2.5), Vector3(-17, 3.0, 6)],
 	["75_barber_north_road", Vector3(10, 2.2, -50), Vector3(3, 3.0, -42)],
 	["76_family_house_east", Vector3(60, 2.2, -50.5), Vector3(68, 3.0, -42)],
+	# Point 11: the Black Crows' house in their yard, members out front at night.
+	["77_crows_house_night", Vector3(50.5, 1.8, 10.2), Vector3(56.5, 2.0, 17.0)],
+	["78_crows_house_day", Vector3(49.0, 3.0, 9.0), Vector3(56.0, 4.0, 17.0)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)
@@ -332,6 +335,17 @@ func _stage(shot_name: String) -> void:
 			await get_tree().create_timer(0.6).timeout
 			cop.anim_state = Pedestrian.Anim.AIM
 			cop.net_yaw = cop.rotation.y
+			await get_tree().create_timer(0.4).timeout
+		"77_crows_house_night":
+			var world: Node = get_tree().current_scene
+			Rival.obey_daylight = false
+			for i: int in 2:
+				var r: Rival = world.add_rival(Vector3(54.0 + i * 1.6, 0.1, 13.6 - i * 0.6))
+				r.rotation.y = deg_to_rad(200.0 + i * 30.0)
+				r.net_yaw = r.rotation.y
+				_staged.append(r)
+			await get_tree().create_timer(0.6).timeout
+			(_staged[-1] as Rival).anim_state = Pedestrian.Anim.AIM
 			await get_tree().create_timer(0.4).timeout
 		"66_estate_window":
 			var agent: EstateAgent = get_tree().current_scene.find_child("Agent", true, false) as EstateAgent

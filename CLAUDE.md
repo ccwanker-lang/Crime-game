@@ -141,6 +141,10 @@ Godot console exe:
   with `crew_size` 2 (`Car.crew_out`, `_police_come_back`); officers have `from_car` (LEASH 60 m). Arrest:
   `PoliceOfficer.resisting(p)` (`_hostile`, `Player.host_last_shot`, weapon drawn after warning, running) else
   `_try_arrest` -> `Player.host_arrest(by)` (confiscate illegal, fine, `ReleaseSpot` marker), group call `on_arrested`.
+- Black Crows (point 11): `Rival` (`scripts/npc/rival.gd`, PoliceOfficer subclass, group `rivals`, `prefabs/npc/rival.tscn`,
+  profile `data/npc/rival_combat.tres`), house `prefabs/buildings/crows_house.tscn` (RivalSpawn markers) in the turf yard.
+  World `_rival_loop` (night only, `rival_count`, `--rivals=N`, off in selftest/netcheck) / `add_rival(at)`.
+  Officer hooks for subclasses: `_group`, `_head_mesh`, `_target_off_limits`, `_log`. `Rival.obey_daylight` (tests).
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;
   `abandon()` only for wrecks/tests; `honk` is rate-limited town-wide (`_last_honk_ms`). `Car.force_reaction` "panic"/"uturn".
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner

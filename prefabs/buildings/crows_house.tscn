@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/building.gd" id="1_r"]
+
+[node name="CrowsHouse" type="StaticBody3D"]
+script = ExtResource("1_r")
+width = 7.5
+depth = 9.0
+floors = 3
+floor_height = 3.0
+wall_material = "brick_old"
+roof_material = "roof_dark"
+roof_type = "hip"
+door_bay = 1
+side_windows = true
+corner_quoins = true
+bay_window_bay = 2
+chimney = "none"
+door_color = Color(0.25, 0.04, 0.04, 1)
+variation_seed = 1313
+enterable = true
+upper_floors = true
+furnish = "home"
+wall_tint = Color(0.5, 0.47, 0.45, 1)
+lit_windows = 0.35
+
+[node name="RivalSpawn1" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.4, 0.1, 1.8)
+
+[node name="RivalSpawn2" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -0.8, 0.1, 1.8)
+
+[node name="RivalSpawn3" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.8, 0.1, 1.8)
+
+[node name="Tag" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.3, 1.3, 0.02)
+text = "CROWS"
+font_size = 72
+pixel_size = 0.008
+modulate = Color(0.75, 0.08, 0.06, 0.9)
+outline_size = 0
+double_sided = false
+
+[node name="PorchLight" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.6, 0.7)
+light_color = Color(1, 0.45, 0.3, 1)
+light_energy = 0.9
+omni_range = 5.0

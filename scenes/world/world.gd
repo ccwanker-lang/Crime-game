@@ -141,6 +141,9 @@ func _net_check() -> void:
 		var safe := find_child("Bakery", true, false).get_node("Safe") as LaunderSafe
 		safe.state["queue"] = {"Nobody": 1234}
 		safe.changed()
+		# Point 11: a Crow standing in its yard (far from the players): the client must see it.
+		Rival.obey_daylight = false
+		var crow: Rival = add_rival()
 		# Start the timeline once a client's world is loaded (slow under load), max 90 s.
 		for i: int in 180:
 			if not Net.peers_in_world.is_empty():
@@ -170,6 +173,10 @@ func _net_check() -> void:
 	var mine: Player = players_root.get_node_or_null(str(multiplayer.get_unique_id())) as Player
 	print("[NetCheck] %s sees the bakery safe with €%d, own clean money €%d" % ["host" if multiplayer.is_server() else "client",
 			bsafe.queued_total(), mine.clean if mine else -1])
+	var crows: Array = npcs.get_children().filter(func(n: Node) -> bool: return n is Rival)
+	print("[NetCheck] %s sees %d Crow(s)%s" % ["host" if multiplayer.is_server() else "client", crows.size(),
+			(" at %s, beanie %s" % [(crows[0] as Node3D).global_position.snapped(Vector3.ONE * 0.1),
+			(crows[0] as Node).find_children("*", "BoneAttachment3D", true, false).size() > 0]) if not crows.is_empty() else ""])
 	var sh := find_child("SmallHouse", true, false).get_node("Property") as Property
 	print("[NetCheck] %s sees the Small House sign: %s" % ["host" if multiplayer.is_server() else "client",
 			sh._label.text.replace("
@@ -605,6 +612,12 @@ func _after_navmesh() -> void:
 			if arg.begins_with("--police="):
 				cops = arg.trim_prefix("--police=").to_int()
 		spawn_police(cops)
+	if multiplayer.is_server() and not ("--selftest" in OS.get_cmdline_user_args()
+			or "--netcheck" in OS.get_cmdline_user_args()):
+		for arg: String in OS.get_cmdline_user_args():
+			if arg.begins_with("--rivals="):
+				rival_count = arg.trim_prefix("--rivals=").to_int()
+		_rival_loop()
 
 
 ## Host only: ambient pedestrians on random sidewalk spots (synced by NPCSpawner).
@@ -652,6 +665,49 @@ func add_officer(p: Vector3, home: Vector3, car: Node3D = null) -> PoliceOfficer
 	return cop
 
 
+# --- Black Crows (point 11, host) -------------------------------------------------------
+
+const RIVAL := preload("res://prefabs/npc/rival.tscn")
+## How many Crows are out at night at most (--rivals=N; 0 = none).
+var rival_count: int = 3
+var _crows_warned_night: bool = false
+
+
+## Host: at night the Crows come out of their house one by one, up to rival_count.
+func _rival_loop() -> void:
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	while is_inside_tree() and rival_count > 0:
+		await get_tree().create_timer(5.0).timeout
+		if dn == null or not dn.is_night():
+			_crows_warned_night = false
+			continue
+		var out: int = get_tree().get_nodes_in_group(&"rivals").filter(
+				func(r: Node) -> bool: return not (r as Pedestrian).dead).size()
+		if out >= rival_count:
+			continue
+		add_rival()
+		if not _crows_warned_night:
+			_crows_warned_night = true
+			phone_all("Unknown", "The Crows are out tonight. Stay off the streets or stay strapped.")
+
+
+## Host: one Crow at its house's door (RivalSpawn markers), going home there at daybreak.
+func add_rival(at: Vector3 = Vector3.INF) -> Rival:
+	var house: Node3D = find_child("CrowsHouse", true, false) as Node3D
+	var spots: Array = house.find_children("RivalSpawn*", "Marker3D", true, false) if house else []
+	var spawn: Vector3 = (spots.pick_random() as Node3D).global_position if not spots.is_empty() else at
+	if at == Vector3.INF:
+		at = spawn
+	var r: Rival = RIVAL.instantiate()
+	r.variant = PoliceOfficer.VARIANT
+	r.color_seed = randi()
+	r.position = at
+	r.home = spawn if spawn != Vector3.INF else at
+	npcs.add_child(r, true)
+	print("[Crows] %s comes out" % r.name)
+	return r
+
+
 ## Host: a dead officer is replaced at the station after `delay` seconds.
 func respawn_officer_later(delay: float) -> void:
 	await get_tree().create_timer(delay).timeout
@@ -674,7 +730,7 @@ func _add_pedestrian(p: Vector3, variant: int) -> Pedestrian:
 const PLACE_NAMES: Dictionary = {
 	"StarterRoom": "your Starter Room", "Store": "the Store", "Hospital": "the hospital",
 	"GunShop": "Vince's gun shop", "ContactHideout": "Dries' place", "Warehouse": "the warehouse",
-	"Garage": "the garage", "PoliceStation": "the police station",
+	"Garage": "the garage", "PoliceStation": "the police station", "CrowsHouse": "the Crows' house",
 }
 
 

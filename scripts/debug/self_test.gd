@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1357,6 +1357,89 @@ func _check_npc_combat(world: Node3D) -> void:
 	_report(not is_instance_valid(a) and now == count0, "dead NPC removed and a new one respawned (%d -> %d)" % [count0, now])
 	Pedestrian.corpse_time = 20.0
 	Pedestrian.respawn_time = 60.0
+
+
+# --- Black Crows (point 11) --------------------------------------------------------------
+
+func _check_rivals(world: Node3D) -> void:
+	var house: Node3D = world.find_child("CrowsHouse", true, false) as Node3D
+	_report(house != null and house.find_children("RivalSpawn*", "Marker3D", true, false).size() == 3,
+			"the Black Crows' house with its door spots")
+	if house == null:
+		return
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	var hours0: float = dn.hours
+	dn.set_hours(23.0)
+	await get_tree().create_timer(0.3).timeout
+	# A player on the pavement in front of the Starter Room, a Crow 12 m down the street.
+	var sr: Property = world.find_child("StarterRoom", true, false).get_node("Property") as Property
+	var b: Node3D = sr.building()
+	var spot: Vector3 = b.to_global(Vector3(0.0, 0.2, 2.2))
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Target"
+	p.auto_target = spot
+	world.get_node("Players").add_child(p)
+	p.global_position = spot
+	await get_tree().physics_frame
+	p.net_weapon = 0
+	var r: Rival = world.add_rival(spot + b.global_basis.x * 12.0)
+	var sharp: NpcCombatProfile = r.profile.duplicate()
+	sharp.accuracy = 1.0
+	sharp.reaction_time = 0.2
+	sharp.spread_per_metre = 0.0
+	sharp.moving_spread = 0.0
+	sharp.damage = 15
+	_report(r.is_in_group(&"rivals") and not r.is_in_group(&"police") and r.profile.damage <= 10,
+			"a Crow: its own group, its own (weak) combat profile (%d damage)" % r.profile.damage)
+	r.profile = sharp
+	await get_tree().create_timer(2.5).timeout
+	_report(r.target == p, "at night a Crow goes after a player it sees")
+	for i: int in 20:
+		if p.health < Player.MAX_HEALTH:
+			break
+		await get_tree().create_timer(0.5).timeout
+	_report(p.health < Player.MAX_HEALTH, "it shoots, even with the weapon away - no arrests (health %d)" % p.health)
+	# Safe inside your own property: it gives up and doesn't come in.
+	var inside: Vector3 = world.get_marker("LockerSpot").global_position + b.global_basis.x * 1.5 + Vector3.UP * 0.1
+	p.teleport(inside)
+	p.auto_target = inside
+	p.health = Player.MAX_HEALTH
+	await get_tree().create_timer(1.0).timeout
+	_report(sr.is_crew_owned() and r.target == null and r.spot_victim() == null,
+			"a player inside their own property is safe: the Crow gives up")
+	var h: int = p.health
+	await get_tree().create_timer(3.0).timeout
+	_report(p.health >= h and not sr.contains(r.global_position), "the Crow stays outside")
+	# Killed: a loot bag.
+	var bags0: int = world.get_node("LootBags").get_child_count() if world.has_node("LootBags") else -1
+	var loot_root: Node = world.get("loot_root")
+	bags0 = loot_root.get_child_count()
+	r.host_damage(1000, p, p.global_position)
+	await get_tree().create_timer(0.5).timeout
+	var bag: LootBag = null
+	for n: Node in loot_root.get_children():
+		if n is LootBag and (n as LootBag).owner_name == "Black Crows":
+			bag = n as LootBag
+	_report(r.dead and bag != null and bag.cash > 0, "a dead Crow drops a loot bag (€%d, %s)" % [
+			bag.cash if bag else 0, bag.items if bag else []])
+	if bag:
+		bag.queue_free()
+	# Daybreak: they walk home and disappear.
+	var r2: Rival = world.add_rival()
+	r2.global_position = r2.home + house.global_basis.z * 5.0
+	await get_tree().create_timer(1.0).timeout
+	dn.set_hours(12.0)
+	for i: int in 30:
+		if not is_instance_valid(r2):
+			break
+		await get_tree().create_timer(0.5).timeout
+	_report(not is_instance_valid(r2), "at daybreak a Crow walks home and goes inside")
+	dn.set_hours(hours0)
+	p.queue_free()
+	GameState.player_data.erase("Target")
+	await get_tree().physics_frame
 
 
 # --- Health regeneration (point 22) ------------------------------------------------------

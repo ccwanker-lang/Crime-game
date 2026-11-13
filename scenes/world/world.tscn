@@ -56,16 +56,17 @@
 [ext_resource type="PackedScene" path="res://prefabs/buildings/police_station.tscn" id="54_r"]
 [ext_resource type="PackedScene" path="res://prefabs/props/chainlink_fence.tscn" id="55_r"]
 [ext_resource type="PackedScene" path="res://prefabs/props/chainlink_gate_frame.tscn" id="56_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/container_12m.tscn" id="57_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/container_6m.tscn" id="58_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/crate_flat.tscn" id="59_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/barrel.tscn" id="60_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/utility_box.tscn" id="61_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/floodlight_pole.tscn" id="62_r"]
-[ext_resource type="PackedScene" path="res://prefabs/nature/tree_street.tscn" id="63_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/sign_post.tscn" id="64_r"]
-[ext_resource type="PackedScene" path="res://prefabs/props/aircon.tscn" id="65_r"]
-[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="66_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/crows_house.tscn" id="57_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/container_12m.tscn" id="58_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/container_6m.tscn" id="59_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/crate_flat.tscn" id="60_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/barrel.tscn" id="61_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/utility_box.tscn" id="62_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/floodlight_pole.tscn" id="63_r"]
+[ext_resource type="PackedScene" path="res://prefabs/nature/tree_street.tscn" id="64_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/sign_post.tscn" id="65_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/aircon.tscn" id="66_r"]
+[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="67_r"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
@@ -1491,20 +1492,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0.05, 46)
 [node name="Warehouse" parent="NavRegion" instance=ExtResource("52_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 50, 0.05, 32)
 
-[node name="Container12M1" parent="NavRegion" instance=ExtResource("57_r")]
+[node name="CrowsHouse" parent="NavRegion" instance=ExtResource("57_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 55.75, 0.05, 17)
+
+[node name="Container12M1" parent="NavRegion" instance=ExtResource("58_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 41.6, 0.05, 22)
 color = Color(0.55, 0.12, 0.08, 1)
 
-[node name="Container6M1" parent="NavRegion" instance=ExtResource("58_r")]
+[node name="Container6M1" parent="NavRegion" instance=ExtResource("59_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.5, 0.05, 13.5)
 color = Color(0.12, 0.3, 0.5, 1)
 
-[node name="Container6M2" parent="NavRegion" instance=ExtResource("58_r")]
+[node name="Container6M2" parent="NavRegion" instance=ExtResource("59_r")]
 transform = Transform3D(0.99863, 0, 0.052336, 0, 1, 0, -0.052336, 0, 0.99863, 45.5, 2.66, 13.5)
 color = Color(0.15, 0.4, 0.2, 1)
 
-[node name="Container6M3" parent="NavRegion" instance=ExtResource("58_r")]
-transform = Transform3D(0.258819, 0, 0.965926, 0, 1, 0, -0.965926, 0, 0.258819, 57.5, 0.05, 20)
+[node name="Container6M3" parent="NavRegion" instance=ExtResource("59_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 60, 0.05, 38)
 color = Color(0.6, 0.45, 0.1, 1)
 
 [node name="Graffiti" type="Label3D" parent="NavRegion"]
@@ -1522,16 +1526,16 @@ transform = Transform3D(0.984808, 0, 0.173648, 0, 1, 0, -0.173648, 0, 0.984808, 
 [node name="CrateLong3" parent="NavRegion" instance=ExtResource("42_r")]
 transform = Transform3D(0.173648, 0, 0.984808, 0, 1, 0, -0.984808, 0, 0.173648, 53.6, 0.05, 11.9)
 
-[node name="CrateFlat1" parent="NavRegion" instance=ExtResource("59_r")]
+[node name="CrateFlat1" parent="NavRegion" instance=ExtResource("60_r")]
 transform = Transform3D(0.939693, 0, 0.34202, 0, 1, 0, -0.34202, 0, 0.939693, 53.2, 0.51, 11.3)
 
-[node name="Barrel1" parent="NavRegion" instance=ExtResource("60_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55, 0.05, 25)
+[node name="Barrel1" parent="NavRegion" instance=ExtResource("61_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40.2, 0.05, 32.6)
 
-[node name="Barrel2" parent="NavRegion" instance=ExtResource("60_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55.7, 0.05, 25.6)
+[node name="Barrel2" parent="NavRegion" instance=ExtResource("61_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40.9, 0.05, 33.3)
 
-[node name="Barrel3" parent="NavRegion" instance=ExtResource("60_r")]
+[node name="Barrel3" parent="NavRegion" instance=ExtResource("61_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0.05, 30)
 
 [node name="CrateLong4" parent="NavRegion" instance=ExtResource("42_r")]
@@ -1546,13 +1550,13 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47, 0.05, 10)
 [node name="RoadBarrier12" parent="NavRegion" instance=ExtResource("9_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 51.2, 0.05, 10)
 
-[node name="UtilityBox1" parent="NavRegion" instance=ExtResource("61_r")]
+[node name="UtilityBox1" parent="NavRegion" instance=ExtResource("62_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 59, 0.05, 30)
 
-[node name="FloodlightPole1" parent="NavRegion" instance=ExtResource("62_r")]
+[node name="FloodlightPole1" parent="NavRegion" instance=ExtResource("63_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 44, 0.05, 30.9)
 
-[node name="FloodlightPole2" parent="NavRegion" instance=ExtResource("62_r")]
+[node name="FloodlightPole2" parent="NavRegion" instance=ExtResource("63_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 56, 0.05, 30.9)
 
 [node name="TreeMedium14" parent="NavRegion" instance=ExtResource("20_r")]
@@ -1625,15 +1629,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24, 0.15, 3.95)
 [node name="StreetLamp16" parent="NavRegion" instance=ExtResource("43_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0.15, 3.95)
 
-[node name="TreeStreet1" parent="NavRegion" instance=ExtResource("63_r")]
+[node name="TreeStreet1" parent="NavRegion" instance=ExtResource("64_r")]
 transform = Transform3D(-0.513158, 0, -0.858294, 0, 1, 0, 0.858294, 0, -0.513158, -65.4, 0.15, 4.9)
 tree_seed = 434
 
-[node name="TreeStreet2" parent="NavRegion" instance=ExtResource("63_r")]
+[node name="TreeStreet2" parent="NavRegion" instance=ExtResource("64_r")]
 transform = Transform3D(-0.482855, 0, 0.8757, 0, 1, 0, -0.8757, 0, -0.482855, -55.4, 0.15, 4.9)
 tree_seed = 446
 
-[node name="TreeStreet3" parent="NavRegion" instance=ExtResource("63_r")]
+[node name="TreeStreet3" parent="NavRegion" instance=ExtResource("64_r")]
 transform = Transform3D(-0.390886, 0, 0.920439, 0, 1, 0, -0.920439, 0, -0.390886, -20, 0.15, 4.9)
 tree_seed = 482
 
@@ -1655,22 +1659,22 @@ transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0
 [node name="StreetLamp22" parent="NavRegion" instance=ExtResource("43_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0.15, 42)
 
-[node name="SignPost1" parent="NavRegion" instance=ExtResource("64_r")]
+[node name="SignPost1" parent="NavRegion" instance=ExtResource("65_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.6, 0.15, -3.72)
 sign_text = "MILL LANE"
 
-[node name="SignPost2" parent="NavRegion" instance=ExtResource("64_r")]
+[node name="SignPost2" parent="NavRegion" instance=ExtResource("65_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 23.5, 0.15, -3.72)
 sign_text = "STATION ROAD"
 
-[node name="SignPost3" parent="NavRegion" instance=ExtResource("64_r")]
+[node name="SignPost3" parent="NavRegion" instance=ExtResource("65_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -0.6, 0.15, -3.72)
 sign_text = "MAIN STREET"
 
-[node name="UtilityBox2" parent="NavRegion" instance=ExtResource("61_r")]
+[node name="UtilityBox2" parent="NavRegion" instance=ExtResource("62_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -11.2, 0.15, -5.4)
 
-[node name="UtilityBox3" parent="NavRegion" instance=ExtResource("61_r")]
+[node name="UtilityBox3" parent="NavRegion" instance=ExtResource("62_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 25, 0.15, 5.4)
 
 [node name="TrashCan5" parent="NavRegion" instance=ExtResource("26_r")]
@@ -1706,10 +1710,10 @@ transform = Transform3D(0.866025, 0, 0.5, 0, 1, 0, -0.5, 0, 0.866025, -52.3, 0.1
 [node name="Trashbag4" parent="NavRegion" instance=ExtResource("41_r")]
 transform = Transform3D(-0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, -0.5, -52.8, 0.15, -5.5)
 
-[node name="Aircon1" parent="NavRegion" instance=ExtResource("65_r")]
+[node name="Aircon1" parent="NavRegion" instance=ExtResource("66_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -23, 3.2, -14.9)
 
-[node name="Aircon2" parent="NavRegion" instance=ExtResource("65_r")]
+[node name="Aircon2" parent="NavRegion" instance=ExtResource("66_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 64, 3.2, -14.9)
 
 [node name="TreeLarge8" parent="NavRegion" instance=ExtResource("28_r")]
@@ -2067,11 +2071,11 @@ no_depth_test = true
 [node name="NPCs" type="Node3D" parent="."]
 
 [node name="NPCSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn")
+_spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res://prefabs/npc/police_officer.tscn", "res://prefabs/npc/rival.tscn")
 spawn_path = NodePath("../NPCs")
 
 [node name="Traffic" type="Node3D" parent="."]
-script = ExtResource("66_r")
+script = ExtResource("67_r")
 
 [node name="CarSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://prefabs/vehicles/car.tscn")

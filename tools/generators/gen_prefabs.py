@@ -650,6 +650,23 @@ building(B + "police_station.tscn", {
     "variation_seed": "700"}, police_extra)
 
 
+# Point 11: the Black Crows' house (a dark, run-down corner house; they come out at the RivalSpawn markers).
+def crows_extra(sc):
+    for i, x in enumerate([-1.6, 0.0, 1.6]):
+        marker(sc, f"RivalSpawn{i + 1}", (x - 0.8, 0.1, 1.8), 0)
+    sc.node("Tag", "Label3D", ".", props={
+        "transform": xform((-2.3, 1.3, 0.02)), "text": q("CROWS"), "font_size": "72", "pixel_size": "0.008",
+        "modulate": col(0.75, 0.08, 0.06, 0.9), "outline_size": "0", "double_sided": "false"})
+    sc.node("PorchLight", "OmniLight3D", ".", props={
+        "transform": xform((0.0, 2.6, 0.7)), "light_color": col(1.0, 0.45, 0.3), "light_energy": "0.9",
+        "omni_range": "5.0"})
+
+
+building(B + "crows_house.tscn", {**HOUSES["corner_house"], **WALK_IN, "wall_material": q("brick_old"),
+         "wall_tint": col(0.5, 0.47, 0.45), "door_color": col(0.25, 0.04, 0.04), "lit_windows": "0.35",
+         "variation_seed": "1313"}, crows_extra)
+
+
 FRONT = {"depth": "10.0", "floors": "2", "roof_material": q("roof_dark"), "ground_floor": q("shop"),
          "door_bay": "0", "awning": "true", "chimney": q("none"), "enterable": "true", "public_building": "true",
          "floor_material": q("floor_tiles")}
