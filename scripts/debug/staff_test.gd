@@ -97,6 +97,18 @@ static func run(t: Node, world: Node3D) -> void:
 			and Staff._locker_count(lockers, "baggie") == 7 and Staff._locker_count(lockers, "weed_bud") == 0,
 			"packager: 3 Dried Weed off the rack -> 3 Bags of Weed in the locker (%s)" % packager.get("status", ""))
 
+	# A slept night: the group call "hours_skipped" (Sleep) lets the workers catch up.
+	GameState.add_to_stacks(locker.state["items"], "soil", 2, StorageLocker.SLOTS)
+	GameState.add_to_stacks(locker.state["items"], "weed_seed", 2, StorageLocker.SLOTS)
+	for pot: GrowPot in pots:
+		pot.state.merge({"stage": GrowPot.Stage.EMPTY, "water": 0.0, "growth": 0.0}, true)
+	tree.call_group(&"hours_skipped", "on_hours_skipped", 8.0)
+	var planted: int = 0
+	for pot: GrowPot in pots:
+		if int(pot.state["stage"]) >= GrowPot.Stage.GROWING:
+			planted += 1
+	report.call(planted == pots.size(), "after a slept night the grower caught up (%d/%d pots planted)" % [planted, pots.size()])
+
 	# Wages once per in-game day; can't pay -> quits.
 	var cash0: int = int(GameState.get_or_create_player_data("Boss")["cash"])
 	var day_left: float = 24.0 - float(Staff._data()["clock"])

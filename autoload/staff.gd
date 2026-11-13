@@ -38,6 +38,7 @@ func _ready() -> void:
 	if config == null:
 		config = StaffConfig.new()
 	GameState.world_changed.connect(_on_world_changed)
+	add_to_group(&"hours_skipped")  # Sleep (point 37): catch up on the skipped night
 
 
 func _is_host() -> bool:
@@ -155,6 +156,17 @@ func _process(delta: float) -> void:
 		_sync_timer = SYNC_DELAY
 		_dirty = false
 		_broadcast()
+
+
+## Host: group call "hours_skipped" (the night was slept away): catch up in small steps
+## (a worker does only a few actions per step, like in normal play).
+func on_hours_skipped(hours: float) -> void:
+	if not _is_host() or GameState.world.is_empty():
+		return
+	var steps: int = ceili(hours / 0.1)
+	for i: int in steps:
+		tick(hours / steps)
+	print("[Staff] caught up on %.1f skipped hours" % hours)
 
 
 ## Host: advance `hours` in-game hours.
