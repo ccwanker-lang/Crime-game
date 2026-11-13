@@ -11,7 +11,7 @@
 - Committed: "Points 39-42" (trash bin + garbage truck, laundering screen + messages, mouse wheel hotbar, work
   animations). Targeted self-test checks passed (held, laundering, growing, trash, storage, sleep, placement);
   scenarios trash / launder / grow checked with screenshots.
-- NOT yet run on this commit: the FULL self-test (a run was in progress, started before 40-42) and the netcheck.
+- NOT yet run on this commit: the FULL self-test (the run in progress was stopped on purpose) and the netcheck.
   First thing next session: `--selftest --port=7791` + `python tools/netcheck.py 7793`, fix whatever fails.
 - Nothing is half-built. No git remote (nothing pushed).
 - Police/Crows feedback round 4, admin mode and the new story are all in DESIGN.md (Roadmap 28a-c, 31a-b,
