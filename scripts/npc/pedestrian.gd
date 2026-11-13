@@ -92,6 +92,8 @@ var wants: int = 0:
 		wants = v
 		_customer_changed()
 var offer: int = 0
+## The item it wants (synced; session B's meth: "meth_bag"). Default weed.
+var product: String = "weed_bag"
 ## Point 34: a player accepted the deal by phone (synced): it waits at its spot, green "€",
 ## and the meeting can be confirmed. Before that the "€" is yellow and E only says "text first".
 var deal_ok: bool = false:
@@ -801,7 +803,7 @@ func _die(from: Vector3 = Vector3.INF) -> void:
 	wants = 0
 	if _stolen > 0 and world and world.has_method("spawn_loot_bag"):
 		# The rip-off customer drops what it ran off with.
-		world.call("spawn_loot_bag", global_position, "Customer", 0, [{"id": "weed_bag", "count": _stolen}])
+		world.call("spawn_loot_bag", global_position, "Customer", 0, [{"id": product, "count": _stolen}])
 		_stolen = 0
 	_on_died(world)
 	await get_tree().create_timer(corpse_time).timeout
@@ -986,7 +988,8 @@ func _customer_changed() -> void:
 
 ## Host: make this pedestrian a customer for `seconds`. Point 34: it texts a proposal
 ## (bags, price, place); only a player's "Accept" (or an accepted counter-offer) fixes the meeting.
-func become_customer(bags: int, price: int, seconds: float) -> void:
+func become_customer(bags: int, price: int, seconds: float, item: String = "weed_bag") -> void:
+	product = item
 	offer = price
 	deal_ok = false
 	_countered = false
@@ -996,8 +999,18 @@ func become_customer(bags: int, price: int, seconds: float) -> void:
 	var world: Node = get_tree().current_scene
 	if world and world.has_method("phone_all"):
 		var where: String = world.call("describe_location", global_position)
-		world.call("phone_all", customer_name, "Hey, it's %s. I need %d bag%s, I'll pay €%d. Meet me %s?" % [
-				customer_name, bags, "" if bags == 1 else "s", price, where], str(name))
+		world.call("phone_all", customer_name, "Hey, it's %s. I need %s, I'll pay €%d. Meet me %s?" % [
+				customer_name, bags_text(bags), price, where], str(name))
+
+
+## "2 bags" (weed, as before) / "2 bags of meth" (other products).
+func bags_text(n: int) -> String:
+	var t: String = "%d bag%s" % [n, "" if n == 1 else "s"]
+	if product != "weed_bag":
+		var item: ItemData = ItemDB.get_item(StringName(product))
+		var what: String = item.display_name.to_lower().trim_prefix("bag of ").trim_prefix("bags of ") if item else product
+		t += " of " + what
+	return t
 
 
 ## Host: the meeting is on: wait here (3 more minutes), green "€".
@@ -1127,12 +1140,12 @@ func _server_sell(peer: int) -> void:
 	if seller.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 1.5:
 		return
 	var who: String = seller.player_name
-	var have: int = GameState.count_item(who, "weed_bag")
+	var have: int = GameState.count_item(who, product)
 	if have < wants:
-		seller.show_message("\"I need %d bag%s, you've only got %d.\"" % [wants, "" if wants == 1 else "s", have])
+		seller.show_message("\"I need %s, you've only got %d.\"" % [bags_text(wants), have])
 		return
 	var bags: int = wants
-	GameState.remove_item(who, "weed_bag", bags)
+	GameState.remove_item(who, product, bags)
 	var outcome: String = force_outcome
 	force_outcome = ""
 	if outcome == "":

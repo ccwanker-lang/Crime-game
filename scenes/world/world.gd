@@ -1001,8 +1001,15 @@ func make_customer(npc: Pedestrian = null) -> Pedestrian:
 	var bags: int = randi_range(1, 3)
 	var item: ItemData = ItemDB.get_item(&"weed_bag")
 	var price: int = roundi(bags * item.base_price * randf_range(0.85, 1.3))
-	npc.become_customer(bags, price, CUSTOMER_TIME)
-	print("[World] %s wants %d bags for €%d" % [npc.name, bags, price])
+	# Session B's products (meth from rank 2): the autoload picks what a customer wants + its price.
+	var product: String = "weed_bag"
+	var products: Node = get_node_or_null("/root/Products")
+	if products and products.has_method("pick_customer_product"):
+		product = str(products.call("pick_customer_product"))
+		if products.has_method("price"):
+			price = int(products.call("price", product, price))
+	npc.become_customer(bags, price, CUSTOMER_TIME, product)
+	print("[World] %s wants %d x %s for €%d" % [npc.name, bags, product, price])
 	return npc
 
 

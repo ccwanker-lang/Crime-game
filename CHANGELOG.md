@@ -48,3 +48,4 @@ One line per finished part.
 - Point 46 (= 12-13): park (paths, benches, trees, dog walkers with procedural dogs, youths smoking) and the agora (fenced pitch, host-simulated ball anyone can kick, NPC matches with score board); scenarios park + agora, self-test check park.
 - Point 43 (session B, merged): ranks 0-6 + crew XP (sales, deals, fights), rank gates in shops + estate agent, HUD rank panel; scenario ranks, check ranks.
 - Point 44 (session B, merged): staff (grower, packager in a crew property, wages) + dealers (district, commission, loyalty, arrest/betrayal), phone app Crew; scenarios staff_workers + dealers, check staff; Sleep calls hours_skipped.
+- Customers want a product (`Pedestrian.product`, synced; Products autoload of session B picks meth later); phone_all skips non-players.

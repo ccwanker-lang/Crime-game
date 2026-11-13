@@ -803,12 +803,13 @@ func open_deal(npc: Pedestrian, have: int) -> void:
 	if _deal_panel == null:
 		_build_deal_panel()
 	_deal_npc = npc
-	var bags: String = "%d bag%s" % [npc.wants, "" if npc.wants == 1 else "s"]
+	var bags: String = npc.bags_text(npc.wants)
+	var item: ItemData = ItemDB.get_item(StringName(npc.product))
 	_deal_title.text = npc.customer_name
 	_deal_text.text = "\"You got the %s? €%d, like we said.\"
 
-You carry %d Bag%s of Weed." % [
-			bags, npc.offer, have, "" if have == 1 else "s"]
+You carry %d x %s." % [
+			bags, npc.offer, have, item.display_name if item else npc.product]
 	_deal_confirm.disabled = have < npc.wants
 	_deal_confirm.text = "Confirm deal  (€%d)" % npc.offer if have >= npc.wants else "Not enough bags"
 	_deal_panel.visible = true

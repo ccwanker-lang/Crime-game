@@ -918,7 +918,7 @@ func open_deal(npc: Pedestrian) -> void:
 	if ui == null or dead or shop != null or locker != null:
 		return
 	deal_npc = npc
-	ui.open_deal(npc, Station.carried(self, "weed_bag"))
+	ui.open_deal(npc, Station.carried(self, npc.product))
 	if not ui.close_requested.is_connected(close_deal):
 		ui.close_requested.connect(close_deal)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

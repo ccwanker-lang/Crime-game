@@ -630,6 +630,10 @@ Choices made while working autonomously (what + why).
 - Point 44 (staff, session B): Districts are game data (StaffConfig), 4 for the test town: Old Town, Main Road East, North Road, South Street.
 - Point 44 (staff, session B): Firing a dealer gives back their stock and the cash (what fits in your pockets).
 - Point 44 (staff, session B): Cook (rank 2) and courier (rank 3) are in the list as "Not in the game yet" (meth / supply runs don't exist).
+- Customers' product (for session B's meth): `Pedestrian.product` (synced, default "weed_bag") is what a customer
+  wants; texts, the deal window, the sale and the stolen-bag loot use it. World.make_customer asks the `Products`
+  autoload (session B) when it exists (`pick_customer_product`, `price(product, weed_price)`), so main works with and
+  without it. Weed texts stay word for word the same ("2 bags"); other products read "2 bags of meth".
 - Order after round 4 (user, 2026-11-13, second message): park + agora, car dealer + driving, cover garage,
   territory per district, the remote prison + tutorial intro + late-join intro, the full village map, then the
   chapter 1 story missions. Meth/cocaine (48) is being built by session B (B.md), so A skips it.

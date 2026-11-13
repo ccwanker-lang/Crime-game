@@ -40,6 +40,9 @@ properties/9/replication_mode = 0
 properties/10/path = NodePath(".:team")
 properties/10/spawn = true
 properties/10/replication_mode = 0
+properties/11/path = NodePath(".:product")
+properties/11/spawn = true
+properties/11/replication_mode = 2
 
 [node name="ParkGoer" type="CharacterBody3D"]
 collision_layer = 4
