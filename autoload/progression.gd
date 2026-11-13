@@ -26,6 +26,8 @@ var xp: int = 0
 ## Gates on in tests too (the "ranks" scenario / self-test check).
 var force_gates: bool = false
 var _selftest: bool = false
+## Tests: `--xp=N` sets the crew XP once the host's world exists (e.g. a client sync check).
+var _start_xp: int = -1
 
 
 func _ready() -> void:
@@ -33,6 +35,9 @@ func _ready() -> void:
 	if config == null:
 		config = RankConfig.new()
 	_selftest = "--selftest" in OS.get_cmdline_user_args()
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--xp="):
+			_start_xp = a.trim_prefix("--xp=").to_int()
 	GameState.world_changed.connect(_on_world_changed)
 	multiplayer.connected_to_server.connect(func() -> void: xp = 0)
 
@@ -164,6 +169,11 @@ func debug_set_rank(r: int) -> void:
 func _on_world_changed() -> void:
 	if GameState.world.is_empty():
 		force_gates = false  # GameState.reset: leaving / a new scenario
+	if _is_host() and _start_xp >= 0 and not GameState.world.is_empty():
+		var start: int = _start_xp
+		_start_xp = -1
+		GameState.world["progress"] = {"xp": start}
+		print("[Rank] --xp: crew starts with %d XP" % start)
 	if _is_host():
 		_broadcast(host_xp())
 
@@ -190,6 +200,8 @@ func _request_sync() -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _set_xp(total: int) -> void:
+	if total != xp and multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		print("[Rank] client %d: crew XP %d, rank %d" % [multiplayer.get_unique_id(), total, rank_for(total)])
 	xp = total
 	xp_changed.emit(xp, rank())
 

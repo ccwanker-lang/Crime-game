@@ -190,7 +190,7 @@ static func run(world: Node, id: String) -> bool:
 			var k: Node3D = (world.find_child("GunShop", true, false).find_children("*", "Shopkeeper", true, false)[0]) as Node3D
 			var npc: Pedestrian = world.call("_add_pedestrian", k.global_position + k.global_basis.z * 3.6, 1)
 			npc.stationary = true
-			npc.force_outcome = "fair"
+			Pedestrian.force_outcome = "fair"
 			npc.become_customer(1, 60, 900.0)
 		"real_estate":
 			_kit(me, 40000, [])
