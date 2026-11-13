@@ -3,6 +3,16 @@
 Session B notes. To be folded into DESIGN.md (Roadmap status + Decisions) / CHANGELOG.md / CLAUDE.md by
 session A when merging (B may not edit those files).
 
+## SESSION END (2026-11-13) - where we stopped
+- DONE + committed: part 1 ranks + XP, part 2 staff + dealers (both complete, targeted checks ranks + staff pass).
+- feature-b is rebased on main f4df907 (point 38). Full self-test after the FIRST rebase (on c566f9c): ALL PASSED
+  (417). Full self-test after the SECOND rebase was stopped by the user at 118 checks, 0 FAIL so far.
+- Half done: nothing in code. Open: A should add 1 line in scripts/world/sleep.gd `_morning()`:
+  `get_tree().call_group(&"hours_skipped", "on_hours_skipped", skipped)` (staff catch up on slept nights).
+- NEXT STEP: rebase on main if A committed more (`git log feature-b..main`; conflicts are only in
+  self_test.gd CHECKS / scenarios.gd: keep both sides, ours at the end), run the full self-test
+  (`--headless --path . -- --selftest --port=7778`), netcheck on 7778, then put "KLAAR OM TE MERGEN" in B.md.
+
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
 HUD rank panel, saved with the world, host authoritative + synced, F9 scenario `ranks`, self-test check `ranks`.
