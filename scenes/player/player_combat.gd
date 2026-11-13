@@ -190,7 +190,8 @@ func try_fire() -> void:
 		if reserve > 0:
 			try_reload()
 		return
-	mag -= 1
+	if not player.admin_god:
+		mag -= 1  # (admin god mode: endless ammo)
 	_next_fire = now + weapon.fire_interval
 	var origin: Vector3 = player.head.global_position
 	var dir: Vector3 = _spread(_aim_dir(origin))
@@ -419,7 +420,8 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 		push_warning("[Combat] %s: shot rejected (%s)" % [player.player_name, reason])
 		_send_ammo(index)
 		return
-	_h_mags[index] -= 1
+	if not player.admin_god:
+		_h_mags[index] -= 1
 	_h_last_fire = now
 	player.host_last_shot = Time.get_ticks_msec() / 1000.0  # police: fired = resisting arrest
 	dir = dir.normalized()

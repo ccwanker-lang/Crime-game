@@ -3,6 +3,38 @@
 [ext_resource type="PackedScene" path="res://prefabs/npc/pedestrian.tscn" id="1_ped"]
 [ext_resource type="Script" path="res://scripts/npc/rival.gd" id="2_rival"]
 
+[sub_resource type="SceneReplicationConfig" id="RivalReplication"]
+properties/0/path = NodePath(".:variant")
+properties/0/spawn = true
+properties/0/replication_mode = 0
+properties/1/path = NodePath(".:color_seed")
+properties/1/spawn = true
+properties/1/replication_mode = 0
+properties/2/path = NodePath(".:net_pos")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:net_yaw")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:anim_state")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath(".:wants")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath(".:offer")
+properties/6/spawn = true
+properties/6/replication_mode = 2
+properties/7/path = NodePath(".:heavy")
+properties/7/spawn = true
+properties/7/replication_mode = 0
+properties/8/path = NodePath(".:gun")
+properties/8/spawn = true
+properties/8/replication_mode = 0
+
 [node name="Rival" instance=ExtResource("1_ped")]
 script = ExtResource("2_rival")
 variant = 7
+
+[node name="Sync" parent="."]
+replication_config = SubResource("RivalReplication")

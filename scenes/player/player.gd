@@ -130,6 +130,12 @@ var inventory: Array = []
 var shop: Shopkeeper = null
 ## Owner: the storage locker window that is open (null = none).
 var locker: StorageLocker = null
+## Owner (point 34): the customer whose deal window is open (null = none).
+var deal_npc: Pedestrian = null
+## Admin mode (host only, debug builds): F10 noclip, F11 god mode (no damage, endless ammo), F12 clear wanted.
+var admin_noclip: bool = false
+var admin_god: bool = false
+const NOCLIP_SPEED: float = 9.0
 ## Owner: placement mode + hold E to pick up (point 6).
 var placement: PlayerPlacement = null
 var _base_fov: float = 75.0
@@ -421,6 +427,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			close_locker()
 			get_viewport().set_input_as_handled()
 		return
+	if deal_npc != null:
+		if event.is_action_pressed("release_mouse") or event.is_action_pressed("interact") 				or not is_instance_valid(deal_npc) or deal_npc.wants <= 0:
+			close_deal()
+			get_viewport().set_input_as_handled()
+		return
 	var captured: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	if event is InputEventMouseMotion and captured:
 		if dead:
@@ -477,6 +488,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("interact") and _focused != null and not dead:
 		if placement == null or not placement.begin_interact(_focused):
 			_focused.call("interact")
+	elif event is InputEventKey and event.pressed and not event.echo 			and (event as InputEventKey).physical_keycode in [KEY_F10, KEY_F11, KEY_F12]:
+		_admin_key((event as InputEventKey).physical_keycode)
 	elif event is InputEventKey and not event.echo and (event as InputEventKey).physical_keycode == KEY_F7:
 		# Debug: fast-forward the day/night clock while held.
 		var dn := get_tree().get_first_node_in_group("day_night") as DayNight
@@ -495,6 +508,61 @@ func _unhandled_input(event: InputEvent) -> void:
 			_debug_cash.rpc_id(1)
 
 
+## Admin mode: only the host's own player, only in debug builds (never in a release export).
+static func admin_allowed(p: Player) -> bool:
+	return OS.is_debug_build() and p.is_local() and (not p.multiplayer.has_multiplayer_peer() or p.multiplayer.is_server())
+
+
+func _admin_key(key: Key) -> void:
+	if not admin_allowed(self):
+		return
+	match key:
+		KEY_F10:
+			admin_noclip = not admin_noclip
+			collision.disabled = admin_noclip
+			velocity = Vector3.ZERO
+			_admin_toast("Noclip %s" % ("ON: WASD + mouse, Space up, Ctrl down, Shift faster" if admin_noclip else "off"))
+		KEY_F11:
+			admin_god = not admin_god
+			if admin_god:
+				health = MAX_HEALTH
+			_admin_toast("God mode %s" % ("ON: no damage, endless ammo" if admin_god else "off"))
+		KEY_F12:
+			Wanted.clear(self, "admin")
+			for n: Node in get_tree().get_nodes_in_group(&"police"):
+				if n.has_method("on_arrested"):
+					n.call("on_arrested", self)  # (also forgets that you shot at them)
+			_admin_toast("Admin: wanted stars cleared, the police back off")
+	print("[Admin] %s: noclip %s, god %s%s" % [player_name, admin_noclip, admin_god, ", wanted cleared" if key == KEY_F12 else ""])
+	var parts: PackedStringArray = []
+	if admin_noclip:
+		parts.append("NOCLIP")
+	if admin_god:
+		parts.append("GOD MODE")
+	if ui:
+		ui.set_admin(("ADMIN: " + " + ".join(parts)) if not parts.is_empty() else "")
+
+
+func _admin_toast(text: String) -> void:
+	if ui:
+		ui.toast(text)
+
+
+## Owner (noclip): fly where you look, through walls.
+func _admin_fly(delta: float) -> void:
+	var active: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	var input: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back") if active else Vector2.ZERO
+	var look: Basis = head.global_basis
+	var dir: Vector3 = look * Vector3(input.x, 0, input.y)
+	if active and Input.is_action_pressed("jump"):
+		dir += Vector3.UP
+	if active and Input.is_action_pressed("crouch"):
+		dir += Vector3.DOWN
+	var speed: float = NOCLIP_SPEED * (3.0 if active and Input.is_action_pressed("sprint") else 1.0)
+	velocity = Vector3.ZERO
+	global_position += dir.limit_length(1.0) * speed * delta
+
+
 ## 0-based hotbar slot for the number keys 1-8, -1 otherwise.
 func _weapon_key(event: InputEvent) -> int:
 	for i: int in GameState.INVENTORY_SLOTS:
@@ -509,7 +577,10 @@ func _physics_process(delta: float) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_host_regen(delta)
 	if is_local():
-		_local_move(delta)
+		if admin_noclip:
+			_admin_fly(delta)
+		else:
+			_local_move(delta)
 		net_pos = global_position
 		net_yaw = rotation.y
 		net_pitch = head.rotation.x
@@ -720,6 +791,25 @@ func open_shop(keeper: Shopkeeper) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
+## Owner (point 34): the talk with a customer whose deal was accepted ("Confirm deal").
+func open_deal(npc: Pedestrian) -> void:
+	if ui == null or dead or shop != null or locker != null:
+		return
+	deal_npc = npc
+	ui.open_deal(npc, Station.carried(self, "weed_bag"))
+	if not ui.close_requested.is_connected(close_deal):
+		ui.close_requested.connect(close_deal)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_deal() -> void:
+	deal_npc = null
+	if ui:
+		ui.close_deal()
+	if not auto_walk:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
 ## Owner: phone out (frees the mouse) / away.
 func open_phone() -> void:
 	ui.phone.player = self
@@ -826,7 +916,7 @@ func _host_regen(delta: float) -> void:
 
 ## `attacker`: the Player who shot, or an NPC (police officer, rival), or null.
 func host_damage(amount: int, attacker: Node, from: Vector3 = Vector3.INF) -> bool:
-	if not multiplayer.is_server() or dead or amount <= 0:
+	if not multiplayer.is_server() or dead or amount <= 0 or admin_god:
 		return false
 	_last_damage = Time.get_ticks_msec() / 1000.0
 	_regen_acc = 0.0
@@ -1073,24 +1163,26 @@ func _phone_message(contact: String, text: String, deal: String) -> void:
 			ui.toast("New message from %s  [Tab]" % contact)
 
 
-## Owner: answer a customer's text (accept = "On my way").
-func phone_reply(deal: String, accept: bool) -> void:
+## Owner: answer a customer's proposal (point 34: "accept", "decline", "counter" + price).
+func phone_reply(deal: String, action: String, price: int = 0) -> void:
 	if multiplayer.is_server():
-		_host_phone_reply(deal, accept)
+		_host_phone_reply(deal, action, price)
 	else:
-		_request_phone_reply.rpc_id(1, deal, accept)
+		_request_phone_reply.rpc_id(1, deal, action, price)
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _request_phone_reply(deal: String, accept: bool) -> void:
+func _request_phone_reply(deal: String, action: String, price: int) -> void:
 	if multiplayer.is_server() and multiplayer.get_remote_sender_id() == peer_id:
-		_host_phone_reply(deal, accept)
+		_host_phone_reply(deal, action, price)
 
 
-func _host_phone_reply(deal: String, accept: bool) -> void:
+func _host_phone_reply(deal: String, action: String, price: int = 0) -> void:
+	if not action in ["accept", "decline", "counter"]:
+		return
 	var npc := get_tree().current_scene.get_node_or_null("NPCs/" + deal) as Pedestrian
 	if npc and not npc.dead and npc.wants > 0:
-		npc.answer_text(self, accept)
+		npc.answer_text(self, action, clampi(price, 0, 100000))
 
 
 ## Owner: order a legal item on the phone (delivered to the Starter Room box).

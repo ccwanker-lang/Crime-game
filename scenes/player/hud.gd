@@ -52,6 +52,8 @@ const HELP: Array = [
 	["E", "Use, talk, sell"], ["Hold E", "Pick up placed furniture"], ["G / Shift+G", "Drop the stack / one"],
 	["Tab", "Phone"], ["Esc", "Free the mouse"], ["F9", "Test scenarios"],
 	["F4 / F6 / F7", "Debug: hurt yourself / +€1000 / fast time (hold)"], ["F1", "This help"],
+	["F10 (host)", "Admin: noclip fly (Space up, Ctrl down, Shift fast)"], ["F11 (host)", "Admin: god mode + endless ammo"],
+	["F12 (host)", "Admin: clear wanted stars, police back off"],
 ]
 var _clean_label: Label
 ## Point 28: wanted stars under the money panel (blink while the police search for you).
@@ -594,6 +596,27 @@ func _build_help_panel() -> void:
 	_help = center
 
 
+var _admin_label: Label
+
+
+## Admin mode (host debug): a small red label top centre while noclip / god mode is on ("" = hide).
+func set_admin(text: String) -> void:
+	if _admin_label == null:
+		_admin_label = Label.new()
+		_admin_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+		_admin_label.offset_top = 8
+		_admin_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_admin_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_admin_label.add_theme_font_size_override("font_size", 16)
+		_admin_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3))
+		_admin_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		_admin_label.add_theme_constant_override("outline_size", 5)
+		_admin_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_admin_label)
+	_admin_label.text = text
+	_admin_label.visible = text != ""
+
+
 func toggle_help() -> void:
 	_help.visible = not _help.visible
 
@@ -637,6 +660,87 @@ func _draw_hitmarker() -> void:
 # right click on a pocket slot = drop it on the ground (Shift: just one).
 
 const SLOT_SIZE: Vector2 = Vector2(74, 74)
+
+# --- Deal talk (point 34) ---------------------------------------------------------
+
+var _deal_panel: Control
+var _deal_title: Label
+var _deal_text: Label
+var _deal_confirm: Button
+var _deal_npc: Pedestrian
+
+
+func _build_deal_panel() -> void:
+	var dim := Control.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim.visible = false
+	add_child(dim)
+	_deal_panel = dim
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(460, 0)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 1.0
+	panel.anchor_bottom = 1.0
+	panel.offset_left = -230
+	panel.offset_right = 230
+	panel.offset_top = -330
+	panel.offset_bottom = -170
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	dim.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	panel.add_child(box)
+	_deal_title = Label.new()
+	_deal_title.add_theme_font_size_override("font_size", 22)
+	_deal_title.add_theme_color_override("font_color", Pedestrian.DEAL_OK_COLOR)
+	box.add_child(_deal_title)
+	_deal_text = Label.new()
+	_deal_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_deal_text.add_theme_font_size_override("font_size", 18)
+	box.add_child(_deal_text)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	_deal_confirm = _button("Confirm deal")
+	_deal_confirm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_deal_confirm.pressed.connect(func() -> void:
+		if is_instance_valid(_deal_npc):
+			_deal_npc.confirm_deal()
+		close_requested.emit())
+	row.add_child(_deal_confirm)
+	var leave := _button("Not now  [E / Esc]")
+	leave.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	leave.pressed.connect(func() -> void: close_requested.emit())
+	row.add_child(leave)
+
+
+func is_deal_open() -> bool:
+	return _deal_panel != null and _deal_panel.visible
+
+
+## Owner: "<name>: You got the 2 bags? €130, like we said."  [Confirm deal] [Not now]
+func open_deal(npc: Pedestrian, have: int) -> void:
+	if _deal_panel == null:
+		_build_deal_panel()
+	_deal_npc = npc
+	var bags: String = "%d bag%s" % [npc.wants, "" if npc.wants == 1 else "s"]
+	_deal_title.text = npc.customer_name
+	_deal_text.text = "\"You got the %s? €%d, like we said.\"
+
+You carry %d Bag%s of Weed." % [
+			bags, npc.offer, have, "" if have == 1 else "s"]
+	_deal_confirm.disabled = have < npc.wants
+	_deal_confirm.text = "Confirm deal  (€%d)" % npc.offer if have >= npc.wants else "Not enough bags"
+	_deal_panel.visible = true
+
+
+func close_deal() -> void:
+	_deal_npc = null
+	if _deal_panel:
+		_deal_panel.visible = false
+
 
 var _locker_panel: Control
 var _locker: StorageLocker

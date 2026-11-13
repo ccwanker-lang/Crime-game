@@ -621,6 +621,8 @@ func _after_navmesh() -> void:
 			if arg.begins_with("--rivals="):
 				rival_count = arg.trim_prefix("--rivals=").to_int()
 		_rival_loop()
+	else:
+		rival_count = 0  # (tests spawn their own Crows; no replacements)
 	# Test scenario (F9 / --scenario=): set the host player up now that NPCs can walk.
 	if multiplayer.is_server() and Scenarios.pending != "":
 		Scenarios.run(self, Scenarios.pending)
@@ -677,34 +679,54 @@ func add_officer(p: Vector3, home: Vector3, car: Node3D = null, heavy: bool = fa
 	return cop
 
 
-# --- Black Crows (point 11, host) -------------------------------------------------------
+# --- Black Crows (points 11 + 31, host) -------------------------------------------------
 
 const RIVAL := preload("res://prefabs/npc/rival.tscn")
-## How many Crows are out at night at most (--rivals=N; 0 = none).
-var rival_count: int = 3
+## Point 31: how many Crows live in the yard in total (--rivals=N; 0 = none)...
+var rival_count: int = 6
+## ...and how many of them roam the streets at night.
+var rival_street: int = 2
+## Share of Crows that carry an AK-47 instead of a pistol.
+const RIVAL_AK_CHANCE: float = 0.3
+## A dead Crow is replaced after this many seconds.
+const RIVAL_RESPAWN: Vector2 = Vector2(60.0, 120.0)
 var _crows_warned_night: bool = false
 
 
-## Host: at night the Crows come out of their house one by one, up to rival_count.
+func _alive_rivals() -> Array:
+	return get_tree().get_nodes_in_group(&"rivals").filter(
+			func(r: Node) -> bool: return not (r as Pedestrian).dead and r.is_inside_tree())
+
+
+## Host: fill the yard, then every night send `rival_street` of them into town.
 func _rival_loop() -> void:
+	if rival_count <= 0:
+		return
+	for i: int in rival_count:
+		add_rival(Rival.yard_point(self))
 	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
-	while is_inside_tree() and rival_count > 0:
+	while is_inside_tree():
 		await get_tree().create_timer(5.0).timeout
 		if dn == null or not dn.is_night():
 			_crows_warned_night = false
 			continue
-		var out: int = get_tree().get_nodes_in_group(&"rivals").filter(
-				func(r: Node) -> bool: return not (r as Pedestrian).dead).size()
-		if out >= rival_count:
-			continue
-		add_rival()
-		if not _crows_warned_night:
+		var alive: Array = _alive_rivals()
+		var out: int = alive.filter(func(r: Node) -> bool: return (r as Rival).role == Rival.Role.STREET).size()
+		for r: Node in alive:
+			if out >= rival_street:
+				break
+			var crow := r as Rival
+			if crow.role == Rival.Role.YARD and crow.target == null:
+				crow.role = Rival.Role.STREET
+				out += 1
+				print("[Crows] %s goes out into town" % crow.name)
+		if out > 0 and not _crows_warned_night:
 			_crows_warned_night = true
 			phone_all("Unknown", "The Crows are out tonight. Stay off the streets or stay strapped.")
 
 
-## Host: one Crow at its house's door (RivalSpawn markers), going home there at daybreak.
-func add_rival(at: Vector3 = Vector3.INF) -> Rival:
+## Host: one Crow (role YARD) at `at`, or at its house's door (RivalSpawn markers).
+func add_rival(at: Vector3 = Vector3.INF, ak: int = -1) -> Rival:
 	var house: Node3D = find_child("CrowsHouse", true, false) as Node3D
 	var spots: Array = house.find_children("RivalSpawn*", "Marker3D", true, false) if house else []
 	var spawn: Vector3 = (spots.pick_random() as Node3D).global_position if not spots.is_empty() else at
@@ -713,11 +735,19 @@ func add_rival(at: Vector3 = Vector3.INF) -> Rival:
 	var r: Rival = RIVAL.instantiate()
 	r.variant = PoliceOfficer.VARIANT
 	r.color_seed = randi()
+	r.gun = &"ak47" if (ak == 1 or (ak < 0 and randf() < RIVAL_AK_CHANCE)) else &"pistol"
 	r.position = at
 	r.home = spawn if spawn != Vector3.INF else at
 	npcs.add_child(r, true)
-	print("[Crows] %s comes out" % r.name)
+	print("[Crows] %s joins the yard (%s)" % [r.name, r.gun])
 	return r
+
+
+## Host (Rival._on_died): a new Crow comes out of the house after 1-2 minutes.
+func rival_died() -> void:
+	await get_tree().create_timer(randf_range(RIVAL_RESPAWN.x, RIVAL_RESPAWN.y)).timeout
+	if rival_count > 0 and is_inside_tree() and multiplayer.is_server() and _alive_rivals().size() < rival_count:
+		add_rival()
 
 
 ## Host: a dead officer is replaced at the station after `delay` seconds.

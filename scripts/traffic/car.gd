@@ -29,7 +29,9 @@ const JUNCTION_APPROACH: float = 9.0
 const SENSE_SEGMENTS: int = 3
 const SENSE_LEN: float = 4.5
 const HEAR_DISTANCE: float = 35.0
-const PANIC_TIME: float = 6.0
+const PANIC_TIME: float = 10.0
+## Point 32: a panicking car never stops for people (honks, squeezes past at this speed).
+const PANIC_MIN_SPEED: float = 3.5
 const PANIC_SPEED: float = 1.5  # x CRUISE
 const MAX_HEALTH: int = 150
 const DRIVER_AWAY: float = 8.0  # a stopped (not wrecked) car drives on after this
@@ -302,14 +304,27 @@ func _physics_process(delta: float) -> void:
 	var seen: Array = _sense(route)
 	var blocker: String = seen[0] if seen[1] == 0 else ""
 	blocked_by = blocker
-	if seen[0] != "":
+	var fleeing: bool = panic > 0.0 and not police
+	if fleeing and seen[0] == "person":
+		# Point 32: full panic: no stopping for people, a horn and a crawl past them.
+		target = minf(target, maxf(PANIC_MIN_SPEED, sqrt(2.0 * 5.0 * maxf(0.0, SENSE_LEN * seen[1] - 1.5))))
+		if _honk_cooldown <= 0.0:
+			honk(false)
+			_honk_cooldown = randf_range(3.0, 6.0)
+		blocker = ""
+	elif seen[0] != "":
 		target = minf(target, sqrt(2.0 * 5.0 * maxf(0.0, SENSE_LEN * seen[1] - 1.5)))
 	if blocker != "":
 		_hold = 0.8
 	_hold = maxf(0.0, _hold - delta)
-	if _hold > 0.0:
+	if _hold > 0.0 and not (fleeing and blocker != "car"):
 		target = 0.0
-	target = minf(target, _junction_limit(route, seen))
+	# Junctions: claimed as usual, but a panicking car drops the right of way and goes.
+	var junction: float = _junction_limit(route, seen)
+	if not fleeing:
+		target = minf(target, junction)
+	elif blocked_by == "junction":
+		blocked_by = ""
 	if blocker == "car" and _ahead_stopped:
 		_wait_car = 0.0  # a stopped car ahead: wait (and toot) instead of creeping through it
 		if _honk_cooldown <= 0.0 and speed < 0.5:

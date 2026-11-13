@@ -28,6 +28,9 @@ properties/6/replication_mode = 2
 properties/7/path = NodePath(".:heavy")
 properties/7/spawn = true
 properties/7/replication_mode = 0
+properties/8/path = NodePath(".:gun")
+properties/8/spawn = true
+properties/8/replication_mode = 0
 
 [node name="PoliceOfficer" instance=ExtResource("1_ped")]
 script = ExtResource("2_cop")

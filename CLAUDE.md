@@ -21,6 +21,18 @@
   items, money, time of day, a place or NPCs themselves. Check every new scenario with
   `-- --scenario=<name> --scenario-quit --port=7790 --name=Tester` (headless; prints a `[ScenarioCheck]` line).
 
+## Parallel sessions (from 2026-11-13)
+- Session A = main in `C:\Users\alexc\game`; session B = branch `feature-b` in the worktree `C:\Users\alexc\game-b`.
+- Split: A does Roadmap points 34-42, the map (world.tscn, gen_world.py), DESIGN.md and CHANGELOG.md. B does ranks + XP
+  (Progression), never touches the map or DESIGN.md/CHANGELOG.md, tests on port 7778 (A uses 7777/7790-7795).
+- Coordination in `C:\Users\alexc\game-coord\`: A writes ONLY in A.md, B ONLY in B.md. A.md holds what A works on,
+  which files it touches, and every change B must know (renamed functions, changed signals, new player_data/save
+  fields, HUD changes). Read the other side's file before every new point and after every commit; answer there.
+- Check B's commits now and then: `git log main..feature-b --oneline` (the worktrees share the repo).
+- Never touch files the other session lists as "busy"; write what you need in your own .md instead.
+- Merging: when B.md says feature-b is done and rebased on main, A merges it into main, copies
+  NOTES_feature-b.md into DESIGN.md (Roadmap + Decisions) and CHANGELOG.md, and runs the full self-test + netcheck.
+
 ## Conventions
 - Godot 4.6 (standard, not .NET), GDScript with static typing, Forward+, Jolt physics.
 - Code, comments, UI and NPC text in English. Files in snake_case; a scene's script sits next to it.
@@ -74,6 +86,11 @@ Godot console exe:
   swapped by `ArtStyle.restyle`); building tints via `palette_tint.ptint`. HUD (27d): theme `assets/ui/game_theme.tres`
   (Fredoka font), `HudIcon.make(kind, color, px)`, F1 help panel. `-- --scenario=<id> --scenario-quit --scenario-shot
   [--help] --port=7790` (window) saves `screenshots/scenario_<id>.png`.
+- Admin mode (host only, `OS.is_debug_build()`, never in a release export; `Player.admin_allowed`): F10 noclip fly
+  (`admin_noclip`, collision off, Space/Ctrl up/down, Shift x3), F11 god mode (`admin_god`: `host_damage` ignored, no
+  ammo used in PlayerCombat), F12 `Wanted.clear` + every officer `on_arrested` (backs off). HUD `set_admin(text)` =
+  red label top centre; keys in the F1 help. Self-test check `admin`. Debug keys in use: F1 F3 F4 F6 F7 F9 F10-F12
+  (F8 = session B's +XP).
 - Scenarios: `Scenarios` (static, `pending`, `run(world, id)`, `restart_into(tree, id)`) + `ScenarioMenu` (F9, in World).
   A scenario restarts the host into a FRESH game on `user://scenario_test.json` (`SaveManager.use_scenario_save`,
   `scenario_mode`); the real save is written once before and never touched; the main menu switches back
@@ -128,6 +145,11 @@ Godot console exe:
   `wants`/`offer` (synced, group `customer` + `interactable`, "€" Label3D); World `_customer_loop`/`make_customer`
   (host), E -> `Pedestrian._server_sell` rolls fair/short/run (`Pedestrian.force_outcome` for tests). The interact
   ray hits layer 3 (npcs) too; clients enable a customer's collision only for that ray.
+- Phone deals (point 34): customer text = proposal; phone buttons -> `Player.phone_reply(deal, "accept"|"decline"|"counter",
+  price)` -> `Pedestrian.answer_text` (`COUNTER_STEPS`, `COUNTER_PICKY`, `force_counter` for tests, deal id "#fixed" = no
+  second counter). Synced `deal_ok` (green/yellow €) + `customer_name`; `accept_deal()`; E -> `Player.open_deal` (HUD
+  talk window) -> `confirm_deal()` -> host `_server_sell` (refuses without `deal_ok`; calls group "progression"
+  `on_sale(seller, bags, paid, outcome)`).
 - Phone (step 8): `Phone` (scenes/player/phone.gd, built in code, in the HUD) + `PhoneMap`; Tab = action `phone`.
   Host -> owner texts via `Player.phone_message(contact, text, deal)` / `World.phone_all`; answers go back with
   `Player.phone_reply` -> `Pedestrian.answer_text`. Webshop: `Player.webshop_buy` (legal items only) ->
@@ -183,10 +205,15 @@ Godot console exe:
 - Police life (point 30): `PoliceOfficer.question(npc)` / `is_busy()` / `chats`, `Pedestrian.hold_for_talk` /
   `free_for_talk` / `face`, Anim.TALK; `Car.question_in` (patrol car stops to question, `_try_question`, `_in_car`);
   World POLICE_COUNT = 2 foot officers. `PoliceOfficer.talk_time` (tests shorten it). Scenario police_life.
-- Black Crows (point 11): `Rival` (`scripts/npc/rival.gd`, PoliceOfficer subclass, group `rivals`, `prefabs/npc/rival.tscn`,
-  profile `data/npc/rival_combat.tres`), house `prefabs/buildings/crows_house.tscn` (RivalSpawn markers) in the turf yard.
-  World `_rival_loop` (night only, `rival_count`, `--rivals=N`, off in selftest/netcheck) / `add_rival(at)`.
-  Officer hooks for subclasses: `_group`, `_head_mesh`, `_target_off_limits`, `_log`. `Rival.obey_daylight` (tests).
+- Black Crows (points 11/31): `Rival` (`scripts/npc/rival.gd`, PoliceOfficer subclass, group `rivals`, `prefabs/npc/rival.tscn`,
+  profiles `data/npc/rival_combat.tres` / `rival_ak.tres`), house `prefabs/buildings/crows_house.tscn` (RivalSpawn markers) in
+  the turf yard. `Rival.role` YARD/STREET, `Rival.turf/on_turf/yard_point`, `memory` + `remember(p)` (shared within 25 m).
+  World `_rival_loop` (fills `rival_count` 6 in the yard, sends `rival_street` 2 out at night; `--rivals=N`; 0 in
+  selftest/netcheck) / `add_rival(at, ak)` / `rival_died` (respawn 60-120 s). Officer hooks: `_group`, `_head_mesh`,
+  `_target_off_limits`, `_log`, `_leash_center`/`_leash_range`; synced `gun` (weapon id). `Rival.obey_daylight` (tests).
+  Scenarios rivals_night, crows_turf.
+- Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
+  pedestrians `_flee_loop` until `flee_safe()` (40 m + out of sight, max 45 s). Scenario panic. Kerb check: `--only=kerb`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;
   `abandon()` only for wrecks/tests; `honk` is rate-limited town-wide (`_last_honk_ms`). `Car.force_reaction` "panic"/"uturn".
 - Players: `scenes/player/player.tscn` (`Player`), one per peer, spawned by the host via World/PlayerSpawner

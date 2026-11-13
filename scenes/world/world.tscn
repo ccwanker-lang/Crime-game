@@ -1691,6 +1691,54 @@ transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0
 [node name="StreetLamp22" parent="NavRegion" instance=ExtResource("44_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 26.05, 0.15, 42)
 
+[node name="StreetLamp23" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -2.05, 0.15, -18)
+
+[node name="StreetLamp24" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 33.95, 0.15, -18)
+
+[node name="StreetLamp25" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -2.05, 0.15, -30)
+
+[node name="StreetLamp26" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 33.95, 0.15, -30)
+
+[node name="StreetLamp27" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 33.95, 0.15, 18)
+
+[node name="StreetLamp28" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 33.95, 0.15, 42)
+
+[node name="StreetLamp29" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 13.1, 0.15, -44.05)
+
+[node name="StreetLamp30" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40.8, 0.15, -44.05)
+
+[node name="StreetLamp31" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0.15, -44.05)
+
+[node name="StreetLamp32" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 0, 0.15, -51.95)
+
+[node name="StreetLamp33" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 18, 0.15, -51.95)
+
+[node name="StreetLamp34" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 48, 0.15, -51.95)
+
+[node name="StreetLamp35" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 64, 0.15, -51.95)
+
+[node name="StreetLamp36" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -38, 0.15, 63.95)
+
+[node name="StreetLamp37" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0.15, 63.95)
+
+[node name="StreetLamp38" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0.15, 63.95)
+
 [node name="SignPost1" parent="NavRegion" instance=ExtResource("66_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.6, 0.15, -3.72)
 sign_text = "MILL LANE"

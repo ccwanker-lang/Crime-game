@@ -428,6 +428,21 @@ for z in (-18, -30):
     put("props/street_lamp.tscn", (26.05, 0.15, z), 90)
 for z in (18, 42):
     put("props/street_lamp.tscn", (26.05, 0.15, z), 90)
+# Point 33: lamps on BOTH sides of every street (no rng: the layout stays the same).
+for z in (-18, -30):
+    put("props/street_lamp.tscn", (-2.05, 0.15, z), -90)
+    put("props/street_lamp.tscn", (33.95, 0.15, z), -90)
+for z in (18, 42):
+    put("props/street_lamp.tscn", (33.95, 0.15, z), -90)
+# North Road (z -48, barber's street): north side on the party walls (never before a door), south side free.
+_nwalls = sorted({e for g in (gB2, gC2) for (a, b) in g for e in (a, b)})
+for x in (12, 42, 58):
+    put("props/street_lamp.tscn", (min(_nwalls, key=lambda e: abs(e - x)), 0.15, -44.05), 0)
+for x in (0, 18, 48, 64):
+    put("props/street_lamp.tscn", (x, 0.15, -51.95), 180)
+# South Street: the south side too.
+for x in (-38, -14, 10):
+    put("props/street_lamp.tscn", (x, 0.15, 63.95), 0)
 put("props/sign_post.tscn", (-12.6, 0.15, -3.72), 0, props={"sign_text": q("MILL LANE")})
 put("props/sign_post.tscn", (23.5, 0.15, -3.72), 0, props={"sign_text": q("STATION ROAD")})
 put("props/sign_post.tscn", (-0.6, 0.15, -3.72), 180, props={"sign_text": q("MAIN STREET")})

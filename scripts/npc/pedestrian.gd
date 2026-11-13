@@ -55,6 +55,10 @@ const MAX_HEALTH: int = 100
 ## Gunshots closer than this make the NPC flee.
 const HEAR_DISTANCE: float = 35.0
 const FLEE_TIME: float = 8.0
+## Point 32: keep running (leg after leg) until this far from the shot AND out of its sight,
+## at most FLEE_MAX seconds.
+const FLEE_SAFE_DISTANCE: float = 40.0
+const FLEE_MAX: float = 45.0
 ## Customers stop walking and face a player this close.
 const CUSTOMER_STOP_DISTANCE: float = 3.5
 ## Deal outcomes (host roll): runs off with the bags without paying / pays only part.
@@ -88,6 +92,14 @@ var wants: int = 0:
 		wants = v
 		_customer_changed()
 var offer: int = 0
+## Point 34: a player accepted the deal by phone (synced): it waits at its spot, green "€",
+## and the meeting can be confirmed. Before that the "€" is yellow and E only says "text first".
+var deal_ok: bool = false:
+	set(v):
+		deal_ok = v
+		_customer_changed()
+## First name in its texts (synced: the deal window shows it).
+var customer_name: String = ""
 ## The door this NPC wants to pass; NetDoor opens itself for it.
 var target_door: Node = null
 ## Host: hit points; at 0 -> dead (anim_state DEAD is what clients see).
@@ -95,6 +107,9 @@ var health: int = MAX_HEALTH
 var dead: bool = false
 ## Host: running away from gunfire until this time (msec ticks).
 var _flee_until: int = 0
+## Host (point 32): where the danger is, and whether the flee loop runs.
+var _flee_from: Vector3 = Vector3.INF
+var _flee_running: bool = false
 var _sit_front: Vector3 = Vector3.INF
 ## Debug counters (self-test): how often it did each activity.
 var stats: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0, "cross": 0}
@@ -134,9 +149,14 @@ var _deal_label: Label3D
 ## Host: customer gives up at this time (msec ticks); bags it ran off with.
 var _customer_until: int = 0
 var _stolen: int = 0
-## Host: first name in texts; true once a player answered "On my way" (it waits).
-var customer_name: String = ""
-var _meet_accepted: bool = false
+## Host (point 34): the player already made a counter-offer for this deal (one try).
+var _countered: bool = false
+## Point 34: chance that the customer takes a counter-offer = clamp(1.05 - markup * COUNTER_PICKY).
+const COUNTER_PICKY: float = 1.9
+## Counter-offer markups the phone offers.
+const COUNTER_STEPS: Array[float] = [0.1, 0.25, 0.5]
+## Tests: force the answer to the next counter-offer ("yes", "no", "leave").
+static var force_counter: String = ""
 const CUSTOMER_NAMES: Array[String] = ["Kevin", "Jens", "Lotte", "Sam", "Dylan", "Inge", "Bram", "Nora", "Wout",
 		"Femke", "Robbe", "Elke", "Senne", "Jana", "Milan", "Lisa"]
 
@@ -213,7 +233,7 @@ func _build_model() -> void:
 		_deal_label.font_size = 96
 		_deal_label.pixel_size = 0.004
 		_deal_label.outline_size = 18
-		_deal_label.modulate = Color(0.45, 1.0, 0.45)
+		_deal_label.modulate = DEAL_OK_COLOR if deal_ok else DEAL_OPEN_COLOR
 		_deal_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		_deal_label.position.y = 2.15
 		_deal_label.visible = wants > 0
@@ -719,7 +739,7 @@ func _stand_up() -> void:
 # --- Combat (host) -----------------------------------------------------------------
 
 func is_fleeing() -> bool:
-	return Time.get_ticks_msec() < _flee_until
+	return _flee_running or Time.get_ticks_msec() < _flee_until
 
 
 ## Host: did a bullet that hit at `pos` hit the head?
@@ -757,6 +777,7 @@ func _ragdoll_push(impulse: Vector3, at: Vector3) -> void:
 func _die(from: Vector3 = Vector3.INF) -> void:
 	dead = true
 	_flee_until = 0
+	_flee_from = Vector3.INF
 	if _sitting:
 		_stand_up()
 	collision_layer = 0  # bullets and people pass through the body
@@ -796,23 +817,62 @@ func hear_gunshot(origin: Vector3, hit: bool = false) -> void:
 	var away := Vector3(global_position.x - origin.x, 0, global_position.z - origin.z)
 	if not hit and away.length() > HEAR_DISTANCE:
 		return
-	var was_fleeing: bool = is_fleeing()
-	_flee_until = Time.get_ticks_msec() + int(FLEE_TIME * 1000.0)
-	if was_fleeing:
-		return  # keep running to the spot it picked
+	_flee_from = origin
+	_flee_until = maxi(_flee_until, Time.get_ticks_msec() + int(FLEE_TIME * 1000.0))
+	if _flee_running:
+		return  # keep running; the loop checks the new danger spot after this leg
 	if _sitting:
 		_stand_up()
+	stats["flee"] = int(stats.get("flee", 0)) + 1
+	_flee_loop()
+
+
+## Host (point 32): run away leg after leg until far from the danger and out of its sight.
+func _flee_loop() -> void:
+	_flee_running = true
+	var give_up: int = Time.get_ticks_msec() + int(FLEE_MAX * 1000.0)
+	var legs: int = 0
+	while is_inside_tree() and not dead and Time.get_ticks_msec() < give_up:
+		_flee_until = maxi(_flee_until, Time.get_ticks_msec() + 4000)
+		if legs > 0 and flee_safe():
+			break
+		var spot: Vector3 = _flee_spot()
+		legs += 1
+		if spot.distance_to(global_position) < 2.0:
+			await get_tree().create_timer(0.5).timeout  # cornered: try another direction soon
+			continue
+		await _go(spot, Anim.RUN)
+	_flee_running = false
+	if not dead and is_inside_tree():
+		_flee_until = 0
+		if not _moving:
+			anim_state = Anim.IDLE
+
+
+## Host (point 32): far enough from the danger and nothing sees it from there?
+func flee_safe() -> bool:
+	if _flee_from == Vector3.INF:
+		return true
+	if global_position.distance_to(_flee_from) < FLEE_SAFE_DISTANCE:
+		return false
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 1.5, _flee_from + Vector3.UP * 1.5, 1,
+			[get_rid()])
+	return not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
+## Host: a navmesh spot 14-22 m further away from the danger (or here when cornered).
+func _flee_spot() -> Vector3:
+	var away := Vector3(global_position.x - _flee_from.x, 0, global_position.z - _flee_from.z)
 	if away.length() < 0.1:
 		away = -global_basis.z
 	var map: RID = get_world_3d().navigation_map
 	var best: Vector3 = global_position
-	for i: int in 8:
-		var dir: Vector3 = away.normalized().rotated(Vector3.UP, randf_range(-0.9, 0.9))
+	for i: int in 10:
+		var dir: Vector3 = away.normalized().rotated(Vector3.UP, randf_range(-1.1, 1.1))
 		var p: Vector3 = NavigationServer3D.map_get_closest_point(map, global_position + dir * randf_range(14.0, 22.0))
-		if p.distance_to(origin) > best.distance_to(origin):
+		if p.distance_to(_flee_from) > best.distance_to(_flee_from):
 			best = p
-	stats["flee"] = int(stats.get("flee", 0)) + 1
-	_go(best, Anim.RUN)
+	return best
 
 
 # --- Ambient behaviour (host) -----------------------------------------------------
@@ -821,7 +881,7 @@ func _wander() -> void:
 	await idle(randf_range(0.5, 3.0))
 	while is_inside_tree() and ambient and not dead:
 		if is_fleeing() or _sitting or is_talking() \
-				or (wants > 0 and (_meet_accepted or _player_near(CUSTOMER_STOP_DISTANCE) != null)):
+				or (wants > 0 and (deal_ok or _player_near(CUSTOMER_STOP_DISTANCE) != null)):
 			await get_tree().create_timer(0.5).timeout
 			if is_talking() and not is_fleeing():
 				face(_talk_with.global_position)
@@ -896,12 +956,15 @@ static func random_sidewalk_point(from: Node3D, max_tries: int = 60) -> Vector3:
 
 ## Tests: force the next deal's outcome ("fair", "short", "run").
 static var force_outcome: String = ""
+const DEAL_OK_COLOR: Color = Color(0.45, 1.0, 0.45)
+const DEAL_OPEN_COLOR: Color = Color(1.0, 0.82, 0.3)
 
 
 ## Every peer: show/hide the "€" and make the body hittable by the E ray.
 func _customer_changed() -> void:
 	if _deal_label:
 		_deal_label.visible = wants > 0
+		_deal_label.modulate = DEAL_OK_COLOR if deal_ok else DEAL_OPEN_COLOR
 	if stationary or not is_node_ready():
 		return  # _ready calls this again
 	if wants > 0:
@@ -916,32 +979,64 @@ func _customer_changed() -> void:
 			collision.disabled = true
 
 
-## Host: make this pedestrian a customer for `seconds`.
+## Host: make this pedestrian a customer for `seconds`. Point 34: it texts a proposal
+## (bags, price, place); only a player's "Accept" (or an accepted counter-offer) fixes the meeting.
 func become_customer(bags: int, price: int, seconds: float) -> void:
 	offer = price
+	deal_ok = false
+	_countered = false
 	wants = bags
-	_meet_accepted = false
 	_customer_until = Time.get_ticks_msec() + int(seconds * 1000.0)
 	customer_name = CUSTOMER_NAMES.pick_random()
 	var world: Node = get_tree().current_scene
 	if world and world.has_method("phone_all"):
 		var where: String = world.call("describe_location", global_position)
-		world.call("phone_all", customer_name, "Hey, it's %s. Need %d bag%s, I'll pay €%d. I'm %s." % [
+		world.call("phone_all", customer_name, "Hey, it's %s. I need %d bag%s, I'll pay €%d. Meet me %s?" % [
 				customer_name, bags, "" if bags == 1 else "s", price, where], str(name))
 
 
-## Host: a player answered the customer's text.
-func answer_text(from: Player, accept: bool) -> void:
-	if accept:
-		_meet_accepted = true
-		_customer_until = maxi(_customer_until, Time.get_ticks_msec() + 180000)
-		if _moving:
-			_finish_move(false)
-		from.phone_message(customer_name, "Cool. I'll wait right here. Look for the €.", "")
-	else:
-		wants = 0
-		from.phone_message(customer_name, "Your loss.", "")
-	print("[Deal] %s answered %s: %s" % [from.player_name, customer_name, "on my way" if accept else "not now"])
+## Host: the meeting is on: wait here (3 more minutes), green "€".
+func accept_deal() -> void:
+	deal_ok = true
+	_customer_until = maxi(_customer_until, Time.get_ticks_msec() + 180000)
+	if _moving:
+		_finish_move(false)
+
+
+## Host (point 34): a player answered the proposal: "accept", "decline" or "counter" (with `price`).
+func answer_text(from: Player, action: String, price: int = 0) -> void:
+	if wants <= 0 or deal_ok:
+		return
+	match action:
+		"accept":
+			accept_deal()
+			from.phone_message(customer_name, "Cool. I'll wait right here, €%d. Look for the green €." % offer, "")
+		"decline":
+			wants = 0
+			from.phone_message(customer_name, "Your loss.", "")
+		"counter":
+			if _countered:
+				from.phone_message(customer_name, "We already talked price. €%d, take it or leave it." % offer, str(name) + "#fixed")
+				return
+			_countered = true
+			var markup: float = float(price) / maxf(1.0, float(offer)) - 1.0
+			var answer: String = force_counter
+			force_counter = ""
+			if answer == "":
+				var chance: float = clampf(1.05 - markup * COUNTER_PICKY, 0.05, 0.95)
+				answer = "yes" if randf() < chance else ("leave" if markup >= 0.4 and randf() < 0.5 else "no")
+			match answer:
+				"yes":
+					offer = maxi(offer, price)
+					accept_deal()
+					from.phone_message(customer_name, "Ugh, fine. €%d. I'll wait right here, look for the green €." % offer, "")
+				"leave":
+					wants = 0
+					from.phone_message(customer_name, "€%d?! Forget it, I'll find someone else." % price, "")
+				_:
+					from.phone_message(customer_name, "No way. €%d is my price, take it or leave it." % offer, str(name) + "#fixed")
+	print("[Deal] %s answered %s: %s%s -> %s" % [from.player_name, customer_name, action,
+			" €%d" % price if action == "counter" else "", "on" if deal_ok else ("off" if wants == 0 else "open")])
 
 
 func _player_near(dist: float) -> Player:
@@ -964,10 +1059,10 @@ func _customer_tick() -> void:
 	if Time.get_ticks_msec() > _customer_until:
 		wants = 0
 		var world: Node = get_tree().current_scene
-		if world and world.has_method("phone_all") and _meet_accepted:
+		if world and world.has_method("phone_all") and deal_ok:
 			world.call("phone_all", customer_name, "Forget it, you're too slow.", "")
 		return
-	if _meet_accepted and _moving:
+	if deal_ok and _moving:
 		_finish_move(false)  # waiting for the player at the spot it texted
 	if is_fleeing():
 		return
@@ -981,12 +1076,9 @@ func _customer_tick() -> void:
 
 
 func get_interaction_prompt() -> String:
-	var item: String = "Bag of Weed" if wants == 1 else "Bags of Weed"
-	var me: Player = _local_player()
-	var have: int = Station.carried(me, "weed_bag") if me else 0
-	if have < wants:
-		return "Customer wants %d %s for €%d (you have %d)" % [wants, item, offer, have]
-	return "Sell %d %s for €%d" % [wants, item, offer]
+	if not deal_ok:
+		return "%s wants to buy. Answer the text first  [Tab]" % (customer_name if customer_name != "" else "Customer")
+	return "Talk to %s  (%d bag%s, €%d)" % [customer_name, wants, "" if wants == 1 else "s", offer]
 
 
 func _local_player() -> Player:
@@ -996,7 +1088,18 @@ func _local_player() -> Player:
 	return null
 
 
+## Owner (E): point 34: a short talk with "Confirm deal" (Player.open_deal) instead of selling at once.
 func interact() -> void:
+	var me: Player = _local_player()
+	if me and me.ui:
+		if deal_ok:
+			me.open_deal(self)
+		else:
+			me.ui.toast("Text %s back first: Tab > Hush > Accept / Counter." % customer_name)
+
+
+## Owner: "Confirm deal" in the talk window: the host sells (and rolls the outcome).
+func confirm_deal() -> void:
 	if _is_host():
 		_server_sell(multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1)
 	else:
@@ -1012,6 +1115,9 @@ func _request_sell() -> void:
 func _server_sell(peer: int) -> void:
 	var seller := get_tree().current_scene.get_node_or_null("Players/%d" % peer) as Player
 	if seller == null or seller.dead or dead or wants <= 0:
+		return
+	if not deal_ok:
+		seller.show_message("\"Text me first, man.\" (accept the deal on your phone)")
 		return
 	if seller.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 1.5:
 		return
@@ -1043,6 +1149,9 @@ func _server_sell(peer: int) -> void:
 		GameState.add_cash(who, paid)
 	print("[Deal] %s sold %d bags to %s: %s, paid €%d of €%d" % [who, bags, name, outcome, paid, offer])
 	wants = 0
+	deal_ok = false
+	# Hook for other systems (ranks/XP, point 43): group "progression" gets every finished sale.
+	get_tree().call_group(&"progression", "on_sale", seller, bags, paid, outcome)
 	seller.send_wallet()
 	seller.show_message(msg)
 	if outcome == "run":

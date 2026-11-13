@@ -230,29 +230,66 @@ func _thread() -> void:
 		l.custom_minimum_size = Vector2(220, 0)
 		bubble.add_child(l)
 		box.add_child(bubble)
-		# Answer buttons under the newest open deal.
+		# Answer buttons under the newest open deal (point 34: accept, counter-offer, decline).
 		if str(m["deal"]) != "" and not m["answered"] and i == list.size() - 1:
-			var row := HBoxContainer.new()
-			for choice: Array in [["On my way", true], ["Not now", false]]:
-				var b := Button.new()
-				b.text = choice[0]
-				b.focus_mode = Control.FOCUS_NONE
-				b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-				b.pressed.connect(_answer.bind(i, bool(choice[1])))
-				row.add_child(b)
-			box.add_child(row)
+			box.add_child(_deal_buttons(i, str(m["deal"])))
 	await get_tree().process_frame
 	if is_instance_valid(scroll):
 		scroll.scroll_vertical = int(scroll.get_v_scroll_bar().max_value)
 
 
-func _answer(index: int, accept: bool) -> void:
+## Point 34: Accept / Counter / Decline; Counter opens a row of higher prices. A deal id
+## ending in "#fixed" = the customer already refused a counter-offer (no second try).
+func _deal_buttons(index: int, deal: String) -> Control:
+	var col := VBoxContainer.new()
+	var row := HBoxContainer.new()
+	col.add_child(row)
+	var fixed: bool = deal.ends_with("#fixed")
+	var npc: Pedestrian = _deal_npc(deal)
+	var offer: int = npc.offer if npc else 0
+	var choices: Array = [["Accept", "accept"], ["Counter...", "counter"], ["Decline", "decline"]]
+	if fixed or offer <= 0:
+		choices.remove_at(1)
+	for choice: Array in choices:
+		var b := Button.new()
+		b.text = choice[0]
+		b.focus_mode = Control.FOCUS_NONE
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if choice[1] == "counter":
+			b.pressed.connect(func() -> void:
+				b.disabled = true
+				var prices := HBoxContainer.new()
+				for step: float in Pedestrian.COUNTER_STEPS:
+					var price: int = roundi(offer * (1.0 + step) / 5.0) * 5
+					var pb := Button.new()
+					pb.text = "€%d (+%d%%)" % [price, roundi(step * 100.0)]
+					pb.focus_mode = Control.FOCUS_NONE
+					pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					pb.pressed.connect(_answer.bind(index, "counter", price))
+					prices.add_child(pb)
+				col.add_child(prices))
+		else:
+			b.pressed.connect(_answer.bind(index, str(choice[1]), 0))
+		row.add_child(b)
+	return col
+
+
+## The customer behind a deal id (on this peer), or null.
+func _deal_npc(deal: String) -> Pedestrian:
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return null
+	return tree.current_scene.get_node_or_null("NPCs/" + deal.trim_suffix("#fixed")) as Pedestrian
+
+
+func _answer(index: int, action: String, price: int) -> void:
 	var list: Array = threads.get(_contact, [])
 	var m: Dictionary = list[index]
 	m["answered"] = true
-	add_message(_contact, "On my way." if accept else "Not now.", "", true)
+	var text: String = {"accept": "Deal. On my way.", "decline": "Not now."}.get(action, "Make it €%d." % price)
+	add_message(_contact, text, "", true)
 	if player:
-		player.phone_reply(str(m["deal"]), accept)
+		player.phone_reply(str(m["deal"]).trim_suffix("#fixed"), action, price)
 
 
 func _scroll_box() -> VBoxContainer:

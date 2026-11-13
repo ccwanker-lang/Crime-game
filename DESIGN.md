@@ -5,7 +5,9 @@ but keep code compatible with everything described here.
 
 ## Concept
 Co-op crime/shooter inspired by Schedule I (economy, production, NPC selling) + Counter-Strike-style gunplay.
-Fictional Belgian/European town, currency euro (€). Game language: English. Art: see "Art direction".
+Fictional Belgian/European setting: a small village (chapter 1) and a big city (chapter 2) joined by a highway,
+currency euro (€). Game language: English. Art: see "Art direction". Story: see "Rivals & story".
+The whole map is open to explore from the start (no districts to unlock); in total a bit bigger than Schedule I.
 
 ## Tech decisions
 - Godot 4.x (standard, GDScript, static typing), Forward+.
@@ -51,32 +53,60 @@ Workers cost a daily wage and need a bed/locker in the property. Bigger property
 Dealers: hired in the bar, assigned to a district, take a commission, can be arrested or betray you.
 
 ## Progression
-| Rank | Property | District | Unlocks |
+Ranks unlock things to BUY and DO, never places: every area of the map can be visited from the start.
+The "Area" column is where that rank's property stands.
+| Rank | Property | Area | Unlocks |
 |---|---|---|---|
-| 0 Street Hustler | Starter room | Old Town | Basic setup, sell yourself, phone, weed |
-| 1 Hustler | Garage property | West side | First car, gas station, 1 dealer, grower |
-| 2 Dealer | Barn | Countryside | Meth, cook/packager, better equipment, shooting range |
-| 3 Plug | Lab warehouse | Industrial | Real estate agent + front businesses, couriers, black market |
-| 4 Boss | Harbor storage | Harbor | Cocaine, bulk deals, guards, lawyer, rivals raid you |
-| 5 Kingpin | Villa | Hillside | Bribe police, more dealers, roadside service team |
-| 6 Godfather | Mountain cabin | Whole city | Attack rival HQ, highway to region 2 |
+| 0 Street Hustler | Starter room | Village: Old Town | Basic setup, sell yourself, phone, weed |
+| 1 Hustler | Cover garage (see Buildings) | Village: West side | First car, gas station, 1 dealer, grower |
+| 2 Dealer | Barn | Village: countryside | Meth, cook/packager, better equipment, shooting range |
+| 3 Plug | Lab warehouse | Village: industrial edge | Real estate agent + front businesses, couriers, black market |
+| 4 Boss | Harbor storage | Village: harbor | Cocaine, bulk deals, guards, lawyer, rivals raid you |
+| 5 Kingpin | Villa | City: hillside | Bribe police, more dealers, roadside service team |
+| 6 Godfather | Mountain cabin | Hills between village and city | Attack the Crows' HQ; chapter 2 story (the syndicate) |
 XP from sales, deals and fights.
 
 ## Rivals & story
-Rival gang: "The Black Crows", leader Viktor Kraal. They control the city, harbor and a corrupt cop.
+Rival gang (chapter 1): "The Black Crows", leader Viktor Kraal. They run the village: every district, the
+harbor and a corrupt cop.
+
+Backstory: the main character - and every co-op player - used to be a Black Crow. Viktor Kraal let them fall:
+they went to prison for a job the Crows themselves walked away from, thanks to their power. Motive: revenge,
+and building an empire of their own.
+
+Start (tutorial): the last day in the PRISON (a remote complex outside both the village and the city). The
+tutorial teaches walking, talking and interacting. A fellow prisoner gives you a contact in the village and
+becomes your first mentor / business partner. A bus drops you at the edge of the village, without money.
+
+Territory: at the start the Crows hold every district of the village; dealing on their turf is dangerous
+(their members patrol it, see Roadmap 31). Each district has an influence meter: sales and won fights push it
+towards the players; you take the village district by district. A taken district is safer to deal in and
+counts for the story acts.
 - Killing rivals: they drop cash, product, sometimes weapons or stash keys.
 - Lab raids: rivals steal stock/machines unless guards or players defend.
-- Territory: each district has an influence meter (sales + won fights push it to the player).
-Acts:
-1. New in town (rank 0–1): selling weed in Old Town, Crows warn you.
-2. First blood (rank 2): Crows raid your barn; you learn they pay a cop.
-3. Street war (rank 3–4): take districts one by one, move to Industrial, steal harbor shipments.
-4. The traitor (rank 5): a Crows lieutenant wants to defect; trust him or not → different missions.
+
+Chapter 1 - the village (acts):
+1. New in town (rank 0-1): selling weed in Old Town, the Crows warn you.
+2. First blood (rank 2): the Crows raid your barn; you learn they pay a cop.
+3. Street war (rank 3-4): take the districts one by one, move into the industrial edge, steal harbor shipments.
+4. The traitor (rank 5): an OLD FRIEND of the players who is still with the Crows wants to defect; trust him or
+   not -> different missions.
 5. The HQ (rank 6): final assault, defeat Viktor and spare him.
-Milestone 2 (test town): the Crows have a house. At night some of them come out, walk the streets and
-attack players. Inside a player's own property you are safe (they don't come in). Killed rivals drop loot.
-Ending: the Crows work for the player (dealers/guards), Viktor runs the harbor. Highway to region 2
-opens with a new rival.
+Ending of chapter 1: the Crows work for the players (dealers/guards), Viktor runs the harbor for you.
+Milestone 2 (test town): the Crows have a fenced yard with their house. A few roam the streets at night and attack
+players; the yard is their turf. Inside a player's own property you are safe (they don't come in). Killed rivals
+drop loot.
+
+Chapter 2 - the city: a second, separate rival: an organised syndicate in suits, mafia style, hiding behind a
+clean front of companies and skyscrapers. Story still to be written (the city is open to explore from the start;
+its story begins after chapter 1).
+
+Co-op in the story (max 4 players):
+- All players were framed together and come out together; everyone gets the same missions. The story is the
+  same whatever the number of players.
+- Late join: a player who joins later also starts in the prison (a short intro), is picked up, and is then put
+  on the host's story progress automatically. Missions they missed count as done, but they get no loot or money
+  from them: their own cash and items start at zero (cash/inventory stay per player, see Tech decisions).
 
 ## Art direction
 **Style (user decision, point 27): STYLIZED LOW-POLY, the style of the characters and the cars.**
@@ -173,13 +203,16 @@ textures anywhere. Still a believable Belgian/European town at human scale (1 un
   camera; other players can ride along as passengers. Saved in the savegame, they spawn at your property.
 
 ## Buildings / services
-Starter room, garage property, barn, lab warehouse, harbor containers/storage, villa, mountain cabin,
+Starter room, cover garage (the players' own), barn, lab warehouse, harbor containers/storage, villa, mountain cabin,
 supermarket, hardware store, gas station, car garage (buy/sell/repair cars), roadside service depot
 (tow truck team drives to the player), real estate agent (buy properties + front businesses), front
 businesses (bakery, barber, laundromat; later car wash, restaurant), bank, police station, hospital, lawyer's
 office, gun shop, black market, shooting range, bar (hire dealers), club, motel, town hall, rival HQ,
 dealer hangouts per district, customer houses, car dealer.
-- Black market: inside the garage, behind a fence. Open only at night (gate locked during the day). Sells
+- Cover garage (the players' own property, rank 1): a real car workshop as a front - repairing cars earns
+  CLEAN money - with a hidden lab / storage room at the back. (Not the same building as Rook's garage below.)
+- Prison (story start + late-join intro): a remote complex outside the village and the city, reached by bus.
+- Black market: inside Rook's garage (test town), behind a fence. Open only at night (gate locked during the day). Sells
   stations and illegal goods (seeds, baggies...).
 - Test town additions (milestone 2): police station, real estate agent, car dealer, the garage with the black
   market, three front businesses, the Black Crows' house, a small park behind the benches on the square at
@@ -187,7 +220,15 @@ dealer hangouts per district, customer houses, car dealer.
   an "agora" (fenced mini football pitch with goals, sometimes NPCs playing).
 
 ## Map layout (for milestone 4 — greybox first)
-Top-down, north = up. Organic town, NOT a square grid; compact dense center.
+Two parts, both open from the start, joined by a highway; in total a bit bigger than Schedule I:
+- The VILLAGE (chapter 1, small scale): grows out of today's test map. Old Town (starter room), the Crows'
+  districts, countryside with the barn, a small industrial edge with the lab warehouse and a small harbor.
+- The CITY (chapter 2, big): skyscrapers and a dense downtown grid, the syndicate's company towers, hillside
+  villas. Reached over the highway.
+- The PRISON: remote, outside both, on the bus line (story start).
+- The hills between village and city hold the mountain cabin.
+The sketch below was made for one town; it is split over the village and the city as above when the map is
+built (Roadmap 47 / 54). Top-down, north = up. Organic town, NOT a square grid; compact dense center.
 - Water: sea/bay along the south-west and south; a river flows from the northern hills
   southwards, curving south-west into the bay. It splits Old Town (west) from Downtown (east).
   2–3 bridges.
@@ -205,7 +246,7 @@ Top-down, north = up. Organic town, NOT a square grid; compact dense center.
   hospital near downtown.
 - Northern hills: forested hills/mountains with a winding serpentine road up to the mountain cabin.
 - Highway: enters from the north-east edge and connects to the north end of the main avenue;
-  later continues to region 2 (map edge = blocked for now).
+  it is the link between the village and the city (open from the start).
 - Rival HQ: in the harbor/industrial area.
 Terrain should have real height differences (hills up, down to the river and harbor).
 
@@ -234,7 +275,7 @@ the start for now; rank gates (see Progression) come later.
 8. Real estate agent: buy properties (Starter Room -> 2-floor house -> full house -> warehouse) - done
 9. Money laundering: bakery, barber, laundromat; dirty vs clean money - done
 10. Police station + patrolling police reacting to gunfire and murder - done (since 25: patrol cars with a crew of 2, no foot patrols; reworked by 28 + 30)
-11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done (reworked by 31)
+11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done (reworked by 31: they live in the yard)
 12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - todo
 13. Agora: fenced mini football pitch, NPCs playing sometimes - todo
 14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
@@ -261,7 +302,7 @@ Feedback round 2 (MUST first, then balance, traffic, police, map):
     the police station; agent list + existing saves follow (owned property moves with its contents) - done
 Test scenarios (F9 / --scenario=<id>, one per feature, real save never touched) - done
 Feedback round 3 (after playing every scenario). APPROVED, don't change how they work: all weapons incl. the
-sniper scope, growing/drying/packaging, the black market, storage. Order: 27 first, then 28-41, then 12-14.
+sniper scope, growing/drying/packaging, the black market, storage. Order: 27 first, then 28-42, then the round 4 reopenings of 28 and 31, then 43-48 below.
 27. Art style: ONE consistent style - CHOSEN: stylized low-poly like the characters and cars (see Art direction).
     a. Comparison of 3 proposals (A/B/C) - done (superseded by the user's decision)
     b. Art test street in the new style in scenes/art_test/style_compare.tscn (--scenario=style_compare): houses,
@@ -279,21 +320,39 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     once. 4-5: the whole force, road blocks, heavy teams. Stars drop when you stay out of sight, hide in your own
     property, or (later) bribe. Police react BEFORE you holster. Thresholds/times in a resource - done
     (bribes come with the corrupt cop later)
+    REOPENED (feedback round 4, 2026-11-13) - todo:
+    a. Trigger: only holding a weapon gives NO stars and no police reaction; stars only for a shot fired, a
+       wound or a kill.
+    b. Losing them: as soon as the police lose sight the search phase starts: the stars blink and ONE timer runs
+       (1 star 10 s, 2 = 20 s, 3 = 30 s, 4 = 40 s, 5 = 50 s). When it runs out ALL stars go at once (not one by
+       one); seen again = the timer resets. All values in the resource.
+    c. Police numbers scale with the stars: no stars = only 2-3 patrol cars in the whole town; every star adds
+       cars and officers; 5 stars = today's numbers plus the SMG teams and road blocks. Extra units that came for
+       you withdraw when the stars are gone, so the town calms down.
+    Scenario wanted_timer (3 stars at once, next to a spot where you can quickly get out of sight).
 29. Pedestrians and police may walk on the road (not only pavement/zebras); cars brake for them - done
 30. Police life: a patrol car sometimes stops (light bar) to question an NPC; officers also patrol on foot and talk
     to passers-by - done
 31. Black Crows rework: spread over their whole fenced yard (no single spawn point); they only attack on their
     turf or if a member saw you there (memory); new spawns that never saw you leave you alone outside. At night one
     small group patrols the streets (the night threat), the rest stays in the yard. The dead are replaced only
-    after 1-2 minutes. Weapon variety (some carry an AK) - in progress (draft docs/wip/rival_point31_draft.gd.txt, see HANDOFF.md)
+    after 1-2 minutes. Weapon variety (some carry an AK) - done
+    REOPENED (feedback round 4, 2026-11-13) - todo:
+    a. Police vs Crows: the police are neutral: whoever shoots or murders gets them on their back, NPCs too.
+       Crows shooting at night draw the police, who shoot them; a gunfight police vs Crows while you watch must
+       be possible.
+    b. Crows per night are limited: the turf has a fixed manning per night (e.g. 20, tunable). The dead are
+       replaced until that night's pool is used up; when all are dead the Crows are out for that night and
+       nobody spawns any more. The next night the pool is full again.
+    Scenario police_vs_crows (night, Crows on the street, a patrol car close by).
 32. Traffic + panic: cars that are shot at or hear shots flee in full panic and never stop (also not at a
-    junction: right of way is dropped). Pedestrians flee until they are really away from you and out of sight - todo
+    junction: right of way is dropped). Pedestrians flee until they are really away from you and out of sight - done
 33. Street lamps on both sides of every street (the barber's street has none); the kerb sometimes blocks you
-    stepping up from the road onto the pavement: fix (step height / collision) - todo
+    stepping up from the road onto the pavement: fix (step height / collision) - done (could not be reproduced: kerb check 96/96, kept as a regression test)
 34. Deals by phone: the customer sends a proposal (amount, price, place); accept, decline or counter-offer (the
     customer accepts or refuses depending on how far you go); only an accepted deal fixes the meeting. At the
     meeting a short conversation with "Confirm deal" instead of plain E. Fix the sell_weed scenario: right in front
-    of a customer with a green € sign - todo
+    of a customer with a green € sign - done
 35. Own properties on the map: icon + name after buying, a name plate on the building; the estate agent shows
     where a property is on the map BEFORE you buy - todo
 36. Build mode (B): only in build mode can furniture and stations be picked up, moved and rotated. Outside it E
@@ -306,10 +365,25 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     is pending - todo
 41. Mouse wheel scrolls through the hotbar (in build mode it rotates) - todo
 42. Polish (later): animations for planting, watering, harvesting and packaging - todo
-Then the rest of milestone 2: 12 park, 13 agora, 14 car dealer + driving.
-Then (milestone 3, in this order): ranks + XP + unlocks; staff + dealers; meth, then cocaine; lawyer, bribes
-(heat = the wanted system of point 28); rival territories, lab raids, story missions (acts 1-5); the full city
-(Map layout); roadside team, fuel station, garage.
+ORDER AFTER 42 (set by the user, 2026-11-13):
+  43. Ranks + XP + unlocks (Progression) - todo
+  44. Staff + dealers - todo
+  45. = point 14: car dealer + driving yourself - todo
+  46. = points 12-13: park, agora - todo
+  47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
+  48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
+      point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - todo
+Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built after 48):
+  49. Prison + tutorial intro: last day inside (walk, talk, interact), the fellow prisoner / mentor gives a
+      contact, the bus drops you at the edge of the village without money - todo
+  50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
+      story progress (missed missions done, no loot/money from them, own cash/items from zero) - todo
+  51. Territory per district: the Crows hold every village district at the start, dealing there is dangerous,
+      influence meter (sales + won fights), take them over one by one - todo
+  52. Cover garage: own garage property, repair cars for clean money, hidden lab/storage at the back - todo
+  53. Story missions per act (chapter 1, acts 1-5; the traitor = an old friend of the players) - todo
+  54. The city + the highway link (chapter 2 map: skyscrapers, downtown, hillside) - todo
+  55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
@@ -453,6 +527,58 @@ Choices made while working autonomously (what + why).
   Any crime cuts the chat short (`_alert`). A patrol car only questions when it isn't chasing anyone; the other
   crew member stays in the car (`Car._in_car`), so its crew size survives. Foot patrols are back (2, not in the
   netcheck, which must stay deterministic); they use the same arrest/wanted rules as car crews.
+- Point 31 (Black Crows rework): six Crows live in the fenced yard day and night (role YARD), spread over it
+  (`Rival.yard_point` = random navmesh spot inside the "TurfYard" rect), strolling and chatting in pairs. At night
+  the World sends 2 of them into town (role STREET = the old point-11 behaviour: attack any player in sight); at
+  daybreak they walk back and become YARD again instead of disappearing, so the yard is never empty. A YARD Crow
+  attacks only players standing on the turf, or players in its own `memory`; memory is filled by seeing you on the
+  turf or being shot by you, and shared with Crows within 25 m at that moment (word of mouth, but no gang-wide
+  hive mind: a Crow spawned later knows nobody). Memory is per Crow and not saved (a respawned yard starts fresh).
+  Yard Crows stop chasing 42 m from the yard centre (`_leash_center`/`_leash_range` hooks in PoliceOfficer, which
+  car crews now use too). Dead Crows are replaced 60-120 s later at the house door; 30% carry an AK-47 (own
+  profile `rival_ak.tres`: bursts of 3-5, 11 damage, slightly worse aim), the weapon id is the synced `gun`
+  property (PoliceOfficer, also usable for police later). In self-test/netcheck runs `rival_count` is 0, so test
+  kills never trigger replacements.
+- Point 32 (panic): a panicking car (not police) drops the right of way at junctions (it still claims them, so
+  calm cars wait for it) and never stops for people in its lane: it honks and squeezes past at walking pace
+  (PANIC_MIN_SPEED 3.5 m/s, never 0) instead of driving at full speed through them. It still brakes for a car
+  right in front (it can't drive through one; overtaking is too much for this point). PANIC_TIME 6 -> 10 s.
+  Pedestrians now run leg after leg (14-22 m each, away from the shot) until they are 40 m away AND a wall is
+  between them and the shot, at most 45 s (so nobody runs forever when cornered). The shot's position stands in
+  for "you": pedestrians don't track the shooter, which keeps it cheap with 40+ NPCs.
+- Point 33 (lamps + kerb): 16 new lamps on the empty sides: the east sides of both side roads, both sides of North
+  Road (z -48; on the north side on the party walls between houses, never in front of a door) and the south side
+  of South Street. Placed without rng, so the rest of the generated map is unchanged. The kerb block could not be
+  reproduced: a new self-test check (`kerb`) walks, sprints and crouches from the road onto the pavement at 0-70
+  degrees, over tile seams and round the junction corners (96/96 pass). A more eager step-up (probing a capsule radius ahead) was tried and
+  reverted: it made the walker stall inside the estate agent's door. The kerb check stays as a regression test.
+- Order after point 42 (user, 2026-11-13): ranks + XP first, then staff + dealers, then the car dealer + driving
+  (14), then park + agora (12-13), then the full city, then the rest of milestone 3. Art style + HUD (27) are taken
+  as approved (no feedback given). The kerb fix of point 33 stays; the user reports it if it comes back.
+- Feedback round 4 (user, 2026-11-13, police + Crows): recorded as reopenings of points 28 and 31 (a-c / a-b)
+  instead of new numbers, because they change how those systems work. Built after point 42, before 43.
+- Admin mode (user request, 2026-11-13): host-only debug keys F10 noclip / F11 god mode + endless ammo / F12 clear
+  wanted. Only for the host's own player, because the host owns damage and ammo (a client's noclip would fight the
+  host's speed check). Off in release builds via OS.is_debug_build(), so no separate setting is needed. Endless ammo
+  = the magazine simply doesn't go down (owner and host side), so reloads and saves stay consistent.
+- Point 34 (phone deals): the proposal text is the deal; the phone shows Accept / Counter... / Decline under it.
+  Counter = three fixed steps (+10/25/50%, rounded to €5) instead of a free number field: quick to use with the
+  mouse and easy to balance. The customer accepts with chance 1.05 - markup x 1.9 (about 86/57/10%); a refused
+  counter at +40% or more makes it walk off half the time, otherwise the deal stays open at its own price (marked
+  "#fixed": no second counter). Only an accepted deal fixes the meeting (green €, waits 3 more minutes); the "€"
+  of an open proposal is yellow and E on it only says "text first", so walk-up selling is gone. Anyone in the crew
+  can accept and anyone can meet (co-op). At the meeting E opens a small talk window at the bottom ("You got the
+  2 bags? €130, like we said.") with Confirm deal / Not now; Confirm runs the old host sale with its rip-off roll.
+  Deal state (`deal_ok`, `customer_name`) is synced so clients see the colour and the name. The sell_weed
+  scenario was broken because the customer was made `stationary`, which keeps it out of the interactable group;
+  it now stands 2 m in front of you with an accepted deal.
+- Story + world (user, 2026-11-13): recorded in "Rivals & story", Map layout, Buildings and Roadmap 49-55, not built
+  yet. Changed to match: the map is open from the start, so the Progression table's "District" column became
+  "Area" (where the property stands) and rank 6 no longer opens a highway (it is always open; rank 6 starts the
+  chapter 2 story). "Region 2" = the city of chapter 2. The rank 1 "garage property" is the cover garage; Rook's
+  black market garage stays a separate building. Old point 47 ("the full city") is now the full VILLAGE; the city
+  is point 54. Territory and story missions moved out of 48 into 51 and 53. The traitor of act 4 is an old friend
+  of the players instead of a Crows lieutenant.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

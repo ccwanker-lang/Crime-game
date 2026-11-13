@@ -59,6 +59,8 @@ var home: Vector3 = Vector3.INF
 var from_car: Node3D = null
 ## Point 28: heavy team (synced at spawn: the SMG and the dark uniform show on every peer).
 var heavy: bool = false
+## Point 31: weapon item id (synced at spawn); empty = pistol (SMG for heavy teams).
+var gun: StringName = &""
 
 var _gun: WeaponModel
 var _skeleton: Skeleton3D
@@ -104,11 +106,23 @@ func _log(text: String) -> void:
 	print("[Police] " + text)
 
 
+## Point 31 hooks: the chase stops when the target's last spot is further than _leash_range()
+## from _leash_center() (INF = no leash). Car crews: their car.
+func _leash_center() -> Vector3:
+	if from_car != null and is_instance_valid(from_car):
+		return from_car.global_position
+	return Vector3.INF
+
+
+func _leash_range() -> float:
+	return LEASH
+
+
 func _ready() -> void:
 	ambient = false
 	super._ready()
 	add_to_group(_group())
-	_pistol = ItemDB.get_item(&"smg" if heavy else &"pistol") as WeaponData
+	_pistol = ItemDB.get_item(gun if gun != &"" else (&"smg" if heavy else &"pistol")) as WeaponData
 	if heavy:
 		profile = HEAVY_PROFILE
 		health = HEAVY_HEALTH
@@ -284,7 +298,8 @@ func _think() -> void:
 	if target == null:
 		_patrol()
 		return
-	if from_car != null and is_instance_valid(from_car) and last_known.distance_to(from_car.global_position) > LEASH:
+	var leash: Vector3 = _leash_center()
+	if leash != Vector3.INF and last_known.distance_to(leash) > _leash_range():
 		_log("%s: %s got away" % [name, target.player_name])
 		_drop_target()
 		return

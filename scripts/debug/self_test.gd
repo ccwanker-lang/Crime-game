@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1275,6 +1275,11 @@ func _check_growing(world: Node3D) -> void:
 # --- Pedestrians -----------------------------------------------------------------
 
 func _check_pedestrians(world: Node3D) -> void:
+	# (With --only this runs right after the bake: random points need the map's regions ready.)
+	for i: int in 120:
+		if NavigationServer3D.map_get_random_point(world.get_world_3d().navigation_map, 1, true) != Vector3.ZERO:
+			break
+		await get_tree().physics_frame
 	world.call("spawn_pedestrians", 10)
 	await get_tree().physics_frame
 	var npcs: Array[Node] = get_tree().get_nodes_in_group(&"npc")
@@ -1370,6 +1375,14 @@ func _check_npc_combat(world: Node3D) -> void:
 	_report(b.is_fleeing() and b.anim_state == Pedestrian.Anim.RUN, "pedestrian runs from a gunshot nearby")
 	await get_tree().create_timer(1.5).timeout
 	_report(b.global_position.distance_to(b_start) > 2.0, "fleeing pedestrian moves away (%.1f m)" % b.global_position.distance_to(b_start))
+	# Point 32: it keeps running until it is far away and out of sight of the shot.
+	var shot_at: Vector3 = b_start + Vector3(3, 0, 0)
+	for i: int in 100:
+		if not b.is_fleeing():
+			break
+		await get_tree().create_timer(0.5).timeout
+	_report(not b.is_fleeing() and b.flee_safe(), "it runs until it is safe: %.0f m away, out of sight %s" % [
+			b.global_position.distance_to(shot_at), b.global_position.distance_to(shot_at) >= Pedestrian.FLEE_SAFE_DISTANCE])
 	_report(not a.host_damage(30, null) and a.health == 70, "NPC takes damage (health %d)" % a.health)
 	_report(a.is_head_hit(a.global_position + Vector3.UP * 1.6) and not a.is_head_hit(a.global_position + Vector3.UP * 1.0),
 			"NPC head hit zone")
@@ -1413,7 +1426,8 @@ func _check_rivals(world: Node3D) -> void:
 	p.global_position = spot
 	await get_tree().physics_frame
 	p.net_weapon = 0
-	var r: Rival = world.add_rival(spot + b.global_basis.x * 12.0)
+	var r: Rival = world.add_rival(spot + b.global_basis.x * 12.0, 0)
+	r.role = Rival.Role.STREET  # point 31: the night group in town
 	var sharp: NpcCombatProfile = r.profile.duplicate()
 	sharp.accuracy = 1.0
 	sharp.reaction_time = 0.2
@@ -1455,19 +1469,151 @@ func _check_rivals(world: Node3D) -> void:
 			bag.cash if bag else 0, bag.items if bag else []])
 	if bag:
 		bag.queue_free()
-	# Daybreak: they walk home and disappear.
-	var r2: Rival = world.add_rival()
+	# Daybreak (point 31): the street group walks back to the yard and stays there.
+	var r2: Rival = world.add_rival(Vector3.INF, 0)
+	r2.role = Rival.Role.STREET
 	r2.global_position = r2.home + house.global_basis.z * 5.0
 	await get_tree().create_timer(1.0).timeout
 	dn.set_hours(12.0)
-	for i: int in 30:
-		if not is_instance_valid(r2):
+	for i: int in 40:
+		if r2.role == Rival.Role.YARD:
 			break
 		await get_tree().create_timer(0.5).timeout
-	_report(not is_instance_valid(r2), "at daybreak a Crow walks home and goes inside")
+	_report(is_instance_valid(r2) and r2.role == Rival.Role.YARD and Rival.on_turf(get_tree(), r2.global_position),
+			"at daybreak a street Crow walks back into the yard and stays there")
+	# Point 31: the yard. By day, a player outside the fence is left alone by a new Crow.
+	p.health = 1000
+	var gate_out := Vector3(49.0, 0.2, 4.4)
+	var gate_in := Vector3(49.0, 0.2, 10.5)
+	p.teleport(gate_out)
+	p.auto_target = gate_out
+	var y1: Rival = world.add_rival(Vector3(49.0, 0.1, 13.5), 0)
+	var y2: Rival = world.add_rival(Vector3(52.0, 0.1, 20.0), 0)
+	for c: Rival in [y1, y2]:
+		c.profile = sharp
+	await get_tree().create_timer(1.5).timeout
+	_report(Rival.turf(get_tree()).size.x > 10.0 and Rival.yard_point(y1) != Vector3.INF
+			and Rival.on_turf(get_tree(), Rival.yard_point(y1)), "the turf rect + a walkable yard spot (%s)" % Rival.turf(get_tree()))
+	_report(y1.can_see(p) and y1.spot_victim() == null and y1.target == null,
+			"a yard Crow leaves a player outside the yard alone (sees them: %s)" % y1.can_see(p))
+	# On the turf: attacked, remembered, and the Crows close by hear about it.
+	p.teleport(gate_in)
+	p.auto_target = gate_in
+	for i: int in 10:
+		if y1.target == p:
+			break
+		await get_tree().create_timer(0.3).timeout
+	_report(y1.target == p and y1.memory.has(p), "a player on the turf is attacked and remembered")
+	_report(y2.memory.has(p), "the Crow next to it remembers the player too (shared)")
+	# Back outside: the ones that saw you still come for you, a new Crow doesn't.
+	p.teleport(gate_out)
+	p.auto_target = gate_out
+	var y3: Rival = world.add_rival(Vector3(50.5, 0.1, 13.5), 0)
+	await get_tree().create_timer(1.0).timeout
+	_report(y1.memory.has(p) and (y1.target == p or y1.spot_victim() == p), "outside again: a Crow that saw you keeps coming")
+	_report(y3.can_see(p) and y3.spot_victim() == null and not y3.memory.has(p),
+			"a new Crow that never saw you leaves you alone outside")
+	var ak: Rival = world.add_rival(Vector3(56.0, 0.1, 24.0), 1)
+	await get_tree().physics_frame
+	_report(ak.gun == &"ak47" and ak._pistol != null and ak._pistol.id == &"ak47" and ak.profile.damage > 10,
+			"some Crows carry an AK-47 (%d damage)" % ak.profile.damage)
+	for c: Rival in [r2, y1, y2, y3, ak]:
+		if is_instance_valid(c):
+			c.queue_free()
 	dn.set_hours(hours0)
 	p.queue_free()
 	GameState.player_data.erase("Target")
+	await get_tree().physics_frame
+
+
+# --- Admin mode (host debug keys F10-F12) ----------------------------------------------
+
+func _check_admin(world: Node3D) -> void:
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Admin"
+	var start: Vector3 = (world.get_node("Markers/SpawnPoints").get_child(0) as Node3D).global_position
+	p.auto_target = start
+	world.get_node("Players").add_child(p)
+	p.global_position = start + Vector3.UP * 0.1
+	for i: int in 10:
+		await get_tree().physics_frame
+	_report(Player.admin_allowed(p), "admin keys work for the host in a debug build")
+	p._admin_key(KEY_F11)
+	var killed: bool = p.host_damage(500, null)
+	_report(p.admin_god and not killed and p.health == Player.MAX_HEALTH, "F11 god mode: no damage (health %d)" % p.health)
+	p._admin_key(KEY_F11)
+	p._admin_key(KEY_F10)
+	_report(p.admin_noclip and p.collision.disabled, "F10 noclip: no collision")
+	var y0: float = p.global_position.y
+	for i: int in 30:
+		await get_tree().physics_frame
+	_report(absf(p.global_position.y - y0) < 0.05, "noclip: no gravity (moved %.2f m down)" % (y0 - p.global_position.y))
+	p._admin_key(KEY_F10)
+	_report(not p.admin_noclip and not p.collision.disabled, "F10 again: walking + collision back")
+	var was: bool = Wanted.enabled
+	Wanted.enabled = true
+	Wanted.current.debug_set(p, 3)
+	p._admin_key(KEY_F12)
+	_report(p.wanted_stars == 0, "F12 clears the wanted stars")
+	Wanted.enabled = was
+	p.queue_free()
+	GameState.player_data.erase("Admin")
+	await get_tree().physics_frame
+
+
+# --- Kerb (point 33) ------------------------------------------------------------------
+
+## The player walks from the road up onto the pavement: straight, at an angle and very
+## flat, also over a tile seam; every try must end on the pavement.
+func _check_kerb(world: Node3D) -> void:
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Kerb"
+	world.get_node("Players").add_child(p)
+	var fails: PackedStringArray = []
+	var tries: int = 0
+	var paths: Array = []
+	for x0: float in [-58.0, -53.0, -41.0, 38.0]:  # straight tiles, over the seams, no lamp poles in the way
+		for side: float in [-1.0, 1.0]:
+			for slope: float in [0.0, 1.0, 2.5]:  # metres along the road per metre towards the kerb
+				paths.append([Vector3(x0, 0.1, side * 1.5), Vector3(x0 + slope * 3.5, 0.2, side * 5.2)])
+	# The rounded kerb corners at the junctions (x -6 T, x 30 cross).
+	for g: Vector3 in [Vector3(-11.0, 0.2, -5.5), Vector3(-1.0, 0.2, -5.5), Vector3(-10.0, 0.2, 5.2), Vector3(-2.0, 0.2, 5.2)]:
+		paths.append([Vector3(-6.0, 0.1, -0.5), g])
+	for g: Vector3 in [Vector3(24.5, 0.2, -5.5), Vector3(35.5, 0.2, -5.5), Vector3(24.5, 0.2, 5.5), Vector3(35.5, 0.2, 5.5)]:
+		paths.append([Vector3(30.0, 0.1, 0.0), g])
+	for path: Array in paths:
+		for mode: int in 3:  # walk, sprint, crouch
+			var sprint: bool = mode == 1
+			tries += 1
+			var start: Vector3 = path[0]
+			var goal: Vector3 = path[1]
+			p.teleport(start)
+			p.velocity = Vector3.ZERO
+			p.auto_target = start
+			for i: int in 6:
+				await get_tree().physics_frame
+			if sprint:
+				Input.action_press("sprint")
+			if mode == 2:
+				Input.action_press("crouch")
+			p.auto_target = goal
+			var t: int = 0
+			while t < 480 and Vector2(p.global_position.x - goal.x, p.global_position.z - goal.z).length() > 0.4:
+				await get_tree().physics_frame
+				t += 1
+			Input.action_release("sprint")
+			Input.action_release("crouch")
+			if p.global_position.y < 0.12:
+				fails.append("%s -> %s%s stuck at %s" % [start, goal, ["", " sprint", " crouch"][mode],
+						p.global_position.snapped(Vector3.ONE * 0.01)])
+	_report(fails.is_empty(), "kerb: the player steps up onto the pavement from the road (%d/%d)%s" % [
+			tries - fails.size(), tries, (": " + "; ".join(fails.slice(0, 6))) if not fails.is_empty() else ""])
+	p.queue_free()
+	GameState.player_data.erase("Kerb")
 	await get_tree().physics_frame
 
 
@@ -2019,6 +2165,20 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 			break
 	_report(car.panic > 0.0 and top > Car.CRUISE + 1.0 and not car.abandoned,
 			"gunshot nearby: the car panics and speeds up (%.1f m/s)" % top)
+	# Point 32: in panic it never stops, not even for a person in the lane (horn, crawls past).
+	car.route_id = 2
+	car.progress = 30.0
+	car.speed = Car.CRUISE
+	car.panic = Car.PANIC_TIME
+	var in_lane: Pedestrian = world.call("_add_pedestrian", traffic.routes[2].sample(30.0 + 16.0)[0], 0)
+	in_lane.set_physics_process(false)
+	var slowest: float = INF
+	for i: int in 300:
+		await get_tree().physics_frame
+		slowest = minf(slowest, car.speed)
+	_report(slowest >= Car.PANIC_MIN_SPEED - 0.3 and car.progress > 30.0 + 16.0,
+			"a panicking car doesn't stop for a person in the lane (slowest %.1f m/s, at %.0f m, person at 46 m)" % [slowest, car.progress])
+	in_lane.queue_free()
 	await get_tree().create_timer(Car.PANIC_TIME).timeout
 	# Point 24: a shot ahead -> the car turns round and drives away; nobody gets out.
 	var peds0: int = get_tree().get_nodes_in_group(&"npc").size()
@@ -2134,8 +2294,15 @@ func _check_selling(world: Node3D) -> void:
 	world.call("make_customer", npc)
 	_report(npc.wants > 0 and npc.is_in_group(&"interactable") and npc.is_in_group(&"customer"),
 			"pedestrian becomes a customer (wants %d for €%d)" % [npc.wants, npc.offer])
+	# Point 34: no accepted deal, no sale.
+	npc.become_customer(2, 150, 60.0)
+	p.teleport(npc.global_position + Vector3(1.2, 0.1, 0))
+	npc._server_sell(1)
+	_report(npc.wants == 2 and not npc.deal_ok and p.last_message.contains("Text me first"),
+			"no sale before the deal is accepted by phone ('%s')" % p.last_message)
 	var deal := func(bags: int, price: int, outcome: String) -> void:
 		npc.become_customer(bags, price, 60.0)
+		npc.accept_deal()
 		p.teleport(npc.global_position + Vector3(1.2, 0.1, 0))
 		Pedestrian.force_outcome = outcome
 		npc._server_sell(1)
@@ -2198,15 +2365,43 @@ func _check_phone(world: Node3D) -> void:
 			npc = n as Pedestrian
 	world.call("make_customer", npc)
 	_report(p.last_phone.size() == 3 and p.last_phone[0] == npc.customer_name and p.last_phone[2] == str(npc.name)
-			and str(p.last_phone[1]).contains("Need"), "customer texts the players: %s" % [p.last_phone])
-	p._host_phone_reply(str(npc.name), true)
+			and str(p.last_phone[1]).contains("need") and str(p.last_phone[1]).contains("Meet me"),
+			"customer texts a proposal: %s" % [p.last_phone])
+	p._host_phone_reply(str(npc.name), "accept")
 	await get_tree().create_timer(1.0).timeout
 	var pos0: Vector3 = npc.global_position
 	await get_tree().create_timer(2.0).timeout
-	_report(npc._meet_accepted and npc.global_position.distance_to(pos0) < 0.3 and str(p.last_phone[1]).contains("wait"),
-			"'On my way': the customer waits (moved %.2f m) - '%s'" % [npc.global_position.distance_to(pos0), p.last_phone[1]])
-	p._host_phone_reply(str(npc.name), false)
-	_report(npc.wants == 0 and not npc.is_in_group(&"customer"), "'Not now': no longer a customer")
+	_report(npc.deal_ok and npc.global_position.distance_to(pos0) < 0.3 and str(p.last_phone[1]).contains("wait"),
+			"'Accept': the customer waits (moved %.2f m) - '%s'" % [npc.global_position.distance_to(pos0), p.last_phone[1]])
+	# Point 34: counter-offers.
+	npc.become_customer(2, 100, 60.0)
+	Pedestrian.force_counter = "no"
+	p._host_phone_reply(str(npc.name), "counter", 150)
+	_report(not npc.deal_ok and npc.wants == 2 and npc.offer == 100 and str(p.last_phone[2]).ends_with("#fixed"),
+			"counter refused: the deal stays open at the old price, no second counter - '%s'" % p.last_phone[1])
+	p._host_phone_reply(str(npc.name), "counter", 140)
+	_report(not npc.deal_ok and npc.offer == 100 and str(p.last_phone[1]).contains("already"), "a second counter is turned down")
+	p._host_phone_reply(str(npc.name), "accept")
+	_report(npc.deal_ok and npc.offer == 100, "then accepting at its price works")
+	npc.become_customer(2, 100, 60.0)
+	Pedestrian.force_counter = "yes"
+	p._host_phone_reply(str(npc.name), "counter", 125)
+	_report(npc.deal_ok and npc.offer == 125, "counter accepted: deal at €%d" % npc.offer)
+	npc.become_customer(2, 100, 60.0)
+	Pedestrian.force_counter = "leave"
+	p._host_phone_reply(str(npc.name), "counter", 150)
+	_report(npc.wants == 0, "too greedy: the customer walks off - '%s'" % p.last_phone[1])
+	var tries: int = 400
+	var took: Array[int] = [0, 0, 0]
+	for i: int in tries:
+		for k: int in 3:
+			if randf() < clampf(1.05 - Pedestrian.COUNTER_STEPS[k] * Pedestrian.COUNTER_PICKY, 0.05, 0.95):
+				took[k] += 1
+	_report(took[0] > took[1] and took[1] > took[2] and took[0] > tries * 0.7 and took[2] < tries * 0.25,
+			"the further you go, the less often they accept (+10/25/50%%: %d/%d/%d of %d)" % [took[0], took[1], took[2], tries])
+	npc.become_customer(2, 100, 60.0)
+	p._host_phone_reply(str(npc.name), "decline")
+	_report(npc.wants == 0 and not npc.is_in_group(&"customer"), "'Decline': no longer a customer")
 	# Webshop: legal items only, paid now, delivered to the box after an in-game hour.
 	var cash0: int = int(GameState.get_or_create_player_data("Caller")["cash"])
 	p._host_webshop_buy(&"weed_seed", 1)
