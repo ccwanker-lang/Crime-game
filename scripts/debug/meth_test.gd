@@ -55,7 +55,7 @@ static func run(t: Node, world: Node3D) -> void:
 	report.call(int(cooker.state["stage"]) == ProcessStation.Stage.RUNNING and GameState.count_item("Cook", "lab_chemicals") == 2
 			and GameState.count_item("Cook", "activator") == 1, "started a cook: 2 Lab Chemicals + 1 Activator used ('%s')" % msg)
 	cooker.tick(CookStation.COOK_HOURS * 0.5)
-	report.call(int(cooker.state["stir"]) == 1 and cooker.prompt_for(p).begins_with("Stir"), "halfway the batch needs a stir")
+	report.call(int(cooker.state["attend"]) == 1 and cooker.prompt_for(p).begins_with("Stir"), "halfway the batch needs a stir")
 	msg = cooker.do_action(p)
 	cooker.tick(CookStation.COOK_HOURS * 0.6)
 	report.call(int(cooker.state["stage"]) == ProcessStation.Stage.DONE and int(cooker.state["out"]) == 2,

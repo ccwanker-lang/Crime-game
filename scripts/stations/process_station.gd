@@ -20,10 +20,19 @@ var label: String = "Machine"
 var start_verb: String = "Start"
 var work_start: String = "pack"
 var work_take: String = "take"
+## Optional hands-on moment while running (stir a cook, water a plant): from progress `attend_at`
+## (-1 = none) the run waits for E; attended = `output_count`, never attended = `missed_count`.
+var attend_at: float = -1.0
+var missed_count: int = 1
+## "Stir the batch", "Water the plants"; shown in the prompt. `attend_flag` floats over the station.
+var attend_verb: String = "Attend"
+var attend_flag: String = "!"
+var attend_done: String = "Done."
+var work_attend: String = "water"
 
 
 func default_state() -> Dictionary:
-	return {"stage": Stage.IDLE, "progress": 0.0, "out": 0}
+	return {"stage": Stage.IDLE, "progress": 0.0, "out": 0, "attend": 0}  # attend: 0 not yet, 1 needed now, 2 done
 
 
 func pick_up_blocker() -> String:
@@ -42,14 +51,22 @@ func tick(h: float) -> bool:
 	return true
 
 
-## Host, while running (subclasses: events like "needs a stir").
+## Host, while running: the attend moment comes up.
 func _on_progress() -> void:
-	pass
+	if attend_at >= 0.0 and int(state["attend"]) == 0 and float(state["progress"]) >= attend_at and _is_host():
+		state["attend"] = 1
+		changed()
 
 
-## Output count of a finished run (subclasses: quality / mistakes).
+func needs_attention() -> bool:
+	return int(state["stage"]) == Stage.RUNNING and int(state["attend"]) == 1
+
+
+## Output count of a finished run.
 func _yield() -> int:
-	return output_count
+	if attend_at < 0.0:
+		return output_count
+	return output_count if int(state["attend"]) == 2 else missed_count
 
 
 func inputs_text() -> String:
@@ -60,6 +77,8 @@ func inputs_text() -> String:
 
 
 func status_text() -> String:
+	if needs_attention():
+		return "%s: %d%% - %s!" % [label, int(float(state["progress"]) * 100.0), attend_verb.to_lower()]
 	match int(state["stage"]):
 		Stage.RUNNING:
 			return "%s: %d%%" % [label, int(float(state["progress"]) * 100.0)]
@@ -77,6 +96,8 @@ func _has_inputs_carried(player: Player) -> bool:
 
 
 func prompt_for(player: Player) -> String:
+	if needs_attention():
+		return "%s   [%s]" % [attend_verb, status_text()]
 	match int(state["stage"]):
 		Stage.RUNNING:
 			return status_text()
@@ -91,7 +112,12 @@ func do_action(player: Player) -> String:
 	var who: String = player.player_name
 	match int(state["stage"]):
 		Stage.RUNNING:
-			return ""
+			if needs_attention():
+				state["attend"] = 2
+				changed()
+				work = work_attend
+				return attend_done
+			return "%s: %d%%." % [label, int(float(state["progress"]) * 100.0)]
 		Stage.DONE:
 			var n: int = mini(int(state["out"]), GameState.space_for(who, output_id))
 			if n <= 0:
@@ -114,13 +140,8 @@ func _start() -> void:
 	state["stage"] = Stage.RUNNING
 	state["progress"] = 0.0
 	state["out"] = 0
-	_on_start()
+	state["attend"] = 0
 	changed()
-
-
-## Host: a run starts (subclasses reset their extra state here).
-func _on_start() -> void:
-	pass
 
 
 func _took(n: int) -> void:
@@ -158,6 +179,25 @@ func staff_take(put: Callable) -> int:
 	return n - left
 
 
-## Hands-on step while running (stir...). True if the worker did something.
+## Hands-on step while running (stir, water). True if the worker did something.
 func staff_attend() -> bool:
+	if needs_attention():
+		state["attend"] = 2
+		changed()
+		return true
 	return false
+
+
+## Label3D with `attend_flag` (call in _build); shown while the station needs attention.
+func make_attend_label(at: Vector3) -> Label3D:
+	var l := Label3D.new()
+	l.text = attend_flag
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.modulate = Color(1.0, 0.6, 0.15)
+	l.outline_size = 8
+	l.font_size = 48
+	l.pixel_size = 0.004
+	l.position = at
+	l.visible = false
+	add_child(l)
+	return l

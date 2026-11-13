@@ -9,11 +9,15 @@ extends Node
 const BAGS: Dictionary = {
 	"weed_bag": {"name": "weed", "factor": 1.0, "rank": 0},
 	"meth_bag": {"name": "meth", "factor": 2.2, "rank": 2},
+	"coke_bag": {"name": "cocaine", "factor": 3.6, "rank": 4},
 }
 ## Extra stock for the black market (appended once, in this order).
-const BLACK_MARKET_EXTRA: Array[StringName] = [&"lab_chemicals", &"activator", &"cook_station", &"cooling_plate"]
+const BLACK_MARKET_EXTRA: Array[StringName] = [&"lab_chemicals", &"activator", &"cook_station", &"cooling_plate",
+		&"coca_seedling", &"process_fluid", &"coca_bed", &"leaf_press", &"refinery"]
 ## Chance that a new customer wants meth instead of weed once the crew reaches its rank.
 const METH_CUSTOMER_CHANCE: float = 0.35
+## Chance that a new customer wants cocaine once the crew reaches rank 4 (checked before meth).
+const COKE_CUSTOMER_CHANCE: float = 0.2
 
 
 func _ready() -> void:
@@ -55,6 +59,8 @@ func pick_customer_product() -> String:
 	for id: String in BAGS:
 		if Progression.rank() >= int(BAGS[id]["rank"]):
 			choices.append(id)
+	if choices.has("coke_bag") and randf() < COKE_CUSTOMER_CHANCE:
+		return "coke_bag"
 	if choices.has("meth_bag") and randf() < METH_CUSTOMER_CHANCE:
 		return "meth_bag"
 	return "weed_bag"

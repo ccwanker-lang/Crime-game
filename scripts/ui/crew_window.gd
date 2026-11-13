@@ -61,7 +61,7 @@ func _ready() -> void:
 	_tabs = HBoxContainer.new()
 	_tabs.add_theme_constant_override("separation", 8)
 	box.add_child(_tabs)
-	for t: Array in [["crew", "Your crew"], ["hire", "Hire (Benny)"]]:
+	for t: Array in [["crew", "Your crew"], ["hire", "Hire (Benny)"], ["legal", "Lawyer + cop"]]:
 		var b := _button(t[1])
 		b.pressed.connect(func() -> void:
 			_tab = t[0]
@@ -152,6 +152,8 @@ func _refresh() -> void:
 		_fill_dealer()
 	elif _tab == "hire":
 		_fill_hire()
+	elif _tab == "legal":
+		_fill_legal()
 	else:
 		_fill_crew()
 
@@ -179,6 +181,44 @@ func _fill_crew() -> void:
 			Staff.request("fire", uid))
 		row.add_child(fire)
 	_list.add_child(_label("Dealers: %d of %d at your rank." % [Staff.dealers().size(), Staff.max_dealers()], 14, Color(0.7, 0.7, 0.75)))
+
+
+## Lawyer (rank 4) + the corrupt cop (rank 5): Legal autoload, requests through Staff.request.
+func _fill_legal() -> void:
+	_title.text = "Lawyer + corrupt cop"
+	var gates: bool = Progression.gates_on()
+	var row := _row()
+	var text := _label("%s  -  €%d a day on retainer
+Arrested? He gets %d%% of the fine and half of the confiscated goods back.%s" % [
+			Legal.LAWYER, Legal.LAWYER_FEE, roundi(Legal.FINE_BACK * 100.0),
+			"
+Working for your crew." if Legal.lawyer != "" else ""], 15)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text)
+	if gates and Progression.rank() < Legal.LAWYER_RANK:
+		row.add_child(_label("Rank %d" % Legal.LAWYER_RANK, 15, BAD))
+	else:
+		var b := _button("Let him go" if Legal.lawyer != "" else "Hire (€%d)" % Legal.LAWYER_FEE)
+		b.pressed.connect(func() -> void:
+			_msg.text = "..."
+			Staff.request("lawyer_fire" if Legal.lawyer != "" else "lawyer_hire"))
+		row.add_child(b)
+	var stars: int = player.wanted_stars if player else 0
+	var row2 := _row()
+	var t2 := _label("%s  -  makes your police file disappear: €%d per wanted star.
+You have %d star%s now." % [
+			Legal.COP, Legal.BRIBE_PER_STAR, stars, "" if stars == 1 else "s"], 15)
+	t2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row2.add_child(t2)
+	if gates and Progression.rank() < Legal.BRIBE_RANK:
+		row2.add_child(_label("Rank %d" % Legal.BRIBE_RANK, 15, BAD))
+	else:
+		var b2 := _button("Bribe (€%d)" % Legal.bribe_price(stars))
+		b2.disabled = stars <= 0
+		b2.pressed.connect(func() -> void:
+			_msg.text = "..."
+			Staff.request("bribe"))
+		row2.add_child(b2)
 
 
 func _fill_hire() -> void:
@@ -237,7 +277,7 @@ func _fill_dealer() -> void:
 			roundi(float(rec["loyalty"])), int(rec.get("sold", 0))], 16))
 	_list.add_child(_label("Collect often: a dealer sitting on a lot of your money gets ideas.", 14, Color(0.7, 0.7, 0.75)))
 	var row := _row()
-	var give := _button("Give all my bags (weed + meth)")
+	var give := _button("Give all my bags")
 	give.pressed.connect(func() -> void:
 		_msg.text = "..."
 		Staff.request("give", dealer_uid))

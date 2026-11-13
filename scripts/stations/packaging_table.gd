@@ -42,7 +42,7 @@ func _build() -> void:
 
 
 ## Product -> packaged unit (milestone 3: meth; cocaine later). 1 product + 1 baggie -> 1 bag.
-const PACKS: Array = [["weed_bud", "weed_bag"], ["meth_shard", "meth_bag"]]
+const PACKS: Array = [["weed_bud", "weed_bag"], ["meth_shard", "meth_bag"], ["cocaine", "coke_bag"]]
 
 
 func prompt_for(player: Player) -> String:
@@ -62,7 +62,7 @@ func prompt_for(player: Player) -> String:
 		return "Package " + " + ".join(parts)
 	if any_product:
 		return "Packaging table - you need Baggies (store)"
-	return "Packaging table - bring Dried Weed / Meth Shards + Baggies"
+	return "Packaging table - bring Dried Weed / Meth Shards / Cocaine + Baggies"
 
 
 func do_action(player: Player) -> String:
@@ -87,7 +87,7 @@ func do_action(player: Player) -> String:
 		if packed > 0:
 			done.append(_bags(packed, pk[1]))
 	if done.is_empty():
-		return "Your pockets are full." if full else "You need Dried Weed or Meth Shards, and Baggies, to package."
+		return "Your pockets are full." if full else "You need Dried Weed, Meth Shards or Cocaine, and Baggies, to package."
 	work = "pack"
 	return "Packaged %s." % " + ".join(done)
 

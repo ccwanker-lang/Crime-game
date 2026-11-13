@@ -56,6 +56,10 @@ STATIONS = {
     # Milestone 3 (session B): meth.
     "cook_station": ("Cooking Station", 900, 1, "Cooks 2 Lab Chemicals + 1 Activator into Hot Trays. Stir it halfway for a full batch."),
     "cooling_plate": ("Cooling Plate", 400, 2, "Cools a Hot Tray; then break it into Meth Shards."),
+    # Milestone 3 (session B): cocaine.
+    "coca_bed": ("Coca Bed", 300, 2, "A raised planter: 2 Coca Seedlings + 1 Soil grow into Coca Leaves. Water it halfway."),
+    "leaf_press": ("Leaf Press", 1500, 1, "Presses 12 Coca Leaves + 1 Process Fluid into Coca Paste."),
+    "refinery": ("Refinery", 2500, 1, "Refines Coca Paste into Cocaine. Vent the pressure halfway for a full batch."),
 }
 
 

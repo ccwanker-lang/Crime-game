@@ -23,6 +23,7 @@ SaveManager="*res://autoload/save_manager.gd"
 Progression="*res://autoload/progression.gd"
 Staff="*res://autoload/staff.gd"
 Products="*res://autoload/products.gd"
+Legal="*res://autoload/legal.gd"
 
 [display]
 

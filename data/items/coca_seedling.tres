@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"coca_seedling"
+display_name = "Coca Seedling"
+max_stack = 20
+is_legal = false
+base_price = 40
+description = "A young coca shrub in a paper pot. Black market only. A coca bed takes 2."

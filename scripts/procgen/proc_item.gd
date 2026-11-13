@@ -5,7 +5,7 @@ extends Node3D
 ## rendered as its icon). Origin = where the hand grips it; front = -Z.
 ## Prefabs in res://prefabs/items/ (written by tools/generators/gen_prefabs.py).
 
-@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste", "chem_jug", "activator", "meth_tray", "meth_shard", "meth_bag")
+@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste", "chem_jug", "activator", "meth_tray", "meth_shard", "meth_bag", "coca_seedling", "coca_leaves", "process_fluid", "coca_paste", "cocaine", "coke_bag")
 var kind: String = "soil_bag":
 	set(v): kind = v; _queue_rebuild()
 ## Main colour (ammo box print, seed packet label...).
@@ -51,6 +51,12 @@ func _rebuild() -> void:
 		"meth_tray": _meth_tray(b)
 		"meth_shard": _shards(b, Vector3.ZERO, 1.0)
 		"meth_bag": _meth_bag(b)
+		"coca_seedling": _coca_seedling(b)
+		"coca_leaves": _coca_leaves(b)
+		"process_fluid": _process_fluid(b)
+		"coca_paste": _coca_paste(b)
+		"cocaine": _powder_brick(b)
+		"coke_bag": _coke_bag(b)
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = b.build()
 	_mesh.visibility_range_end = 40.0
@@ -247,4 +253,64 @@ func _meth_bag(b: MeshBuilder) -> void:
 	b.color = Color(0.95, 0.97, 1.0, 0.28)
 	b.box(&"item_clear", Vector3(0, 0, 0), Vector3(0.07, 0.09, 0.016), 0.002)
 	b.color = Color(0.1, 0.35, 0.85)
+	b.box(&"item_glossy", Vector3(0, 0.037, 0), Vector3(0.07, 0.005, 0.017))
+
+
+# --- Cocaine (milestone 3, session B) ---------------------------------------------------------
+
+## A small shrub in a brown paper pot.
+func _coca_seedling(b: MeshBuilder) -> void:
+	b.color = Color(0.55, 0.42, 0.28)
+	b.cylinder(&"item_matte", Vector3(0, -0.1, 0), Vector3(0, -0.02, 0), 0.035, 0.045, 10, true)
+	b.color = Color(0.35, 0.25, 0.15)
+	b.cylinder(&"item_matte", Vector3(0, -0.02, 0), Vector3(0, 0.07, 0), 0.005, 0.004, 5, false)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	for i: int in 8:
+		b.color = Color(0.22, 0.45, 0.16).lerp(Color(0.35, 0.58, 0.2), rng.randf())
+		b.sphere(&"item_matte", Vector3(rng.randf_range(-0.03, 0.03), rng.randf_range(0.02, 0.08), rng.randf_range(-0.03, 0.03)),
+				0.017, 4, 6, Vector3(1.4, 0.5, 0.9))
+
+
+## A bundle of oval green leaves.
+func _coca_leaves(b: MeshBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	for i: int in 10:
+		b.color = Color(0.2, 0.42, 0.14).lerp(Color(0.38, 0.6, 0.22), rng.randf())
+		var at := Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.03, 0.03), rng.randf_range(-0.02, 0.02))
+		b.sphere(&"item_matte", at, 0.022, 4, 6, Vector3(1.6, 0.25, 0.8))
+
+
+## Blue plastic canister with a white cap.
+func _process_fluid(b: MeshBuilder) -> void:
+	b.color = Color(0.2, 0.4, 0.75)
+	b.box(&"item_matte", Vector3(0, -0.11, 0), Vector3(0.12, 0.18, 0.08), 0.01)
+	b.color = Color(0.95, 0.95, 0.95)
+	b.cylinder(&"item_glossy", Vector3(0, -0.02, 0), Vector3(0, 0.01, 0), 0.02, 0.02, 8, true)
+
+
+## A dark green-brown lump wrapped in clear film.
+func _coca_paste(b: MeshBuilder) -> void:
+	b.color = Color(0.45, 0.42, 0.25)
+	b.box(&"item_matte", Vector3(0, -0.02, 0), Vector3(0.1, 0.04, 0.07), 0.012)
+	b.color = Color(0.95, 0.97, 1.0, 0.3)
+	b.box(&"item_clear", Vector3(0, -0.02, 0), Vector3(0.106, 0.046, 0.076), 0.012)
+
+
+## White pressed powder block in film.
+func _powder_brick(b: MeshBuilder) -> void:
+	b.color = Color(0.97, 0.97, 0.95)
+	b.box(&"item_matte", Vector3(0, -0.02, 0), Vector3(0.09, 0.035, 0.06), 0.008)
+	b.color = Color(0.95, 0.97, 1.0, 0.3)
+	b.box(&"item_clear", Vector3(0, -0.02, 0), Vector3(0.095, 0.04, 0.065), 0.008)
+
+
+## Zip bag with white powder and a black zip strip.
+func _coke_bag(b: MeshBuilder) -> void:
+	b.color = Color(0.97, 0.97, 0.95)
+	b.box(&"item_matte", Vector3(0, -0.02, 0), Vector3(0.055, 0.04, 0.012), 0.004)
+	b.color = Color(0.95, 0.97, 1.0, 0.28)
+	b.box(&"item_clear", Vector3(0, 0, 0), Vector3(0.07, 0.09, 0.016), 0.002)
+	b.color = Color(0.08, 0.08, 0.08)
 	b.box(&"item_glossy", Vector3(0, 0.037, 0), Vector3(0.07, 0.005, 0.017))

@@ -130,7 +130,7 @@ scenarios `staff_workers` + `dealers`, self-test check `staff`. Cook + courier a
 # Part 3: meth (DESIGN "Products": buy raw materials -> cook in steps -> cool -> break)
 
 ## Status
-In progress (code written, self-test check `meth` + scenarios). Customers buying meth needs a hook from A (see below).
+Done (commit 399e1bf; check `meth` PASS, scenarios OK). Customers buying meth on the street needs a hook from A (B.md).
 
 ## How it works
 - Items (hand-made .tres, illegal): `lab_chemicals` (€110), `activator` (€70) = supplies (black market only),
@@ -148,6 +148,9 @@ In progress (code written, self-test check `meth` + scenarios). Customers buying
 - Dealers sell meth: record `stock` = all bags, `meth` = how many of those are meth; meth sells first at
   `Products.price("meth_bag", district price)` (x2.2). Give hands over weed + meth; firing returns both.
 - Customers: `Products.pick_customer_product()` (meth 35% once the crew is rank 2) is ready for A's customer code.
+- Since part 4 the stir is the generic `ProcessStation` "attend" moment (`attend_at`, `missed_count`, state key
+  "attend"), and the cook runs every machine generically (`Staff._machine_step`: take output into the locker, attend,
+  start from the locker) - hot trays go via the locker to the cooling plate.
 
 ## Decisions (what + why)
 - Abstract steps only (load, stir, pour, break) - DESIGN "abstract game mechanics, no realistic procedures".
@@ -181,3 +184,89 @@ In progress (code written, self-test check `meth` + scenarios). Customers buying
   `CoolingPlate`; items lab_chemicals/activator/meth_tray/meth_shard/meth_bag; `PackagingTable.PACKS`; `Products`
   autoload (BAGS + prices, Rook's extra stock at runtime, `pick_customer_product`); Staff role cook (`_cook_step`),
   dealers carry `meth`. Scenarios meth_market/meth_lab/meth_cook/meth_dealer, self-test check meth.
+
+
+# Part 4: cocaine (DESIGN "Products": grow coca plants -> process leaves -> refine; rank 4)
+
+## Status
+Done: self-test check `cocaine` PASS, scenarios coke_lab / coke_staff OK.
+
+## How it works
+- Items (illegal): `coca_seedling` (€40) + `process_fluid` (€60) = black-market supplies; `coca_leaves`, `coca_paste`,
+  `cocaine`, `coke_bag` "Bag of Cocaine" (€220; dealers x3.6 the district weed price). ProcItem kinds for each.
+- Stations (ProcessStation, gen_items STATIONS, black market, rank 4): `CocaBed` (`coca_bed`, €300): 2 seedlings + 1
+  soil -> 10 h, WATER! at 50% (E) -> 12 leaves (dry: 6). `LeafPress` (`leaf_press`, €1,500): 12 leaves + 1 Process
+  Fluid -> 2 h -> 1 Coca Paste. `Refinery` (`refinery`, €2,500): 1 paste -> 3 h, VENT! at 60% -> 8 Cocaine (5).
+  `PackagingTable.PACKS`: Cocaine + Baggie -> Bag of Cocaine.
+- Staff: the grower also tends coca beds (`GROWER_MACHINES`, after the weed pots), the cook runs press + refinery
+  (`COOK_MACHINES`). Hand-over through the storage locker.
+- Dealers: `Staff.DEALER_GOODS` [[coke_bag, "coke"], [meth_bag, "meth"]] = record keys counting the dearer bags in
+  `stock` (sold first, most expensive first); `dealer_weed(rec)`; fire/give handle every kind.
+
+## Decisions (what + why)
+- Same pattern as meth (one generic machine class + one attend moment per chain: water the bed, vent the refinery).
+  Why: readable, abstract (DESIGN), every machine works for players and staff alike.
+- No grow lamp/pot reuse for coca: a bigger "grow bed" (DESIGN table) that takes seedlings + soil, so growers can
+  run it from the locker without the weed pot's multi-step state machine.
+- Economy: one chain = ~€150 supplies -> 8 bags x ~€200 over ~15 in-game hours, but €4,300 of machines and rank 4.
+- Watering a coca bed needs no watering can (E is enough): keeps the hand-off simple; the weed pot keeps its can.
+
+## Existing files changed (part 4)
+- gen_items.py: 3 STATIONS entries. packaging_table.gd: PACKS + texts. proc_item.gd: 6 kinds. rank_config.gd: rank 4
+  items + unlock text. products.gd: coke_bag + black-market extras. staff.gd: `_machine_step`, DEALER_GOODS.
+- self_test.gd: "cocaine" at the end of CHECKS + `_check_cocaine` (scripts/debug/coke_test.gd). scenarios.gd:
+  coke_lab, coke_staff, helpers `coke_lab` / `_lab`.
+
+## Te testen door Curry
+- `coke_lab` (F9): plant, F7, WATER! (E), oogsten, leaf press, refinery met VENT! (E), verpakken.
+- `coke_staff`: grower + kok draaien de cocaine-keten met F7 vanzelf; cocaine komt in de locker.
+
+## For CLAUDE.md (suggested lines)
+- Cocaine (milestone 3): `CocaBed` (water at 50%), `LeafPress`, `Refinery` (vent at 60%) = ProcessStations; items
+  coca_seedling/process_fluid/coca_leaves/coca_paste/cocaine/coke_bag; staff `_machine_step` (COOK_MACHINES,
+  GROWER_MACHINES), dealers `DEALER_GOODS`. Scenarios coke_lab/coke_staff, self-test check cocaine.
+
+
+# Part 5: courier, lawyer, bribes (DESIGN Staff "Courier" rank 3, Progression rank 4 lawyer, rank 5 bribe)
+
+## Status
+Done: self-test check `services` PASS; scenarios courier / bribe OK. The lawyer's effect after an arrest needs a
+1-line hook from A in `Player.host_arrest` (see B.md); `Legal.on_player_arrested` is ready and tested.
+
+## How it works
+- Courier = a Staff worker (rank 3, €120/day, needs a bed/locker in a property like other workers).
+  `Staff._courier_step` (`courier_trips_per_hour` 1): first a dealer of the same employer below
+  `courier_restock_below` (50%) of capacity gets bags from the property's lockers (dearest first) and the dealer's
+  cash goes to the employer (+loyalty, phone text); else it buys ONE missing supply (`courier_stock` targets, only for
+  stations in the property via `courier_uses`, only items the rank allows) at base price x 1.1 into the locker.
+  Station kind = `scene_file_path` basename (`_station_item`).
+- `Legal` autoload (autoload/legal.gd), state GameState.world["legal"] {lawyer, clock, time}, synced `Legal.lawyer`.
+  Lawyer (rank 4, Mr. Hale, €400/day, unpaid = quits): `on_player_arrested(p, fine, taken)` gives 60% of the fine
+  back as clean money + half (rounded up) of every confiscated stack. Bribe (rank 5, Dekker): €1,500 per star ->
+  `Wanted.clear(p, "bribe")`, cooldown 6 in-game hours per player.
+- UI: CrewWindow tab "Lawyer + cop" (requests via `Staff.request("lawyer_hire"|"lawyer_fire"|"bribe")`).
+
+## Decisions (what + why)
+- The courier works from a property (its locker = the warehouse) and also collects the dealers' cash. Why: DESIGN
+  "fetches supplies, delivers to dealers"; collecting makes the dealer network run without driving around, and it
+  keeps the dealers loyal (same rule as collecting yourself).
+- The courier only buys supplies for stations that stand in its property, and only up to small targets: no runaway
+  spending. Paid at +10% (his cut). Illegal supplies are paid with dirty cash first (like the black market).
+- Lawyer and bribes are phone/crew-window services (no NPC office yet; the lawyer's building is on A's map later).
+  Fine back as CLEAN money (a court refund). No jail time exists, so "shorter sentence" = goods + fine back.
+- Bribe price per star (€1,500) makes 5 stars €7,500: a Kingpin expense, not a free reset; the cooldown stops spamming.
+
+## Existing files changed (part 5)
+- project.godot: autoload `Legal`. staff.gd: `_courier_step`, `courier_test_trip`, request actions, Legal.sync in
+  `_broadcast`. staff_config.gd: courier on (no "later") + courier settings. crew_window.gd: tab "Lawyer + cop".
+- rank_config.gd: unlock texts (couriers, lawyer, bribes). staff_test.gd: courier rank check instead of "later".
+- self_test.gd: "services" at the end of CHECKS (scripts/debug/services_test.gd). scenarios.gd: courier, bribe.
+
+## Te testen door Curry
+- `courier` (F9): houd F7 ingedrukt: de koerier brengt zakjes naar je dealer, haalt het geld op (sms) en koopt spullen.
+- `bribe`: Tab > Crew > Lawyer + cop: koop Dekker om (3 sterren weg), huur Mr. Hale in.
+
+## For CLAUDE.md (suggested lines)
+- Courier/lawyer/bribes (milestone 3): Staff role courier (`_courier_step`, StaffConfig courier_*), `Legal` autoload
+  (lawyer retainer + `on_player_arrested`, `host_bribe` -> Wanted.clear), CrewWindow tab "Lawyer + cop".
+  Scenarios courier, bribe; self-test check services.

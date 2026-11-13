@@ -89,9 +89,26 @@ func describe(rec: Dictionary) -> String:
 	return "%s - %s (€%d/day)" % [_property_name(str(rec["property"])), str(rec.get("status", "")), int(rec["wage"])]
 
 
-## " (3 meth)" when a dealer holds meth, else "".
+## Dealer stock: "stock" = all bags; these record keys count the dearer bags among them (sold first, in this
+## order). The rest is weed.
+const DEALER_GOODS: Array = [["coke_bag", "coke"], ["meth_bag", "meth"]]
+
+
+## " (3 meth, 2 cocaine)" for the dearer bags a dealer holds, else "".
 func meth_text(rec: Dictionary) -> String:
-	return " (%d meth)" % int(rec.get("meth", 0)) if int(rec.get("meth", 0)) > 0 else ""
+	var parts: PackedStringArray = []
+	for g: Array in DEALER_GOODS:
+		if int(rec.get(g[1], 0)) > 0:
+			parts.append("%d %s" % [int(rec[g[1]]), Products.short_name(g[0])])
+	return " (%s)" % ", ".join(parts) if not parts.is_empty() else ""
+
+
+## Bags of weed among a dealer's stock.
+func dealer_weed(rec: Dictionary) -> int:
+	var n: int = int(rec["stock"])
+	for g: Array in DEALER_GOODS:
+		n -= int(rec.get(g[1], 0))
+	return n
 
 
 func _property_name(id: String) -> String:
@@ -227,13 +244,18 @@ func _worker_tick(rec: Dictionary, hours: float) -> void:
 	match str(rec["role"]):
 		"grower": rate = config.grower_actions_per_hour
 		"cook": rate = config.cook_actions_per_hour
+		"courier": rate = config.courier_trips_per_hour
 	rec["work"] = minf(float(rec.get("work", 0.0)) + hours * rate, 3.0)
 	var did: int = 0
 	while float(rec["work"]) >= 1.0:
 		var what: String = ""
 		match str(rec["role"]):
-			"grower": what = _grower_step(rec)
+			"grower":
+				what = _grower_step(rec)
+				if what == "":
+					what = _machine_step(rec, GROWER_MACHINES, false)
 			"cook": what = _cook_step(rec)
+			"courier": what = _courier_step(rec)
 			_: what = _packager_step(rec)
 		if what == "":
 			rec["work"] = minf(float(rec["work"]), 1.0)  # nothing to do: wait
@@ -278,7 +300,8 @@ func _grower_step(rec: Dictionary) -> String:
 	var prop: String = str(rec["property"])
 	var pots: Array = _stations_in(prop, GrowPot)
 	if pots.is_empty():
-		_set_status(rec, "no grow pots here")
+		if _stations_in(prop, CocaBed).is_empty():
+			_set_status(rec, "no grow pots here")
 		return ""
 	var lockers: Array = _stations_in(prop, StorageLocker)
 	var racks: Array = _stations_in(prop, DryingRack)
@@ -379,14 +402,14 @@ func _packager_step(rec: Dictionary) -> String:
 	if tables.is_empty():
 		_set_status(rec, "needs a packaging table here")
 		return ""
-	# Weed first, then meth (PackagingTable.PACKS: product -> bag).
+	# Weed first, then meth, then cocaine (PackagingTable.PACKS: product -> bag).
 	var product: Array = []
 	for pk: Array in PackagingTable.PACKS:
 		if _locker_count(lockers, pk[0]) > 0:
 			product = pk
 			break
 	if product.is_empty():
-		_set_status(rec, "waiting for dried weed / meth shards")
+		_set_status(rec, "waiting for dried weed / meth shards / cocaine")
 		return ""
 	if _locker_count(lockers, "baggie") <= 0:
 		_set_status(rec, "needs Baggies in the locker")
@@ -405,55 +428,146 @@ func _packager_step(rec: Dictionary) -> String:
 	return _did(rec, tables[0], "packaged a bag of %s" % Products.short_name(product[1]))
 
 
-## Host: one cook action (milestone 3, meth): break cooled trays into shards (locker), move hot trays
-## from the cooking stations onto free cooling plates, stir a cook that needs it, start a new cook with
-## Lab Chemicals + Activator from the locker. Trays that find no free plate wait on the station.
+## Machines a cook runs (milestone 3: meth, cocaine processing) / a grower tends besides the weed pots.
+var COOK_MACHINES: Array[Script] = [CookStation, CoolingPlate, LeafPress, Refinery]
+var GROWER_MACHINES: Array[Script] = [CocaBed]
+
+
+## Host: one cook action: run the machines in the property from the lockers.
 func _cook_step(rec: Dictionary) -> String:
+	return _machine_step(rec, COOK_MACHINES, true)
+
+
+## Host: one action on the ProcessStations of `kinds` in the worker's property, in this order: take finished
+## output into the locker, attend (stir / water), start a run with inputs from the locker. A machine's output
+## can be the next one's input (Hot Trays -> cooling plate), so the locker is the hand-over point.
+## `report` = set the status when there is nothing to do.
+func _machine_step(rec: Dictionary, kinds: Array[Script], report: bool) -> String:
 	var prop: String = str(rec["property"])
-	var cookers: Array = _stations_in(prop, CookStation)
-	if cookers.is_empty():
-		_set_status(rec, "no cooking station here")
+	var machines: Array = []
+	for k: Script in kinds:
+		machines.append_array(_stations_in(prop, k))
+	if machines.is_empty():
+		if report:
+			_set_status(rec, "no machines here")
 		return ""
+	var lockers: Array = _stations_in(prop, StorageLocker)
+	if lockers.is_empty():
+		if report:
+			_set_status(rec, "needs a storage locker here")
+		return ""
+	var put: Callable = func(id: String, n: int) -> int: return _locker_put(lockers, id, n)
+	var have: Callable = func(id: String) -> int: return _locker_count(lockers, id)
+	var take: Callable = func(id: String, n: int) -> bool: return _locker_take(lockers, id, n)
+	for m: ProcessStation in machines:
+		var n: int = m.staff_take(put)
+		if n > 0:
+			return _did(rec, m, "took %d %s off the %s" % [n, Station.item_name(m.output_id), m.label.to_lower()])
+	for m: ProcessStation in machines:
+		if m.staff_attend():
+			return _did(rec, m, "%s" % m.attend_verb.to_lower())
+	for m: ProcessStation in machines:
+		if m.staff_load(have, take):
+			return _did(rec, m, "started the %s" % m.label.to_lower())
+	if report:
+		var running: Array = machines.filter(func(m: ProcessStation) -> bool: return int(m.state["stage"]) == ProcessStation.Stage.RUNNING)
+		if not running.is_empty():
+			_set_status(rec, "busy: " + ", ".join(running.map(func(m: ProcessStation) -> String: return m.status_text())))
+		elif machines.any(func(m: ProcessStation) -> bool: return int(m.state["stage"]) == ProcessStation.Stage.DONE):
+			_set_status(rec, "the locker is full")
+		else:
+			var need: PackedStringArray = []
+			for m: ProcessStation in machines:
+				need.append(m.inputs_text())
+			_set_status(rec, "needs supplies in the locker: " + " / ".join(need))
+	return ""
+
+
+## Host: one courier trip (rank 3): first restock a dealer that runs low (bags from the property's lockers, dearest
+## first) and bring their cash to the employer, else buy one missing supply for the stations in the property.
+func _courier_step(rec: Dictionary) -> String:
+	var prop: String = str(rec["property"])
 	var lockers: Array = _stations_in(prop, StorageLocker)
 	if lockers.is_empty():
 		_set_status(rec, "needs a storage locker here")
 		return ""
-	var plates: Array = _stations_in(prop, CoolingPlate)
-	var put: Callable = func(id: String, n: int) -> int: return _locker_put(lockers, id, n)
-	var have: Callable = func(id: String) -> int: return _locker_count(lockers, id)
-	var take: Callable = func(id: String, n: int) -> bool: return _locker_take(lockers, id, n)
-	for pl: CoolingPlate in plates:
-		if int(pl.state["stage"]) == ProcessStation.Stage.DONE and pl.staff_take(put) > 0:
-			return _did(rec, pl, "broke a tray into Meth Shards")
-	for c: CookStation in cookers:
-		if c.staff_attend():
-			return _did(rec, c, "stirred the batch")
-	for c: CookStation in cookers:
-		if int(c.state["stage"]) != ProcessStation.Stage.DONE:
+	var boss: String = str(rec["employer"])
+	for d: Dictionary in _members().values():
+		if d["role"] != "dealer" or str(d["employer"]) != boss:
 			continue
-		for pl: CoolingPlate in plates:
-			if int(pl.state["stage"]) == ProcessStation.Stage.IDLE:
-				c.state["out"] = int(c.state["out"]) - 1
-				if int(c.state["out"]) <= 0:
-					c.state["stage"] = ProcessStation.Stage.IDLE
-					c.state["out"] = 0
-					c.state["progress"] = 0.0
-				c.changed()
-				pl.state["stage"] = ProcessStation.Stage.RUNNING
-				pl.state["progress"] = 0.0
-				return _did(rec, pl, "poured a tray onto a cooling plate")
-	for c: CookStation in cookers:
-		if int(c.state["stage"]) == ProcessStation.Stage.IDLE and c.staff_load(have, take):
-			return _did(rec, c, "started a cook")
-	if plates.is_empty():
-		_set_status(rec, "needs a cooling plate here")
-	elif cookers.any(func(c: CookStation) -> bool: return int(c.state["stage"]) == ProcessStation.Stage.RUNNING):
-		_set_status(rec, "cooking")
-	elif cookers.any(func(c: CookStation) -> bool: return int(c.state["stage"]) == ProcessStation.Stage.DONE):
-		_set_status(rec, "waiting for a free cooling plate")
-	else:
-		_set_status(rec, "needs Lab Chemicals + Activator in the locker")
+		var low: bool = int(d["stock"]) < roundi(config.dealer_capacity * config.courier_restock_below)
+		var room: int = config.dealer_capacity - int(d["stock"])
+		var brought: int = 0
+		if low:
+			for g: Array in DEALER_GOODS + [["weed_bag", ""]]:
+				var k: int = mini(_locker_count(lockers, g[0]), room - brought)
+				if k <= 0:
+					continue
+				_locker_take(lockers, g[0], k)
+				if g[1] != "":
+					d[g[1]] = int(d.get(g[1], 0)) + k
+				d["stock"] = int(d["stock"]) + k
+				brought += k
+		var cash: int = int(d["cash"]) if brought > 0 or int(d["cash"]) > config.greedy_cash * 0.5 else 0
+		if brought <= 0 and cash <= 0:
+			continue
+		if cash > 0:
+			GameState.add_cash(boss, cash)
+			d["cash"] = 0
+			d["loyalty"] = minf(100.0, float(d["loyalty"]) + config.collect_loyalty)
+			_send_wallet(boss)
+		_mark()
+		var what: String = "brought %s %d bags, collected €%d" % [d["name"], brought, cash]
+		_set_status(rec, what)
+		print("[Staff] courier %s %s" % [rec["name"], what])
+		if cash > 0:
+			_text(boss, "%s here. Picked up €%d from %s%s." % [rec["name"], cash, d["name"],
+					" and dropped off %d bags" % brought if brought > 0 else ""], str(rec["name"]))
+		return what
+	# Supplies for the stations in this property.
+	var wanted: Dictionary = {}
+	var prop_node: Property = property_node(prop)
+	for n: Node in get_tree().get_nodes_in_group(&"stations"):
+		var st := n as Station
+		if prop_node == null or not prop_node.contains(st.global_position):
+			continue
+		var item_id: String = _station_item(st)
+		for id: String in config.courier_uses.get(item_id, []):
+			wanted[id] = true
+	for id: String in wanted:
+		var want: int = int(config.courier_stock.get(id, 0))
+		var short: int = want - _locker_count(lockers, id)
+		if short <= 0 or Progression.item_lock(StringName(id)) != "":
+			continue
+		var item: ItemData = ItemDB.get_item(StringName(id))
+		if item == null:
+			continue
+		var cost: int = roundi(item.base_price * config.courier_markup) * short
+		if not GameState.add_cash(boss, -cost, item.is_legal):
+			_set_status(rec, "can't pay €%d for %d %s" % [cost, short, item.display_name])
+			return ""
+		var left: int = _locker_put(lockers, id, short)
+		if left > 0:
+			GameState.add_cash(boss, roundi(item.base_price * config.courier_markup) * left)  # no room: money back
+		_send_wallet(boss)
+		var what: String = "bought %d %s (€%d)" % [short - left, item.display_name, cost - roundi(item.base_price * config.courier_markup) * left]
+		_set_status(rec, what)
+		_stand_at(rec, lockers[0])
+		print("[Staff] courier %s %s" % [rec["name"], what])
+		return what
+	_set_status(rec, "everything is stocked")
 	return ""
+
+
+## Tests: one courier trip right now.
+func courier_test_trip(rec: Dictionary) -> String:
+	return _courier_step(rec)
+
+
+## The item id a station was built from ("cook_station" for a CookStation...).
+func _station_item(st: Station) -> String:
+	var path: String = st.scene_file_path
+	return path.get_file().get_basename() if path.begins_with("res://prefabs/stations/") else ""
 
 
 # --- Host: locker helpers -------------------------------------------------------------------
@@ -518,9 +632,11 @@ func _dealer_tick(rec: Dictionary, hours: float) -> void:
 			rec["sell"] = float(rec["sell"]) - 1.0
 			rec["stock"] = int(rec["stock"]) - 1
 			var price: int = int(dist.get("price", 60))
-			if int(rec.get("meth", 0)) > 0:
-				rec["meth"] = int(rec["meth"]) - 1
-				price = Products.price("meth_bag", price)
+			for g: Array in DEALER_GOODS:
+				if int(rec.get(g[1], 0)) > 0:
+					rec[g[1]] = int(rec[g[1]]) - 1
+					price = Products.price(g[0], price)
+					break
 			rec["cash"] = int(rec["cash"]) + roundi(price * (1.0 - float(rec["commission"])))
 			rec["sold"] = int(rec.get("sold", 0)) + 1
 			sold += 1
@@ -604,7 +720,7 @@ func host_hire(who: String, index: int, place: String) -> String:
 		for r: Dictionary in _members().values():
 			if r["role"] == "dealer" and str(r["district"]) == place:
 				return "!%s already works %s." % [r["name"], district_name(place)]
-		rec.merge({"district": place, "stock": 0, "meth": 0, "cash": 0, "loyalty": config.start_loyalty, "sold": 0, "sell": 0.0})
+		rec.merge({"district": place, "stock": 0, "meth": 0, "coke": 0, "cash": 0, "loyalty": config.start_loyalty, "sold": 0, "sell": 0.0})
 		_place_dealer(rec)
 	else:
 		var prop: Property = property_node(place)
@@ -621,7 +737,7 @@ func host_hire(who: String, index: int, place: String) -> String:
 		_place_worker(rec, prop)
 	_members()[rec["uid"]] = rec
 	cands.remove_at(index)
-	cands.append(_make_candidate(["grower", "packager", "dealer", "cook"].pick_random()))
+	cands.append(_make_candidate(["grower", "packager", "dealer", "cook", "courier"].pick_random()))
 	_mark()
 	print("[Staff] %s hired %s as %s (%s)" % [who, rec["name"], role, place])
 	if role == "dealer":
@@ -684,9 +800,10 @@ func host_fire(who: String, uid: String) -> String:
 	_mark()
 	print("[Staff] %s fired %s" % [who, rec["name"]])
 	if rec["role"] == "dealer":
-		var meth: int = int(rec.get("meth", 0))
-		var left: Array = GameState.give(who, int(rec["cash"]), [{"id": "weed_bag", "count": int(rec["stock"]) - meth},
-				{"id": "meth_bag", "count": meth}])
+		var back: Array = [{"id": "weed_bag", "count": dealer_weed(rec)}]
+		for g: Array in DEALER_GOODS:
+			back.append({"id": g[0], "count": int(rec.get(g[1], 0))})
+		var left: Array = GameState.give(who, int(rec["cash"]), back)
 		_send_wallet(who)
 		var lost: int = 0
 		for it: Dictionary in left:
@@ -706,15 +823,20 @@ func host_dealer(player: Player, uid: String, action: String) -> String:
 	var who: String = player.player_name
 	match action:
 		"give":
-			# Weed and meth bags (Products.BAGS); "stock" = all bags, "meth" = how many of them are meth.
-			var carried: int = GameState.count_item(who, "weed_bag") + GameState.count_item(who, "meth_bag")
+			# Every kind of bag (DEALER_GOODS first, then weed); "stock" = all bags.
+			var carried: int = GameState.count_item(who, "weed_bag")
+			for g: Array in DEALER_GOODS:
+				carried += GameState.count_item(who, g[0])
 			var n: int = mini(carried, config.dealer_capacity - int(rec["stock"]))
 			if n <= 0:
 				return "!You have no bags to give." if carried == 0 else "!%s can't carry more." % rec["name"]
-			var meth: int = mini(GameState.count_item(who, "meth_bag"), n)
-			GameState.remove_item(who, "meth_bag", meth)
-			GameState.remove_item(who, "weed_bag", n - meth)
-			rec["meth"] = int(rec.get("meth", 0)) + meth
+			var left: int = n
+			for g: Array in DEALER_GOODS:
+				var k: int = mini(GameState.count_item(who, g[0]), left)
+				GameState.remove_item(who, g[0], k)
+				rec[g[1]] = int(rec.get(g[1], 0)) + k
+				left -= k
+			GameState.remove_item(who, "weed_bag", left)
 			rec["stock"] = int(rec["stock"]) + n
 			_mark()
 			player.send_wallet()
@@ -766,6 +888,12 @@ func _run(peer: int, action: String, a: Variant, b: Variant) -> String:
 			msg = host_fire(player.player_name, str(a))
 		"give", "collect":
 			msg = host_dealer(player, str(a), action)
+		"lawyer_hire":
+			msg = Legal.host_hire(player.player_name)
+		"lawyer_fire":
+			msg = Legal.host_fire(player.player_name)
+		"bribe":
+			msg = Legal.host_bribe(player)
 		"sync":
 			pass
 	_broadcast()
@@ -802,6 +930,7 @@ func _broadcast() -> void:
 	_set_members(m.duplicate(true), c.duplicate(true))
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and multiplayer.get_peers().size() > 0:
 		_set_members.rpc(m, c)
+	Legal.sync()
 
 
 ## Client: ask for the members list (its World is up).
@@ -819,6 +948,7 @@ func _request_sync() -> void:
 		var m: Dictionary = (d as Dictionary).get("members", {}) if d is Dictionary else {}
 		var c: Array = (d as Dictionary).get("candidates", []) if d is Dictionary else []
 		_set_members.rpc_id(multiplayer.get_remote_sender_id(), m, c)
+		Legal.sync()
 
 
 @rpc("authority", "call_remote", "reliable")

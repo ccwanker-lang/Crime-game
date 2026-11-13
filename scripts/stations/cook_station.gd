@@ -25,12 +25,11 @@ func _init() -> void:
 	start_verb = "Start a cook"
 	work_start = "pack"
 	work_take = "take"
-
-
-func default_state() -> Dictionary:
-	var s: Dictionary = super()
-	s["stir"] = 0  # 0 = not yet, 1 = needs a stir now, 2 = stirred
-	return s
+	attend_at = STIR_AT
+	missed_count = 1
+	attend_verb = "Stir the batch"
+	attend_flag = "STIR!"
+	attend_done = "Stirred. The batch will come out right (2 trays)."
 
 
 func _build() -> void:
@@ -99,15 +98,7 @@ func _build() -> void:
 	_steam.lifetime = 1.6
 	_steam.position = Vector3(-0.3, top + 0.34, 0)
 	add_child(_steam)
-	_stir_label = Label3D.new()
-	_stir_label.text = "STIR!"
-	_stir_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_stir_label.modulate = Color(1.0, 0.6, 0.15)
-	_stir_label.outline_size = 8
-	_stir_label.font_size = 48
-	_stir_label.pixel_size = 0.004
-	_stir_label.position = Vector3(-0.3, top + 0.6, 0)
-	add_child(_stir_label)
+	_stir_label = make_attend_label(Vector3(-0.3, top + 0.6, 0))
 	var cs := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(WIDTH, HEIGHT + 0.3, DEPTH)
@@ -122,52 +113,7 @@ func state_changed() -> void:
 	var running: bool = int(state["stage"]) == Stage.RUNNING
 	_kettle_glow.visible = running
 	_steam.emitting = running and not ghost
-	_stir_label.visible = running and int(state["stir"]) == 1 and not ghost
+	_stir_label.visible = needs_attention() and not ghost
 	var out: int = int(state["out"]) if int(state["stage"]) == Stage.DONE else 0
 	for i: int in _trays.size():
 		_trays[i].visible = i < out
-
-
-func _on_start() -> void:
-	state["stir"] = 0
-
-
-func _on_progress() -> void:
-	if int(state["stir"]) == 0 and float(state["progress"]) >= STIR_AT and _is_host():
-		state["stir"] = 1
-		changed()
-
-
-func _yield() -> int:
-	return output_count if int(state["stir"]) == 2 else 1
-
-
-func status_text() -> String:
-	if int(state["stage"]) == Stage.RUNNING and int(state["stir"]) == 1:
-		return "Cooking station: %d%% - needs a stir!" % int(float(state["progress"]) * 100.0)
-	return super()
-
-
-func prompt_for(player: Player) -> String:
-	if int(state["stage"]) == Stage.RUNNING and int(state["stir"]) == 1:
-		return "Stir the batch   [%s]" % status_text()
-	return super(player)
-
-
-func do_action(player: Player) -> String:
-	if int(state["stage"]) == Stage.RUNNING:
-		if int(state["stir"]) == 1:
-			state["stir"] = 2
-			changed()
-			work = "water"
-			return "Stirred. The batch will come out right (2 trays)."
-		return "Still cooking (%d%%)." % int(float(state["progress"]) * 100.0)
-	return super(player)
-
-
-func staff_attend() -> bool:
-	if int(state["stage"]) == Stage.RUNNING and int(state["stir"]) == 1:
-		state["stir"] = 2
-		changed()
-		return true
-	return false
