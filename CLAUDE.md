@@ -213,7 +213,8 @@ Godot console exe:
   `_try_arrest` -> `Player.host_arrest(by)` (confiscate illegal, fine, `ReleaseSpot` marker), group call `on_arrested`.
 - Wanted level (point 28): `Wanted` (`scripts/police/wanted.gd`, node World/Wanted, host logic, `Wanted.current`),
   config `WantedConfig` in `data/police/wanted.tres`. Crimes: `Wanted.report(player, kind, pos)` (kinds heard,
-  weapon_seen, kill, kill_officer, kill_rival, assault, resist); `Wanted.clear(p, why)` on arrest/death; synced
+  kill, kill_officer, kill_rival, assault, resist; round 4: holding a gun is no crime); search phase = one timer
+  `search_time[stars]` then all stars go (`Wanted.search_left(p)`); `units_per_star` = extra dispatched cars; `Wanted.clear(p, why)` on arrest/death; synced
   `Player.wanted_stars` / `wanted_seen` -> HUD stars (`PlayerHUD.set_wanted`). Officers: `_should_shoot(p)` by stars,
   group call `on_wanted_cleared`, `heavy` (SMG, `data/npc/police_heavy.tres`, spawn-synced). Cars: `Car.respond`,
   `chase`, `dispatched`, `roadblock` (`start_roadblock`/`end_roadblock`), `Traffic.nearest` / `spot_ahead`,
@@ -228,7 +229,10 @@ Godot console exe:
   World `_rival_loop` (fills `rival_count` 6 in the yard, sends `rival_street` 2 out at night; `--rivals=N`; 0 in
   selftest/netcheck) / `add_rival(at, ak)` / `rival_died` (respawn 60-120 s). Officer hooks: `_group`, `_head_mesh`,
   `_target_off_limits`, `_log`, `_leash_center`/`_leash_range`; synced `gun` (weapon id). `Rival.obey_daylight` (tests).
-  Scenarios rivals_night, crows_turf.
+  Scenarios rivals_night, crows_turf. Round 4 (31a): `PoliceOfficer.foe` (armed NPC of the other side, `set_foe`,
+  `is_enemy`, `_rally`, `_fight_foe`), group call `report_npc_crime(shooter, origin)` on "police" (officers +
+  `Car.respond(null, origin, npc)`); street Crows attack officers (`Rival.spot_cop`). 31b: World `rival_night_pool`
+  (20) / `rival_pool_left` / `refill_rival_pool()` at dusk, `rival_respawn`. Scenarios wanted_timer, police_vs_crows.
 - Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
   pedestrians `_flee_loop` until `flee_safe()` (40 m + out of sight, max 45 s). Scenario panic. Kerb check: `--only=kerb`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;

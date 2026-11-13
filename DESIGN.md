@@ -186,14 +186,20 @@ textures anywhere. Still a believable Belgian/European town at human scale (1 un
 - Wanted level (point 28, replaces "heat"): 1-5 stars per player, GTA style (see Roadmap 28). Low stars = an
   arrest (illegal items + fine, released at the station), higher stars = chases and shooting, 4-5 = the whole
   force with road blocks. Stars drop out of sight / inside your own property / with a bribe (rank 5).
-  Built (point 28): `Wanted` (host, under World) + `data/police/wanted.tres`. Stars: a gun heard by the police or a
-  weapon an officer / patrol car sees within 22 m = 1; kills add heat (1 kill = 1 star, 6 = 2, 12 = 3, 20 = 4,
+  Built (point 28): `Wanted` (host, under World) + `data/police/wanted.tres`. Stars: a gun heard by the police = 1
+  (round 4: only holding a weapon gives nothing); kills add heat (1 kill = 1 star, 6 = 2, 12 = 3, 20 = 4,
   30 = 5); an officer killed = 3 heat and at least 2 stars; shooting at the police or resisting arrest = 2.
   Treatment: 1 star = arrest (shot only when resisting), 2 = shot when holding a weapon, 3+ = shot on sight.
   Response: police cars are sent along the roads (1 per star, crews 1/2/2/3/3, siren, 45% faster), from 4 stars
   heavy teams (dark uniform, SMG, 170 health, sharper aim) and a road block (a patrol car across the road 35-60 m
-  ahead of you, its crew on guard). Out of sight 20/30/45/60/80 s per star (3x faster inside your own property);
-  the HUD stars blink while they search. Arrest or death clears the stars.
+  ahead of you, its crew on guard). Round 4: out of sight ONE search timer runs (stars x 10 s: 10/20/30/40/50 s,
+  3x faster inside your own property; the HUD stars blink); when it runs out ALL stars go at once, seen again = it
+  starts over. Extra cars per star on top of the 2 patrol cars: 0/1/1/2/3/4; they drive off when the stars are
+  gone. Arrest or death clears the stars.
+- Police vs Crows (round 4, point 31a): the police are neutral. A Crow that fires is reported to the police
+  (officers + patrol cars within 45 m take it on, no stars: those are for players); whoever gets shot fires back
+  and calls its mates within 25 m; at night the street Crows open fire on officers within 20 m. Crows per night:
+  a pool of 20 (the yard's 6 count); the dead are replaced from it, when it is empty no more Crows that night.
 - Later: the corrupt cop from the story.
 
 ## Vehicles (milestone 2)
@@ -320,7 +326,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     once. 4-5: the whole force, road blocks, heavy teams. Stars drop when you stay out of sight, hide in your own
     property, or (later) bribe. Police react BEFORE you holster. Thresholds/times in a resource - done
     (bribes come with the corrupt cop later)
-    REOPENED (feedback round 4, 2026-11-13) - todo:
+    REOPENED (feedback round 4, 2026-11-13) - done:
     a. Trigger: only holding a weapon gives NO stars and no police reaction; stars only for a shot fired, a
        wound or a kill.
     b. Losing them: as soon as the police lose sight the search phase starts: the stars blink and ONE timer runs
@@ -337,7 +343,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     turf or if a member saw you there (memory); new spawns that never saw you leave you alone outside. At night one
     small group patrols the streets (the night threat), the rest stays in the yard. The dead are replaced only
     after 1-2 minutes. Weapon variety (some carry an AK) - done
-    REOPENED (feedback round 4, 2026-11-13) - todo:
+    REOPENED (feedback round 4, 2026-11-13) - done:
     a. Police vs Crows: the police are neutral: whoever shoots or murders gets them on their back, NPCs too.
        Crows shooting at night draw the police, who shoot them; a gunfight police vs Crows while you watch must
        be possible.
@@ -572,6 +578,26 @@ Choices made while working autonomously (what + why).
   Deal state (`deal_ok`, `customer_name`) is synced so clients see the colour and the name. The sell_weed
   scenario was broken because the customer was made `stationary`, which keeps it out of the interactable group;
   it now stands 2 m in front of you with an accepted deal.
+- Round 4 point 28a (2026-11-13): stars only for a shot the police hear, a wound or a kill; the old "weapon seen
+  within 22 m" trigger is removed entirely (also for 1-star players: holding a gun near an officer while wanted
+  still makes them warn you and treat it as resisting, as before).
+- Round 4 point 28b: one search timer per player (`WantedConfig.search_time`, index = stars) replaces the star-by-
+  star drop (`lose_star_time` is gone). The hide multiplier (3x at home) is kept: it speeds the same timer up.
+- Round 4 point 28c: `units_per_star` now counts only the EXTRA (dispatched) cars after a player, not the normal
+  patrol cars that happen to respond, so every star really adds units: 0/1/1/2/3/4 extra on top of the 2 patrol
+  cars (5 stars = 6 cars + 2 road blocks + heavy teams, about what the town had before). Foot officers stay 2.
+  Sent cars already drive off and disappear when the stars are gone (point 28), so the town calms down by itself.
+- Round 4 point 31a (police vs Crows): implemented as a second target slot `PoliceOfficer.foe` (an armed NPC of
+  the other side) next to the player `target`, instead of making `target` untyped: all the arrest / wanted /
+  player logic stays as it was, a player target always goes first. Crows' shots are reported with a new group
+  call `report_npc_crime(shooter, origin)` on "police" (officers + patrol cars). Friendly fire is off within a
+  side; police bullets now hit Crows and Crow bullets hit officers (police cars still take no NPC damage). To make
+  a fight possible "while you watch", the street Crows at night also open fire on officers they see within 20 m
+  (yard Crows only fight back). NPC fights give no stars.
+- Round 4 point 31b: the night pool counts Crows, not deaths: at dusk the pool is 20 minus the Crows alive and
+  the yard is filled back up to 6 from it; every replacement (day or night) takes one from it. Kept on the host
+  only, not saved (a reload simply starts with a full pool). World `rival_night_pool` / `rival_pool_left`.
+- Admin mode (F10/F11/F12) was already built and committed before round 4; nothing to add.
 - Story + world (user, 2026-11-13): recorded in "Rivals & story", Map layout, Buildings and Roadmap 49-55, not built
   yet. Changed to match: the map is open from the start, so the Progression table's "District" column became
   "Area" (where the property stands) and rank 6 no longer opens a highway (it is always open; rank 6 starts the

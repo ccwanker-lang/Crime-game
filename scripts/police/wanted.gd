@@ -3,11 +3,13 @@ extends Node
 ## Point 28: the wanted level (GTA style, 1-5 stars per player). Lives under World; the
 ## logic runs on the host only, the stars reach every peer through Player.wanted_stars /
 ## wanted_seen (HostSync). Numbers in data/police/wanted.tres (WantedConfig).
-## - Stars come from crimes (`report`): a gun heard or a weapon seen by the police = 1,
-##   kills add heat (heat_for_star), killing / shooting at an officer or resisting = 2+.
-## - The host checks every tick who the police can see (officers, patrol cars). Out of
-##   sight for lose_star_time[stars] seconds -> one star less (faster inside your own
-##   property). 0 stars: every officer drops you.
+## - Stars come from crimes (`report`): a gun heard by the police = 1 (point 28a: only
+##   holding a weapon gives nothing), kills add heat (heat_for_star), killing / shooting at
+##   an officer or resisting = 2+.
+## - The host checks every tick who the police can see (officers, patrol cars). Point 28b:
+##   out of sight the search phase runs (HUD stars blink): ONE timer of search_time[stars]
+##   seconds (faster inside your own property); when it runs out ALL stars go at once,
+##   seen again = it starts over. 0 stars: every officer drops you, sent cars go home.
 ## - Response: police cars are sent along the roads to the last known spot
 ##   (units_per_star), with bigger, heavier crews and road blocks at 4-5 stars.
 ##   How they treat you (arrest / shoot) is PoliceOfficer._should_shoot.
@@ -50,7 +52,7 @@ static func stars_of(p: Player) -> int:
 
 # --- Crimes (host) ---------------------------------------------------------------------
 
-## Host: a crime by `p` at `pos`. Kinds: &"heard" (the police heard a shot), &"weapon_seen",
+## Host: a crime by `p` at `pos`. Kinds: &"heard" (the police heard a shot),
 ## &"kill", &"kill_officer", &"kill_rival" (only counts when the police see it), &"assault",
 ## &"resist".
 static func report(p: Player, kind: StringName, pos: Vector3) -> void:
@@ -63,7 +65,7 @@ func _report(p: Player, kind: StringName, pos: Vector3) -> void:
 	var st: Dictionary = _st(p)
 	var floor_stars: int = 0
 	match kind:
-		&"heard", &"weapon_seen":
+		&"heard":
 			floor_stars = 1
 		&"kill":
 			st["heat"] = int(st["heat"]) + config.kill_heat
@@ -163,31 +165,11 @@ func _loop() -> void:
 				if p.wanted_stars > 0:
 					_clear(p, "dead")
 				continue
-			if p.wanted_stars == 0:
-				_check_weapon(p)
-			else:
+			if p.wanted_stars > 0:
 				_tick_wanted(p, now)
 		for p: Variant in _state.keys():
 			if not is_instance_valid(p):
 				_state.erase(p)
-
-
-## 0 stars: a weapon in the hand that an officer (or a patrol car) sees close by = 1 star.
-## Checked 4x a second, so holstering right after drawing in front of a cop is too late.
-func _check_weapon(p: Player) -> void:
-	if p.net_weapon == 0:
-		return
-	for o: PoliceOfficer in _officers():
-		if o.global_position.distance_to(p.global_position) < config.weapon_sight_range and o.can_see(p):
-			_report(p, &"weapon_seen", p.global_position)
-			if o.target == null:
-				o._alert(p, p.global_position)
-			return
-	for c: Car in _cars():
-		if not c.abandoned and c.global_position.distance_to(p.global_position) < config.weapon_sight_range and c.can_see(p):
-			_report(p, &"weapon_seen", p.global_position)
-			c.respond(p, p.global_position)
-			return
 
 
 func _tick_wanted(p: Player, now: float) -> void:
@@ -208,16 +190,10 @@ func _tick_wanted(p: Player, now: float) -> void:
 	else:
 		var rate: float = config.hide_multiplier if _hiding(p) else 1.0
 		st["away"] = float(st["away"]) + TICK * rate
-		if float(st["away"]) >= config.lose_star_time[mini(p.wanted_stars, config.lose_star_time.size() - 1)]:
-			st["away"] = 0.0
-			var stars: int = p.wanted_stars - 1
-			print("[Wanted] %s: lost a star -> %d" % [p.player_name, stars])
-			if stars <= 0:
-				_clear(p, "lost the police")
-				p.show_message("You lost the police.")
-				return
-			p.wanted_stars = stars
-			st["heat"] = _heat_for(stars)
+		if float(st["away"]) >= search_left(p, 0.0):
+			_clear(p, "lost the police")
+			p.show_message("You lost the police.")
+			return
 	if p.wanted_seen != seen:
 		p.wanted_seen = seen
 	if dispatch:
@@ -247,6 +223,15 @@ func _cars() -> Array[Car]:
 	return out
 
 
+## Host: seconds of the search phase still to go for `p` (`away` = seconds already out
+## of sight; pass 0.0 for the full time).
+func search_left(p: Player, away: float = -1.0) -> float:
+	if away < 0.0:
+		away = float(_st(p)["away"]) if _state.has(p) else 0.0
+	var full: float = config.search_time[mini(p.wanted_stars, config.search_time.size() - 1)]
+	return maxf(0.0, full - away)
+
+
 func _police_sees(p: Player) -> bool:
 	for o: PoliceOfficer in _officers():
 		if o.can_see(p):
@@ -260,7 +245,8 @@ func _traffic() -> Traffic:
 	return get_parent().get_node_or_null("Traffic") as Traffic
 
 
-## Send police cars until units_per_star cars are after the player.
+## Send police cars until units_per_star extra cars are after the player (point 28c: the
+## normal patrol cars don't count, so every star adds units).
 func _dispatch(p: Player, st: Dictionary, now: float) -> void:
 	if now < float(st["next_dispatch"]):
 		return
@@ -270,7 +256,7 @@ func _dispatch(p: Player, st: Dictionary, now: float) -> void:
 	var cars: Array[Car] = _cars()
 	var after: int = 0
 	for c: Car in cars:
-		if c.chase == p and not c.roadblock:
+		if c.chase == p and c.dispatched and not c.roadblock:
 			after += 1
 	var want: int = config.units_per_star[mini(p.wanted_stars, config.units_per_star.size() - 1)]
 	if after >= want or cars.size() >= config.max_police_cars:

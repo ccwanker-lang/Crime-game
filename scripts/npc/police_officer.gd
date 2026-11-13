@@ -13,6 +13,10 @@ extends Pedestrian
 ## (Player.host_arrest). Officers from a patrol car never go further than LEASH from it.
 ## Point 28: the wanted level (Wanted, stars per player) decides arrest or shoot
 ## (`_should_shoot`); heavy teams (4-5 stars) carry an SMG, take more hits, aim better.
+## Point 31a: next to `target` (a player) an officer can have a `foe`: an armed NPC of the
+## other side (a Crow for the police, an officer for the Crows). Crows that fire are
+## reported to the police (report_npc_crime), whoever gets shot fires back and calls its
+## mates close by. A player target always goes first.
 
 const UNIFORM: Dictionary = {
 	"White": Color(0.55, 0.68, 0.85),       # shirt: light blue
@@ -81,6 +85,12 @@ var _target_speed: float = 0.0
 var _pistol: WeaponData
 var _chatting: bool = false
 var _next_chat: float = 0.0
+## Host (point 31a): the NPC we fight, where we last saw it, and until when we look for it.
+var foe: PoliceOfficer = null
+var _foe_last: Vector3 = Vector3.INF
+var _foe_until: float = 0.0
+## Mates this close join a fight against a foe.
+const RALLY_RANGE: float = 25.0
 ## Point 30 (tests/debug): how many chats this officer had.
 var chats: int = 0
 
@@ -243,6 +253,48 @@ func _alert(culprit: Player, at: Vector3) -> void:
 	_search_until = _now() + SEARCH_TIME
 
 
+## Point 31a: an armed NPC of the other side (Crow vs police), alive.
+func is_enemy(o: Node) -> bool:
+	return o is PoliceOfficer and o != self and not (o as PoliceOfficer).dead and (o as PoliceOfficer)._group() != _group()
+
+
+## Host: fight the NPC `o` (seen / heard at `at`).
+func set_foe(o: PoliceOfficer, at: Vector3) -> void:
+	if dead or not is_enemy(o):
+		return
+	if foe != o:
+		_log("%s takes on %s" % [name, o.name])
+		if target == null:
+			_next_shot = _now() + profile.reaction_time
+			_burst_left = profile.burst_size
+			_seen_now = false
+	foe = o
+	_foe_last = at
+	_foe_until = _now() + SEARCH_TIME
+	_chatting = false
+
+
+## Host (group "police", point 31a): an NPC of the other side (a Crow) fired at `origin`.
+func report_npc_crime(shooter: PoliceOfficer, origin: Vector3) -> void:
+	if not _is_host() or dead or not is_inside_tree() or not is_enemy(shooter):
+		return
+	if global_position.distance_to(origin) > HEAR_RANGE:
+		return
+	if foe != null and is_instance_valid(foe) and not foe.dead:
+		return  # already in a fight
+	set_foe(shooter, origin)
+
+
+## Host: mates of our side close by join the fight against `o`.
+func _rally(o: PoliceOfficer) -> void:
+	for n: Node in get_tree().get_nodes_in_group(_group()):
+		var m := n as PoliceOfficer
+		if m == null or m == self or m.dead or m.global_position.distance_to(global_position) > RALLY_RANGE:
+			continue
+		if m.foe == null or not is_instance_valid(m.foe) or m.foe.dead:
+			m.set_foe(o, o.global_position)
+
+
 func hear_gunshot(_origin: Vector3, _hit: bool = false) -> void:
 	pass  # officers don't flee; report_crime tells them who fired
 
@@ -256,6 +308,9 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 		if _group() == &"police":
 			Wanted.report(attacker as Player, &"assault", (attacker as Player).global_position)
 		_alert(attacker as Player, (attacker as Player).global_position)
+	elif is_enemy(attacker):
+		set_foe(attacker as PoliceOfficer, (attacker as Node3D).global_position)
+		_rally(attacker as PoliceOfficer)
 	if health > 0:
 		return false
 	_die(from)
@@ -269,7 +324,7 @@ func _on_died(world: Node) -> void:
 
 
 ## Can the officer see `p` (in range, nothing solid in between)?
-func can_see(p: Player) -> bool:
+func can_see(p: Node3D) -> bool:
 	var eye: Vector3 = global_position + Vector3.UP * 1.6
 	var chest: Vector3 = p.global_position + Vector3.UP * 1.2
 	if eye.distance_to(chest) > profile.sight_range:
@@ -296,7 +351,8 @@ func _think() -> void:
 		_log("%s: %s is somewhere it can't follow" % [name, target.player_name])
 		_drop_target()
 	if target == null:
-		_patrol()
+		if not _fight_foe():
+			_patrol()
 		return
 	var leash: Vector3 = _leash_center()
 	if leash != Vector3.INF and last_known.distance_to(leash) > _leash_range():
@@ -326,14 +382,7 @@ func _think() -> void:
 			# (Re)acquired the target: it needs a moment before the first shot.
 			_seen_now = true
 			_next_shot = maxf(_next_shot, _now() + profile.reaction_time * randf_range(0.7, 1.3))
-		if _now() >= _next_shot:
-			_shoot_at(target)
-			_burst_left -= 1
-			if _burst_left <= 0:
-				_burst_left = maxi(1, profile.burst_size + randi_range(-1, 1))
-				_next_shot = _now() + profile.burst_pause * randf_range(0.8, 1.4)
-			else:
-				_next_shot = _now() + 1.0 / maxf(0.1, profile.fire_rate) * randf_range(0.85, 1.25)
+		_fire_burst(target)
 		return
 	if _now() > _search_until:
 		_log("%s lost %s" % [name, target.player_name])
@@ -348,6 +397,58 @@ func _think() -> void:
 		anim_state = Anim.AIM
 		rotation.y += 0.8  # look around
 		net_yaw = rotation.y
+
+
+## Host: shoot at `at` when the burst rhythm allows it.
+func _fire_burst(at: Node3D) -> void:
+	if _now() < _next_shot:
+		return
+	_shoot_at(at)
+	_burst_left -= 1
+	if _burst_left <= 0:
+		_burst_left = maxi(1, profile.burst_size + randi_range(-1, 1))
+		_next_shot = _now() + profile.burst_pause * randf_range(0.8, 1.4)
+	else:
+		_next_shot = _now() + 1.0 / maxf(0.1, profile.fire_rate) * randf_range(0.85, 1.25)
+
+
+## Host (point 31a): fight `foe` (no player target). False = no foe (any more).
+func _fight_foe() -> bool:
+	if foe == null:
+		return false
+	var leash: Vector3 = _leash_center()
+	var over: bool = not is_instance_valid(foe) or foe.dead or not foe.is_inside_tree() or _now() > _foe_until
+	if not over and leash != Vector3.INF and _foe_last.distance_to(leash) > _leash_range():
+		over = true
+	if over:
+		if is_instance_valid(foe):
+			_log("%s is done with %s" % [name, foe.name])
+		foe = null
+		_drop_target()
+		return false
+	if can_see(foe):
+		_foe_last = foe.global_position
+		_foe_until = _now() + SEARCH_TIME
+		if _moving:
+			_finish_move(false)
+		anim_state = Anim.AIM
+		var d: Vector3 = foe.global_position - global_position
+		rotation.y = atan2(-d.x, -d.z)
+		net_yaw = rotation.y
+		if not _seen_now:
+			_seen_now = true
+			_next_shot = maxf(_next_shot, _now() + profile.reaction_time * randf_range(0.7, 1.3))
+		_fire_burst(foe)
+		return true
+	_seen_now = false
+	if global_position.distance_to(_foe_last) > 1.5:
+		if not _moving or move_target().distance_to(_foe_last) > 2.0:
+			_chase_to(_foe_last, Anim.RUN_GUN)
+	elif not _moving:
+		anim_state = Anim.AIM
+		rotation.y += 0.8
+		net_yaw = rotation.y
+	return true
 
 
 ## Point 29: straight there if the way is clear (over the road), else over the navmesh.
@@ -447,7 +548,7 @@ func on_wanted_cleared(p: Player) -> void:
 
 ## Host: busy with a culprit or a chat (a patrol car waits for its crew).
 func is_busy() -> bool:
-	return target != null or _chatting
+	return target != null or _chatting or (foe != null and is_instance_valid(foe) and not foe.dead)
 
 
 ## Host (point 30): walk up to `npc`, have a word (a few seconds, both gesture), carry on.
@@ -518,11 +619,12 @@ func _patrol() -> void:
 			_go(p, Anim.WALK)
 
 
-## Host: one shot at `p` (with spread), damage + effects for everyone.
-func _shoot_at(p: Player) -> void:
+## Host: one shot at `p` (a player or an NPC foe, with spread), damage + effects for everyone.
+func _shoot_at(p: Node3D) -> void:
 	var origin: Vector3 = global_position + Vector3.UP * 1.45 - global_basis.z * 0.45
 	var aim: Vector3 = p.global_position + Vector3.UP * randf_range(0.9, 1.5)
-	var speed: float = _target_speed if p == target else Vector2(p.velocity.x, p.velocity.z).length()
+	var body := p as CharacterBody3D
+	var speed: float = _target_speed if p == target else (Vector2(body.velocity.x, body.velocity.z).length() if body else 0.0)
 	var dir: Vector3 = PlayerCombat._cone((aim - origin).normalized(), profile.spread(origin.distance_to(aim), speed))
 	var q := PhysicsRayQueryParameters3D.create(origin, origin + dir * 80.0, HIT_MASK, [get_rid()])
 	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
@@ -534,11 +636,15 @@ func _shoot_at(p: Player) -> void:
 		normal = hit["normal"]
 		surface = WeaponFX.surface_of(hit["collider"])
 		var victim: Node = hit["collider"]
-		if victim.has_method("host_damage") and not victim is PoliceOfficer and not (victim is Car and (victim as Car).police):
+		# Point 31a: no friendly fire within a side; the other side (Crow / officer) can be hit.
+		var same_side: bool = victim is PoliceOfficer and (victim as PoliceOfficer)._group() == _group()
+		if victim.has_method("host_damage") and not same_side and not (victim is Car and (victim as Car).police):
 			var killed: bool = victim.call("host_damage", profile.damage, self, origin)
 			_log("%s hit %s%s" % [name, victim.get("player_name") if victim is Player else victim.name,
 					" - killed" if killed else ""])
 	get_tree().call_group(&"npc", "hear_gunshot", origin)
+	if _group() != &"police":
+		get_tree().call_group(&"police", "report_npc_crime", self, origin)  # point 31a: the police come for it
 	_shot_fx(origin, end, normal, surface)
 	for peer: int in Net.peers_in_world:
 		_shot_fx.rpc_id(peer, origin, end, normal, surface)

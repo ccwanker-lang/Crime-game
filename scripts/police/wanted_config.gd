@@ -12,18 +12,18 @@ extends Resource
 ## Shooting at the police (hit an officer or a patrol car), resisting arrest.
 @export var assault_stars: int = 2
 @export var resist_stars: int = 2
-## 1 star: a drawn weapon an officer / patrol car sees closer than this.
-@export var weapon_sight_range: float = 22.0
 ## A driving patrol car sees a wanted player this close (line of sight).
 @export var car_sight_range: float = 30.0
 
-## Seconds out of sight before one star drops (index = current stars).
-@export var lose_star_time: PackedFloat32Array = [0.0, 20.0, 30.0, 45.0, 60.0, 80.0]
-## Inside a crew-owned property the stars drop this many times faster.
+## Point 28b: the search phase. Out of sight of every officer / patrol car this many seconds
+## (index = current stars) and ALL stars go at once; seen again = the timer starts over.
+@export var search_time: PackedFloat32Array = [0.0, 10.0, 20.0, 30.0, 40.0, 50.0]
+## Inside a crew-owned property the search timer runs this many times faster.
 @export var hide_multiplier: float = 3.0
 
-## Police cars after one player (patrol cars that respond count too).
-@export var units_per_star: PackedInt32Array = [0, 1, 2, 3, 4, 5]
+## Point 28c: EXTRA police cars sent after one player, on top of the town's normal patrol
+## cars (2, Traffic). They drive off and disappear once the stars are gone.
+@export var units_per_star: PackedInt32Array = [0, 1, 1, 2, 3, 4]
 ## Officers in a car sent after a player.
 @export var crew_per_star: PackedInt32Array = [0, 1, 2, 2, 3, 3]
 ## From this many stars the police shoot as soon as they see you.

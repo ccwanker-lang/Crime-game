@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1688,6 +1688,101 @@ func _check_rivals(world: Node3D) -> void:
 	await get_tree().physics_frame
 
 
+# --- Police vs Crows + the Crows' night pool (point 31a/b) --------------------------------
+
+func _check_police_vs_crows(world: Node3D) -> void:
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	var hours0: float = dn.hours
+	dn.set_hours(23.0)
+	var station: Node3D = world.find_child("PoliceStation", true, false) as Node3D
+	var spot: Vector3 = station.global_position + station.global_basis.z * 4.5 + station.global_basis.x * 6.0
+	var cop: PoliceOfficer = world.add_officer(spot, spot)
+	var crow: Rival = world.add_rival(spot + station.global_basis.x * 12.0, 0)
+	crow.role = Rival.Role.STREET
+	var sharp: NpcCombatProfile = crow.profile.duplicate()
+	sharp.accuracy = 1.0
+	sharp.reaction_time = 0.3
+	sharp.spread_per_metre = 0.0
+	sharp.moving_spread = 0.0
+	sharp.damage = 25
+	crow.profile = sharp
+	cop.profile = sharp
+	var both: bool = false
+	for i: int in 30:
+		await get_tree().create_timer(0.3).timeout
+		if crow.foe == cop and cop.foe == crow:
+			both = true
+			break
+	_report(both, "at night a street Crow opens fire on an officer it sees, the officer fights back (crow foe %s, cop foe %s)" % [
+			crow.foe.name if crow.foe else "-", cop.foe.name if cop.foe else "-"])
+	for i: int in 60:
+		if cop.dead or crow.dead:
+			break
+		await get_tree().create_timer(0.3).timeout
+	_report(cop.dead or crow.dead, "police vs Crows: the gunfight ends with one down (cop %d hp, crow %d hp)" % [cop.health, crow.health])
+	# A Crow firing near a patrol car: its crew gets out and takes it on.
+	var traffic: Traffic = world.get_node("Traffic") as Traffic
+	var car: Car = traffic.spawn_police_car(3, traffic.routes[3].length * 0.3, 2)
+	await get_tree().create_timer(0.5).timeout
+	var crow2: Rival = world.add_rival(car.global_position + car.global_basis.x * 6.0, 0)
+	await get_tree().physics_frame
+	crow2._shoot_at(car)  # (a shot: reported to the police)
+	await get_tree().create_timer(0.5).timeout
+	var out_ok: bool = car.abandoned and not car.crew_out.is_empty() and is_instance_valid(car.crew_out[0]) \
+			and (car.crew_out[0] as PoliceOfficer).foe == crow2
+	_report(out_ok and car.chase == null, "a Crow shooting near a patrol car: the crew gets out after it (no player chased)")
+	# No stars from NPC fights.
+	var stars: int = 0
+	for n: Node in get_tree().get_nodes_in_group(&"players"):
+		stars += (n as Player).wanted_stars
+	_report(stars == 0, "NPC gunfights give no player stars")
+	for o: PoliceOfficer in car.crew_out:
+		if is_instance_valid(o):
+			o.queue_free()
+	car.queue_free()
+	for c: Node in [cop, crow, crow2]:
+		if is_instance_valid(c):
+			c.queue_free()
+	await get_tree().create_timer(0.3).timeout
+	# Point 31b: the night pool.
+	for n: Node in get_tree().get_nodes_in_group(&"rivals"):
+		n.queue_free()
+	await get_tree().physics_frame
+	var count0: int = world.rival_count
+	var pool0: int = world.rival_night_pool
+	var resp0: Vector2 = world.rival_respawn
+	world.rival_count = 2
+	world.rival_night_pool = 3
+	world.rival_respawn = Vector2(0.1, 0.2)
+	world.refill_rival_pool()
+	await get_tree().physics_frame
+	var alive: Array = world._alive_rivals()
+	var first_ok: bool = alive.size() == 2 and world.rival_pool_left == 1
+	(alive[0] as Rival).host_damage(1000, null)
+	await get_tree().create_timer(0.6).timeout
+	var after1: int = world._alive_rivals().size()
+	var pool1: int = world.rival_pool_left
+	(world._alive_rivals()[0] as Rival).host_damage(1000, null)
+	await get_tree().create_timer(0.6).timeout
+	var after2: int = world._alive_rivals().size()
+	_report(first_ok and after1 == 2 and pool1 == 0 and after2 == 1,
+			"night pool 3: 2 in the yard, 1 replacement, then nobody (alive %d -> %d, pool %d)" % [after1, after2, pool1])
+	world.refill_rival_pool()
+	await get_tree().physics_frame
+	_report(world._alive_rivals().size() == 2 and world.rival_pool_left == 1, "next dusk: the yard is manned again, the pool is full")
+	world.rival_count = count0
+	world.rival_night_pool = pool0
+	world.rival_respawn = resp0
+	for n: Node in get_tree().get_nodes_in_group(&"rivals"):
+		n.queue_free()
+	var loot_root: Node = world.get("loot_root")
+	for n: Node in loot_root.get_children():
+		if n is LootBag and (n as LootBag).owner_name == "Black Crows":
+			n.queue_free()
+	dn.set_hours(hours0)
+	await get_tree().physics_frame
+
+
 # --- Admin mode (host debug keys F10-F12) ----------------------------------------------
 
 func _check_admin(world: Node3D) -> void:
@@ -2117,7 +2212,10 @@ func _check_wanted(world: Node3D) -> void:
 	_report(p.wanted_stars == 0 and cop.target == null, "no stars for an innocent player next to an officer")
 	p.net_weapon = 1
 	await get_tree().create_timer(0.6).timeout
-	_report(p.wanted_stars == 1 and cop.target == p, "weapon drawn in sight of an officer: 1 star within 0.6 s, it comes")
+	_report(p.wanted_stars == 0 and cop.target == null, "point 28a: only holding a weapon in sight of an officer gives no stars")
+	cop.report_crime(p, p.global_position, false)  # (as if it heard a shot)
+	await get_tree().physics_frame
+	_report(p.wanted_stars == 1 and cop.target == p, "a shot the officer hears: 1 star, it comes")
 	p.net_weapon = 0
 	if p.is_local():
 		_report(p.ui._wanted_row.visible and p.ui._wanted_stars[0].color == PlayerHUD.ACCENT
@@ -2151,9 +2249,12 @@ func _check_wanted(world: Node3D) -> void:
 	var unarmed3: bool = judge._should_shoot(p)
 	_report(not unarmed2 and armed2 and unarmed3, "2 stars: shot only when armed; 3 stars: shot on sight")
 	judge.queue_free()
-	# Out of sight the stars drop; inside your own place faster.
+	# Point 28b: out of sight ONE search timer runs (stars x 1 s here); then all stars go at
+	# once. Inside your own place it runs faster.
+	_report(cfg.search_time.size() == 6 and is_equal_approx(cfg.search_time[3], 30.0),
+			"search time per star in the resource (3 stars = %.0f s)" % cfg.search_time[3])
 	var fast: WantedConfig = cfg.duplicate()
-	fast.lose_star_time = PackedFloat32Array([0.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+	fast.search_time = PackedFloat32Array([0.0, 1.0, 2.0, 3.0, 4.0, 5.0])
 	wanted.config = fast
 	var fam: Property = world.find_child("FamilyHouse", true, false).get_node("Property") as Property
 	var hide_out: Vector3 = fam.building().to_global(Vector3(0.0, 0.2, -2.0))
@@ -2166,16 +2267,20 @@ func _check_wanted(world: Node3D) -> void:
 	var seen_out: bool = p.wanted_seen
 	await get_tree().create_timer(1.4).timeout
 	var outside2: int = p.wanted_stars
+	var left: float = wanted.search_left(p)
+	await get_tree().create_timer(1.0).timeout
+	var outside3: int = p.wanted_stars
 	var sr: Property = world.find_child("StarterRoom", true, false).get_node("Property") as Property
 	var at_home: Vector3 = sr.building().to_global(Vector3(0.0, 0.2, -3.0))
 	p.teleport(at_home)
 	p.auto_target = at_home
 	await get_tree().physics_frame
 	wanted.debug_set(p, 3)
-	await get_tree().create_timer(1.1).timeout
+	await get_tree().create_timer(1.3).timeout
 	var home: int = p.wanted_stars
-	_report(not fam.is_crew_owned() and not seen_out and outside == 3 and outside2 == 2 and sr.is_crew_owned() and home <= 2,
-			"out of sight a star drops after its time (3 -> %d -> %d), at home faster (3 -> %d in 1.1 s)" % [outside, outside2, home])
+	_report(not fam.is_crew_owned() and not seen_out and outside == 3 and outside2 == 3 and left < 1.0 and outside3 == 0,
+			"search phase: 3 stars stay for 3 s out of sight, then all go at once (3 -> %d -> %d -> %d, %.2f s left at 2.5 s)" % [outside, outside2, outside3, left])
+	_report(sr.is_crew_owned() and home == 0, "inside your own place the search runs 3x faster (3 -> %d in 1.3 s)" % home)
 	await get_tree().create_timer(3.0).timeout
 	_report(p.wanted_stars == 0, "every star gone after a while out of sight (%d)" % p.wanted_stars)
 	wanted.config = cfg

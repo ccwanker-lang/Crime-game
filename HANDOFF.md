@@ -2,31 +2,39 @@
 
 ## Parallel sessions
 - Session A (this one) = main in C:\Users\alexc\game. Session B = feature-b in C:\Users\alexc\game-b (ranks + XP,
-  already has a commit "Ranks + XP: Progression autoload ..."). Coordination: C:\Users\alexc\game-coord\A.md (mine)
-  and B.md (theirs). See CLAUDE.md "Parallel sessions". When B says "done + rebased": merge, copy
-  NOTES_feature-b.md into DESIGN/CHANGELOG, full self-test + netcheck. Expected merge conflict: Pedestrian._server_sell
-  (B's `Progression.host_sale(...)` replaces my `call_group(&"progression", "on_sale", ...)` hook).
+  staff + dealers, now also meth = DESIGN Roadmap 48 first part). Coordination: C:\Users\alexc\game-coord\A.md
+  (mine) and B.md (theirs). See CLAUDE.md "Parallel sessions". When B.md says "KLAAR OM TE MERGEN": merge, add B's
+  line in `Sleep._morning()` (`get_tree().call_group(&"hours_skipped", "on_hours_skipped", skipped)`), copy
+  NOTES_feature-b.md into DESIGN/CHANGELOG, full self-test + netcheck. B tests on port 7778 - never kill those
+  Godot processes (check the command line: `--port=7778` = B).
 
-## Where we stopped (user's limit, 2026-11-13)
-- Committed: "Points 39-42" (trash bin + garbage truck, laundering screen + messages, mouse wheel hotbar, work
-  animations). Targeted self-test checks passed (held, laundering, growing, trash, storage, sleep, placement);
-  scenarios trash / launder / grow checked with screenshots.
-- NOT yet run on this commit: the FULL self-test (the run in progress was stopped on purpose) and the netcheck.
-  First thing next session: `--selftest --port=7791` + `python tools/netcheck.py 7793`, fix whatever fails.
-- Nothing is half-built. No git remote (nothing pushed).
-- Police/Crows feedback round 4, admin mode and the new story are all in DESIGN.md (Roadmap 28a-c, 31a-b,
-  Decisions, Rivals & story, Roadmap 49-55). Admin mode is built and committed; round 4 and the story are not built.
+## Where we are
+- Netcheck on "Points 39-42" passed (both exit 0, no script errors).
+- Round 4 (Roadmap 28a-c, 31a-b) built + committed: no stars for holding a gun, one search timer (stars x 10 s,
+  then all stars go), extra police units per star that withdraw, police vs Crows (`PoliceOfficer.foe`,
+  `report_npc_crime`), Crows night pool (20). Targeted self-test checks pass (police, wanted, police_life, rivals,
+  police_vs_crows, pedestrians, npc_combat). Admin mode (F10/F11/F12) was already done.
+- The FULL self-test on the round-4 commit: see the next line (updated when it has run).
+- Full self-test round 4: NOT YET RUN.
 
-## Next steps (in order)
-1. Full self-test + netcheck on main (see above).
-2. Round-4 reopenings (DESIGN Roadmap 28 a-c, 31 a-b): police neutral vs Crows (scenario police_vs_crows),
-   Crows night pool (20), wanted: no stars for only holding a gun, search timer (stars x 10 s, all stars at once),
-   police numbers scale with the stars (scenario wanted_timer).
-3. Merge feature-b when B.md says "done + rebased" (see CLAUDE.md Parallel sessions; A.md lists what changed for B).
-4. Then 45+ in Roadmap order (43 ranks / 44 staff are session B's).
+## Next steps (in order, user 2026-11-13)
+1. Full self-test + netcheck on main; fix failures.
+2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
+3. Roadmap in the user's order: park + agora (46 = 12-13), car dealer + driving (45 = 14), cover garage (52),
+   territory per district (51), the remote prison + tutorial intro + late-join intro (49-50), the full village
+   map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
+
+## Te testen door Curry (F9 in the game, or --scenario=<name>)
+- wanted_one: drawing the pistol near an officer does nothing any more; a shot = 1 star.
+- wanted_timer: 3 stars at once; go through the Small House door behind you and stay out of sight 30 s -> all
+  stars go at once, the extra police cars drive off.
+- wanted_three / wanted_hide: the new search timer (30 s / ~7 s at home), all stars at once.
+- police_vs_crows: 23:00 on South Street, just watch: a Crow and an officer shoot it out, the patrol car crew
+  joins; no stars for you.
+- (from before, still untested by you) trash, launder, grow (work animations + mouse wheel), sleep, bookshelf.
 
 ## Known
 - The "activities" pedestrian check is random and fails now and then.
-- `--only=pedestrians` used to fail (random nav point = 0,0,0 right after the bake); the check now waits.
-- The kerb block the user saw could not be reproduced (kerb check 96/96). A more eager step-up broke the estate
-  agent's door walk and was reverted.
+- `--only=npc_combat` needs `pedestrians` in the same run (it uses the pedestrians that check spawns).
+- Netcheck: after the respawn the client's 5 m crouch walk bumps into the host (both stand at the hospital spawn);
+  harmless, it has always been like that.

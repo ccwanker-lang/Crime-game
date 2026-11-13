@@ -36,10 +36,12 @@ const LIST: Array = [
 	["health_regen", "30 health, safe at home", "Wait ~8 s: health slowly comes back to 100. F4 (hurt) pauses it again."],
 	["road_crossing", "Main road, people crossing everywhere", "Pedestrians cross the road anywhere (not only at zebras): they wait at the kerb for close cars, then walk straight over. Cars brake for them. (Crossing is made 4x more common here.)"],
 	["police_life", "South Street at the police station", "Watch the police: two officers on foot stop passers-by for a chat; a patrol car stops with its light bar on, one officer gets out, talks to someone and gets back in."],
-	["wanted_one", "An officer nearby, pistol holstered", "Draw the pistol (1) where the officer sees you: 1 star at once (top right), even if you put it away quickly. Gun away + stand still = cuffed. Keep it out or run = 2 stars, they shoot."],
-	["wanted_three", "3 stars on the main road, AK-47", "Police cars race in with sirens and shoot on sight. Break their line of sight: the stars blink, one drops after ~45 s unseen. Killing officers adds stars."],
+	["wanted_one", "An officer nearby, pistol holstered", "Draw the pistol (1) where the officer sees you: NOTHING happens (holding a gun is no crime). Fire a shot: 1 star at once (top right). Gun away + stand still = cuffed. Keep it out or run = 2 stars, they shoot."],
+	["wanted_three", "3 stars on the main road, AK-47", "Police cars race in with sirens and shoot on sight. Break their line of sight: the stars blink while they search; after 30 s unseen ALL stars go at once. Seen again = the 30 s start over. Killing officers adds stars."],
 	["wanted_five", "5 stars on the main road, AK-47", "The whole force: heavy teams (dark uniform, SMG, take more hits) and a police car across the road ahead of you (road block). Can you get away?"],
-	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the stars drop 3x faster (~15 s instead of ~50 s). Outside they come for you."],
+	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the search runs 3x faster (~7 s instead of 20 s), then both stars go at once. Outside they come for you."],
+	["wanted_timer", "3 stars at once, in front of the Small House door, AK-47", "The police know where you are and send 2 cars. Step through the door behind you (E) and stay out of sight: the stars blink and ONE 30 s search timer runs (3 stars x 10 s). Then all 3 stars go at once, and the extra police cars drive off. Let them see you again: the 30 s start over. With 0 stars the town has just its 2 patrol cars again."],
+	["police_vs_crows", "23:00 on South Street: a Crow, an officer and a patrol car close by", "Just watch (you stand out of the Crow's reach): the street Crow opens fire on the officer, the officer fires back, the patrol car hears it and its crew gets out. Nobody gets stars for it. Crows killed at night are replaced from a pool of 20 per night; when it's used up no more Crows come until the next night."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -239,6 +241,26 @@ static func run(world: Node, id: String) -> bool:
 			me.combat.host_refill()
 			me.combat.select_slot(0)  # the AK in hand
 			Wanted.current.debug_set(me, 5 if five else 3)
+		"wanted_timer":
+			var small2: Property = world.find_child("SmallHouse", true, false).get_node("Property") as Property
+			_kit(me, 500, [["ak47", 1], ["ammo_762", 150]])
+			var door_front: Vector3 = small2.building().to_global(Vector3(0.0, 0.2, 3.0))
+			_place(me, door_front, small2.building().to_global(Vector3(0.0, 1.2, 12.0)), dn, 13.0)
+			me.combat.host_refill()
+			me.combat.select_slot(0)
+			Wanted.current.debug_set(me, 3)
+		"police_vs_crows":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 60]])
+			var spot := Vector3(-27.0, 0.2, 55.6)
+			_place(me, spot, spot + Vector3(-18, 1.2, 1.5), dn, 23.0)
+			me.combat.select_slot(1)  # hands free
+			world.call("add_officer", spot + Vector3(-11, 0, 1.5), spot + Vector3(-11, 0, 1.5))
+			Rival.obey_daylight = true
+			var crow: Rival = world.call("add_rival", spot + Vector3(-27, 0, 2.0), 0)
+			crow.role = Rival.Role.STREET
+			crow.home = crow.global_position
+			var traffic2: Traffic = world.get_node("Traffic")
+			traffic2.spawn_police_car(3, fposmod(_progress_near(traffic2.routes[3], spot) - 40.0, traffic2.routes[3].length))
 		"wanted_hide":
 			var small: Property = world.find_child("SmallHouse", true, false).get_node("Property") as Property
 			small.host_set_owned(me.player_name)

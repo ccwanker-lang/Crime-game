@@ -701,8 +701,15 @@ var rival_street: int = 2
 ## Share of Crows that carry an AK-47 instead of a pistol.
 const RIVAL_AK_CHANCE: float = 0.3
 ## A dead Crow is replaced after this many seconds.
-const RIVAL_RESPAWN: Vector2 = Vector2(60.0, 120.0)
+var rival_respawn: Vector2 = Vector2(60.0, 120.0)
 var _crows_warned_night: bool = false
+## Point 31b: the turf's manning per night (the Crows already there count). The dead are
+## replaced from it until it is used up: then the Crows are out for that night. It is full
+## again at the next dusk (and the yard is filled up to `rival_count` from it).
+var rival_night_pool: int = 20
+## Host: Crows the pool can still send tonight.
+var rival_pool_left: int = 0
+var _was_night: bool = false
 
 
 func _alive_rivals() -> Array:
@@ -716,12 +723,18 @@ func _rival_loop() -> void:
 		return
 	for i: int in rival_count:
 		add_rival(Rival.yard_point(self))
+	rival_pool_left = maxi(0, rival_night_pool - rival_count)
 	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	_was_night = dn != null and dn.is_night()
 	while is_inside_tree():
 		await get_tree().create_timer(5.0).timeout
 		if dn == null or not dn.is_night():
 			_crows_warned_night = false
+			_was_night = false
 			continue
+		if not _was_night:
+			_was_night = true
+			refill_rival_pool()
 		var alive: Array = _alive_rivals()
 		var out: int = alive.filter(func(r: Node) -> bool: return (r as Rival).role == Rival.Role.STREET).size()
 		for r: Node in alive:
@@ -755,11 +768,29 @@ func add_rival(at: Vector3 = Vector3.INF, ak: int = -1) -> Rival:
 	return r
 
 
-## Host (Rival._on_died): a new Crow comes out of the house after 1-2 minutes.
+## Host (point 31b): dusk: tonight's pool is full again and the yard is manned again.
+func refill_rival_pool() -> void:
+	var alive: int = _alive_rivals().size()
+	rival_pool_left = maxi(0, rival_night_pool - alive)
+	var missing: int = mini(maxi(0, rival_count - alive), rival_pool_left)
+	for i: int in missing:
+		add_rival(Rival.yard_point(self))
+	rival_pool_left -= missing
+	print("[Crows] night falls: %d in the yard, %d more can come tonight" % [alive + missing, rival_pool_left])
+
+
+## Host (Rival._on_died): a new Crow comes out of the house after 1-2 minutes, as long as
+## tonight's pool (point 31b) isn't used up.
 func rival_died() -> void:
-	await get_tree().create_timer(randf_range(RIVAL_RESPAWN.x, RIVAL_RESPAWN.y)).timeout
-	if rival_count > 0 and is_inside_tree() and multiplayer.is_server() and _alive_rivals().size() < rival_count:
-		add_rival()
+	await get_tree().create_timer(randf_range(rival_respawn.x, rival_respawn.y)).timeout
+	if rival_count <= 0 or not is_inside_tree() or not multiplayer.is_server() or _alive_rivals().size() >= rival_count:
+		return
+	if rival_pool_left <= 0:
+		if _alive_rivals().is_empty():
+			print("[Crows] the pool is used up: no more Crows tonight")
+		return
+	rival_pool_left -= 1
+	add_rival()
 
 
 ## Host: a dead officer is replaced at the station after `delay` seconds.

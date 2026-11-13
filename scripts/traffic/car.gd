@@ -642,20 +642,36 @@ func can_see(p: Player) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
+## Host (group "police", point 31a): an armed NPC of the other side (a Crow) fired close by:
+## the crew gets out and takes it on (no stars: those are for players).
+func report_npc_crime(shooter: PoliceOfficer, origin: Vector3) -> void:
+	if not _is_host() or not police or wrecked or roadblock or crew_size <= 0 or shooter == null or shooter.dead:
+		return
+	if global_position.distance_to(origin) > PoliceOfficer.HEAR_RANGE:
+		return
+	respond(null, origin, shooter)
+
+
 ## Host: go after `culprit` (seen / heard at `origin`): stop, crew out. A crew already out
-## (or at a road block) takes the culprit on if it isn't busy.
-func respond(culprit: Player, origin: Vector3) -> void:
-	if not _is_host() or not police or wrecked or culprit == null or culprit.dead or crew_size <= 0:
+## (or at a road block) takes the culprit on if it isn't busy. Point 31a: `npc` instead of a
+## player = an armed NPC (a Crow) the crew fights.
+func respond(culprit: Player, origin: Vector3, npc: PoliceOfficer = null) -> void:
+	if not _is_host() or not police or wrecked or crew_size <= 0:
+		return
+	if (culprit == null or culprit.dead) and (npc == null or npc.dead):
 		return
 	if abandoned:
 		for c: PoliceOfficer in _crew_alive():
-			if c.target == null:
+			if culprit and c.target == null:
 				c._alert(culprit, origin)
+			elif npc and c.target == null and (c.foe == null or not is_instance_valid(c.foe) or c.foe.dead):
+				c.set_foe(npc, origin)
 		return
 	var world: Node = get_tree().current_scene
 	if world == null or not world.has_method("add_officer"):
 		return
-	chase = culprit
+	if culprit:
+		chase = culprit
 	_responded_at = origin
 	abandoned = true
 	panic = 0.0
@@ -666,10 +682,14 @@ func respond(culprit: Player, origin: Vector3) -> void:
 		var side: Vector3 = global_position + global_basis.x * (1.4 if i == 0 else -1.4)
 		side.y = global_position.y + 0.1
 		var cop: PoliceOfficer = world.call("add_officer", side, global_position, self, heavy)
-		cop._alert(culprit, origin)
+		if culprit:
+			cop._alert(culprit, origin)
+		else:
+			cop.set_foe(npc, origin)
 		crew_out.append(cop)
 	_driver = crew_out[0]
-	print("[Police] patrol car %s stops, %d officer(s) out after %s" % [name, crew_out.size(), culprit.player_name])
+	print("[Police] patrol car %s stops, %d officer(s) out after %s" % [name, crew_out.size(),
+			culprit.player_name if culprit else npc.name])
 	_police_come_back()
 
 
@@ -748,7 +768,7 @@ func _police_come_back() -> void:
 		var walking: Array = []
 		for i: int in alive.size():
 			var c: PoliceOfficer = alive[i]
-			if is_instance_valid(c) and not c.dead and c.target == null:
+			if is_instance_valid(c) and not c.dead and not c.is_busy():
 				var door: Vector3 = global_position + global_basis.x * (1.4 if i == 0 else -1.4)
 				if c.global_position.distance_to(door) > 2.5:
 					walking.append(c)

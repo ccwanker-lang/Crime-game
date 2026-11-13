@@ -31,6 +31,8 @@ const ROAM_RADIUS: float = 90.0
 const YARD_LEASH: float = 42.0
 ## Seeing someone on the turf: the Crows this close hear about it too.
 const SHARE_RANGE: float = 25.0
+## Point 31a: street Crows open fire on officers this close.
+const COP_AGGRO_RANGE: float = 20.0
 ## Loot: cash range and chances for the extras.
 const LOOT_CASH: Vector2i = Vector2i(40, 220)
 const LOOT_WEED_CHANCE: float = 0.5
@@ -158,6 +160,12 @@ func _patrol() -> void:
 		_talk_end = 0.0
 		_alert(victim, victim.global_position)
 		return
+	var cop: PoliceOfficer = spot_cop()
+	if cop:
+		_talk_end = 0.0
+		set_foe(cop, cop.global_position)
+		_rally(cop)
+		return
 	if role == Role.STREET and obey_daylight and not _night():
 		# Daybreak: back to the yard.
 		if on_turf(get_tree(), global_position):
@@ -219,6 +227,24 @@ func spot_victim() -> Player:
 			remember(p)
 		if on or memory.has(p) or hunting:
 			best = p
+			best_d = d
+	return best
+
+
+## Host (point 31a): the street group at night opens fire on an officer it sees close by
+## (police vs Crows); in the yard they only fight back.
+func spot_cop() -> PoliceOfficer:
+	if not (role == Role.STREET and (_night() or not obey_daylight)):
+		return null
+	var best: PoliceOfficer = null
+	var best_d: float = COP_AGGRO_RANGE
+	for n: Node in get_tree().get_nodes_in_group(&"police"):
+		var o := n as PoliceOfficer
+		if o == null or o.dead or not o.is_inside_tree():
+			continue
+		var d: float = global_position.distance_to(o.global_position)
+		if d < best_d and can_see(o):
+			best = o
 			best_d = d
 	return best
 

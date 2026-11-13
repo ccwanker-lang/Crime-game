@@ -44,3 +44,4 @@ One line per finished part.
 - Point 40: laundering feedback - the safe opens a screen with everything waiting (how much comes back clean and when) and a Deposit button; the deposit message says "€X deposited -> €Y clean, ready around ..."; the business texts you when all your money is clean. Scenario launder.
 - Point 41: the mouse wheel scrolls through all hotbar slots (in build mode it still rotates the item).
 - Point 42: work animations - planting, watering, harvesting, hanging, packaging and throwing away play an animation (kneeling at pots), with water drops / soil / leaves; the watering can tips over in first person. Scenario grow.
+- Round 4 (28a-c, 31a-b): no stars for only holding a gun; one search timer (stars x 10 s) then all stars go; extra police units per star that withdraw; police vs Crows gunfights (foe, report_npc_crime); Crows night pool of 20; scenarios wanted_timer + police_vs_crows, self-test check police_vs_crows.
