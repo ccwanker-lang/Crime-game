@@ -24,6 +24,9 @@ var _mat_ok: StandardMaterial3D
 var _mat_bad: StandardMaterial3D
 var _yaw_set: bool = false
 # Hold E
+## Point 36: build mode (B). Only in build mode does a placeable item show its ghost and can
+## placed furniture/stations be picked up (hold E), moved and rotated; outside it E only uses things.
+var build_mode: bool = false
 var _hold_node: Node = null
 var _hold_time: float = 0.0
 var _hold_done: bool = false
@@ -56,13 +59,26 @@ func is_active() -> bool:
 	return item != null
 
 
+## Point 36: B toggles build mode.
+func toggle_build_mode() -> void:
+	set_build_mode(not build_mode)
+
+
+func set_build_mode(on: bool) -> void:
+	build_mode = on
+	_hold_node = null
+	if player.ui:
+		player.ui.set_build_mode(on)
+		player.ui.toast("Build mode: LMB place, R / wheel rotate, hold E pick up. B to leave." if on else "Build mode off")
+
+
 func _process(delta: float) -> void:
 	_update_ghost()
 	_update_hold(delta)
 
 
 func _update_ghost() -> void:
-	var want: ItemData = selected_placeable() if player.shop == null and player.locker == null else null
+	var want: ItemData = selected_placeable() if build_mode and player.shop == null and player.locker == null else null
 	if want != item:
 		item = want
 		if not _yaw_set:
@@ -163,7 +179,7 @@ static func placed_uid_of(n: Node) -> String:
 ## E pressed on `n`: placed things wait for the hold (a short tap = normal action).
 ## Returns true when the press is handled here.
 func begin_interact(n: Node) -> bool:
-	if placed_uid_of(n) == "":
+	if not build_mode or placed_uid_of(n) == "":
 		return false
 	_hold_node = n
 	_hold_time = 0.0
@@ -191,6 +207,14 @@ func _update_hold(delta: float) -> void:
 	if not _hold_done:
 		_hold_node.call("interact")
 	_hold_node = null
+
+
+## Prompt hint outside build mode while a placeable item is selected ("" = none).
+func hint_text() -> String:
+	if build_mode or player.shop != null or player.locker != null:
+		return ""
+	var it: ItemData = selected_placeable()
+	return "[B] Build mode to place %s" % it.display_name if it else ""
 
 
 ## 0..1 while E is held on a placed thing (prompt shows it).

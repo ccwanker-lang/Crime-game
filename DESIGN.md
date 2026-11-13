@@ -356,7 +356,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
 35. Own properties on the map: icon + name after buying, a name plate on the building; the estate agent shows
     where a property is on the map BEFORE you buy - done
 36. Build mode (B): only in build mode can furniture and stations be picked up, moved and rotated. Outside it E
-    only uses things (plant, water, harvest, open a locker) (changes 6/17) - todo
+    only uses things (plant, water, harvest, open a locker) (changes 6/17) - done
 37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - todo
 38. Bookcase = storage too, like the locker - todo
 39. Trash: throw cardboard boxes and rubbish in a bin, put the bin outside, a garbage truck comes by and empties it - todo
@@ -585,6 +585,11 @@ Choices made while working autonomously (what + why).
   everything for sale, and a "Where?" button per listing centres the map on that building with a pulsing marker
   (`PhoneMap.focus`; the first listing is focused when the window opens). The name plate on the building existed
   already (Property Label3D: "FOR SALE" or name + owner).
+- Point 36 (build mode): B toggles a per-player build mode (client side only: the host still validates every
+  place / pick-up with Placement.check, so nothing new to sync). Placing new items needs build mode too, not only
+  moving: one simple rule ("building = B"); outside it a selected placeable item just shows "[B] Build mode to
+  place X". In build mode a short E tap still uses the thing (water a plant, open a locker), hold E picks it up.
+  A blue "BUILD MODE" line sits above the hotbar while it is on.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

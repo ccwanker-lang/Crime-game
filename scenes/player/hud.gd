@@ -46,10 +46,10 @@ const CASH_COLOR := Color(0.62, 0.93, 0.5)
 const CLEAN_COLOR := Color(0.56, 0.8, 1.0)
 const HELP: Array = [
 	["WASD / arrows", "Move"], ["Shift", "Sprint"], ["Space", "Jump"], ["Ctrl / C", "Crouch"],
-	["Mouse", "Look"], ["Left mouse", "Shoot / place furniture"], ["Right mouse", "Aim / sniper scope"],
-	["R", "Reload / rotate furniture"], ["1-8, mouse wheel", "Hotbar slot (a weapon there is drawn)"],
+	["Mouse", "Look"], ["Left mouse", "Shoot / place (build mode)"], ["Right mouse", "Aim / sniper scope"],
+	["R", "Reload / rotate (build mode)"], ["B", "Build mode: place, move, pick up"], ["1-8, mouse wheel", "Hotbar slot (a weapon there is drawn)"],
 	["H", "Holster"], ["Q", "Previous weapon"], ["V", "First / third person"],
-	["E", "Use, talk, sell"], ["Hold E", "Pick up placed furniture"], ["G / Shift+G", "Drop the stack / one"],
+	["E", "Use, talk, sell"], ["Hold E", "Pick up (build mode)"], ["G / Shift+G", "Drop the stack / one"],
 	["Tab", "Phone"], ["Esc", "Free the mouse"], ["F9", "Test scenarios"],
 	["F4 / F6 / F7", "Debug: hurt yourself / +€1000 / fast time (hold)"], ["F1", "This help"],
 	["F10 (host)", "Admin: noclip fly (Space up, Ctrl down, Shift fast)"], ["F11 (host)", "Admin: god mode + endless ammo"],
@@ -607,6 +607,28 @@ func _build_help_panel() -> void:
 	foot.add_theme_font_size_override("font_size", 14)
 	box.add_child(foot)
 	_help = center
+
+
+var _build_label: Label
+
+
+## Point 36: "BUILD MODE" above the hotbar while it is on.
+func set_build_mode(on: bool) -> void:
+	if _build_label == null:
+		_build_label = Label.new()
+		_build_label.text = "BUILD MODE   LMB place  ·  R / wheel rotate  ·  hold E pick up  ·  B leave"
+		_build_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		_build_label.offset_top = -132
+		_build_label.offset_bottom = -108
+		_build_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_build_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_build_label.add_theme_font_size_override("font_size", 16)
+		_build_label.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
+		_build_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		_build_label.add_theme_constant_override("outline_size", 5)
+		_build_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_build_label)
+	_build_label.visible = on
 
 
 var _admin_label: Label

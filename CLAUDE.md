@@ -166,7 +166,8 @@ Godot console exe:
   in `Traffic.JUNCTIONS`), clients smooth net_pos/net_yaw. `--cars=N` changes the count; the self-test spawns its own.
 - Placement (point 6/17/18): placeable items have `ItemData.place_scene` (+ `category` station/furniture), made by
   `tools/generators/gen_items.py` (furniture = every `prefabs/interiors/` prefab). Owner: `PlayerPlacement` (ghost, grid,
-  R/wheel rotate, LMB place, hold E pick up) -> `Player.request_place`/`request_pick_up` -> host re-checks with
+  R/wheel rotate, LMB place, hold E pick up; point 36: only while `build_mode` (B, action `build_mode`,
+  `set_build_mode`, HUD `set_build_mode`)) -> `Player.request_place`/`request_pick_up` -> host re-checks with
   `Placement.check` (inside a crew-owned `Property`, on a floor, nothing in the way). World/PlacedSpawner spawns
   `GameState.world["placed"]` records (`World.host_place`/`host_remove_placed`); placed stations use station_id
   `placed/<uid>`, furniture sits in a `PlacedFurniture`. Owned properties adopt their building's furniture

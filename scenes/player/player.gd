@@ -480,6 +480,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_set_third_person(not third_person)
 	elif event.is_action_pressed("phone") and not dead and ui:
 		open_phone()
+	elif event.is_action_pressed("build_mode") and not dead and placement:
+		placement.toggle_build_mode()
 	elif event.is_action_pressed("drop") and not dead:
 		# G: drop the selected hotbar stack (Shift+G: just one).
 		var slot: int = combat.hotbar_slot()
@@ -778,6 +780,10 @@ func _update_focus() -> void:
 			prompt_label.text = "Picking up  [%s%s]" % ["#".repeat(n), "-".repeat(10 - n)]
 		elif placement and placement.is_active():
 			prompt_label.text = placement.prompt_text()
+		elif placement and placement.build_mode and _focused and PlayerPlacement.placed_uid_of(_focused) != "":
+			prompt_label.text = "[E] %s   [Hold E] Pick up" % _focused.call("get_interaction_prompt")
+		elif placement and _focused == null and placement.hint_text() != "":
+			prompt_label.text = placement.hint_text()
 
 
 ## Owner: opens the buy window of a shopkeeper (frees the mouse).

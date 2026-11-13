@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "storage", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1568,6 +1568,46 @@ func _check_admin(world: Node3D) -> void:
 	Wanted.enabled = was
 	p.queue_free()
 	GameState.player_data.erase("Admin")
+	await get_tree().physics_frame
+
+
+# --- Build mode (point 36) ------------------------------------------------------------
+
+func _check_build_mode(world: Node3D) -> void:
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Builder"
+	var inside: Vector3 = world.get_marker("LockerSpot").global_position
+	var sr: Property = world.find_child("StarterRoom", true, false).get_node("Property") as Property
+	var spot: Vector3 = inside + sr.building().global_basis.x * 1.5 + Vector3.UP * 0.1
+	p.auto_target = spot
+	world.get_node("Players").add_child(p)
+	p.global_position = spot
+	for i: int in 10:
+		await get_tree().physics_frame
+	p._set_wallet(100, [{"id": "grow_pot", "count": 1}])
+	p.combat.select_slot(0)
+	await get_tree().create_timer(0.2).timeout
+	var pl: PlayerPlacement = p.placement
+	_report(pl != null and not pl.build_mode and not pl.is_active() and pl.hint_text().contains("[B]"),
+			"outside build mode: no ghost, a hint to press B ('%s')" % (pl.hint_text() if pl else ""))
+	var locker: Node = null
+	for n: Node in get_tree().get_nodes_in_group(&"interactable"):
+		if PlayerPlacement.placed_uid_of(n) != "" and (n as Node3D).global_position.distance_to(spot) < 30.0:
+			locker = n
+			break
+	_report(locker == null or not pl.begin_interact(locker), "outside build mode E only uses a placed thing (no pick-up)")
+	pl.set_build_mode(true)
+	await get_tree().create_timer(0.2).timeout
+	_report(pl.build_mode and pl.is_active(), "B: build mode on, the ghost shows")
+	_report(locker == null or pl.begin_interact(locker), "in build mode hold E can pick up a placed thing")
+	pl._hold_node = null
+	pl.set_build_mode(false)
+	await get_tree().create_timer(0.2).timeout
+	_report(not pl.is_active(), "B again: build mode off, ghost gone")
+	p.queue_free()
+	GameState.player_data.erase("Builder")
 	await get_tree().physics_frame
 
 

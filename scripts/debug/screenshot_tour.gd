@@ -314,6 +314,7 @@ func _stage(shot_name: String) -> void:
 				me.open_locker(locker)
 			else:
 				me._set_wallet(320, [{"id": "pistol", "count": 1}, {"id": "grow_pot", "count": 3}, {"id": "sofa", "count": 1}])
+				me.placement.set_build_mode(true)  # (point 36)
 				me.combat.select_slot(1 if shot_name == "59_place_ghost" else 2)
 				await get_tree().create_timer(0.4).timeout
 				me.prompt_label.text = me.placement.prompt_text()
