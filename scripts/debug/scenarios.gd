@@ -40,7 +40,7 @@ const LIST: Array = [
 	["wanted_three", "3 stars on the main road, AK-47", "Police cars race in with sirens and shoot on sight. Break their line of sight: the stars blink, one drops after ~45 s unseen. Killing officers adds stars."],
 	["wanted_five", "5 stars on the main road, AK-47", "The whole force: heavy teams (dark uniform, SMG, take more hits) and a police car across the road ahead of you (road block). Can you get away?"],
 	["wanted_hide", "2 stars next to your own Small House", "Go inside your house and stay out of sight: the stars drop 3x faster (~15 s instead of ~50 s). Outside they come for you."],
-	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round and sell the customer 1 bag (E): +10 XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
+	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
 	["staff_workers", "Rank 2: a grower + a packager in your Starter Room", "Hold F7 to speed up time and watch: the grower fills the pots with soil, plants, waters and harvests onto the drying rack; the packager takes the dried weed off and packages it (bags end up in the locker: E on it). E on a worker = what they are doing. Tab > Crew: your staff, wages, Fire, and Benny's candidates (Hire tab)."],
 	["dealers", "Rank 1, 10 bags, next to your dealer in Old Town", "E on the dealer: Give all my bags, then hold F7: they sell about 1 bag per in-game hour (+XP, top-left panel). E again: Collect. Tab > Crew > Hire: Benny's people (pick a district or a property). Rank 1 allows 1 dealer: F8 a few times for more."],
 ]
@@ -285,13 +285,14 @@ static func run(world: Node, id: String) -> bool:
 		"ranks":
 			Progression.force_gates = true  # (scenarios normally skip rank gates)
 			Progression.host_add(Progression.xp_for(1) - 10 - Progression.host_xp(), "scenario")
-			_kit(me, 8000, [["weed_bag", 4]])
+			_kit(me, 8000, [["weed_bag", 8]])
 			_at_keeper(world, me, "GunShop", dn, 12.0)
 			var k: Node3D = (world.find_child("GunShop", true, false).find_children("*", "Shopkeeper", true, false)[0]) as Node3D
 			var npc: Pedestrian = world.call("_add_pedestrian", k.global_position + k.global_basis.z * 3.6, 1)
-			npc.stationary = true
+			world.call("make_customer", npc)
+			npc.accept_deal()  # (point 34: green €, E = talk + Confirm deal)
+			npc.face(me.global_position)
 			Pedestrian.force_outcome = "fair"
-			npc.become_customer(1, 60, 900.0)
 		"staff_workers":
 			Progression.force_gates = true
 			Progression.debug_set_rank(2)

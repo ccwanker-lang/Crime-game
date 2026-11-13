@@ -36,8 +36,8 @@ extends Resource
 @export_group("XP")
 ## A fair sale: XP per bag sold.
 @export var xp_per_bag: int = 10
-## Extra XP when the sale was a phone deal the player accepted ("On my way").
-@export var xp_phone_deal: int = 15
+## Extra XP per finished deal (on top of the bags; since point 34 every sale is a phone deal).
+@export var xp_per_deal: int = 15
 ## A short-changed sale gives this part of the XP; a customer who runs gives none.
 @export var xp_short_factor: float = 0.5
 ## Fights: XP for killing a Black Crow / a police officer / a civilian.

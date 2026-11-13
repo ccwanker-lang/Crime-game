@@ -46,7 +46,7 @@ static func run(t: Node, world: Node3D) -> void:
 			and results[1][0] and GameState.count_item("Ranker", "shotgun") == 0,
 			"rank 0: Vince refuses the shotgun, sells ammo: %s" % [results])
 
-	# XP from sales: a fair deal per bag, a phone deal bonus, half for a short deal, none when they run.
+	# XP from sales: per bag + a bonus per deal, half for a short deal, none when they run.
 	var gained: Array = []
 	var on_gain := func(amount: int, reason: String) -> void: gained.append([amount, reason])
 	Progression.xp_gained.connect(on_gain)
@@ -58,22 +58,22 @@ static func run(t: Node, world: Node3D) -> void:
 	for i: int in 5:
 		await tree.physics_frame
 	GameState.give("Ranker", 0, [{"id": "weed_bag", "count": 12}])
-	var sell := func(bags: int, outcome: String, phone: bool) -> int:
+	var sell := func(bags: int, outcome: String) -> int:
 		var before: int = Progression.host_xp()
 		npc.become_customer(bags, 100, 60.0)
-		if phone:
-			npc._meet_accepted = true
+		npc.accept_deal()  # point 34: only an accepted text deal sells
 		p.teleport(npc.global_position + Vector3(1.2, 0.1, 0))
 		Pedestrian.force_outcome = outcome
 		npc._server_sell(1)
 		return Progression.host_xp() - before
-	var fair: int = sell.call(2, "fair", false)
-	var phone_xp: int = sell.call(1, "fair", true)
-	var short: int = sell.call(2, "short", false)
-	var ran: int = sell.call(1, "run", false)
-	t.call("_report", fair == 2 * cfg.xp_per_bag and phone_xp == cfg.xp_per_bag + cfg.xp_phone_deal
-			and short == roundi(2 * cfg.xp_per_bag * cfg.xp_short_factor) and ran == 0,
-			"sale XP: fair 2 bags %d, phone deal %d, short %d, run %d" % [fair, phone_xp, short, ran])
+	var fair: int = sell.call(2, "fair")
+	var one: int = sell.call(1, "fair")
+	var short: int = sell.call(2, "short")
+	var ran: int = sell.call(1, "run")
+	var deal: int = cfg.xp_per_deal
+	t.call("_report", fair == 2 * cfg.xp_per_bag + deal and one == cfg.xp_per_bag + deal
+			and short == roundi((2 * cfg.xp_per_bag + deal) * cfg.xp_short_factor) and ran == 0,
+			"sale XP (bags + deal bonus, via the 'progression' group): 2 bags %d, 1 bag %d, short %d, run %d" % [fair, one, short, ran])
 	t.call("_report", gained.size() >= 3 and int(gained[0][0]) == fair, "the seller gets the +XP popup: %s" % [gained])
 
 	# Fights.
@@ -97,7 +97,7 @@ static func run(t: Node, world: Node3D) -> void:
 	# Rank up by a sale -> the shotgun unlocks; the estate agent's gates follow.
 	Progression.host_add(cfg.xp_for_rank[1] - 5 - Progression.host_xp(), "test")
 	ups.clear()
-	sell.call(1, "fair", false)
+	sell.call(1, "fair")
 	t.call("_report", Progression.rank() == 1 and ups == [1] and Progression.xp == Progression.host_xp(),
 			"a sale over the threshold: rank 1 (%s), banner %s" % [Progression.rank_name(Progression.rank()), ups])
 	p.teleport(front + Vector3.UP * 0.1)

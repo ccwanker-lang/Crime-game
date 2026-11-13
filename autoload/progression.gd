@@ -35,6 +35,7 @@ func _ready() -> void:
 	if config == null:
 		config = RankConfig.new()
 	_selftest = "--selftest" in OS.get_cmdline_user_args()
+	add_to_group(&"progression")  # Pedestrian._server_sell -> on_sale (A's hook, point 34)
 	for a: String in OS.get_cmdline_user_args():
 		if a.begins_with("--xp="):
 			_start_xp = a.trim_prefix("--xp=").to_int()
@@ -137,14 +138,19 @@ func host_add(amount: int, reason: String, by: Node = null) -> void:
 			_ranked_up.rpc(after)
 
 
-## Host: a weed sale finished (Pedestrian._server_sell). outcome = fair / short / run.
-func host_sale(seller: Node, bags: int, _paid: int, outcome: String, phone_deal: bool) -> void:
+## Host: group call from Pedestrian._server_sell (every sale is an accepted phone deal since point 34).
+func on_sale(seller: Node, bags: int, paid: int, outcome: String) -> void:
+	host_sale(seller, bags, paid, outcome)
+
+
+## Host: a weed sale finished. outcome = fair / short / run.
+func host_sale(seller: Node, bags: int, _paid: int, outcome: String) -> void:
 	var amount: float = 0.0
 	if outcome != "run":
-		amount = bags * config.xp_per_bag + (config.xp_phone_deal if phone_deal else 0)
+		amount = bags * config.xp_per_bag + config.xp_per_deal
 		if outcome == "short":
 			amount *= config.xp_short_factor
-	host_add(roundi(amount), "phone deal" if phone_deal else "sale", seller)
+	host_add(roundi(amount), "deal", seller)
 
 
 ## Host: `killer` (a Player) killed `victim` (PlayerCombat._host_fire).
