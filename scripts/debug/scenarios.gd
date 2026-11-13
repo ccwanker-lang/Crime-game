@@ -10,6 +10,7 @@ extends RefCounted
 
 ## id -> [title, what to check]. The order is the order in the F9 menu.
 const LIST: Array = [
+	["style_compare", "Art style proposals A / B / C", "Not a game: three pieces of street side by side. 1/2/3 = streets, 4/5/6 = pistol + AK in view, right mouse + WASD = fly, Esc = back. Tell me which style you want."],
 	["weapons_light", "Pistol, SMG, AK-47 + ammo (no police)", "Gun feel: recoil, sound, muzzle flash, reload (R), aiming (RMB), hit marks on walls. 1-3 = weapons, V = first/third person."],
 	["weapons_heavy", "Shotgun + sniper + ammo (no police)", "Gun feel of the shotgun (spread) and the sniper (scope zoom, loud shot)."],
 	["police_arrest", "Police called on you, pistol holstered", "A patrol car stops next to you and 2 officers come for you. Stand still with the gun away: you get cuffed (illegal items + fine gone, released at the police station). Second try (F9 again): draw the gun (1) and keep it out, or run: they shoot."],
@@ -32,6 +33,8 @@ const LIST: Array = [
 
 ## The scenario to set up when the World is ready ("" = none).
 static var pending: String = ""
+## Scenarios that are their own scene instead of a game.
+const SCENES: Dictionary = {"style_compare": "res://scenes/art_test/style_compare.tscn"}
 
 
 static func title(id: String) -> String:
@@ -54,6 +57,10 @@ static func restart_into(tree: SceneTree, id: String) -> void:
 		return
 	if not SaveManager.scenario_mode:
 		SaveManager.save_game()  # the real progress is safe first
+	if SCENES.has(id):
+		Net.leave_game()
+		tree.change_scene_to_file(SCENES[id])
+		return
 	pending = id
 	SaveManager.use_scenario_save()
 	var player_name: String = Net.get_player_name(1)

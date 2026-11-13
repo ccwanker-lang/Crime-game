@@ -231,7 +231,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
 27. Art style: ONE consistent style. Comparison scene scenes/art_test/style_compare.tscn (--scenario=style_compare)
     with 3 proposals side by side (A stylized low-poly flat/soft textures, B low-poly + PBR, C own proposal), each a
     piece of street with 3 houses, a car, an NPC and pistol + AK viewmodels; screenshots to the user. The real map
-    is NOT changed until the user has chosen; then everything is pulled into that style - comparison: todo,
+    is NOT changed until the user has chosen; then everything is pulled into that style - comparison: done,
     conversion: waiting for the user's choice
 28. Wanted system (GTA style, replaces the current police behaviour and "heat"): 1-5 stars in the HUD.
     1 star: weapon drawn in sight of police or 1-2 kills -> one officer comes to cuff you, doesn't shoot.
@@ -356,6 +356,14 @@ Choices made while working autonomously (what + why).
   their mechanics, feel and UI stay as they are. The art style conversion (point 27) may still change how their
   models look, so everything matches the chosen style. Point 25's arrest stays: it becomes the 1-star response of
   the wanted system (28). Point 41 + 36 together: the mouse wheel scrolls the hotbar, and rotates only in build mode.
+- Point 27 (style comparison): the three proposals re-dress the SAME prefabs by swapping materials at run time
+  (`Stylizer`, scripts/art/stylizer.gd + shaders stylized_flat/toon/outline), so the user compares style, not
+  different models, and the chosen style can later be applied to the whole map the same way (or baked into the
+  generators). A = one flat colour per surface (texture average, +35% saturation), soft wrapped light, no specular,
+  simpler houses (no bays/dormers/chimneys). B = the current PBR materials with the richer houses (bays, dormers,
+  chimneys). C (own proposal) = A's simple houses + faint texture detail, two-band toon light and a screen-space
+  outline (2 px world, 3 px viewmodel) on people, cars and weapons only: outlines on whole buildings got noisy at
+  distance. Texture atlases (pistol, characters) keep their texture but posterized, else they turn monochrome.
 
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).

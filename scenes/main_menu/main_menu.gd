@@ -162,7 +162,9 @@ func _apply_cmdline_args() -> void:
 		elif arg in ["--host", "--screenshot", "--selftest", "--vmpreview"]:
 			auto_host = true
 	# Deferred so the menu is fully ready before switching scenes.
-	if auto_host:
+	if scenario and Scenarios.SCENES.has(Scenarios.pending):
+		get_tree().change_scene_to_file.call_deferred(Scenarios.SCENES[Scenarios.pending])
+	elif auto_host:
 		_on_host_pressed.call_deferred(scenario)  # a scenario always starts a fresh test game
 	elif auto_join:
 		_on_join_pressed.call_deferred()
