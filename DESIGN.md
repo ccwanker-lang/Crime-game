@@ -775,4 +775,5 @@ Choices made while working autonomously (what + why).
 - Self-test: the agora starts no random matches in --selftest/--netcheck (four extra football NPCs broke the
   pedestrian, police and regen checks of the full run); the dog-walker check starts at the last loop point (no
   random pause at the start).
-
+- Arrest hook for session B's lawyer: `Player.host_arrest` calls group "arrest_hooks" `on_player_arrested(p, fine,
+  taken_items)` after the fine (B's Legal autoload refunds part of it). Why: B owns the lawyer, A owns player.gd.

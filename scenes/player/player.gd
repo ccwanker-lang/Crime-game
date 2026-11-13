@@ -1281,20 +1281,26 @@ func _host_die(attacker: Player, from: Vector3 = Vector3.INF) -> void:
 func host_arrest(by: Node) -> void:
 	if not multiplayer.is_server() or dead:
 		return
+	if vehicle != null:
+		vehicle.host_exit(self)  # point 45: out of the car first
 	combat.host_unload()
 	var data: Dictionary = GameState.get_or_create_player_data(player_name)
 	var inv: Array = data["inventory"]
 	var taken: PackedStringArray = []
+	var taken_items: Array = []  # (session B's lawyer gets half of each stack back)
 	for i: int in range(inv.size() - 1, -1, -1):
 		var it: Dictionary = inv[i]
 		var item: ItemData = ItemDB.get_item(StringName(str(it.get("id", ""))))
 		if item and not item.is_legal:
 			taken.append("%dx %s" % [int(it.get("count", 1)), item.display_name])
+			taken_items.append(it)
 			inv.remove_at(i)
 	var total: int = GameState.total_money(player_name)
 	var fine: int = mini(total, clampi(roundi(total * FINE_SHARE), FINE_MIN, FINE_MAX))
 	if fine > 0:
 		GameState.add_cash(player_name, -fine, true)
+	# Session B: a hired lawyer (Legal, group "arrest_hooks") gets part of the fine and the goods back.
+	get_tree().call_group(&"arrest_hooks", "on_player_arrested", self, fine, taken_items)
 	health = MAX_HEALTH
 	var world: Node = get_tree().current_scene
 	var spot: Node3D = world.call("get_marker", "ReleaseSpot") if world.has_method("get_marker") else null
