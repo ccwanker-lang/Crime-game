@@ -354,7 +354,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     meeting a short conversation with "Confirm deal" instead of plain E. Fix the sell_weed scenario: right in front
     of a customer with a green € sign - done
 35. Own properties on the map: icon + name after buying, a name plate on the building; the estate agent shows
-    where a property is on the map BEFORE you buy - todo
+    where a property is on the map BEFORE you buy - done
 36. Build mode (B): only in build mode can furniture and stations be picked up, moved and rotated. Outside it E
     only uses things (plant, water, harvest, open a locker) (changes 6/17) - todo
 37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - todo
@@ -579,6 +579,12 @@ Choices made while working autonomously (what + why).
   black market garage stays a separate building. Old point 47 ("the full city") is now the full VILLAGE; the city
   is point 54. Territory and story missions moved out of 48 into 51 and 53. The traitor of act 4 is an old friend
   of the players instead of a Crows lieutenant.
+- Point 35 (properties on the map): the phone map draws every crew-owned property as a green house with its
+  name (the old "Your room" landmark went: the Starter Room is now just one of your properties). The estate
+  agent's window opens with the same map on top (`PhoneMap.show_for_sale`): orange pins with name + price for
+  everything for sale, and a "Where?" button per listing centres the map on that building with a pulsing marker
+  (`PhoneMap.focus`; the first listing is focused when the window opens). The name plate on the building existed
+  already (Property Label3D: "FOR SALE" or name + owner).
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

@@ -954,6 +954,14 @@ func _free_floor(world: Node3D, item: ItemData, prop: Property, p: Player) -> Ve
 # --- Real estate (point 8) -----------------------------------------------------------
 
 func _check_real_estate(world: Node3D) -> void:
+	# Point 35: every property has a map spot inside its own building (owned icon / for-sale pin).
+	var bad: PackedStringArray = []
+	for n: Node in get_tree().get_nodes_in_group(&"properties"):
+		var prop := n as Property
+		var spot: Vector2 = PhoneMap.property_spot(prop)
+		if not prop.contains(Vector3(spot.x, prop.building().global_position.y + 0.5, spot.y)):
+			bad.append(prop.display_name)
+	_report(bad.is_empty(), "map: every property's icon sits on its own building%s" % (" (wrong: %s)" % ", ".join(bad) if not bad.is_empty() else ""))
 	var agent: EstateAgent = world.find_child("Agent", true, false) as EstateAgent
 	_report(agent != null and agent.listings().size() >= 3, "Mrs. Vos sells %d properties" % (agent.listings().size() if agent else 0))
 	if agent == null:

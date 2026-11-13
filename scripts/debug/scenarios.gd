@@ -26,7 +26,7 @@ const LIST: Array = [
 	["furnish", "Own Small House + furniture items", "Place furniture (R/wheel rotates), hold E to pick things up (also the house's own furniture)."],
 	["black_market", "Night, in the garage, €6,000", "Walk through the open gate to Rook (only at night): buy seeds, pots, baggies."],
 	["gun_shop", "In the gun shop, €8,000", "Buy weapons and ammo boxes from Vince. Are the prices right?"],
-	["real_estate", "At the estate agent, €70,000", "Buy a property from Mrs. Vos; check the list (neighbourhoods) and that the sign changes to the owner."],
+	["real_estate", "At the estate agent, €70,000", "Talk to Mrs. Vos: the map on top shows every property for sale; press Where? next to one to see it. Buy one: the sign on the building shows you as owner and it turns into a green house on your phone map (Tab > Map)."],
 	["launder", "Own the bakery, €8,000 dirty", "E on the safe in the back office: deposit dirty cash. Hold F7: it comes back as clean money (90%), max per day."],
 	["houses", "Inside the Family House", "Walk all floors: stairs, railings, balconies (E opens the balcony door), furniture."],
 	["death_respawn", "Low health, cash + items", "Press F4 a few times: you die and drop a loot bag; you respawn at the hospital. Go back and take your bag."],
@@ -271,6 +271,17 @@ static func run(world: Node, id: String) -> bool:
 			# Window runs: also a screenshot of the player's view (HUD included).
 			if "--help" in OS.get_cmdline_user_args():
 				me.ui.toggle_help()
+			if "--shop" in OS.get_cmdline_user_args():
+				var best: Shopkeeper = null
+				for n: Node in world.get_tree().get_nodes_in_group(&"interactable"):
+					if n is Shopkeeper and (best == null or (n as Node3D).global_position.distance_to(me.global_position)
+							< best.global_position.distance_to(me.global_position)):
+						best = n as Shopkeeper
+				if best:
+					me.open_shop(best)
+			if "--phone-map" in OS.get_cmdline_user_args():
+				me.open_phone()
+				me.ui.phone._show("map")
 			if "--deal" in OS.get_cmdline_user_args():
 				for n: Node in world.get_tree().get_nodes_in_group(&"customer"):
 					if (n as Pedestrian).deal_ok:

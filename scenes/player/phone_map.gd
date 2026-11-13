@@ -3,16 +3,22 @@ extends Control
 ## Phone map app: top-down town map (north = -Z up), centred on you. Roads come from the
 ## RoadTile asphalt, buildings from Building footprints; markers for players
 ## (you = arrow), customers (€) and the shops. Redrawn every frame while open.
+## Point 35: crew-owned properties get a green house icon + their name; with `show_for_sale`
+## (the estate agent's window) properties for sale get an orange pin, and `focus` centres
+## the map on one property and highlights it.
 
 const BOUNDS := Rect2(-76, -58, 152, 128)  # world x, z
 const LANDMARKS: Dictionary = {
-	"StarterRoom": "Your room", "Store": "Store", "Hospital": "Hospital",
+	"Store": "Store", "Hospital": "Hospital",
 	"GunShop": "Guns", "ContactHideout": "Dries", "Garage": "Garage", "PoliceStation": "Police",
 }
 
 var _roads: Array[PackedVector2Array] = []
 var _buildings: Array[PackedVector2Array] = []
 var _labels: Array[Array] = []  # [world xz, text]
+## Point 35: the estate window's map: for-sale pins, centred on `focus` (null = follow you).
+var show_for_sale: bool = false
+var focus: Property = null
 
 
 func _ready() -> void:
@@ -57,9 +63,20 @@ func _to_map(p: Vector2) -> Vector2:
 	return size * 0.5 + (p - _centre) * PIXELS_PER_M
 
 
-## Follows the local player, without scrolling past the edge of the town.
+## Point 35: a property's spot on the map (the middle of its building, xz).
+static func property_spot(p: Property) -> Vector2:
+	var b: Building = p.building()
+	var w: Vector3 = b.global_transform * Vector3(0, 0, -b.depth * 0.5) if b else p.global_position
+	return Vector2(w.x, w.z)
+
+
+## Follows the local player (or the focused property), without scrolling past the edge of the town.
 func _update_centre() -> void:
+	if focus != null and is_instance_valid(focus):
+		_centre = property_spot(focus)
 	for n: Node in get_tree().get_nodes_in_group(&"players"):
+		if focus != null and is_instance_valid(focus):
+			break
 		var pl := n as Player
 		if pl and pl.is_local():
 			_centre = Vector2(pl.global_position.x, pl.global_position.z)
@@ -93,6 +110,25 @@ func _draw() -> void:
 		var p: Vector2 = _to_map(l[0])
 		draw_string_outline(font, p + Vector2(-20, 4), l[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, Color(0, 0, 0, 0.8))
 		draw_string(font, p + Vector2(-20, 4), l[1], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(1, 0.9, 0.6))
+	# Point 35: own properties (green house) and, in the estate window, the ones for sale (orange pin).
+	var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() / 180.0)
+	for n: Node in get_tree().get_nodes_in_group(&"properties"):
+		var prop := n as Property
+		var owned: bool = prop.is_crew_owned()
+		if not owned and not (show_for_sale and prop.for_sale):
+			continue
+		var p: Vector2 = _to_map(property_spot(prop))
+		var col: Color = Color(0.35, 0.9, 0.45) if owned else Color(1.0, 0.62, 0.2)
+		var big: bool = prop == focus
+		var r: float = 7.0 + (3.0 * pulse if big else 0.0)
+		if big:
+			draw_circle(p, r + 6.0, Color(1, 0.3, 0.25, 0.35 + 0.3 * pulse))
+		# House: a square with a roof.
+		draw_colored_polygon(PackedVector2Array([p + Vector2(-r, -r * 0.1), p + Vector2(0, -r * 1.1), p + Vector2(r, -r * 0.1)]), col)
+		draw_rect(Rect2(p + Vector2(-r * 0.7, -r * 0.1), Vector2(r * 1.4, r * 0.9)), col)
+		var text: String = prop.display_name + ("" if owned else "  €" + Property.money(prop.price))
+		draw_string_outline(font, p + Vector2(r + 3, 4), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12 if big else 11, 3, Color(0, 0, 0, 0.85))
+		draw_string(font, p + Vector2(r + 3, 4), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12 if big else 11, col.lightened(0.3))
 	for c: Node in get_tree().get_nodes_in_group(&"customer"):
 		var p3: Vector3 = (c as Node3D).global_position
 		var p: Vector2 = _to_map(Vector2(p3.x, p3.z))

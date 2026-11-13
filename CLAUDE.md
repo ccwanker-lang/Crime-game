@@ -182,6 +182,9 @@ Godot console exe:
   the shop window. South Street (z 60) holds the agent, warehouse and police; the other properties sit in
   their own neighbourhoods (point 26); gen_world `property_node(...)` adds one. Moving a property later: add its old
   spot to `World.OLD_PROPERTY_SPOTS` and bump `LAYOUT_VERSION` (`migrate_layout` carries old saves along).
+- Map icons (point 35): `PhoneMap` draws owned properties (green) + `show_for_sale` pins (orange) + `focus`
+  (`PhoneMap.property_spot(p)`); the estate window (`PlayerHUD._fill_estate`) embeds one with "Where?" buttons.
+  Screenshot flags for `--scenario-shot`: `--help`, `--deal`, `--shop` (nearest shopkeeper), `--phone-map`.
 - Laundering (point 9): player_data "cash" = dirty, "clean" = laundered (`GameState.add_cash(name, -x, legal)` pays
   from both pots, legal = clean first; `add_clean`; death drops only dirty). `LaunderSafe` station
   (`prefabs/stations/launder_safe.tscn`, `daily_max`) in `prefabs/buildings/bakery|barber|laundromat.tscn`; its

@@ -410,7 +410,16 @@ func _on_buy_result(ok: bool, message: String) -> void:
 
 ## Point 8: the agent's listings: name + description, price, Buy / Owned.
 func _fill_estate(agent: EstateAgent) -> void:
-	for p: Property in agent.listings():
+	# Point 35: a map of the town with every property for sale (orange) and yours (green);
+	# "Where?" centres it on one listing.
+	var map := PhoneMap.new()
+	map.show_for_sale = true
+	_shop_list.add_child(map)
+	map.custom_minimum_size = Vector2(0, 230)
+	var listings: Array[Property] = agent.listings()
+	if not listings.is_empty():
+		map.focus = listings[0]
+	for p: Property in listings:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		var info := Label.new()
@@ -420,6 +429,10 @@ func _fill_estate(agent: EstateAgent) -> void:
 		info.custom_minimum_size = Vector2(300, 0)
 		info.add_theme_font_size_override("font_size", 16)
 		row.add_child(info)
+		var where := _button("Where?")
+		where.custom_minimum_size = Vector2(70, 0)
+		where.pressed.connect(func() -> void: map.focus = p)
+		row.add_child(where)
 		var price := Label.new()
 		price.text = "€%s" % Property.money(p.price)
 		price.custom_minimum_size = Vector2(80, 0)
