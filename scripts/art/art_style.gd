@@ -1,17 +1,18 @@
 class_name ArtStyle
 extends RefCounted
 ## Point 27 art direction: stylized low-poly (DESIGN.md "Art direction").
-## - `stylized`: the procedural generators (trees, grass, shrubs, hedges, buildings) build
-##   their stylized geometry. Off until the user approves the art test; the rollout turns
-##   it on for good.
-## - `restyle(root)`: swaps every material under `root` for its stylized version from
-##   prefabs/materials/stylized/ (same file name); other StandardMaterial3Ds (imported
-##   characters, per-car paint copies) get the same light model (lambert wrap, matte).
+## - `stylized`: the procedural generators (trees, grass, hedges, building trim) build their
+##   stylized geometry (on since the rollout; the old geometry is kept behind it for now).
+## - Every material in prefabs/materials/ is already stylized (gen_materials.py).
+## - `restyle(root)` dresses imported models: colour textures are swapped for their painted
+##   version (assets/painted/, gen_painted_textures.py), normal/roughness maps dropped, and
+##   every StandardMaterial3D gets the shared light model (lambert wrap, matte).
+##   ModelPart, WeaponModel and the characters call it.
 
-const STYLIZED_DIR: String = "res://prefabs/materials/stylized/"
-const MAT_DIR: String = "res://prefabs/materials/"
+const PAINTED_FROM: String = "res://assets/polyhaven/"
+const PAINTED_TO: String = "res://assets/painted/"
 
-static var stylized: bool = false
+static var stylized: bool = true
 static var _cache: Dictionary = {}
 
 
@@ -49,33 +50,39 @@ static func restyle(root: Node) -> int:
 	return changed
 
 
-## The stylized version of `mat` (same object when there is none).
+## The stylized version of `mat` (the same object when nothing changes).
 static func stylize_material(mat: Material) -> Material:
 	if mat == null:
 		return null
 	if _cache.has(mat):
 		return _cache[mat]
 	var out: Material = mat
-	var path: String = mat.resource_path
-	if path.begins_with(MAT_DIR) and not path.begins_with(STYLIZED_DIR):
-		var alt: String = STYLIZED_DIR + path.get_file()
-		if ResourceLoader.exists(alt):
-			out = load(alt)
-	elif mat is BaseMaterial3D:
-		out = soften(mat as BaseMaterial3D)
+	if mat is BaseMaterial3D and not mat.resource_path.begins_with("res://prefabs/materials/"):
+		out = paint_material(mat as BaseMaterial3D)
 	_cache[mat] = out
 	return out
 
 
-## A copy with the shared light model: lambert wrap, matte, no clearcoat.
-static func soften(mat: BaseMaterial3D) -> BaseMaterial3D:
-	if mat.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED or mat.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
+## A copy with the painted colour texture (if there is one) and the shared light model.
+static func paint_material(mat: BaseMaterial3D) -> BaseMaterial3D:
+	if mat.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
 		return mat
 	var c := mat.duplicate() as BaseMaterial3D
+	var tex: Texture2D = mat.albedo_texture
+	if tex and tex.resource_path.begins_with(PAINTED_FROM):
+		var p: String = PAINTED_TO + tex.resource_path.trim_prefix(PAINTED_FROM).get_basename() + "_painted.png"
+		if ResourceLoader.exists(p):
+			c.albedo_texture = load(p)
 	c.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP
 	c.roughness = maxf(c.roughness, 0.6)
 	c.metallic *= 0.3
 	c.metallic_specular = 0.3
 	c.clearcoat_enabled = false
 	c.normal_enabled = false
+	c.normal_texture = null
+	c.roughness_texture = null
+	c.metallic_texture = null
+	c.ao_enabled = false
+	if c is ORMMaterial3D:
+		(c as ORMMaterial3D).orm_texture = null
 	return c

@@ -1,11 +1,9 @@
 extends Node3D
-## Point 27 art direction test (`--scenario=style_compare` or F9): ONE street in the chosen
-## style, stylized low-poly (DESIGN.md "Art direction"), built from the real prefabs with
-## ArtStyle.stylized on (stylized geometry) and ArtStyle.restyle (stylized materials from the
-## one palette). Houses in different colours, heights and roof types, street trees, a
+## Point 27 art direction showcase (`--scenario=style_compare` or F9): ONE street in the game's
+## style, stylized low-poly (DESIGN.md "Art direction"), built from the real prefabs. Use it to
+## judge style changes in one place. Houses in different colours, heights and roof types, street trees, a
 ## grass lot with tufts, shrubs and a hedge, cars, NPCs + the player characters, the new
 ## pistol + the AK as viewmodel, and the hills + tree rows that hide the edge of the world.
-## The real map is NOT changed until the user approves this street.
 ## Keys: 1-6 = camera spots (street, nature, wide, weapons, night, characters),
 ## right mouse + WASD = fly, Esc = menu.
 ## `--style-shots` saves screenshots/style_<spot>.png and quits.
@@ -35,9 +33,7 @@ var _fly: bool = false
 
 
 func _ready() -> void:
-	ArtStyle.stylized = true
 	_sky = (load("res://prefabs/environment/sun_and_sky.tscn") as PackedScene).instantiate()
-	(_sky.get_node("WorldEnvironment") as WorldEnvironment).environment = load("res://prefabs/environment/stylized_environment.tres")
 	add_child(_sky)
 	_set_hours(11.0)
 	_cam = Camera3D.new()
@@ -60,14 +56,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame  # buildings build deferred
-	ArtStyle.restyle(self)
 	_show("street")
 	if "--style-shots" in OS.get_cmdline_user_args():
 		_take_shots()
-
-
-func _exit_tree() -> void:
-	ArtStyle.stylized = false  # the real map keeps its look until the rollout
 
 
 func _set_hours(h: float) -> void:
@@ -207,7 +198,7 @@ func _build_weapons() -> void:
 	_view_cam.fov = 70.0
 	add_child(_view_cam)
 	_view_cam.global_transform = _look(Vector3(-1.0, 1.7, 3.6), Vector3(-4.0, 1.5, -5.0))
-	var pistol: Node3D = (load("res://prefabs/weapons/pistol_stylized.tscn") as PackedScene).instantiate()
+	var pistol: Node3D = (ItemDB.get_item(&"pistol") as WeaponData).model_scene.instantiate()
 	pistol.position = Vector3(0.2, -0.17, -0.42)
 	pistol.rotation = Vector3(0.0, 0.1, 0.0)
 	_view_cam.add_child(pistol)

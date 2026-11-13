@@ -2,5 +2,8 @@
 
 
 [resource]
-albedo_color = Color(0.045, 0.045, 0.05, 1.0)
+albedo_color = Color(0.09, 0.09, 0.1, 1.0)
 roughness = 0.9
+metallic = 0.0
+diffuse_mode = 2
+metallic_specular = 0.3

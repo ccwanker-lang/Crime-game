@@ -1,21 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
-[ext_resource type="PackedScene" path="res://assets/polyhaven/shrub_02/shrub_02.gltf" id="2_r"]
-
-[sub_resource type="CylinderShape3D" id="CylinderShape3D_1"]
-radius = 0.55
-height = 1.4
+[ext_resource type="Script" path="res://scripts/procgen/proc_shrub.gd" id="1_r"]
 
 [node name="ShrubB" type="StaticBody3D"]
-
-[node name="Model" type="Node3D" parent="."]
 script = ExtResource("1_r")
-model = ExtResource("2_r")
-parts = PackedStringArray("shrub_02_b")
-visibility_end = 70
-transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, -0, 0, 0.75, 0, 0, 0)
-
-[node name="Collision" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.7, 0)
-shape = SubResource("CylinderShape3D_1")
+shrub_seed = 2
+size = Vector3(1.1, 0.9, 1.1)
+swatches = PackedStringArray("leaf_dark", "leaf", "accent_yellow")

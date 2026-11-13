@@ -1,9 +1,10 @@
 [gd_resource type="ShaderMaterial" format=3]
 
-[ext_resource type="Shader" path="res://prefabs/materials/shaders/painted.gdshader" id="1_sh"]
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/stylized.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/palette/palette.png" id="2_tx"]
 
 [resource]
 shader = ExtResource("1_sh")
-shader_parameter/base_color = Color(0.88, 0.88, 0.85, 1.0)
-shader_parameter/roughness = 0.7
-shader_parameter/wear = 0.35
+shader_parameter/palette = ExtResource("2_tx")
+shader_parameter/swatch = 18
+shader_parameter/pattern = 0

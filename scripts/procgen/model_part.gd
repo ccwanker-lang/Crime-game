@@ -71,6 +71,8 @@ func _rebuild() -> void:
 			copy.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		if not cast_shadows:
 			copy.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if ArtStyle.stylized:
+			ArtStyle.restyle(copy)  # point 27: painted textures, flat light
 		add_child(copy)
 		_generated.append(copy)
 	inst.free()

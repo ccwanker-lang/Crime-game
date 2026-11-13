@@ -1,19 +1,11 @@
 [gd_resource type="ShaderMaterial" format=3]
 
-[ext_resource type="Shader" path="res://prefabs/materials/shaders/surface.gdshader" id="1_sh"]
-[ext_resource type="Texture2D" path="res://assets/textures/Ground048/color.jpg" id="2_tx"]
-[ext_resource type="Texture2D" path="res://assets/textures/Ground048/normal.jpg" id="3_tx"]
-[ext_resource type="Texture2D" path="res://assets/textures/Ground048/roughness.jpg" id="4_tx"]
-[ext_resource type="Texture2D" path="res://assets/textures/Ground048/ao.jpg" id="5_tx"]
+[ext_resource type="Shader" path="res://prefabs/materials/shaders/stylized.gdshader" id="1_sh"]
+[ext_resource type="Texture2D" path="res://assets/palette/palette.png" id="2_tx"]
 
 [resource]
 shader = ExtResource("1_sh")
-shader_parameter/albedo_tex = ExtResource("2_tx")
-shader_parameter/normal_tex = ExtResource("3_tx")
-shader_parameter/roughness_tex = ExtResource("4_tx")
-shader_parameter/ao_tex = ExtResource("5_tx")
-shader_parameter/uv_scale = Vector2(1.0, 1.0)
-shader_parameter/grime_amount = 0.0
-shader_parameter/stain_amount = 0.0
-shader_parameter/base_tint = Color(0.45, 0.4, 0.36, 1.0)
-shader_parameter/roughness_mult = 0.6
+shader_parameter/palette = ExtResource("2_tx")
+shader_parameter/swatch = 23
+shader_parameter/pattern = 0
+shader_parameter/base_color = Color(0.7, 0.66, 0.62, 1.0)

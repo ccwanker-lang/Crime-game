@@ -67,7 +67,11 @@ Godot console exe:
   GrassField, Hedge, Building trim), `ArtStyle.restyle(root)` swaps materials by name. New: `ProcShrub`,
   `ProcBackdrop` (hills/tree rows around an area), `MeshBuilder.blob`, ProcGun `PISTOL` (`prefabs/weapons/
   pistol_stylized.tscn`). Art test: `scenes/art_test/style_compare.tscn`, `--style-shots [--shots=street,...]` saves
-  `screenshots/style_<spot>.png`. Until the rollout the real map still uses the photo materials.
+  `screenshots/style_<spot>.png`. Rolled out (27c): `prefabs/materials/` IS the stylized set, `ArtStyle.stylized` is
+  on, imported Poly Haven models get painted textures (`tools/generators/gen_painted_textures.py` -> `assets/painted/`,
+  swapped by `ArtStyle.restyle`); building tints via `palette_tint.ptint`. HUD (27d): theme `assets/ui/game_theme.tres`
+  (Fredoka font), `HudIcon.make(kind, color, px)`, F1 help panel. `-- --scenario=<id> --scenario-quit --scenario-shot
+  [--help] --port=7790` (window) saves `screenshots/scenario_<id>.png`.
 - Scenarios: `Scenarios` (static, `pending`, `run(world, id)`, `restart_into(tree, id)`) + `ScenarioMenu` (F9, in World).
   A scenario restarts the host into a FRESH game on `user://scenario_test.json` (`SaveManager.use_scenario_save`,
   `scenario_mode`); the real save is written once before and never touched; the main menu switches back

@@ -1,0 +1,1 @@
+Derived from Poly Haven assets (CC0) by tools/generators/gen_painted_textures.py.

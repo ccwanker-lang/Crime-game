@@ -1,13 +1,10 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/procgen/model_part.gd" id="1_r"]
-[ext_resource type="PackedScene" path="res://assets/polyhaven/fern_02/fern_02.gltf" id="2_r"]
+[ext_resource type="Script" path="res://scripts/procgen/proc_shrub.gd" id="1_r"]
 
-[node name="Fern" type="Node3D"]
-
-[node name="Model" type="Node3D" parent="."]
+[node name="Fern" type="StaticBody3D"]
 script = ExtResource("1_r")
-model = ExtResource("2_r")
-parts = PackedStringArray("fern_02_b")
-visibility_end = 35
-cast_shadows = false
+shrub_seed = 9
+size = Vector3(0.7, 0.45, 0.7)
+swatches = PackedStringArray("grass_dark", "leaf", "grass_light")
+collide = false

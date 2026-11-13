@@ -3,7 +3,7 @@
 // in clip space: the image stays identical, only the depth shrinks, so the
 // weapon is always drawn in front of walls it would otherwise poke into.
 shader_type spatial;
-render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_lambert_wrap, specular_schlick_ggx;
 
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, hint_default_white;

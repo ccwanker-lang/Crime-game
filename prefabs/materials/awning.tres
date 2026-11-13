@@ -6,3 +6,4 @@ vertex_color_use_as_albedo = true
 vertex_color_is_srgb = true
 cull_mode = 2
 roughness = 0.9
+diffuse_mode = 2

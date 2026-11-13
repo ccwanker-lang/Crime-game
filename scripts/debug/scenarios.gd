@@ -198,6 +198,15 @@ static func run(world: Node, id: String) -> bool:
 				dn.hours if dn else -1.0, me.health, int(data["cash"]), int(data.get("clean", 0)),
 				(data["inventory"] as Array).map(func(it: Dictionary) -> String: return "%dx %s" % [int(it["count"]), it["id"]]),
 				", ".join(near)])
+		if "--scenario-shot" in OS.get_cmdline_user_args():
+			# Window runs: also a screenshot of the player's view (HUD included).
+			if "--help" in OS.get_cmdline_user_args():
+				me.ui.toggle_help()
+			for f: int in 6:
+				await RenderingServer.frame_post_draw
+			var path: String = ProjectSettings.globalize_path("res://screenshots/scenario_%s.png" % id)
+			world.get_viewport().get_texture().get_image().save_png(path)
+			print("[ScenarioCheck] saved %s" % path)
 		world.get_tree().quit()
 	return true
 

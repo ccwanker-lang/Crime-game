@@ -48,6 +48,8 @@ var magazine_out: float = 0.0
 
 
 func _ready() -> void:
+	if ArtStyle.stylized:
+		ArtStyle.restyle(self)  # point 27: imported models (sniper) get painted textures
 	for n: Node in find_children("*", "", true, false):
 		if n.name in hidden_parts:
 			(n as Node3D).visible = false

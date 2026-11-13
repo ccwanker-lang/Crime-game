@@ -2,12 +2,14 @@
 Usage: python gen_prefabs.py <project root>"""
 import sys
 from tscn import Scene, v3, col, xform, strarr
+from palette_tint import ptint, pcol  # point 27: building colours from the palette
 
 ROOT = sys.argv[1].rstrip("/\\") + "/"
 PH = "res://assets/polyhaven/%s/%s.gltf"
 S = {
     "model_part": "res://scripts/procgen/model_part.gd",
     "tree": "res://scripts/procgen/proc_tree.gd",
+    "shrub": "res://scripts/procgen/proc_shrub.gd",
     "hedge": "res://scripts/procgen/hedge.gd",
     "grass": "res://scripts/procgen/grass_field.gd",
     "flower_bed": "res://scripts/procgen/flower_bed.gd",
@@ -85,10 +87,17 @@ script_prefab(N + "tree_medium.tscn", "StaticBody3D", "tree",
 script_prefab(N + "tree_street.tscn", "StaticBody3D", "tree",
               {"tree_seed": "3", "height": "6.5", "crown_radius": "2.0", "trunk_radius": "0.13", "leaf_cards": "170",
                "leaf_tint": col(1.05, 1.08, 0.9)})
-for i, part in enumerate(["shrub_02_a", "shrub_02_b", "shrub_02_c", "shrub_02_d"]):
-    model_prefab(N + f"shrub_{'abcd'[i]}.tscn", "shrub_02", [part], ("cyl", 0.55, 1.4), scale=0.75,
-                 vis_end=70, shadows=True)
-model_prefab(N + "fern.tscn", "fern_02", ["fern_02_b"], vis_end=35, shadows=False)
+# Point 27: stylized shrubs (faceted blobs in palette greens) instead of the Poly Haven shrub/fern.
+SHRUBS = [("a", 1, (1.4, 1.2, 1.3), '"leaf_dark", "leaf", "leaf_light"'),
+          ("b", 2, (1.1, 0.9, 1.1), '"leaf_dark", "leaf", "accent_yellow"'),
+          ("c", 3, (1.6, 1.3, 1.4), '"leaf_dark", "leaf_dark", "leaf"'),
+          ("d", 4, (1.0, 1.1, 1.0), '"leaf_dark", "leaf", "plaster_pink"')]
+for letter, seed, size, sw in SHRUBS:
+    script_prefab(N + f"shrub_{letter}.tscn", "StaticBody3D", "shrub",
+                  {"shrub_seed": str(seed), "size": v3(*size), "swatches": "PackedStringArray(%s)" % sw})
+script_prefab(N + "fern.tscn", "StaticBody3D", "shrub",
+              {"shrub_seed": "9", "size": v3(0.7, 0.45, 0.7), "swatches": 'PackedStringArray("grass_dark", "leaf", "grass_light")',
+               "collide": "false"})
 script_prefab(N + "hedge.tscn", "StaticBody3D", "hedge")
 script_prefab(N + "flower_bed.tscn", "Node3D", "flower_bed")
 script_prefab(N + "grass_field.tscn", "MultiMeshInstance3D", "grass")
@@ -260,7 +269,7 @@ HOUSES = {
                     "roof_material": q("roof_dark"), "door_bay": "0", "bay_window_bay": "1", "chimney": q("left"),
                     "door_color": col(0.12, 0.22, 0.18), "variation_seed": "11"},
     "row_house_b": {"width": "5.2", "depth": "9.5", "floors": "3", "floor_height": "2.9", "wall_material": q("plaster"),
-                    "wall_tint": col(0.93, 0.89, 0.8), "roof_material": q("roof_dark"), "door_bay": "1",
+                    "wall_tint": ptint("plaster", "plaster_cream"), "roof_material": q("roof_dark"), "door_bay": "1",
                     "balcony_bay": "0", "dormer": "true", "chimney": q("right"),
                     "door_color": col(0.45, 0.1, 0.1), "variation_seed": "22"},
     "row_house_c": {"width": "7.2", "depth": "10.0", "floors": "2", "floor_height": "3.2",
@@ -271,12 +280,12 @@ HOUSES = {
                     "roof_material": q("roof_dark"), "roof_pitch": "48.0", "door_bay": "1", "chimney": q("right"),
                     "trim_color": col(0.18, 0.18, 0.19), "door_color": col(0.2, 0.2, 0.21), "variation_seed": "44"},
     "row_house_e": {"width": "6.6", "depth": "11.0", "floors": "3", "floor_height": "3.1",
-                    "wall_material": q("brick_white"), "wall_tint": col(0.95, 0.95, 0.93),
+                    "wall_material": q("brick_white"), "wall_tint": ptint("brick_white", "brick_white"),
                     "roof_material": q("roof_dark"), "roof_type": q("hip"), "roof_pitch": "35.0", "door_bay": "0",
                     "balcony_bay": "1", "corner_quoins": "true", "chimney": q("none"),
                     "door_color": col(0.05, 0.25, 0.3), "variation_seed": "55"},
     "row_house_f": {"width": "4.8", "depth": "8.5", "floors": "2", "floor_height": "2.8",
-                    "wall_material": q("plaster"), "wall_tint": col(0.78, 0.84, 0.82), "roof_material": q("roof_red"),
+                    "wall_material": q("plaster"), "wall_tint": ptint("plaster", "plaster_green"), "roof_material": q("roof_red"),
                     "roof_pitch": "45.0", "door_bay": "1", "string_courses": "false", "chimney": q("left"),
                     "door_color": col(0.35, 0.22, 0.12), "variation_seed": "66"},
     "corner_house": {"width": "7.5", "depth": "9.0", "floors": "3", "floor_height": "3.0",
@@ -357,7 +366,7 @@ def starter_extra(sc):
 
 building(B + "starter_room.tscn", {
     "width": "6.0", "depth": "9.0", "floors": "2", "wall_material": q("brick_white"),
-    "wall_tint": col(0.92, 0.9, 0.86), "roof_material": q("roof_dark"), "door_bay": "1",
+    "wall_tint": ptint("brick_white", "brick_white"), "roof_material": q("roof_dark"), "door_bay": "1",
     "door_color": col(0.12, 0.2, 0.35), "enterable": "true", "chimney": q("left"), "variation_seed": "5"},
     starter_extra)
 
@@ -415,7 +424,7 @@ def hospital_extra(sc):
 
 building(B + "hospital.tscn", {
     "width": "22.0", "depth": "14.0", "floors": "3", "floor_height": "3.3", "bays": "9",
-    "wall_material": q("plaster"), "wall_tint": col(0.95, 0.94, 0.9), "roof_type": q("flat"),
+    "wall_material": q("plaster"), "wall_tint": ptint("plaster", "brick_white"), "roof_type": q("flat"),
     "ground_floor": q("shop"), "door_bay": "4", "shop_sign": q("ST. ANNA HOSPITAL"),
     "trim_color": col(0.85, 0.87, 0.88), "string_courses": "true", "side_windows": "true",
     "enterable": "true", "public_building": "true", "floor_material": q("floor_tiles"), "lit_windows": "0.45",
@@ -475,7 +484,7 @@ def contact_extra(sc):
 
 building(B + "contact_hideout.tscn", {
     "width": "5.0", "depth": "5.5", "floors": "1", "floor_height": "3.5", "bays": "2",
-    "wall_material": q("brick_old"), "wall_tint": col(0.8, 0.78, 0.76), "roof_type": q("flat"),
+    "wall_material": q("brick_old"), "wall_tint": ptint("brick_old", "brick_brown", 0.85), "roof_type": q("flat"),
     "door_bay": "0", "door_color": col(0.2, 0.2, 0.2), "string_courses": "false", "enterable": "true",
     "floor_material": q("concrete"), "lit_windows": "0.0", "variation_seed": "13"}, contact_extra)
 
@@ -500,7 +509,7 @@ def estate_extra(sc):
 
 
 building(B + "real_estate.tscn", {
-    "width": "8.0", "depth": "10.0", "floors": "2", "wall_material": q("plaster"), "wall_tint": col(0.92, 0.9, 0.84),
+    "width": "8.0", "depth": "10.0", "floors": "2", "wall_material": q("plaster"), "wall_tint": ptint("plaster", "plaster_cream"),
     "roof_material": q("roof_dark"), "ground_floor": q("shop"), "door_bay": "0", "shop_sign": q("VOS REAL ESTATE"),
     "awning": "true", "awning_color": col(0.12, 0.2, 0.4), "chimney": q("none"), "enterable": "true",
     "public_building": "true", "variation_seed": "512"}, estate_extra)
@@ -551,7 +560,7 @@ def garage_extra(sc):
 
 building(B + "garage.tscn", {
     "width": str(GARAGE_W), "depth": "12.0", "floors": "1", "floor_height": "4.5", "bays": "3",
-    "wall_material": q("brick_mixed"), "wall_tint": col(0.82, 0.8, 0.78), "roof_type": q("flat"),
+    "wall_material": q("brick_mixed"), "wall_tint": ptint("brick_mixed", "brick_red", 0.85), "roof_type": q("flat"),
     "door_bay": "0", "door_color": col(0.25, 0.27, 0.3), "string_courses": "false", "enterable": "true",
     "public_building": "true", "shop_sign": q("GARAGE"), "floor_material": q("concrete"), "chimney": q("none"),
     "lit_windows": "0.0", "variation_seed": "41"}, garage_extra)
@@ -675,7 +684,7 @@ building(B + "bakery.tscn", {**FRONT, "width": "7.0", "shop_sign": q("BAKERY"), 
 building(B + "barber.tscn", {**FRONT, "width": "6.5", "shop_sign": q("BARBER"), "wall_material": q("brick_white"),
          "awning_color": col(0.15, 0.25, 0.55), "variation_seed": "610"}, barber_extra)
 building(B + "laundromat.tscn", {**FRONT, "width": "7.5", "shop_sign": q("LAUNDROMAT"), "wall_material": q("plaster"),
-         "wall_tint": col(0.8, 0.88, 0.92), "awning_color": col(0.1, 0.45, 0.5), "variation_seed": "620"}, laundromat_extra)
+         "wall_tint": ptint("plaster", "plaster_blue"), "awning_color": col(0.1, 0.45, 0.5), "variation_seed": "620"}, laundromat_extra)
 
 
 # --------------------------------------------------------------------------- items

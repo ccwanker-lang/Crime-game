@@ -107,7 +107,9 @@ textures anywhere. Still a believable Belgian/European town at human scale (1 un
   around it (`ProcBackdrop`).
 - Everything visual is a reusable prefab in `res://prefabs/` (procedural @tool scripts or imported
   models); lamps always come with their pole/mount in one prefab. Imported models must fit the
-  flat style (Quaternius characters do; photo-real Poly Haven models get replaced).
+  flat style (Quaternius characters do). Imported photo-real models (Poly Haven furniture/props) are
+  dressed at run time by `ArtStyle.restyle`: painted, palette-pulled colour textures
+  (`assets/painted/`, `gen_painted_textures.py`), no normal/roughness maps, the shared light model.
 - People: Quaternius CC0 animated characters with realistic proportions (no chibi/big-head
   packs), matte materials, random clothing colours. One prefab base (`prefabs/npc/pedestrian.tscn`)
   for pedestrians, customers, dealers, police and rivals.
@@ -254,11 +256,13 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     a. Comparison of 3 proposals (A/B/C) - done (superseded by the user's decision)
     b. Art test street in the new style in scenes/art_test/style_compare.tscn (--scenario=style_compare): houses,
        trees, grass, shrubs, hedge, cars, NPCs, player characters, pistol + AK, horizon hills; palette, materials,
-       light, sky - done, waiting for the user's approval
-    c. Rollout over all prefabs (NOT the map by hand), only after approval: stylized materials over the photo
-       ones, ArtStyle.stylized on, building tints from the palette, Poly Haven shrubs/props replaced, new
-       pistol model, ProcBackdrop around the map - todo
-    d. HUD in the same style (own font, icons, framed hotbar), key bar replaced by F1 help - todo (with c)
+       light, sky - done, approved by the user
+    c. Rollout over all prefabs (NOT the map by hand): stylized materials written over the photo ones,
+       ArtStyle.stylized on, building tints from the palette, shrubs as ProcShrub, painted textures for the
+       imported Poly Haven props, new procedural pistol, ProcBackdrop around the map, stylized environment +
+       sky - done
+    d. HUD in the same style (Fredoka font + game theme, HudIcon icons, framed hotbar, money/clock panel top
+       right), key bar replaced by F1 help - done
 28. Wanted system (GTA style, replaces the current police behaviour and "heat"): 1-5 stars in the HUD.
     1 star: weapon drawn in sight of police or 1-2 kills -> one officer comes to cuff you, doesn't shoot.
     2: killed an officer or ~6+ kills -> chase, shoot if you are armed. 3: ~12+ kills -> several cars, shoot at
@@ -394,6 +398,22 @@ Choices made while working autonomously (what + why).
   not as noise, and pattern lines fade out when cells get tiny on screen (no shimmering). The sky keeps the
   panorama only as a cloud mask (blurred, crisp edge) over a painted gradient, so nothing moves and no new asset is
   needed. Buildings in the art test aim their tint at a palette swatch (`_tint`: target / material colour).
+- Point 27c (rollout): the stylized materials now carry the old file names in prefabs/materials/ (the photo
+  versions are gone from the generator), so every prefab and the map switched without touching them. Imported
+  Poly Haven props were NOT remodelled: a PIL script paints their colour textures (128 px, blurred, 12 colours,
+  each pulled 35% to the nearest palette colour) and `ArtStyle.restyle` swaps them in at run time (ModelPart,
+  WeaponModel) - cheap, reversible, and they read as flat painted objects next to the procedural ones. Building
+  tints come from the palette via `ptint` (colour that turns the material's base colour into a swatch, in linear
+  space); gen_world picks them with its own random generator (`crng`), so the map layout (all transforms) stays
+  identical to before. The map edge gets a ProcBackdrop (tree row + two hill rings) and a 1000 m ground plane;
+  fog affects the sky a bit (0.6) so the far ground melts into the horizon. The pistol is now a ProcGun (Kind
+  PISTOL) like the AK/SMG; its WeaponModel keeps the old markers so the hand pose and viewmodel didn't change.
+- Point 27d (HUD): font Fredoka (OFL, Google Fonts) in a project theme `assets/ui/game_theme.tres`, so every
+  window (shop, storage, phone, menus) gets the same rounded panels and font without code changes. Icons are drawn
+  in code (`HudIcon`: heart, bullet, cash, bank, clock, star) - crisp at every size, no image files. Dirty and
+  clean money now sit on two lines with their own icon (part of point 40's clearer money), clock under them. The
+  long key bar is gone: "F1 help" bottom left opens a 4-column controls panel. `--scenario-shot` (+ `--help`)
+  saves a screenshot of a scenario for visual checks.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

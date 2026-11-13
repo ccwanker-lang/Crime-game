@@ -273,7 +273,7 @@ func _facade(b: MeshBuilder, frame: Transform3D, length: float, bay_count: int, 
 				else:
 					_window_cell(b, x0, x1, y0, y1, f, lining)
 		b.collide = false
-		if string_courses and f > 0 and (is_front or not blind):
+		if string_courses and not ArtStyle.stylized and f > 0 and (is_front or not blind):
 			b.box_mm(&"bluestone", Vector3(-half, y0 - 0.06, -0.02), Vector3(half, y0 + 0.06, 0.035), 0.01)
 
 	if roof_type == "flat":
@@ -292,7 +292,7 @@ func _facade(b: MeshBuilder, frame: Transform3D, length: float, bay_count: int, 
 			b.cylinder(&"zinc", Vector3(px, 0.15, 0.1), Vector3(px, _H - 0.32, 0.1), 0.045, 0.045, 8, false)
 			b.cylinder(&"zinc", Vector3(px, _H - 0.32, 0.1), Vector3(px, _H, 0.23), 0.045, 0.045, 8, false)
 
-	if corner_quoins and is_front:
+	if corner_quoins and is_front and not ArtStyle.stylized:
 		var y: float = 0.45
 		var k: int = 0
 		while y < _H - 0.3:

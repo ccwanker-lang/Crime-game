@@ -1,14 +1,18 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/weapons/weapon_model.gd" id="1_wm"]
-[ext_resource type="PackedScene" path="res://assets/polyhaven/service_pistol/service_pistol.gltf" id="2_gltf"]
+[ext_resource type="Script" path="res://scripts/weapons/proc_gun.gd" id="2_pg"]
 
 [node name="Pistol" type="Node3D"]
 script = ExtResource("1_wm")
-hidden_parts = PackedStringArray("service_pistol_pistol_b", "service_pistol_slide_b", "service_pistol_hammer_b", "service_pistol_trigger_b", "service_pistol_magazine_empty", "service_pistol_bullet")
+part_slide = "Bolt"
+part_hammer = ""
+part_magazine = "Magazine"
+slide_axis = Vector3(0, 0, 1)
 
-[node name="Model" parent="." instance=ExtResource("2_gltf")]
-transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("2_pg")
+kind = 3
 
 [node name="Muzzle" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.176)

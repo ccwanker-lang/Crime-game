@@ -34,6 +34,30 @@ float hash3(vec3 p) {
 	return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 
+float hash2(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+
+float vnoise2(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	vec2 u = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), u.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+float cloud_fbm(vec2 p) {
+	// Rotated octaves hide the straight grid lines of value noise.
+	mat2 r = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
+	float v = vnoise2(p) * 0.55;
+	p = r * p * 2.1 + 7.1;
+	v += vnoise2(p) * 0.28;
+	p = r * p * 2.3 + 3.3;
+	v += vnoise2(p) * 0.17;
+	return v;
+}
+
 void sky() {
 	vec3 d = EYEDIR;
 	vec3 hd = min(texture(hdri, SKY_COORDS).rgb * hdri_energy, vec3(hdri_clamp));
@@ -44,20 +68,12 @@ void sky() {
 	vec3 day_col = hd * mix(vec3(1.0), vec3(1.0, 0.62, 0.5), twilight * 0.75);
 	if (stylized) {
 		vec3 sky_c = mix(day_horizon.rgb, day_zenith.rgb, pow(clamp(d.y, 0.0, 1.0), 0.55));
-		// The panorama's clouds, blurred (9 taps) into soft blobs with a crisp edge.
-		float l = 0.0;
-		float hz = 0.0;
-		for (int i = -1; i <= 1; i++) {
-			for (int j = -1; j <= 1; j++) {
-				vec2 o = vec2(float(i) * 0.006, float(j) * 0.009);
-				l += dot(texture(hdri, SKY_COORDS + o).rgb, vec3(0.333));
-				hz += dot(texture(hdri, SKY_COORDS + o + vec2(0.0, 0.012)).rgb, vec3(0.333));
-			}
-		}
-		l /= 9.0;
-		hz /= 9.0;
-		float cl = smoothstep(0.47, 0.53, l) * smoothstep(-0.02, 0.1, d.y);
-		vec3 cc = mix(cloud_shade.rgb, cloud_color.rgb, smoothstep(-0.02, 0.06, hz - l + 0.03));
+		// Soft procedural clouds on a virtual cloud plane (no TIME: the radiance stays still).
+		vec2 cp = d.xz / (max(d.y, 0.0) + 0.12) * 0.55;
+		float l = cloud_fbm(cp);
+		float hz = cloud_fbm(cp + vec2(0.0, 0.08));
+		float cl = smoothstep(0.55, 0.66, l) * smoothstep(0.0, 0.12, d.y);
+		vec3 cc = mix(cloud_shade.rgb, cloud_color.rgb, smoothstep(-0.03, 0.05, l - hz + 0.02));
 		day_col = mix(sky_c, cc, cl) * mix(vec3(1.0), vec3(1.0, 0.7, 0.55), twilight * 0.75);
 		hd = vec3(l);
 	}

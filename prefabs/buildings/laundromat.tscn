@@ -24,7 +24,7 @@ floor_material = "floor_tiles"
 width = 7.5
 shop_sign = "LAUNDROMAT"
 wall_material = "plaster"
-wall_tint = Color(0.8, 0.88, 0.92, 1)
+wall_tint = Color(0.654, 0.833, 1.080, 1)
 awning_color = Color(0.1, 0.45, 0.5, 1)
 variation_seed = 620
 

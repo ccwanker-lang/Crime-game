@@ -40,6 +40,21 @@ var _shop_list: VBoxContainer
 var _shop_cash: Label
 var _shop_msg: Label
 var phone: Phone
+## Point 27: HUD in the game's style (theme assets/ui/game_theme.tres, HudIcon icons).
+const ACCENT := Color(0.96, 0.77, 0.27)
+const CASH_COLOR := Color(0.62, 0.93, 0.5)
+const CLEAN_COLOR := Color(0.56, 0.8, 1.0)
+const HELP: Array = [
+	["WASD / arrows", "Move"], ["Shift", "Sprint"], ["Space", "Jump"], ["Ctrl / C", "Crouch"],
+	["Mouse", "Look"], ["Left mouse", "Shoot / place furniture"], ["Right mouse", "Aim / sniper scope"],
+	["R", "Reload / rotate furniture"], ["1-8, mouse wheel", "Hotbar slot (a weapon there is drawn)"],
+	["H", "Holster"], ["Q", "Previous weapon"], ["V", "First / third person"],
+	["E", "Use, talk, sell"], ["Hold E", "Pick up placed furniture"], ["G / Shift+G", "Drop the stack / one"],
+	["Tab", "Phone"], ["Esc", "Free the mouse"], ["F9", "Test scenarios"],
+	["F4 / F6 / F7", "Debug: hurt yourself / +€1000 / fast time (hold)"], ["F1", "This help"],
+]
+var _clean_label: Label
+var _help: Control
 
 
 func _ready() -> void:
@@ -47,6 +62,8 @@ func _ready() -> void:
 	death_panel.visible = false
 	damage_flash.color.a = 0.0
 	_build_inventory_bar()
+	_restyle_hud()
+	_build_help_panel()
 	_build_shop_panel()
 	phone = Phone.new()
 	phone.name = "Phone"
@@ -121,7 +138,8 @@ func _draw_scope() -> void:
 
 ## Point 9: `cash` = dirty cash in your pocket, `clean` = laundered money (bank).
 func set_cash(cash: int, clean: int = 0) -> void:
-	cash_label.text = "€ %d   clean € %d%s" % [cash, clean, "  (∞ dev)" if GameState.infinite_cash else ""]
+	cash_label.text = "€ %d%s" % [cash, " (dev)" if GameState.infinite_cash else ""]
+	_clean_label.text = "€ %d" % clean
 	if _last_cash >= 0 and cash != _last_cash:
 		toast("%s€%d" % ["+" if cash > _last_cash else "-", absi(cash - _last_cash)])
 	if _last_clean >= 0 and clean != _last_clean:
@@ -150,14 +168,14 @@ func _build_inventory_bar() -> void:
 	add_child(bar)
 	for i: int in GameState.INVENTORY_SLOTS:
 		var slot := PanelContainer.new()
-		slot.custom_minimum_size = Vector2(78, 72)
+		slot.custom_minimum_size = Vector2(80, 74)
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.05, 0.05, 0.06, 0.55)
-		style.border_color = Color(1, 1, 1, 0.18)
-		style.set_border_width_all(1)
-		style.set_corner_radius_all(4)
-		style.set_content_margin_all(4)
+		style.bg_color = Color(0.08, 0.09, 0.13, 0.78)
+		style.border_color = Color(1, 1, 1, 0.22)
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(9)
+		style.set_content_margin_all(5)
 		slot.add_theme_stylebox_override("panel", style)
 		_slot_styles.append(style)
 		var icon := TextureRect.new()  # render of the item's 3D model (assets/icons/)
@@ -185,8 +203,8 @@ func _build_inventory_bar() -> void:
 		_slot_counts.append(count)
 		var key := Label.new()  # the number key of this slot
 		key.text = str(i + 1)
-		key.add_theme_font_size_override("font_size", 11)
-		key.modulate = Color(1, 1, 1, 0.55)
+		key.add_theme_font_size_override("font_size", 13)
+		key.modulate = Color(1, 1, 1, 0.6)
 		key.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		key.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		key.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -199,7 +217,7 @@ func _build_inventory_bar() -> void:
 	_toast.offset_top = -150.0
 	_toast.offset_bottom = -118.0
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast.add_theme_font_size_override("font_size", 18)
+	_toast.add_theme_font_size_override("font_size", 21)
 	_toast.add_theme_constant_override("outline_size", 6)
 	_toast.add_theme_color_override("font_outline_color", Color.BLACK)
 	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -240,9 +258,9 @@ func set_hotbar_selected(slot: int) -> void:
 	for i: int in _slot_styles.size():
 		var st: StyleBoxFlat = _slot_styles[i]
 		var on: bool = i == slot
-		st.border_color = Color(1.0, 0.82, 0.35, 0.95) if on else Color(1, 1, 1, 0.18)
-		st.set_border_width_all(2 if on else 1)
-		st.bg_color = Color(0.16, 0.13, 0.06, 0.7) if on else Color(0.05, 0.05, 0.06, 0.55)
+		st.border_color = ACCENT if on else Color(1, 1, 1, 0.22)
+		st.set_border_width_all(3 if on else 2)
+		st.bg_color = Color(0.27, 0.21, 0.08, 0.85) if on else Color(0.08, 0.09, 0.13, 0.78)
 
 
 ## Short message above the inventory bar (purchases, cash changes).
@@ -435,6 +453,130 @@ func show_death(dropped_text: String, respawn_seconds: float) -> void:
 
 func hide_death() -> void:
 	death_panel.visible = false
+
+
+# --- Style + help (point 27) ------------------------------------------------------
+
+## Icons in front of health/ammo, money and clock in one panel top right, the long key
+## bar replaced by "F1 help".
+func _restyle_hud() -> void:
+	var old: Node = get_node_or_null("HelpLabel")
+	if old:
+		old.queue_free()
+	var hint := Label.new()
+	hint.text = "F1  help"
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_constant_override("outline_size", 4)
+	hint.modulate = Color(1, 1, 1, 0.7)
+	hint.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	hint.offset_left = 18.0
+	hint.offset_top = -34.0
+	hint.offset_bottom = -12.0
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(hint)
+	# Health: a heart, the bar in the theme's colours.
+	var hb := health_bar.get_parent() as HBoxContainer
+	var heart := HudIcon.make("heart", Color(0.95, 0.36, 0.33), 28)
+	hb.add_child(heart)
+	hb.move_child(heart, 0)
+	hb.add_theme_constant_override("separation", 8)
+	health_bar.modulate = Color.WHITE
+	health_bar.custom_minimum_size = Vector2(200, 16)
+	health_label.add_theme_font_size_override("font_size", 28)
+	# Ammo: a bullet in front of the count.
+	var ab := ammo_label.get_parent() as VBoxContainer
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", 6)
+	ab.add_child(row)
+	ab.remove_child(ammo_label)
+	row.add_child(HudIcon.make("bullet", ACCENT, 24))
+	row.add_child(ammo_label)
+	ammo_label.add_theme_font_size_override("font_size", 28)
+	weapon_label.add_theme_font_size_override("font_size", 16)
+	# Money (dirty / clean) and the clock in one panel, top right.
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	panel.offset_left = -250.0
+	panel.offset_right = -12.0
+	panel.offset_top = 12.0
+	add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	panel.add_child(box)
+	_clean_label = Label.new()
+	for r: Array in [["cash", CASH_COLOR, cash_label, "dirty", 24], ["bank", CLEAN_COLOR, _clean_label, "clean", 20],
+			["clock", Color(0.93, 0.93, 0.95), clock_label, "", 20]]:
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 8)
+		box.add_child(line)
+		line.add_child(HudIcon.make(r[0], r[1], 22))
+		var lab: Label = r[2]
+		if lab.get_parent():
+			lab.get_parent().remove_child(lab)
+		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		lab.add_theme_font_size_override("font_size", r[4])
+		lab.add_theme_color_override("font_color", r[1])
+		lab.add_theme_constant_override("outline_size", 0)
+		line.add_child(lab)
+		var cap := Label.new()
+		cap.text = r[3]
+		cap.custom_minimum_size = Vector2(40, 0)
+		cap.add_theme_font_size_override("font_size", 13)
+		cap.modulate = Color(1, 1, 1, 0.55)
+		line.add_child(cap)
+
+
+func _build_help_panel() -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.visible = false
+	add_child(center)
+	var panel := PanelContainer.new()
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	panel.add_child(box)
+	var title := Label.new()
+	title.text = "Controls"
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", ACCENT)
+	box.add_child(title)
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 6)
+	box.add_child(grid)
+	for e: Array in HELP:
+		var k := Label.new()
+		k.text = e[0]
+		k.add_theme_color_override("font_color", ACCENT)
+		k.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		grid.add_child(k)
+		var v := Label.new()
+		v.text = e[1]
+		grid.add_child(v)
+	var foot := Label.new()
+	foot.text = "F1 closes"
+	foot.modulate = Color(1, 1, 1, 0.55)
+	foot.add_theme_font_size_override("font_size", 14)
+	box.add_child(foot)
+	_help = center
+
+
+func toggle_help() -> void:
+	_help.visible = not _help.visible
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var key := event as InputEventKey
+	if key and key.pressed and not key.echo and key.physical_keycode == KEY_F1:
+		toggle_help()
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:

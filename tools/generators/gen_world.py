@@ -3,9 +3,12 @@ Usage: python gen_world2.py <project root>"""
 import random
 import sys
 from tscn import Scene, v3, col, xform
+from palette_tint import ptint, pcol, MATERIAL_SWATCH  # point 27: colours from the palette
 
 ROOT = sys.argv[1].rstrip("/\\") + "/"
 rng = random.Random(42)
+# Colours use their own random stream: the layout (rng) stays exactly the same.
+crng = random.Random(27)
 sc = Scene()
 
 PF = "res://prefabs/"
@@ -49,7 +52,11 @@ sc.node("Ground", "StaticBody3D", NAV, props={
     "size": "Vector2(150, 132)", "material": ground_mat})
 sc.node("OuterGround", "StaticBody3D", ".", props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((0, -0.02, 3)),
-    "size": "Vector2(500, 500)", "collision": "false", "material": ground_mat})
+    "size": "Vector2(1000, 1000)", "collision": "false", "material": ground_mat})
+# Point 27: the edge of the world = tree rows, bushes and two rings of soft hills (no empty plane).
+sc.node("Backdrop", "Node3D", ".", props={
+    "script": sc.script("res://scripts/procgen/backdrop.gd"), "area": "Rect2(-75, -60, 150, 132)",
+    "tree_margin": "9.0", "hill_distance": "45.0", "ground_plane": "false"})
 
 # --------------------------------------------------------------------------- roads
 R = "roads/"
@@ -88,10 +95,9 @@ for x, z in [(-48, 1.6), (-20, -1.7), (12, 1.5), (46, -1.6), (30, 20), (12, -48.
 # --------------------------------------------------------------------------- houses
 HOUSE_W = {"a": 6.0, "b": 5.2, "c": 7.2, "d": 5.6, "e": 6.6, "f": 4.8}
 WALLS = ["brick_old", "brick_mixed", "brick_yellow", "brick_white", "plaster"]
-PLASTER_TINTS = [col(0.93, 0.89, 0.8), col(0.78, 0.84, 0.82), col(0.9, 0.82, 0.72), col(0.85, 0.85, 0.88),
-                 col(0.95, 0.93, 0.9)]
-DOORS = [col(0.12, 0.22, 0.18), col(0.45, 0.1, 0.1), col(0.1, 0.12, 0.2), col(0.2, 0.2, 0.21),
-         col(0.05, 0.25, 0.3), col(0.35, 0.22, 0.12), col(0.5, 0.45, 0.35)]
+PLASTER_TINTS = [ptint("plaster", s) for s in ["plaster_cream", "plaster_green", "plaster_pink", "plaster_blue", "brick_white"]]
+DOORS = [pcol(s) for s in ["door_green", "door_red", "door_blue", "trim_dark", "accent_blue", "wood_dark", "roof_slate"]]
+ROOFS = [("roof_red", "roof_red"), ("roof_dark", "roof_dark"), ("roof_dark", "roof_slate")]
 last_type = [None]
 
 
@@ -112,7 +118,11 @@ def house(x0, front_z, facing_road_south, max_x, gardens):
     if rng.random() < 0.45:
         wm = rng.choice(WALLS)
         props["wall_material"] = q(wm)
-        props["wall_tint"] = rng.choice(PLASTER_TINTS) if wm == "plaster" else col(*([rng.uniform(0.88, 1.0)] * 3))
+        props["wall_tint"] = rng.choice(PLASTER_TINTS) if wm == "plaster" else ptint(wm, MATERIAL_SWATCH[wm], rng.uniform(0.92, 1.04))
+    if crng.random() < 0.5:
+        rm, rs = crng.choice(ROOFS)
+        props["roof_material"] = q(rm)
+        props["roof_tint"] = ptint(rm, rs)
     if rng.random() < 0.3:
         props["floors"] = str(rng.choice([2, 3]))
     put(f"buildings/row_house_{k}.tscn", (cx, 0, z), rot, props=props)
@@ -259,7 +269,7 @@ for i, (name, c, wm) in list(enumerate(SHOPS))[1:]:
     props = {"width": f"{w:g}", "shop_sign": q(name), "awning_color": c, "wall_material": q(wm),
              "variation_seed": str(200 + i)}
     if wm == "plaster":
-        props["wall_tint"] = col(0.95, 0.9, 0.82)
+        props["wall_tint"] = ptint("plaster", ["plaster_pink", "plaster_cream", "plaster_blue"][i])
     x = fixed("buildings/shop.tscn", x, w, -6, True, gC, props=props)
 # Gun shop (Vince sells weapons + ammo).
 x = fixed("buildings/gun_shop.tscn", x, 7, -6, True, gC, name="GunShop")

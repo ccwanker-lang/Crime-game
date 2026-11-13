@@ -243,6 +243,8 @@ static func _matte(source: StandardMaterial3D, tint: int, color: Color = Color(0
 		var copy := source.duplicate() as StandardMaterial3D
 		copy.metallic = 0.0
 		copy.roughness = 0.6 if source.resource_name.begins_with("Skin") else 0.85
+		copy.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP  # point 27: one light model for everything
+		copy.metallic_specular = 0.3
 		if source.resource_name in ["Eyes", "Eye"]:
 			copy.roughness = 0.3
 		if tint >= 0:

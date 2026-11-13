@@ -11,6 +11,9 @@ extends StaticBody3D
 ## Palette swatches dark -> light (e.g. end with accent_yellow for a flowering shrub).
 @export var swatches: PackedStringArray = PackedStringArray(["leaf_dark", "leaf", "leaf_light"]):
 	set(v): swatches = v; _queue_rebuild()
+## Solid (players and NPCs walk around it; the navmesh bakes it). Off for small plants.
+@export var collide: bool = true:
+	set(v): collide = v; _queue_rebuild()
 
 var _generated: Array[Node] = []
 var _pending: bool = false
@@ -46,6 +49,8 @@ func _rebuild() -> void:
 	mi.mesh = b.build()
 	add_child(mi)
 	_generated.append(mi)
+	if not collide:
+		return
 	var cs := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
 	shape.radius = maxf(r.x, r.z) * 0.8
