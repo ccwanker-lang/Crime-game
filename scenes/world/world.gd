@@ -945,7 +945,8 @@ const PLACE_NAMES: Dictionary = {
 ## Host: a phone message to every player.
 func phone_all(contact: String, text: String, deal: String = "") -> void:
 	for p: Node in players_root.get_children():
-		(p as Player).phone_message(contact, text, deal)
+		if p is Player and not p.is_queued_for_deletion():
+			(p as Player).phone_message(contact, text, deal)
 
 
 ## "near the Store" / "on Main Road": roughly where `pos` is, for texts.
