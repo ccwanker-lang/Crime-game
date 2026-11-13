@@ -417,8 +417,7 @@ for z in (12, 24, 36):
     put("nature/tree_medium.tscn", (66 + rng.uniform(-1, 1), 0, z + rng.uniform(-2, 2)), rng.uniform(0, 360),
         props={"tree_seed": str(400 + z)})
 grass(67, 30, 8, 50, 8)
-for z in (52, 58):
-    put("nature/tree_large.tscn", (46 + z % 7, 0, z), 0, props={"tree_seed": str(z)})
+# (Point 45: the two big trees at x 46-49, z 52/58 made way for Carlo's car lot.)
 
 # --------------------------------------------------------------------------- street furniture
 for x in (-60, -36, -12, 12, 42, 60):
@@ -475,7 +474,7 @@ for i in range(26):
         props={"tree_seed": str(600 + i)})
     if i % 2 == 0:
         tx, tz, tr = x + rng.uniform(-1.5, 1.5), 63 + rng.uniform(-2, 2), rng.uniform(0, 360)
-        if not -62 < tx < 37:  # South Street runs there (z 54..66)
+        if not -62 < tx < 59:  # South Street runs there (z 54..66), then Carlo's car lot (point 45)
             put("nature/tree_medium.tscn", (tx, 0, tz), tr, props={"tree_seed": str(700 + i)})
 for i in range(18):
     z = -50 + i * 6.5
@@ -512,6 +511,23 @@ put("nature/hedge.tscn", (-4, 0, 41.8), 0, props={"size": v3(20, 1.2, 0.8), "hed
 sc.node("Agora", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/world/agora.gd"), "transform": xform((AGORA_POS[0], 0, AGORA_POS[1]))})
 
+# --------------------------------------------------------------------------- Carlo's Cars (point 45)
+# Car lot east of the side road (x 36..50, z 49.5..63.5) + the sales office (front at x 50, facing the road).
+CAR_LOT = (43.0, 56.5, 14.0, 14.0)
+sc.node("CarLot", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((CAR_LOT[0], 0, CAR_LOT[1])),
+    "size": f"Vector2({CAR_LOT[2]:g}, {CAR_LOT[3]:g})", "surface": q("concrete"), "height": "0.15", "edge": "false"})
+put("buildings/car_dealer.tscn", (50, 0.15, 56), -90, name="CarDealer")
+for model, pos, rot in [("hatch", (45.6, 0.15, 51.4), 120), ("sedan", (45.6, 0.15, 61.4), 60)]:
+    sc.node(uname("DisplayCar"), "StaticBody3D", NAV, props={
+        "script": sc.script("res://scripts/vehicles/display_car.gd"), "transform": xform(pos, rot),
+        "model_id": q(model)})
+for pos in [(36.6, 0.15, 49.9), (36.6, 0.15, 63.1)]:
+    put("props/street_lamp.tscn", pos, 90)
+sc.node("CarLotSign", "Label3D", NAV, props={
+    "transform": xform((36.4, 2.6, 56.5), -90), "text": q("CARLO'S CARS\nused + new"), "font_size": "64",
+    "pixel_size": "0.01", "modulate": col(1.0, 0.85, 0.3), "outline_size": "14", "double_sided": "false"})
+
 # --------------------------------------------------------------------------- invisible walls
 sc.node("Bounds", "StaticBody3D", ".")
 for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150, 10, 1)),
@@ -531,6 +547,9 @@ for name, (x0, z0, x1, z1) in [("N", (-74, -62, 74, -58.5)), ("S", (-74, 64.5, 7
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")
 sc.node("SpawnPoints", "Node3D", "Markers")
+# Point 45: where Carlo hands over a bought car (nose to the road).
+for i, z in enumerate([51.6, 55.0, 58.4, 61.8]):
+    sc.node(f"CarDelivery{i + 1}", "Marker3D", "Markers", props={"transform": xform((39.0, 0.15, z), 90)})
 for i, x in enumerate([10, 12, 14, 16]):
     sc.node(f"Spawn{i + 1}", "Marker3D", "Markers/SpawnPoints", props={"transform": xform((x, 0.3, -4.6), 90)})
 sc.node("CustomerSpawn", "Marker3D", "Markers", props={"transform": xform((68, 0.15, 4.8))})

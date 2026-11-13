@@ -205,8 +205,11 @@ textures anywhere. Still a believable Belgian/European town at human scale (1 un
 ## Vehicles (milestone 2)
 - AI traffic: procedural cars on smooth right-hand routes (curves). Gunfire: drivers stay in and flee in
   panic (U-turn or speed off, point 24; full panic through junctions with point 32); wrecks are towed.
-- Car dealer (building + NPC): buy cars. Your own cars: F to get in/out, WASD drives (VehicleBody3D), chase
-  camera; other players can ride along as passengers. Saved in the savegame, they spawn at your property.
+- Car dealer (building + NPC): buy cars. Your own cars: F to get in/out, WASD drives, chase camera; other players
+  can ride along as passengers. Saved in the savegame where they were parked. Done (point 45): Carlo's Cars (lot
+  east of the side road at South Street), Pony Hatch €4,500 / Comet Sedan €9,000 / Mule Van €14,000 (2 seats), arcade
+  driving (`PlayerCar`), H horn, Space handbrake, people hit at speed are hurt (a crime). Later: fuel, damage,
+  repairs at the cover garage, shooting from a car, the van's cargo space.
 
 ## Buildings / services
 Starter room, cover garage (the players' own), barn, lab warehouse, harbor containers/storage, villa, mountain cabin,
@@ -284,7 +287,7 @@ the start for now; rank gates (see Progression) come later.
 11. Black Crows house: rivals roam at night, attack players, drop loot, never enter your property - done (reworked by 31: they live in the yard)
 12. Park on the square (paths, trees, benches, dog walkers with dogs, sitters, youths smoking) - done (built as 46)
 13. Agora: fenced mini football pitch, NPCs playing sometimes - done (built as 46)
-14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - todo
+14. Car dealer: buy cars, drive them (F in/out, WASD, chase cam, passengers), saved - done (point 45)
 Added after playing (A-F; E = point 4, C extends point 6):
 15. (A) Railings round every stairwell opening, also on the top floor where no next flight starts - done
 16. (B) Every house is furnished by the interior generator (no empty houses): dining corner, nightstands, wardrobes, study floors, footprint check - done
@@ -374,7 +377,7 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
 ORDER AFTER 42 (set by the user, 2026-11-13):
   43. Ranks + XP + unlocks (Progression) - done (session B, merged 2026-11-13)
   44. Staff + dealers - done (session B, merged 2026-11-13; hiring via the phone app "Crew" until there is a bar)
-  45. = point 14: car dealer + driving yourself - todo
+  45. = point 14: car dealer + driving yourself - done
   46. = points 12-13: park, agora - done
   47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
@@ -746,3 +749,30 @@ Choices made while working autonomously (what + why).
   Saves cash/inventory per player name, their position/health/loaded magazines, station states (plants,
   rack, delivery box), time of day and loot bags. Not saved: NPCs, customers, phone messages, cars.
   Main menu: "Host - continue" / "Host - new game" (the old save stays as backup until the next save).
+- Point 45 (car dealer + driving): arcade driving instead of VehicleBody3D (`PlayerCar` = CharacterBody3D: speed
+  along the nose + a bicycle steering model, move_and_slide against walls/cars/props, height from a ray to the
+  ground, collision box 0.35 m up so kerbs pass under). Why: wheel physics is twitchy on kerbs, hard to keep in sync
+  over the network and can't be tested headless; this one drives the same on every machine and in the self-test.
+- Point 45 network: the DRIVER's peer simulates its car (no input lag) and sends pos/yaw/speed/steer to the host
+  every physics frame; the host checks the distance (1.5 x top speed + slack, else it snaps the driver back) and
+  passes it on through the car's synchronizer; the others smooth towards it. Seats are host-owned (synced
+  PackedInt32Array, seat 0 drives). Why: the same pattern as the players (owner moves, host checks).
+- Point 45: riders are hidden inside the car (no seated animation yet) and pinned to their seat, collision off; the
+  chase camera is the third-person spring arm at 6.5 m (7.5 for the van), the mouse orbits, it swings back behind
+  the car after 1.5 s. No shooting from a car (yet). Why: the simplest version that works in co-op; drive-bys and
+  sitting poses can come with the cover garage / story missions.
+- Point 45: every car is the CREW's (like properties): anyone in the session may drive it. Cars are legal
+  purchases (clean money first). No rank gate on cars yet (the DESIGN rank table says "first car" at rank 1 only as
+  an unlock text; B's RankConfig has no car ids) - one line in CarDealer when wanted.
+- Point 45: hitting people: the host checks a box in front of every car faster than 3 m/s (npcs + players on
+  foot); damage 10 + 11 per m/s above 3, at 10 m/s or more it kills. A kill counts like a shot kill (police
+  report, Wanted kill kinds, Progression.host_kill), an injury as "assault". Why: running people over must not be a
+  free way to kill without heat.
+- Point 45: cars are saved where they were parked (GameState.world["vehicles"]), not moved to a property: you find
+  them where you left them. A bought car appears on a free CarDelivery spot on Carlo's lot (4 spots; full = no sale).
+- Point 45 map: the lot replaces two trees at x 46-49 (z 52/58) and the map-edge trees east of x 37 on the south
+  edge (the edge-tree rng calls stay, so the rest of the map keeps its exact layout).
+- Self-test: the agora starts no random matches in --selftest/--netcheck (four extra football NPCs broke the
+  pedestrian, police and regen checks of the full run); the dog-walker check starts at the last loop point (no
+  random pause at the start).
+

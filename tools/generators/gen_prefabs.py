@@ -21,6 +21,7 @@ S = {
     "property": "res://scenes/world/property.gd",
     "proc_item": "res://scripts/procgen/proc_item.gd",
     "estate_agent": "res://scripts/npc/estate_agent.gd",
+    "car_dealer": "res://scripts/npc/car_dealer.gd",
     "washing_machine": "res://scripts/procgen/washing_machine.gd",
 }
 
@@ -513,6 +514,28 @@ building(B + "real_estate.tscn", {
     "roof_material": q("roof_dark"), "ground_floor": q("shop"), "door_bay": "0", "shop_sign": q("VOS REAL ESTATE"),
     "awning": "true", "awning_color": col(0.12, 0.2, 0.4), "chimney": q("none"), "enterable": "true",
     "public_building": "true", "variation_seed": "512"}, estate_extra)
+
+
+# Point 45: Carlo's Cars, the sales office on the car lot (the lot itself is in gen_world).
+def car_dealer_extra(sc):
+    inst(sc, "Desk", I + "office_desk.tscn", (0.0, FLOOR, -5.0), 180)
+    inst(sc, "Chair1", I + "dining_chair.tscn", (-0.5, FLOOR, -3.8), 0)
+    inst(sc, "Chair2", I + "dining_chair.tscn", (0.5, FLOOR, -3.8), 0)
+    inst(sc, "Cabinet", I + "drawer_cabinet.tscn", (2.2, FLOOR, -7.4), 0)
+    inst(sc, "Shelf", I + "wall_shelf.tscn", (-2.0, FLOOR, -7.5), 0)
+    inst(sc, "Plant", I + "potted_plant.tscn", (2.6, FLOOR, -0.9))
+    inst(sc, "Sofa", I + "sofa_modern.tscn", (-2.6, FLOOR, -2.6), 90)
+    inst(sc, "Lamp", I + "ceiling_lamp.tscn", (0, 2.98, -4.0))
+    shopkeeper(sc, "Carlo", (0.0, FLOOR, -6.1), "Carlo", "Carlo's Cars",
+               "Wheels! Every car on the lot runs, mostly. Cash or... cash.", [], 2, 33,
+               {"script": sc.script(S["car_dealer"])})
+
+
+building(B + "car_dealer.tscn", {
+    "width": "7.0", "depth": "8.0", "floors": "1", "wall_material": q("plaster"), "wall_tint": ptint("plaster", "plaster_blue"),
+    "roof_material": q("roof_dark"), "ground_floor": q("shop"), "door_bay": "0", "shop_sign": q("CARLO'S CARS"),
+    "awning": "true", "awning_color": col(0.55, 0.08, 0.06), "chimney": q("none"), "enterable": "true",
+    "public_building": "true", "variation_seed": "845"}, car_dealer_extra)
 
 
 # Point 7: the garage. Workshop in front, the black market behind a chain-link fence at the

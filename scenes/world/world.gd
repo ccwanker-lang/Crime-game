@@ -61,6 +61,9 @@ func _ready() -> void:
 			if n is Player:
 				sleep.host_forget(n as Player))
 	add_child(Wanted.new())  # point 28 (host logic, stars synced per player)
+	var vehicles := Vehicles.new()  # point 45: the crew's own cars (own spawner)
+	vehicles.name = "Vehicles"
+	add_child(vehicles)
 	Pedestrian.jaywalk_chance = Pedestrian.JAYWALK_DEFAULT  # (a scenario may have raised it)
 	if "--screenshot" in OS.get_cmdline_user_args():
 		_start_screenshot_tour()
@@ -147,6 +150,28 @@ func _net_check() -> void:
 			me.request_place("grow_pot", me.global_position, 0.0)
 			await get_tree().create_timer(1.0).timeout
 			print("[NetCheck] client place on the street -> '%s'" % me.last_message)
+			# Point 45: the host parks a car next to us: get in, drive 2 s, the host must see it move.
+			me.auto_walk = false
+			Input.action_release("crouch")
+			var car: PlayerCar = null
+			for i: int in 30:
+				car = Vehicles.current.nearest(me.global_position, 9.0) if Vehicles.current else null
+				if car:
+					break
+				await get_tree().create_timer(0.5).timeout
+			if car:
+				car.request_enter()
+				await get_tree().create_timer(1.0).timeout
+				var from: Vector3 = car.global_position
+				car.test_drive = true
+				car.test_input = Vector3(0, 1, 0)
+				await get_tree().create_timer(2.0).timeout
+				car.test_input = Vector3(0, 0, 1)
+				await get_tree().create_timer(1.0).timeout
+				print("[NetCheck] client drives the %s: seat %d, moved %.1f m" % [car.spec["name"], me.seat,
+						from.distance_to(car.global_position)])
+			else:
+				print("[NetCheck] client sees no own car nearby")
 	else:
 		# A growing plant in the starter room: the client must see it (snapshot / sync).
 		var pot := host_place("grow_pot", get_marker("Pot1Spot").global_position, 0.0) as GrowPot
@@ -181,6 +206,10 @@ func _net_check() -> void:
 				if not pl.is_local() and i == 1:
 					GameState.add_clean(pl.player_name, 250)  # laundered money reaches the owner's wallet
 					pl.send_wallet()
+				if not pl.is_local() and i == 4 and Vehicles.current and Vehicles.current.cars().is_empty():
+					# Point 45: a car beside the client (it gets in and drives, see the client branch).
+					var at: Vector3 = pl.global_position + pl.global_basis.x * 3.0
+					Vehicles.current.host_spawn("sedan", 3, Vector3(at.x, pl.global_position.y, at.z), -PI / 2.0)  # nose east
 				if not pl.is_local():
 					print("[NetCheck] host sees client %s at %s crouch=%s weapon=%d held='%s' (model %s)" % [pl.player_name,
 							pl.global_position.snapped(Vector3.ONE * 0.1), pl.net_crouch, pl.net_weapon, pl.net_held,
@@ -222,6 +251,9 @@ func _net_check() -> void:
 	print("[NetCheck] %s sees the park: %d dog walker(s) with a dog, %d smoker(s), ball at %s" % [
 			"host" if multiplayer.is_server() else "client", dogs, smokers,
 			ag.ball_pos.snapped(Vector3.ONE * 0.1) if ag else Vector3.INF])
+	for pc: Node in get_tree().get_nodes_in_group(&"player_cars"):
+		print("[NetCheck] %s sees own car %s at %s, seats %s" % ["host" if multiplayer.is_server() else "client",
+				(pc as PlayerCar).spec["name"], (pc as Node3D).global_position.snapped(Vector3.ONE * 0.1), (pc as PlayerCar).seats])
 	var cars: PackedStringArray = []
 	for car: Node in get_tree().get_nodes_in_group(&"cars").slice(0, 3):
 		cars.append("%s@%s v=%.1f" % [car.name, (car as Node3D).global_position.snapped(Vector3.ONE * 0.1), car.get("net_speed")])
@@ -444,6 +476,8 @@ func capture_for_save() -> void:
 			bags.append({"pos": b.global_position, "owner": b.owner_name, "cash": b.cash, "items": b.items,
 					"dropped": b.dropped})
 	GameState.world["loot_bags"] = bags
+	if Vehicles.current:
+		Vehicles.current.capture()
 
 
 ## Host: a player's position, health and loaded magazines -> their save record.
@@ -533,6 +567,8 @@ func _restore_from_save() -> void:
 			continue  # already there (placed before the restore ran)
 		host_place(str(rec["item"]), rec["pos"], float(rec["yaw"]), uid)
 	_migrate_old_stations()
+	if Vehicles.current:
+		Vehicles.current.restore()
 	if not GameState.world.get("free_locker", false):
 		var spot: Node3D = get_marker("LockerSpot")
 		if spot:

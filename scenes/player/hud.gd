@@ -50,7 +50,7 @@ const HELP: Array = [
 	["R", "Reload / rotate (build mode)"], ["B", "Build mode: place, move, pick up"], ["1-8, mouse wheel", "Hotbar slot (a weapon there is drawn)"],
 	["H", "Holster"], ["Q", "Previous weapon"], ["V", "First / third person"],
 	["E", "Use, talk, sell"], ["Hold E", "Pick up (build mode)"], ["G / Shift+G", "Drop the stack / one"],
-	["Tab", "Phone"], ["Esc", "Free the mouse"], ["F9", "Test scenarios"],
+	["F", "Get in / out of your car (WASD drive, Space handbrake, H horn)"], ["Tab", "Phone"], ["Esc", "Free the mouse"], ["F9", "Test scenarios"],
 	["F4 / F6 / F7", "Debug: hurt yourself / +€1000 / fast time (hold)"], ["F1", "This help"],
 	["F10 (host)", "Admin: noclip fly (Space up, Ctrl down, Shift fast)"], ["F11 (host)", "Admin: god mode + endless ammo"],
 	["F12 (host)", "Admin: clear wanted stars, police back off"],
@@ -72,6 +72,7 @@ func _ready() -> void:
 	_build_help_panel()
 	_build_shop_panel()
 	add_child(RankPanel.new())  # ranks: rank + XP, top left
+	_build_car_panel()
 	phone = Phone.new()
 	phone.name = "Phone"
 	add_child(phone)
@@ -356,6 +357,8 @@ func open_shop(shop: Shopkeeper, cash: int, clean: int = 0) -> void:
 		c.queue_free()
 	if shop is EstateAgent:
 		_fill_estate(shop as EstateAgent)
+	elif shop is CarDealer:
+		_fill_cars(shop as CarDealer)
 	for id: StringName in shop.stock:
 		var item: ItemData = ItemDB.get_item(id)
 		if item == null:
@@ -460,6 +463,75 @@ func _fill_estate(agent: EstateAgent) -> void:
 				agent.request_buy_property(p.property_id))
 			row.add_child(b)
 		_shop_list.add_child(row)
+
+
+## Point 45: Carlo's cars: name + what it is like, top speed, price, Buy.
+func _fill_cars(dealer: CarDealer) -> void:
+	for id: String in CarCatalog.ids():
+		var m: Dictionary = CarCatalog.get_model(id)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var info := Label.new()
+		info.text = "%s
+%s
+Top speed %d km/h, %d seats." % [m["name"], m["text"], roundi(float(m["max_speed"]) * 3.6), int(m["seats"])]
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info.custom_minimum_size = Vector2(320, 0)
+		info.add_theme_font_size_override("font_size", 16)
+		row.add_child(info)
+		var price := Label.new()
+		price.text = "€%s" % CarCatalog.money(int(m["price"]))
+		price.custom_minimum_size = Vector2(80, 0)
+		price.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		price.add_theme_font_size_override("font_size", 18)
+		row.add_child(price)
+		var b := _button("Buy")
+		b.custom_minimum_size = Vector2(76, 0)
+		b.pressed.connect(func() -> void:
+			_shop_msg.text = "..."
+			dealer.request_buy_car(id))
+		row.add_child(b)
+		_shop_list.add_child(row)
+
+
+# --- Car panel (point 45): speed + seat while in a car ------------------------------
+
+var _car_panel: PanelContainer
+var _car_label: Label
+
+
+func _build_car_panel() -> void:
+	_car_panel = PanelContainer.new()
+	_car_panel.name = "CarPanel"
+	_car_panel.anchor_left = 1.0
+	_car_panel.anchor_right = 1.0
+	_car_panel.anchor_top = 1.0
+	_car_panel.anchor_bottom = 1.0
+	_car_panel.offset_left = -300
+	_car_panel.offset_right = -20
+	_car_panel.offset_top = -150
+	_car_panel.offset_bottom = -104
+	_car_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_car_label = Label.new()
+	_car_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_car_label.add_theme_font_size_override("font_size", 20)
+	_car_panel.add_child(_car_label)
+	_car_panel.visible = false
+	add_child(_car_panel)
+
+
+func set_car(car: PlayerCar, driving: bool) -> void:
+	_car_panel.visible = car != null
+	if car:
+		_car_label.text = car.spec["name"] + ("" if driving else "  (passenger)")
+
+
+func update_car(car: PlayerCar) -> void:
+	if not _car_panel.visible:
+		return
+	var kmh: int = roundi(absf(car.speed) * 3.6)
+	_car_label.text = "%s   %d km/h%s" % [car.spec["name"], kmh, "  R" if car.speed < -0.3 else ""]
 
 
 ## Ranks: "Rank 2" in place of a Buy button.

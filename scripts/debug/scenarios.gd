@@ -44,6 +44,8 @@ const LIST: Array = [
 	["police_vs_crows", "23:00 on South Street: a Crow, an officer and a patrol car close by", "Just watch (you stand out of the Crow's reach): the street Crow opens fire on the officer, the officer fires back, the patrol car hears it and its crew gets out. Nobody gets stars for it. Crows killed at night are replaced from a pool of 20 per night; when it's used up no more Crows come until the next night."],
 	["park", "15:00 at the park entrance", "Walk through the new park: gravel paths, benches, trees. Two people walk their dog on a lead round the loop (the dog sniffs when they stop). Three youths stand smoking in a circle on the lawn (puffs of smoke). People sit on the benches. The agora (fenced football pitch) is at the end of the cross path."],
 	["agora", "15:00 on the agora, a 2-against-2 match going on", "Four NPCs in red and blue shirts play football (passes, shots, GOAL! + score board). Walk into the ball to kick it yourself (Shift = harder). The match ends after a few minutes and they walk off; on a normal day a match starts now and then between 09:00 and 20:00."],
+	["car_dealer", "14:00 at Carlo's Cars with €20,000 clean money", "E on Carlo: the car list (Pony Hatch, Comet Sedan, Mule Van) with top speed, seats and price. Buy one: it appears on the lot outside (nose to the road), Carlo texts you. Walk to it: '[F] Drive the ...'. Buying again fills the next spot; with 4 cars on the lot Carlo says to clear it first."],
+	["driving", "12:00 on the car lot next to your Comet Sedan (+ a Mule Van)", "F = get in (driver's seat), W/S = gas / brake + reverse, A/D = steer, Space = handbrake, H = horn, mouse = look around (the camera swings back behind the car), F = get out beside the door. Speed at the bottom (km/h). Drive onto the road and around town; walls and cars stop you. People you hit at speed get hurt (that is a crime, like a shot). With 2 instances: the second player presses F at the same car = passenger seat."],
 	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
 	["staff_workers", "Rank 2: a grower + a packager in your Starter Room", "Hold F7 to speed up time and watch: the grower fills the pots with soil, plants, waters and harvests onto the drying rack; the packager takes the dried weed off and packages it (bags end up in the locker: E on it). E on a worker = what they are doing. Tab > Crew: your staff, wages, Fire, and Benny's candidates (Hire tab)."],
 	["dealers", "Rank 1, 10 bags, next to your dealer in Old Town", "E on the dealer: Give all my bags, then hold F7: they sell about 1 bag per in-game hour (+XP, top-left panel). E again: Collect. Tab > Crew > Hire: Benny's people (pick a district or a property). Rank 1 allows 1 dealer: F8 a few times for more."],
@@ -349,6 +351,22 @@ static func run(world: Node, id: String) -> bool:
 			Staff.debug_hire(me.player_name, "grower", "starter_room")
 			Staff.debug_hire(me.player_name, "packager", "starter_room")
 			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 9.0)
+		"car_dealer":
+			_kit(me, 2000, [])
+			GameState.get_or_create_player_data(me.player_name)["clean"] = 20000
+			var office: Node3D = world.find_child("CarDealer", true, false) as Node3D
+			var carlo: Node3D = office.find_child("Carlo", true, false) as Node3D
+			_place(me, office.to_global(Vector3(0.0, 0.2, -3.6)), carlo.global_position + Vector3.UP * 1.5, dn, 14.0)
+		"driving":
+			_kit(me, 500, [])
+			var veh: Vehicles = Vehicles.current
+			var s2: Node3D = world.find_child("CarDelivery2", true, false) as Node3D
+			var s3: Node3D = world.find_child("CarDelivery3", true, false) as Node3D
+			if veh and s2 and s3:
+				var sedan: PlayerCar = veh.host_spawn("sedan", 4, s2.global_position, s2.global_rotation.y)
+				veh.host_spawn("van", 0, s3.global_position, s3.global_rotation.y)
+				var door: Vector3 = sedan.global_transform * Vector3(-1.6, 0.1, 0.0)
+				_place(me, door, sedan.global_position + Vector3.UP * 0.8, dn, 12.0)
 		"dealers":
 			Progression.force_gates = true
 			Progression.debug_set_rank(1)
@@ -378,6 +396,8 @@ static func run(world: Node, id: String) -> bool:
 		for c: Node in world.get_tree().get_nodes_in_group(&"cars"):
 			if (c as Car).police and (c as Node3D).global_position.distance_to(me.global_position) < 40.0:
 				near.append("police car %.0f m" % (c as Node3D).global_position.distance_to(me.global_position))
+		for c: Node in world.get_tree().get_nodes_in_group(&"player_cars"):
+			near.append("own car %s %.0f m" % [(c as PlayerCar).spec["name"], (c as Node3D).global_position.distance_to(me.global_position)])
 		var prop: Property = Placement.property_at(world.get_tree(), me.global_position)
 		print("[ScenarioCheck] %s: at %s (%s), %.1f h, health %d, wanted %d, cash %d clean %d, items %s, near: %s" % [id,
 				me.global_position.snapped(Vector3.ONE * 0.1), prop.display_name if prop else "street",
@@ -402,6 +422,15 @@ static func run(world: Node, id: String) -> bool:
 						(n as LaunderSafe).deposit()
 						await world.get_tree().create_timer(0.3).timeout
 						me.open_safe(n as LaunderSafe)
+			if "--drive" in OS.get_cmdline_user_args():
+				# Point 45: in the nearest own car, 2.5 s of gas with a little steer (chase camera + km/h).
+				var car: PlayerCar = Vehicles.current.nearest(me.global_position, 6.0) if Vehicles.current else null
+				if car:
+					car.host_enter(me)
+					await world.get_tree().physics_frame
+					car.test_drive = true
+					car.test_input = Vector3(0.15, 1.0, 0.0)
+					await world.get_tree().create_timer(2.5).timeout
 			if "--phone-map" in OS.get_cmdline_user_args():
 				me.open_phone()
 				me.ui.phone._show("map")

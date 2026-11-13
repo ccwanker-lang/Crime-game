@@ -68,7 +68,9 @@
 [ext_resource type="PackedScene" path="res://prefabs/props/sign_post.tscn" id="66_r"]
 [ext_resource type="PackedScene" path="res://prefabs/props/aircon.tscn" id="67_r"]
 [ext_resource type="Script" path="res://scripts/world/agora.gd" id="68_r"]
-[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="69_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/car_dealer.tscn" id="69_r"]
+[ext_resource type="Script" path="res://scripts/vehicles/display_car.gd" id="70_r"]
+[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="71_r"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
@@ -1628,14 +1630,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 67, 0, 48.75)
 size = Vector2(8, 12.5)
 field_seed = 803
 
-[node name="TreeLarge6" parent="NavRegion" instance=ExtResource("29_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 49, 0, 52)
-tree_seed = 52
-
-[node name="TreeLarge7" parent="NavRegion" instance=ExtResource("29_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0, 58)
-tree_seed = 58
-
 [node name="StreetLamp7" parent="NavRegion" instance=ExtResource("44_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -60, 0.15, -3.95)
 
@@ -1801,7 +1795,7 @@ transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -23, 3
 [node name="Aircon2" parent="NavRegion" instance=ExtResource("67_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 64, 3.2, -14.9)
 
-[node name="TreeLarge8" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge6" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.310942, 0, 0.950429, 0, 1, 0, -0.950429, 0, -0.310942, -70.956, 0, -57.121)
 tree_seed = 600
 
@@ -1817,7 +1811,7 @@ tree_seed = 601
 transform = Transform3D(0.819252, 0, -0.573434, 0, 1, 0, 0.573434, 0, 0.819252, -59.0789, 0, -57.2907)
 tree_seed = 602
 
-[node name="TreeLarge9" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge7" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.904528, 0, 0.426415, 0, 1, 0, -0.426415, 0, -0.904528, -56.0988, 0, -58.8523)
 tree_seed = 603
 
@@ -1829,7 +1823,7 @@ tree_seed = 604
 transform = Transform3D(0.483452, 0, 0.875371, 0, 1, 0, -0.875371, 0, 0.483452, -41.7965, 0, -56.8159)
 tree_seed = 605
 
-[node name="TreeLarge10" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge8" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.670961, 0, -0.741492, 0, 1, 0, 0.741492, 0, -0.670961, -38.4456, 0, -57.9382)
 tree_seed = 606
 
@@ -1841,7 +1835,7 @@ tree_seed = 607
 transform = Transform3D(-0.987822, 0, 0.155588, 0, 1, 0, -0.155588, 0, -0.987822, -27.0267, 0, -59.0206)
 tree_seed = 608
 
-[node name="TreeLarge11" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge9" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.33072, 0, -0.943729, 0, 1, 0, 0.943729, 0, -0.33072, -19.4107, 0, -59.2223)
 tree_seed = 609
 
@@ -1853,7 +1847,7 @@ tree_seed = 610
 transform = Transform3D(0.44902, 0, 0.893522, 0, 1, 0, -0.893522, 0, 0.44902, -9.38024, 0, -58.2994)
 tree_seed = 611
 
-[node name="TreeLarge12" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge10" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(0.950632, 0, 0.310322, 0, 1, 0, -0.310322, 0, 0.950632, -1.0261, 0, -57.9282)
 tree_seed = 612
 
@@ -1865,7 +1859,7 @@ tree_seed = 613
 transform = Transform3D(0.776193, 0, -0.630495, 0, 1, 0, 0.630495, 0, 0.776193, 9.48636, 0, -56.1998)
 tree_seed = 614
 
-[node name="TreeLarge13" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge11" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(0.798582, 0, -0.601886, 0, 1, 0, 0.601886, 0, 0.798582, 15.9917, 0, -57.8085)
 tree_seed = 615
 
@@ -1877,7 +1871,7 @@ tree_seed = 616
 transform = Transform3D(-0.153936, 0, 0.988081, 0, 1, 0, -0.988081, 0, -0.153936, 26.6639, 0, -57.493)
 tree_seed = 617
 
-[node name="TreeLarge14" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge12" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.136017, 0, 0.990706, 0, 1, 0, -0.990706, 0, -0.136017, 31.1325, 0, -58.8571)
 tree_seed = 618
 
@@ -1889,91 +1883,83 @@ tree_seed = 619
 transform = Transform3D(-0.964373, 0, -0.264547, 0, 1, 0, 0.264547, 0, -0.964373, 42.6927, 0, -58.3696)
 tree_seed = 620
 
-[node name="TreeMedium32" parent="NavRegion" instance=ExtResource("21_r")]
-transform = Transform3D(-0.876741, 0, 0.480963, 0, 1, 0, -0.480963, 0, -0.876741, 43.7473, 0, 61.8273)
-tree_seed = 720
-
-[node name="TreeLarge15" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge13" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.335644, 0, -0.941989, 0, 1, 0, 0.941989, 0, -0.335644, 51.0145, 0, -57.6637)
 tree_seed = 621
 
-[node name="TreeMedium33" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium32" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.730605, 0, 0.6828, 0, 1, 0, -0.6828, 0, -0.730605, 56.6702, 0, -56.9376)
 tree_seed = 622
 
-[node name="TreeMedium34" parent="NavRegion" instance=ExtResource("21_r")]
-transform = Transform3D(0.0218331, 0, -0.999762, 0, 1, 0, 0.999762, 0, 0.0218331, 54.1177, 0, 62.407)
-tree_seed = 722
-
-[node name="TreeMedium35" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium33" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.873328, 0, 0.487133, 0, 1, 0, -0.487133, 0, -0.873328, 62.4603, 0, -56.1863)
 tree_seed = 623
 
-[node name="TreeLarge16" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge14" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.796837, 0, -0.604195, 0, 1, 0, 0.604195, 0, -0.796837, 67.9425, 0, -57.8155)
 tree_seed = 624
 
-[node name="TreeMedium36" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium34" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.919828, 0, 0.392322, 0, 1, 0, -0.392322, 0, -0.919828, 66.3616, 0, 61.8777)
 tree_seed = 724
 
-[node name="TreeMedium37" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium35" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.430652, 0, -0.902518, 0, 1, 0, 0.902518, 0, -0.430652, 71.5871, 0, -58.6555)
 tree_seed = 625
 
-[node name="TreeMedium38" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium36" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.508799, 0, 0.860885, 0, 1, 0, -0.860885, 0, 0.508799, -75.1914, 0, -37)
 tree_seed = 802
 
-[node name="TreeMedium39" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium37" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.695336, 0, 0.718685, 0, 1, 0, -0.718685, 0, 0.695336, -75.0652, 0, -30.5)
 tree_seed = 803
 
-[node name="TreeMedium40" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium38" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.98568, 0, 0.168626, 0, 1, 0, -0.168626, 0, 0.98568, -74.7555, 0, -24)
 tree_seed = 804
 
-[node name="TreeMedium41" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium39" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.919265, 0, -0.393639, 0, 1, 0, 0.393639, 0, -0.919265, -75.212, 0, -17.5)
 tree_seed = 805
 
-[node name="TreeMedium42" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium40" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.624018, 0, -0.78141, 0, 1, 0, 0.78141, 0, -0.624018, -75.9458, 0, -11)
 tree_seed = 806
 
-[node name="TreeMedium43" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium41" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.971182, 0, 0.23834, 0, 1, 0, -0.23834, 0, -0.971182, -75.7286, 0, 8.5)
 tree_seed = 809
 
-[node name="TreeMedium44" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium42" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.725103, 0, 0.688641, 0, 1, 0, -0.688641, 0, -0.725103, -75.8994, 0, 15)
 tree_seed = 810
 
-[node name="TreeMedium45" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium43" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.464293, 0, 0.885682, 0, 1, 0, -0.885682, 0, -0.464293, -75.5767, 0, 21.5)
 tree_seed = 811
 
-[node name="TreeMedium46" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium44" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.725199, 0, 0.688539, 0, 1, 0, -0.688539, 0, -0.725199, -74.4775, 0, 28)
 tree_seed = 812
 
-[node name="TreeMedium47" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium45" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.492313, 0, -0.870418, 0, 1, 0, 0.870418, 0, 0.492313, -74.496, 0, 34.5)
 tree_seed = 813
 
-[node name="TreeMedium48" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium46" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.870474, 0, 0.492215, 0, 1, 0, -0.492215, 0, 0.870474, -75.4955, 0, 41)
 tree_seed = 814
 
-[node name="TreeMedium49" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium47" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.969484, 0, -0.245153, 0, 1, 0, 0.245153, 0, -0.969484, -75.9612, 0, 47.5)
 tree_seed = 815
 
-[node name="TreeMedium50" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium48" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.587584, 0, 0.809163, 0, 1, 0, -0.809163, 0, -0.587584, -74.0002, 0, 54)
 tree_seed = 816
 
-[node name="TreeMedium51" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium49" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.194986, 0, -0.980806, 0, 1, 0, 0.980806, 0, 0.194986, -74.6997, 0, 60.5)
 tree_seed = 817
 
@@ -2077,23 +2063,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 13, 0, 37.6)
 [node name="StreetLamp42" parent="NavRegion" instance=ExtResource("44_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -5.6, 0, 20)
 
-[node name="TreeMedium52" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium50" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.995128, 0, -0.0985942, 0, 1, 0, 0.0985942, 0, -0.995128, -12.8, 0, 21)
 tree_seed = 4600
 
-[node name="TreeLarge17" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge15" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.864775, 0, -0.50216, 0, 1, 0, 0.50216, 0, -0.864775, 0.5, 0, 31.5)
 tree_seed = 4601
 
-[node name="TreeMedium53" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium51" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.945472, 0, -0.325703, 0, 1, 0, 0.325703, 0, 0.945472, -1, 0, 40)
 tree_seed = 4602
 
-[node name="TreeLarge18" parent="NavRegion" instance=ExtResource("29_r")]
+[node name="TreeLarge16" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(0.979627, 0, 0.200827, 0, 1, 0, -0.200827, 0, 0.979627, 8.5, 0, 40)
 tree_seed = 4603
 
-[node name="TreeMedium54" parent="NavRegion" instance=ExtResource("21_r")]
+[node name="TreeMedium52" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(0.907633, 0, 0.419765, 0, 1, 0, -0.419765, 0, 0.907633, -12.5, 0, 37.5)
 tree_seed = 4604
 
@@ -2131,6 +2117,43 @@ hedge_seed = 460
 [node name="Agora" type="StaticBody3D" parent="NavRegion"]
 script = ExtResource("68_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0, 28)
+
+[node name="CarLot" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("31_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 43, 0, 56.5)
+size = Vector2(14, 14)
+surface = "concrete"
+height = 0.15
+edge = false
+
+[node name="CarDealer" parent="NavRegion" instance=ExtResource("69_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 50, 0.15, 56)
+
+[node name="DisplayCar1" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("70_r")
+transform = Transform3D(-0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, -0.5, 45.6, 0.15, 51.4)
+model_id = "hatch"
+
+[node name="DisplayCar2" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("70_r")
+transform = Transform3D(0.5, 0, 0.866025, 0, 1, 0, -0.866025, 0, 0.5, 45.6, 0.15, 61.4)
+model_id = "sedan"
+
+[node name="StreetLamp43" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 36.6, 0.15, 49.9)
+
+[node name="StreetLamp44" parent="NavRegion" instance=ExtResource("44_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 36.6, 0.15, 63.1)
+
+[node name="CarLotSign" type="Label3D" parent="NavRegion"]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 36.4, 2.6, 56.5)
+text = "CARLO'S CARS
+used + new"
+font_size = 64
+pixel_size = 0.01
+modulate = Color(1, 0.85, 0.3, 1)
+outline_size = 14
+double_sided = false
 
 [node name="Bounds" type="StaticBody3D" parent="."]
 
@@ -2185,6 +2208,18 @@ vertices = PackedVector3Array(71.6, 0, -62, 74, 0, -62, 74, 0, 68, 71.6, 0, 68)
 [node name="Markers" type="Node3D" parent="."]
 
 [node name="SpawnPoints" type="Node3D" parent="Markers"]
+
+[node name="CarDelivery1" type="Marker3D" parent="Markers"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 39, 0.15, 51.6)
+
+[node name="CarDelivery2" type="Marker3D" parent="Markers"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 39, 0.15, 55)
+
+[node name="CarDelivery3" type="Marker3D" parent="Markers"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 39, 0.15, 58.4)
+
+[node name="CarDelivery4" type="Marker3D" parent="Markers"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 39, 0.15, 61.8)
 
 [node name="Spawn1" type="Marker3D" parent="Markers/SpawnPoints"]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 10, 0.3, -4.6)
@@ -2341,7 +2376,7 @@ _spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res:
 spawn_path = NodePath("../NPCs")
 
 [node name="Traffic" type="Node3D" parent="."]
-script = ExtResource("69_r")
+script = ExtResource("71_r")
 
 [node name="CarSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://prefabs/vehicles/car.tscn")

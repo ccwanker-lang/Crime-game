@@ -391,6 +391,9 @@ func gate(out: bool) -> Vector3:
 # --- Matches (host) ---------------------------------------------------------------------
 
 func _match_loop() -> void:
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	if "--selftest" in args or "--netcheck" in args:
+		return  # tests start their own matches (random ones would add NPCs to other checks)
 	await get_tree().create_timer(5.0).timeout
 	while is_inside_tree():
 		_tidy_players()

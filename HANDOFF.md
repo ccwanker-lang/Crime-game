@@ -16,13 +16,16 @@
   police_vs_crows, pedestrians, npc_combat). Admin mode (F10/F11/F12) was already done.
 - Point 46 (park + agora) built + committed: targeted check `park` passes, netcheck passes (client sees dog
   walkers with dogs, smokers, the ball at the same spot).
-- Full self-test on the round-4 commit: running at the time of writing (no FAIL so far); rerun on the latest
-  commit if this line is not updated.
+- Feature-b (ranks + staff) merged; full self-test on the merge found: park lamps 0.12 m in the air (fixed) and
+  random agora matches adding 4 NPCs to other checks (fixed: no random matches in --selftest/--netcheck).
+- Point 45 (car dealer + driving) built: Carlo's Cars on the lot east of the side road (x 36-58, z 50-63),
+  `PlayerCar` + `Vehicles` + `CarDealer`. Check `vehicles` passes, netcheck: the client drives, the host sees it.
+  Full self-test on the point-45 commit: see the line below (update it when it is done).
 
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
-3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14), cover garage (52),
+3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14) DONE, cover garage (52),
    territory per district (51), the remote prison + tutorial intro + late-join intro (49-50), the full village
    map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
 
@@ -35,6 +38,9 @@
   joins; no stars for you.
 - park: 15:00 at the park entrance: paths, benches, dog walkers with dogs, youths smoking in a circle.
 - agora: 15:00 on the pitch, a 2-against-2 match; walk into the ball to kick it, GOAL! + score board.
+- car_dealer: in Carlo's office with €20,000 clean: E on Carlo, buy a car, it waits on the lot outside.
+- driving: next to your own Comet Sedan (+ a Mule Van): F in, WASD, Space handbrake, H horn, mouse looks around,
+  F out. With 2 instances the second player presses F at the same car = passenger.
 - (from before, still untested by you) trash, launder, grow (work animations + mouse wheel), sleep, bookshelf.
 
 ## Known

@@ -239,6 +239,14 @@ Godot console exe:
   Markers/ParkSmokeSpot), `Pedestrian.can_be_customer()`. `Agora` (`scripts/world/agora.gd`, @tool, node NavRegion/Agora):
   host ball sim + `_apply_ball` RPC, `kick(dir, power, by)`, `start_match(n, minutes)` / `end_match`, `football_step(p)`,
   `kicks`/`goals`/`score`. Generator: `PARK_PATHS` / `AGORA_POS` in gen_world.py (own `prng`). Scenarios park, agora.
+- Own cars (point 45): `PlayerCar` (`scripts/vehicles/player_car.gd`, CharacterBody3D layer 2, arcade model, ProcCar
+  visuals; driver's peer simulates -> `_drive` RPC -> host checks -> synced net_pos/net_yaw/net_speed/net_steer + `seats`
+  (seat 0 drives); `host_enter(p)`/`host_exit(p)`, `request_enter/exit`, `test_drive`/`test_input` for tests, host
+  `_host_hits` (people hit at speed), `honk`). `Vehicles` (node World/Vehicles, own MultiplayerSpawner, `host_spawn`,
+  `nearest`, `capture`/`restore` with GameState.world["vehicles"]). `CarCatalog` (models, prices), `CarDealer`
+  (Shopkeeper subclass in `prefabs/buildings/car_dealer.tscn`, `request_buy_car`, markers CarDelivery1-4), `DisplayCar`.
+  Player: `vehicle`/`seat`, `enter_vehicle`/`leave_vehicle`/`_ride`/`_car_input`; actions `vehicle` (F) + `horn` (H);
+  HUD `set_car`/`update_car`/`_fill_cars`. Scenarios car_dealer, driving (`--drive` shot flag); self-test check vehicles.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

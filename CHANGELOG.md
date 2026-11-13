@@ -49,3 +49,4 @@ One line per finished part.
 - Point 43 (session B, merged): ranks 0-6 + crew XP (sales, deals, fights), rank gates in shops + estate agent, HUD rank panel; scenario ranks, check ranks.
 - Point 44 (session B, merged): staff (grower, packager in a crew property, wages) + dealers (district, commission, loyalty, arrest/betrayal), phone app Crew; scenarios staff_workers + dealers, check staff; Sleep calls hours_skipped.
 - Customers want a product (`Pedestrian.product`, synced; Products autoload of session B picks meth later); phone_all skips non-players.
+- Point 45 (= 14): Carlo's Cars (lot + office east of the side road, 2 cars on show) sells 3 cars; own cars (`PlayerCar`, `Vehicles`): F in/out, WASD + Space handbrake + H horn, chase camera, passengers, km/h panel, people hit at speed get hurt (a crime), saved where parked; scenarios car_dealer + driving, self-test check vehicles, netcheck car line. Park lamps/benches on the ground; no random agora matches in tests.

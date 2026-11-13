@@ -98,7 +98,7 @@ static func _now() -> float:
 # --- Owner -------------------------------------------------------------------------
 
 func can_act() -> bool:
-	return not player.dead and equipped and (viewmodel == null or viewmodel.is_drawn())
+	return not player.dead and equipped and player.vehicle == null and (viewmodel == null or viewmodel.is_drawn())
 
 
 func is_reloading() -> bool:
@@ -396,6 +396,8 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 	if index < 0 or index >= weapons.size():
 		return
 	var w: WeaponData = weapons[index]
+	if player.vehicle != null:
+		return  # point 45: no shooting from a car (yet)
 	if player.dead:
 		reason = "dead"
 	elif player.net_weapon == 0:

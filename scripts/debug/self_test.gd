@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "regen", "selling", "phone", "traffic", "save", "ranks", "staff"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "regen", "selling", "phone", "traffic", "save", "ranks", "staff"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1866,7 +1866,8 @@ func _check_park(world: Node3D) -> void:
 		if is_instance_valid(q):
 			q.queue_free()
 	# A dog walker with its dog walks the loop; the smokers gather at their spot.
-	var walker: ParkGoer = world.add_park_goer(path[0], ParkGoer.Role.DOG)
+	# (From the last loop point: the first leg is 14 m, no random pause at the start.)
+	var walker: ParkGoer = world.add_park_goer(path[path.size() - 1], ParkGoer.Role.DOG)
 	var smokers: Array[ParkGoer] = []
 	for i: int in 3:
 		var y: ParkGoer = world.add_park_goer(smoke.global_position + Vector3(2.0 + i, 0.1, 0.5), ParkGoer.Role.SMOKER)
@@ -2959,5 +2960,137 @@ func _check_save(world: Node3D) -> void:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SaveManager.save_path + suffix))
 	SaveManager.save_path = SaveManager.SAVE_PATH
 	SaveManager.enabled = false
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Cars (point 45) ----------------------------------------------------------------------
+
+func _check_vehicles(world: Node3D) -> void:
+	var dealer := world.find_child("Carlo", true, false) as CarDealer
+	var spots: int = 0
+	for i: int in range(1, 9):
+		if world.find_child("CarDelivery%d" % i, true, false):
+			spots += 1
+	var shows: int = world.find_children("*", "DisplayCar", true, false).size()
+	_report(dealer != null and spots == 4 and shows == 2 and Vehicles.current != null,
+			"Carlo's Cars: the dealer, 4 delivery spots, %d cars on show" % shows)
+	if dealer == null or Vehicles.current == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Driver"
+	var front: Vector3 = (world.find_child("CarDealer", true, false) as Node3D).to_global(Vector3(0.0, 0.2, -3.6))
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front
+	for i: int in 10:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Driver")
+	GameState.get_or_create_player_data("Driver")["cash"] = 3000
+	var answers: Array = []
+	var cb := func(ok: bool, msg: String) -> void: answers.append([ok, msg])
+	dealer.buy_result.connect(cb)
+	dealer.request_buy_car("hatch")
+	await get_tree().process_frame
+	_report(answers.size() == 1 and not answers[0][0] and Vehicles.current.cars().is_empty(),
+			"not enough money: no car (%s)" % [answers[0] if answers.size() else "-"])
+	GameState.get_or_create_player_data("Driver")["cash"] = 10000
+	dealer.request_buy_car("hatch")
+	for i: int in 3:
+		await get_tree().physics_frame
+	var cars: Array[PlayerCar] = Vehicles.current.cars()
+	var car: PlayerCar = cars[0] if cars.size() == 1 else null
+	var spot: Node3D = world.find_child("CarDelivery1", true, false) as Node3D
+	_report(answers.size() == 2 and answers[1][0] and car != null and int(GameState.player_data["Driver"]["cash"]) == 5500
+			and car.global_position.distance_to(spot.global_position) < 0.5,
+			"buying the Pony Hatch for €4,500: it waits on the lot (%s)" % [answers[1] if answers.size() > 1 else "-"])
+	dealer.buy_result.disconnect(cb)
+	if car == null:
+		p.queue_free()
+		return
+	# Get in: the walker stands next to it, the host gives it the driver's seat.
+	p.auto_walk = true
+	p.global_position = car.exit_spot(0)
+	p.auto_target = p.global_position
+	await get_tree().physics_frame
+	var seat: int = car.host_enter(p)
+	for i: int in 3:
+		await get_tree().physics_frame
+	_report(seat == 0 and p.vehicle == car and p.seat == 0 and p.collision.disabled,
+			"getting in: the driver's seat, the body rides along (seat %d)" % seat)
+	# Drive: full throttle for 1.5 s (nose to the road, west).
+	var start: Vector3 = car.global_position
+	car.test_drive = true
+	car.test_input = Vector3(0, 1, 0)
+	await get_tree().create_timer(1.5).timeout
+	var moved: float = Vector2(car.global_position.x - start.x, car.global_position.z - start.z).length()
+	_report(moved > 3.0 and car.global_position.x < start.x - 2.5 and car.speed > 5.0
+			and p.global_position.distance_to(car.global_position) < 2.0,
+			"full throttle: %.1f m in 1.5 s, %.1f m/s, the driver comes along" % [moved, car.speed])
+	var yaw0: float = car.rotation.y
+	car.test_input = Vector3(1, 0.5, 0)
+	await get_tree().create_timer(0.8).timeout
+	_report(angle_difference(yaw0, car.rotation.y) > 0.2, "steering left turns the car left (%.2f rad)" % angle_difference(yaw0, car.rotation.y))
+	car.test_input = Vector3(0, 0, 1)
+	for i: int in 120:
+		await get_tree().physics_frame
+		if absf(car.speed) < 0.1:
+			break
+	_report(absf(car.speed) < 0.1, "the handbrake stops it (%.2f m/s)" % car.speed)
+	# A wall stops it: nose to the sales office, 3 m away.
+	var office: Node3D = world.find_child("CarDealer", true, false) as Node3D
+	car.global_position = office.global_position + Vector3(-4.5, 0, 3.4)
+	car.rotation.y = -PI / 2.0  # nose east (+X)
+	car.speed = 0.0
+	car.test_input = Vector3(0, 1, 0)
+	await get_tree().create_timer(1.5).timeout
+	var nose_x: float = car.global_position.x + ProcCar.collision_size(ProcCar.Kind.HATCHBACK).z / 2.0
+	_report(nose_x < office.global_position.x + 0.3 and absf(car.speed) < 3.0,
+			"driving into a wall: it stops there (nose x %.2f, wall x %.2f, %.1f m/s)" % [nose_x, office.global_position.x, car.speed])
+	# Running someone over (host): a pedestrian in front of a fast car.
+	car.test_input = Vector3.ZERO
+	car.global_position = Vector3(40.0, car.global_position.y, 56.5)
+	car.rotation.y = PI / 2.0  # nose west, towards the road
+	await get_tree().physics_frame
+	var npc: Pedestrian = world.call("_add_pedestrian", Vector3(35.6, 0.15, 56.5), 1)
+	for i: int in 5:
+		await get_tree().physics_frame
+	npc.velocity = Vector3.ZERO
+	car.speed = 12.0
+	car.test_input = Vector3(0, 1, 0)
+	var hits0: int = car.hits
+	for i: int in 60:
+		await get_tree().physics_frame
+		if npc.dead:
+			break
+	_report(car.hits > hits0 and npc.dead, "a pedestrian hit at speed goes down (hits %d, dead %s)" % [car.hits - hits0, npc.dead])
+	car.test_input = Vector3(0, 0, 1)
+	for i: int in 90:
+		await get_tree().physics_frame
+	# Get out: beside the car, solid again.
+	car.host_exit(p)
+	for i: int in 4:
+		await get_tree().physics_frame
+	_report(p.vehicle == null and not p.collision.disabled and car.distance_to_body(p.global_position) > 0.3
+			and car.seats[0] == 0, "getting out: next to the car (%.1f m from the body)" % car.distance_to_body(p.global_position))
+	# Saved where it was parked; a restore brings it back there.
+	var parked: Vector3 = car.global_position
+	world.capture_for_save()
+	var rec: Dictionary = GameState.world.get("vehicles", {}).get(car.uid, {})
+	_report(not rec.is_empty() and (rec["pos"] as Vector3).distance_to(parked) < 0.1 and str(rec["model"]) == "hatch",
+			"the save knows where it is parked")
+	var uid: String = car.uid
+	car.free()
+	Vehicles.current.restore()
+	await get_tree().physics_frame
+	var back: PlayerCar = Vehicles.current.get_node_or_null("Car" + uid) as PlayerCar
+	_report(back != null and back.global_position.distance_to(parked) < 0.2, "after loading it is back on that spot")
+	if back:
+		Vehicles.current.host_remove(back)
+	if is_instance_valid(npc):
+		npc.queue_free()
+	GameState.player_data.erase("Driver")
 	p.queue_free()
 	await get_tree().physics_frame

@@ -142,6 +142,13 @@ var admin_god: bool = false
 const NOCLIP_SPEED: float = 9.0
 ## Owner: placement mode + hold E to pick up (point 6).
 var placement: PlayerPlacement = null
+## Point 45: the car this player sits in (every peer, from PlayerCar.seats) and the seat (0 = driver).
+var vehicle: PlayerCar = null
+var seat: int = -1
+var _third_before_car: bool = false
+var _orbit_idle: float = 0.0
+const CAR_CAMERA_DISTANCE: float = 6.5
+const CAR_ENTER_DISTANCE: float = 2.2
 var _base_fov: float = 75.0
 ## Owner: last message from the host (show_message), also for tests.
 var last_message: String = ""
@@ -456,6 +463,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	var captured: bool = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if vehicle != null:
+		_car_input(event, captured)
+		return
+	if event.is_action_pressed("vehicle") and captured and not dead:
+		_try_enter_car()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventMouseMotion and captured:
 		if dead:
 			return
@@ -601,7 +615,9 @@ func _weapon_key(event: InputEvent) -> int:
 func _physics_process(delta: float) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_host_regen(delta)
-	if is_local():
+	if vehicle != null:
+		_ride(delta)
+	elif is_local():
 		if admin_noclip:
 			_admin_fly(delta)
 		elif sleeping:
@@ -889,6 +905,11 @@ func _update_focus() -> void:
 			n = n.get_parent()
 		found = n
 	_focused = found
+	if prompt_label and _focused == null and vehicle == null and not dead:
+		var car: PlayerCar = Vehicles.current.nearest(global_position, CAR_ENTER_DISTANCE) if Vehicles.current else null
+		if car:
+			prompt_label.text = "[F] %s the %s" % ["Drive" if car.is_free_seat(0) else "Get in", car.spec["name"]]
+			return
 	if prompt_label:
 		prompt_label.text = "[E] %s" % _focused.call("get_interaction_prompt") if _focused else ""
 		if placement and placement.hold_progress() > 0.0:
@@ -900,6 +921,112 @@ func _update_focus() -> void:
 			prompt_label.text = "[E] %s   [Hold E] Pick up" % _focused.call("get_interaction_prompt")
 		elif placement and _focused == null and placement.hint_text() != "":
 			prompt_label.text = placement.hint_text()
+
+
+# --- Cars (point 45) ----------------------------------------------------------------
+
+## Owner: F next to a car.
+func _try_enter_car() -> void:
+	if Vehicles.current == null or sleeping:
+		return
+	var car: PlayerCar = Vehicles.current.nearest(global_position, CAR_ENTER_DISTANCE)
+	if car:
+		car.request_enter()
+
+
+## Owner, in a car: mouse orbits the chase camera, F gets out, H honks, Esc frees the mouse.
+func _car_input(event: InputEvent, captured: bool) -> void:
+	if event is InputEventMouseMotion and captured:
+		var motion := event as InputEventMouseMotion
+		head.rotation.y = wrapf(head.rotation.y - motion.relative.x * MOUSE_SENSITIVITY, -PI, PI)
+		head.rotation.x = clampf(head.rotation.x - motion.relative.y * MOUSE_SENSITIVITY, -1.2, 0.35)
+		_orbit_idle = 0.0
+	elif event is InputEventMouseButton and event.pressed and not captured:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("release_mouse"):
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif event.is_action_pressed("vehicle") and captured:
+		vehicle.request_exit()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("horn") and captured and seat == 0:
+		vehicle.honk()
+	elif event.is_action_pressed("phone") and ui:
+		open_phone()
+
+
+## Every peer (PlayerCar._sync_riders): this player now sits in `car`.
+func enter_vehicle(car: PlayerCar, i: int) -> void:
+	var first: bool = vehicle == null
+	vehicle = car
+	seat = i
+	velocity = Vector3.ZERO
+	collision.disabled = true
+	_model.visible = false
+	nametag.visible = false
+	if is_local() and first:
+		combat.trigger_held = false
+		combat.aiming = false
+		if placement and placement.build_mode:
+			placement.toggle_build_mode()
+		_third_before_car = third_person
+		_set_third_person(true)
+		spring.spring_length = CAR_CAMERA_DISTANCE + (1.0 if int(car.spec["kind"]) == ProcCar.Kind.VAN else 0.0)
+		spring.position = Vector3(0, 0.4, 0)
+		spring.add_excluded_object(car.get_rid())
+		head.rotation = Vector3(-0.22, 0, 0)
+		if ui:
+			ui.set_car(car, i == 0)
+
+
+## Every peer: out of the car (the host moved the body beside the door).
+func leave_vehicle() -> void:
+	var car: PlayerCar = vehicle
+	vehicle = null
+	seat = -1
+	collision.disabled = false
+	_model.visible = true
+	_check_pos = Vector3.INF
+	if is_local():
+		nametag.visible = false
+		if is_instance_valid(car):
+			spring.remove_excluded_object(car.get_rid())
+			rotation.y = car.rotation.y + head.rotation.y
+		head.rotation = Vector3(0, 0, 0)
+		_set_third_person(_third_before_car)
+		if ui:
+			ui.set_car(null, false)
+	else:
+		nametag.visible = true
+
+
+## Every peer, while seated: the body rides along on its seat.
+func _ride(delta: float) -> void:
+	if not is_instance_valid(vehicle):
+		leave_vehicle()
+		return
+	velocity = Vector3.ZERO
+	global_position = vehicle.global_transform * vehicle.seat_offset(seat)
+	if is_local():
+		rotation.y = vehicle.rotation.y
+		# The chase camera swings back behind the car while driving.
+		_orbit_idle += delta
+		if _orbit_idle > 1.5 and absf(vehicle.speed) > 2.0:
+			head.rotation.y = lerp_angle(head.rotation.y, 0.0, minf(1.0, 2.5 * delta))
+		net_pos = global_position
+		net_yaw = rotation.y
+		net_pitch = 0.0
+		net_move = Vector2.ZERO
+		net_sprint = false
+		net_air = false
+		if prompt_label:
+			prompt_label.text = "[F] Get out" + ("   [H] Horn" if seat == 0 else "")
+		if ui:
+			ui.update_car(vehicle)
+	else:
+		rotation.y = vehicle.rotation.y
+		if multiplayer.is_server():
+			_check_pos = Vector3.INF
 
 
 ## Owner: opens the buy window of a shopkeeper (frees the mouse).
