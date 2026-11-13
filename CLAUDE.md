@@ -239,6 +239,13 @@ Godot console exe:
   Markers/ParkSmokeSpot), `Pedestrian.can_be_customer()`. `Agora` (`scripts/world/agora.gd`, @tool, node NavRegion/Agora):
   host ball sim + `_apply_ball` RPC, `kick(dir, power, by)`, `start_match(n, minutes)` / `end_match`, `football_step(p)`,
   `kicks`/`goals`/`score`. Generator: `PARK_PATHS` / `AGORA_POS` in gen_world.py (own `prng`). Scenarios park, agora.
+- Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
+  item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
+  `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.
+- Staff (milestone 3): `Staff` autoload (GameState.world["staff"], host tick in in-game hours, `request(...)` ->
+  `answer`, `debug_hire`), `StaffConfig` in `data/staff/staff.tres` (roles, rates, districts), visuals
+  `StaffViews`/`StaffNPC` (local), UI `CrewWindow` (phone app "Crew", E on a dealer). Scenarios staff_workers,
+  dealers; self-test check staff.
 - Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
   pedestrians `_flee_loop` until `flee_safe()` (40 m + out of sight, max 45 s). Scenario panic. Kerb check: `--only=kerb`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;

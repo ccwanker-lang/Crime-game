@@ -372,8 +372,8 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
 41. Mouse wheel scrolls through the hotbar (in build mode it rotates) - done
 42. Polish (later): animations for planting, watering, harvesting and packaging - done
 ORDER AFTER 42 (set by the user, 2026-11-13):
-  43. Ranks + XP + unlocks (Progression) - todo
-  44. Staff + dealers - todo
+  43. Ranks + XP + unlocks (Progression) - done (session B, merged 2026-11-13)
+  44. Staff + dealers - done (session B, merged 2026-11-13; hiring via the phone app "Crew" until there is a bar)
   45. = point 14: car dealer + driving yourself - todo
   46. = points 12-13: park, agora - done
   47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
@@ -598,6 +598,38 @@ Choices made while working autonomously (what + why).
   the yard is filled back up to 6 from it; every replacement (day or night) takes one from it. Kept on the host
   only, not saved (a reload simply starts with a full pool). World `rival_night_pool` / `rival_pool_left`.
 - Admin mode (F10/F11/F12) was already built and committed before round 4; nothing to add.
+- Point 43 (ranks, session B): XP and rank belong to the CREW, not to each player. Why: DESIGN "Host owns ... rank", and properties,
+  stations and storage are already crew-shared; one rank keeps co-op simple. The +XP popup goes to the earner.
+- Point 43 (ranks, session B): XP values: fair sale 10/bag + 15 per deal (every sale is an accepted phone deal since point 34; XP comes in via A's
+  group hook `progression.on_sale`), short-changed sale half, customer runs 0;
+  kill a Black Crow 40, an officer 10, a civilian 0. Why: selling is the main loop (~12 deals to rank 1),
+  fights with the Crows are the "fights" of the design; cops give a little, civilians nothing (no reward for murder).
+- Point 43 (ranks, session B): Thresholds 0 / 300 / 1000 / 2500 / 5000 / 9000 / 15000 XP. All tunable in ranks.tres.
+- Point 43 (ranks, session B): Unlocks with the content that exists now (the rest of the DESIGN table is listed as "(Later: ...)"):
+  0 weed + pistol + phone/webshop + Starter Room; 1 grow lamp, shotgun, Small House; 2 SMG, Bakery, Family House;
+  3 AK-47, Barber + Laundromat; 4 sniper, South Warehouse; 5-6 only future content.
+  The black market stays open from rank 0 (the weed stations are only sold there, a rank-3 gate would block weed).
+  Ammo is never gated. Only BUYING is gated: what you already own (old saves) is never taken away.
+- Point 43 (ranks, session B): Old saves start at 0 XP (rank 0); nothing is confiscated.
+- Point 43 (ranks, session B): Gates are OFF in `--selftest` and in test scenarios (they hand out gear and set up purchases freely), except
+  when `Progression.force_gates` is set (scenario `ranks`, the `ranks` self-test check). Reset on GameState.reset.
+- Point 44 (staff, session B): Hiring happens on the phone (app "Crew", contact Benny the fixer), not in a bar: there is no bar on the map yet and
+  the map is session A's. When a bar exists, a Recruiter NPC there can open the same `CrewWindow` (mode "crew",
+  tab "hire"). Why: the feature works now without touching the map.
+- Point 44 (staff, session B): Workers act directly on the station state (no walking AI): they stand at the station they last used. Why: robust
+  in co-op (host logic only, no new networked NPCs); walking workers can come later.
+- Point 44 (staff, session B): Staff NPCs are local visuals built from the synced members list on every peer (no MultiplayerSpawner). Why: no
+  changes to world.tscn needed; positions are host-computed and synced in the record.
+- Point 44 (staff, session B): Supplies come from the storage lockers in the property (soil, seeds, baggies), output goes to the racks / lockers.
+  Why: the locker system already exists, shared by the crew, and the player sees the result by opening it.
+- Point 44 (staff, session B): Room for staff = beds + storage lockers in the property (DESIGN: "need a bed/locker"). The Starter Room has room for 2
+  (bed + free locker).
+- Point 44 (staff, session B): Wages are paid from the employer's money (dirty first, like other illegal costs) once per in-game day; the first day
+  at hiring. Unpaid = quits. Dealers have no wage, only their cut (15-30%).
+- Point 44 (staff, session B): Max dealers by rank 0..6: 0, 1, 1, 2, 2, 4, 5 (DESIGN: rank 1 "1 dealer", rank 5 "more dealers").
+- Point 44 (staff, session B): Districts are game data (StaffConfig), 4 for the test town: Old Town, Main Road East, North Road, South Street.
+- Point 44 (staff, session B): Firing a dealer gives back their stock and the cash (what fits in your pockets).
+- Point 44 (staff, session B): Cook (rank 2) and courier (rank 3) are in the list as "Not in the game yet" (meth / supply runs don't exist).
 - Order after round 4 (user, 2026-11-13, second message): park + agora, car dealer + driving, cover garage,
   territory per district, the remote prison + tutorial intro + late-join intro, the full village map, then the
   chapter 1 story missions. Meth/cocaine (48) is being built by session B (B.md), so A skips it.

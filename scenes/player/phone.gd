@@ -149,6 +149,10 @@ func _show(screen: String) -> void:
 		"resell":
 			_title.text = "Resell"
 			_resell()
+		"crew":  # staff + dealers (CrewWindow)
+			_screen = "home"
+			player.close_phone()
+			CrewWindow.open_for(player, "crew", "")
 
 
 func _app_button(text: String, color: Color, screen: String) -> void:
@@ -177,6 +181,7 @@ func _home() -> void:
 	_app_button("Map", Color(0.45, 0.85, 0.45), "map")
 	_app_button("QuickShip (legal shop)", Color(1.0, 0.7, 0.3), "shop")
 	_app_button("Resell (furniture)", Color(0.8, 0.55, 1.0), "resell")
+	_app_button("Crew (staff + dealers)", Color(0.95, 0.45, 0.45), "crew")
 
 
 func _list() -> void:

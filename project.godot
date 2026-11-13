@@ -20,6 +20,8 @@ Net="*res://autoload/net.gd"
 ItemDB="*res://autoload/item_db.gd"
 GameState="*res://autoload/game_state.gd"
 SaveManager="*res://autoload/save_manager.gd"
+Progression="*res://autoload/progression.gd"
+Staff="*res://autoload/staff.gd"
 
 [display]
 

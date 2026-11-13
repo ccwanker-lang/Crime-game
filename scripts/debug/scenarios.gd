@@ -44,6 +44,9 @@ const LIST: Array = [
 	["police_vs_crows", "23:00 on South Street: a Crow, an officer and a patrol car close by", "Just watch (you stand out of the Crow's reach): the street Crow opens fire on the officer, the officer fires back, the patrol car hears it and its crew gets out. Nobody gets stars for it. Crows killed at night are replaced from a pool of 20 per night; when it's used up no more Crows come until the next night."],
 	["park", "15:00 at the park entrance", "Walk through the new park: gravel paths, benches, trees. Two people walk their dog on a lead round the loop (the dog sniffs when they stop). Three youths stand smoking in a circle on the lawn (puffs of smoke). People sit on the benches. The agora (fenced football pitch) is at the end of the cross path."],
 	["agora", "15:00 on the agora, a 2-against-2 match going on", "Four NPCs in red and blue shirts play football (passes, shots, GOAL! + score board). Walk into the ball to kick it yourself (Shift = harder). The match ends after a few minutes and they walk off; on a normal day a match starts now and then between 09:00 and 20:00."],
+	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
+	["staff_workers", "Rank 2: a grower + a packager in your Starter Room", "Hold F7 to speed up time and watch: the grower fills the pots with soil, plants, waters and harvests onto the drying rack; the packager takes the dried weed off and packages it (bags end up in the locker: E on it). E on a worker = what they are doing. Tab > Crew: your staff, wages, Fire, and Benny's candidates (Hire tab)."],
+	["dealers", "Rank 1, 10 bags, next to your dealer in Old Town", "E on the dealer: Give all my bags, then hold F7: they sell about 1 bag per in-game hour (+XP, top-left panel). E again: Collect. Tab > Crew > Hire: Benny's people (pick a district or a property). Rank 1 allows 1 dealer: F8 a few times for more."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -323,6 +326,41 @@ static func run(world: Node, id: String) -> bool:
 			_place(me, spot + away.normalized() * 2.6 + Vector3.UP * 0.2, spot + Vector3.UP * 0.5, dn, 7.8)
 			me.combat.select_slot(3)  # empty hands: the prompt of the bin, not the held box
 			print("[Scenario] trash bin at %s, you at %s" % [spot.snapped(Vector3.ONE * 0.1), me.global_position.snapped(Vector3.ONE * 0.1)])
+		"ranks":
+			Progression.force_gates = true  # (scenarios normally skip rank gates)
+			Progression.host_add(Progression.xp_for(1) - 10 - Progression.host_xp(), "scenario")
+			_kit(me, 8000, [["weed_bag", 8]])
+			_at_keeper(world, me, "GunShop", dn, 12.0)
+			var k: Node3D = (world.find_child("GunShop", true, false).find_children("*", "Shopkeeper", true, false)[0]) as Node3D
+			var npc: Pedestrian = world.call("_add_pedestrian", k.global_position + k.global_basis.z * 3.6, 1)
+			world.call("make_customer", npc)
+			npc.accept_deal()  # (point 34: green €, E = talk + Confirm deal)
+			npc.face(me.global_position)
+			Pedestrian.force_outcome = "fair"
+		"staff_workers":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			_kit(me, 3000, [])
+			world.call("debug_weed_corner")
+			await world.get_tree().physics_frame
+			for l: StorageLocker in Staff._stations_in("starter_room", StorageLocker):
+				l.state["items"] = [{"id": "soil", "count": 6}, {"id": "weed_seed", "count": 6}, {"id": "baggie", "count": 20}]
+				l.changed()
+			Staff.debug_hire(me.player_name, "grower", "starter_room")
+			Staff.debug_hire(me.player_name, "packager", "starter_room")
+			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 9.0)
+		"dealers":
+			Progression.force_gates = true
+			Progression.debug_set_rank(1)
+			_kit(me, 1000, [["weed_bag", 10]])
+			Staff.debug_hire(me.player_name, "dealer", "old_town")
+			var dealer: Dictionary = {}
+			for rec: Dictionary in Staff._members().values():
+				dealer = rec
+			var dpos: Vector3 = dealer.get("pos", Vector3(-24, 0, -4.6))
+			var yaw: float = float(dealer.get("yaw", 0.0))
+			var dfwd := Vector3(-sin(yaw), 0, -cos(yaw))  # where the dealer looks
+			_place(me, dpos + dfwd * 2.2 + Vector3.UP * 0.2, dpos + Vector3.UP * 1.4, dn, 15.0)
 	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()
@@ -385,6 +423,14 @@ static func run(world: Node, id: String) -> bool:
 						me.combat.select_slot(i)
 				me.host_work("water", pot.global_position if pot else me.global_position - me.global_basis.z)
 				await world.get_tree().create_timer(0.45).timeout
+			for a: String in OS.get_cmdline_user_args():
+				if a.begins_with("--crew="):  # staff window: --crew=crew / hire / dealer
+					var tab: String = a.trim_prefix("--crew=")
+					var first: String = Staff.members.keys()[0] if not Staff.members.is_empty() else ""
+					CrewWindow.open_for(me, "dealer" if tab == "dealer" else "crew", first)
+					var w := me.ui.get_node("CrewWindow") as CrewWindow
+					w._tab = tab
+					w._refresh()
 			for f: int in 6:
 				await RenderingServer.frame_post_draw
 			var path: String = ProjectSettings.globalize_path("res://screenshots/scenario_%s.png" % id)

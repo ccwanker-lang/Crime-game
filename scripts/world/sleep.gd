@@ -95,6 +95,8 @@ func _morning() -> void:
 		var st := n as Station
 		if st and st.tick(skipped):
 			st.changed()
+	# Session B (staff): workers, dealers and wages catch up on the skipped hours.
+	get_tree().call_group(&"hours_skipped", "on_hours_skipped", skipped)
 	print("[Sleep] everyone slept: %.1f h skipped, it's %02d:00" % [skipped, int(WAKE_HOUR)])
 	for pl: Variant in sleepers:
 		var p := pl as Player
