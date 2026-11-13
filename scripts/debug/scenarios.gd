@@ -182,16 +182,6 @@ static func run(world: Node, id: String) -> bool:
 		"gun_shop":
 			_kit(me, 8000, [])
 			_at_keeper(world, me, "GunShop", dn, 12.0)
-		"ranks":
-			Progression.force_gates = true  # (scenarios normally skip rank gates)
-			Progression.host_add(Progression.xp_for(1) - 10 - Progression.host_xp(), "scenario")
-			_kit(me, 8000, [["weed_bag", 4]])
-			_at_keeper(world, me, "GunShop", dn, 12.0)
-			var k: Node3D = (world.find_child("GunShop", true, false).find_children("*", "Shopkeeper", true, false)[0]) as Node3D
-			var npc: Pedestrian = world.call("_add_pedestrian", k.global_position + k.global_basis.z * 3.6, 1)
-			npc.stationary = true
-			Pedestrian.force_outcome = "fair"
-			npc.become_customer(1, 60, 900.0)
 		"real_estate":
 			_kit(me, 40000, [])
 			GameState.add_clean(me.player_name, 30000)
@@ -290,6 +280,16 @@ static func run(world: Node, id: String) -> bool:
 			_place(me, spot + away.normalized() * 2.6 + Vector3.UP * 0.2, spot + Vector3.UP * 0.5, dn, 7.8)
 			me.combat.select_slot(3)  # empty hands: the prompt of the bin, not the held box
 			print("[Scenario] trash bin at %s, you at %s" % [spot.snapped(Vector3.ONE * 0.1), me.global_position.snapped(Vector3.ONE * 0.1)])
+		"ranks":
+			Progression.force_gates = true  # (scenarios normally skip rank gates)
+			Progression.host_add(Progression.xp_for(1) - 10 - Progression.host_xp(), "scenario")
+			_kit(me, 8000, [["weed_bag", 4]])
+			_at_keeper(world, me, "GunShop", dn, 12.0)
+			var k: Node3D = (world.find_child("GunShop", true, false).find_children("*", "Shopkeeper", true, false)[0]) as Node3D
+			var npc: Pedestrian = world.call("_add_pedestrian", k.global_position + k.global_basis.z * 3.6, 1)
+			npc.stationary = true
+			Pedestrian.force_outcome = "fair"
+			npc.become_customer(1, 60, 900.0)
 	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()
