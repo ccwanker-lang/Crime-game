@@ -147,6 +147,7 @@ func do_action(player: Player) -> String:
 		GameState.give(who, 0, [{"id": "weed_bud", "count": take}])
 		state["dry"] = dry - take
 		changed()
+		work = "take"
 		return "Took %d Dried Weed." % take
 	var wet: int = int(state["wet"])
 	var hang: int = mini(GameState.count_item(who, "fresh_weed"), CAPACITY - wet)
@@ -157,4 +158,5 @@ func do_action(player: Player) -> String:
 	state["progress"] = float(state["progress"]) * wet / float(wet + hang)
 	state["wet"] = wet + hang
 	changed()
+	work = "hang"
 	return "Hung %d Fresh Weed. Dry in about %d hours." % [hang, ceili(DRY_HOURS * (1.0 - float(state["progress"])))]

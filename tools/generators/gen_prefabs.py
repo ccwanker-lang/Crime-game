@@ -387,8 +387,8 @@ def store_extra(sc):
     inst(sc, "Lamp2", I + "ceiling_lamp.tscn", (0, 2.98, -7.0))
     marker(sc, "StoreSpot", (1.8, FLOOR, -8.4), 0)
     shopkeeper(sc, "Clerk", (1.8, FLOOR, -8.4), "Marc", "Store",
-               "Morning. Soil, watering cans, baggies, storage lockers... it's all on the shelves.",
-               ["soil", "watering_can", "baggie", "storage_locker"], 1, 7)
+               "Morning. Soil, watering cans, baggies, storage lockers, trash bins... it's all on the shelves.",
+               ["soil", "watering_can", "baggie", "storage_locker", "trash_bin"], 1, 7)
     marker(sc, "BuyPoint", (1.8, FLOOR, -6.6), 0)
 
 

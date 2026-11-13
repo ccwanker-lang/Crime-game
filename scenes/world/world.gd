@@ -52,10 +52,14 @@ func _ready() -> void:
 	var sleep := Sleep.new()
 	sleep.name = "Sleep"
 	add_child(sleep)
+	# Point 39: the garbage truck empties outside trash bins every morning (host logic).
+	var garbage := Garbage.new()
+	garbage.name = "Garbage"
+	add_child(garbage)
 	if multiplayer.is_server():
 		players_root.child_exiting_tree.connect(func(n: Node) -> void:
 			if n is Player:
-				sleep.host_forget.call_deferred(n as Player))
+				sleep.host_forget(n as Player))
 	add_child(Wanted.new())  # point 28 (host logic, stars synced per player)
 	Pedestrian.jaywalk_chance = Pedestrian.JAYWALK_DEFAULT  # (a scenario may have raised it)
 	if "--screenshot" in OS.get_cmdline_user_args():

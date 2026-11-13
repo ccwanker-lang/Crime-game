@@ -103,7 +103,7 @@ func _morning() -> void:
 	sleepers.clear()
 
 
-## Host: a player left / died: check again.
+## Host: a player leaves (called while it is still in the tree): check again once it is gone.
 func host_forget(p: Player) -> void:
-	if sleepers.erase(p):
-		_update()
+	sleepers.erase(p)
+	_update.call_deferred()

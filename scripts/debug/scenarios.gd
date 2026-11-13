@@ -21,17 +21,18 @@ const LIST: Array = [
 	["night_town", "Main road at 23:00", "Night lighting: street lamps, lit windows, can you see where you walk? F7 (hold) fast-forwards time to dawn."],
 	["sell_weed", "6 bags of weed + a customer with an accepted deal", "The customer right in front of you has a GREEN € (deal accepted): E = a short talk, then 'Confirm deal'. New customers text a proposal (Tab > Hush): Accept, Decline or Counter (+10/25/50%: the higher, the more often they say no or walk off). Only an accepted deal turns their € green."],
 	["phone", "Phone with a customer text, money", "Tab: chat (Accept / Counter / Decline the customer's proposal), map, webshop (buy something legal, it arrives in the delivery box in the Starter Room)."],
-	["grow", "Pot, soil, seeds, water, lamp, rack, table", "B = build mode: place the pot (select it, LMB), B again to leave; add soil, seed, water (E). Place lamp + rack + packaging table. Hold F7 to speed up time. Harvest -> dry -> package."],
+	["grow", "Pot, soil, seeds, water, lamp, rack, table", "B = build mode: place the pot (select it, LMB), B again to leave; add soil, seed, water (E). Place lamp + rack + packaging table. Hold F7 to speed up time. Harvest -> dry -> package. Every E at a pot/rack/table plays a work animation (kneel, water drops, the can tips; V = third person to see the body). The mouse wheel scrolls through the hotbar."],
 	["storage", "Full inventory at the free locker", "E on the locker: click = 1, Shift+click / drag = whole stack, right click in your pockets = drop. G drops the held item, E picks it up."],
 	["furnish", "Own Small House + furniture items", "B = build mode: place furniture (R/wheel rotates), hold E to pick things up (also the house's own furniture). Outside build mode E only uses things (no ghost, no pick-up)."],
 	["black_market", "Night, in the garage, €6,000", "Walk through the open gate to Rook (only at night): buy seeds, pots, baggies."],
 	["gun_shop", "In the gun shop, €8,000", "Buy weapons and ammo boxes from Vince. Are the prices right?"],
 	["real_estate", "At the estate agent, €70,000", "Talk to Mrs. Vos: the map on top shows every property for sale; press Where? next to one to see it. Buy one: the sign on the building shows you as owner and it turns into a green house on your phone map (Tab > Map)."],
-	["launder", "Own the bakery, €8,000 dirty", "E on the safe in the back office: deposit dirty cash. Hold F7: it comes back as clean money (90%), max per day."],
+	["launder", "Own the bakery, €8,000 dirty, €1,200 already in the safe", "E on the safe in the back office opens its screen: what is waiting, how much comes back clean and when. Deposit: the message says '€X deposited -> €Y clean, ready around ...'. Hold F7: the money comes in (HUD clean €), and a text from the Bakery when all of yours is clean."],
 	["houses", "Inside the Family House", "Walk all floors: stairs, railings, balconies (E opens the balcony door), furniture."],
 	["death_respawn", "Low health, cash + items", "Press F4 a few times: you die and drop a loot bag; you respawn at the hospital. Go back and take your bag."],
 	["bookshelf", "A bookshelf to place at home", "B = build mode, LMB places the bookshelf (slot 1), B again. E on it opens the same storage window as the locker (16 stacks). Bookshelves in a house you buy work as storage too. A full one can't be picked up."],
 	["sleep", "22:30 next to your bed", "E on the bed: the screen goes dark and the clock jumps to 07:00 (plants and racks catch up). Before 20:00 it says you're not tired. Moving gets you out of bed. In co-op everyone has to be in bed."],
+	["trash", "07:48 in front of the Starter Room, a full bin outside", "E on the green bin outside throws your empty boxes + plant waste in it. At 08:00 (about 12 seconds later) a green garbage truck with an orange light drives up, stops next to the bin and empties it. B = build mode: place your own bin (slot 3) on the pavement in front of the door; not on the road, not in front of other people's houses."],
 	["health_regen", "30 health, safe at home", "Wait ~8 s: health slowly comes back to 100. F4 (hurt) pauses it again."],
 	["road_crossing", "Main road, people crossing everywhere", "Pedestrians cross the road anywhere (not only at zebras): they wait at the kerb for close cars, then walk straight over. Cars brake for them. (Crossing is made 4x more common here.)"],
 	["police_life", "South Street at the police station", "Watch the police: two officers on foot stop passers-by for a chat; a patrol car stops with its light bar on, one officer gets out, talks to someone and gets back in."],
@@ -189,6 +190,9 @@ static func run(world: Node, id: String) -> bool:
 			bakery.host_set_owned(me.player_name)
 			_kit(me, 8000, [])
 			var safe: Node3D = world.find_child("Bakery", true, false).get_node("Safe") as Node3D
+			# Point 40: something already waiting (a crew mate's deposit), so the screen shows a queue.
+			(safe as LaunderSafe).state["queue"] = {"Crewmate": 1200}
+			(safe as LaunderSafe).changed()
 			_place(me, safe.global_position + safe.global_basis.z * 1.3 + Vector3.UP * 0.1, safe.global_position + Vector3.UP,
 					dn, 12.0)
 		"houses":
@@ -263,6 +267,18 @@ static func run(world: Node, id: String) -> bool:
 				spot = nav + Vector3.UP * 0.1
 			_place(me, spot, bed.global_position + Vector3.UP * 0.3 if bed else at_home, dn, 22.5)
 			me.head.rotation.x = -0.45
+		"trash":
+			_kit(me, 200, [["empty_box", 3], ["plant_waste", 2], ["trash_bin", 1]])
+			var spot: Vector3 = outdoor_bin_spot(world, sr)
+			var bin := world.call("host_place", "trash_bin", spot, sr.building().global_rotation.y) as TrashBin
+			if bin:
+				bin.state["trash"] = 30
+				bin.changed()
+			var away: Vector3 = home_front - spot
+			away.y = 0.0
+			_place(me, spot + away.normalized() * 2.6 + Vector3.UP * 0.2, spot + Vector3.UP * 0.5, dn, 7.8)
+			me.combat.select_slot(3)  # empty hands: the prompt of the bin, not the held box
+			print("[Scenario] trash bin at %s, you at %s" % [spot.snapped(Vector3.ONE * 0.1), me.global_position.snapped(Vector3.ONE * 0.1)])
 	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()
@@ -271,7 +287,7 @@ static func run(world: Node, id: String) -> bool:
 	me.show_message("SCENARIO '%s': %s" % [id, check_text(id)])
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life"] else 4.0).timeout
+		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):
@@ -298,6 +314,12 @@ static func run(world: Node, id: String) -> bool:
 						best = n as Shopkeeper
 				if best:
 					me.open_shop(best)
+			if "--safe" in OS.get_cmdline_user_args():
+				for n: Node in world.get_tree().get_nodes_in_group(&"stations"):
+					if n is LaunderSafe and (n as Node3D).global_position.distance_to(me.global_position) < 4.0:
+						(n as LaunderSafe).deposit()
+						await world.get_tree().create_timer(0.3).timeout
+						me.open_safe(n as LaunderSafe)
 			if "--phone-map" in OS.get_cmdline_user_args():
 				me.open_phone()
 				me.ui.phone._show("map")
@@ -306,6 +328,19 @@ static func run(world: Node, id: String) -> bool:
 					if (n as Pedestrian).deal_ok:
 						me.open_deal(n as Pedestrian)
 						break
+			if "--work" in OS.get_cmdline_user_args():
+				# Point 42: third person, watering a pot in front (mid-animation).
+				me._set_third_person(true)
+				var pot: Node3D = null
+				for n: Node in world.get_tree().get_nodes_in_group(&"stations"):
+					if n is GrowPot and (pot == null or (n as Node3D).global_position.distance_to(me.global_position)
+							< pot.global_position.distance_to(me.global_position)):
+						pot = n as Node3D
+				for i: int in me.inventory.size():
+					if str((me.inventory[i] as Dictionary).get("id")) == "watering_can":
+						me.combat.select_slot(i)
+				me.host_work("water", pot.global_position if pot else me.global_position - me.global_basis.z)
+				await world.get_tree().create_timer(0.45).timeout
 			for f: int in 6:
 				await RenderingServer.frame_post_draw
 			var path: String = ProjectSettings.globalize_path("res://screenshots/scenario_%s.png" % id)
@@ -313,6 +348,25 @@ static func run(world: Node, id: String) -> bool:
 			print("[ScenarioCheck] saved %s" % path)
 		world.get_tree().quit()
 	return true
+
+
+## Point 39: a free spot on the pavement in front of `prop`'s building where a trash bin may
+## stand (Placement.check passes), or the front door spot when there is none.
+static func outdoor_bin_spot(world: Node, prop: Property) -> Vector3:
+	var b: Building = prop.building()
+	var item: ItemData = ItemDB.get_item(&"trash_bin")
+	for z: float in [1.5, 2.0, 2.5, 1.0, 3.0]:
+		for x: float in [1.8, -1.8, 2.5, -2.5, 1.2, -1.2, 3.2, -3.2]:
+			var top: Vector3 = b.to_global(Vector3(x, 1.5, z))
+			var q := PhysicsRayQueryParameters3D.create(top, top + Vector3.DOWN * 3.0, 1)
+			var hit: Dictionary = world.get_world_3d().direct_space_state.intersect_ray(q)
+			if hit.is_empty():
+				continue
+			var pos: Vector3 = hit["position"]
+			if Placement.check(world.get_world_3d(), world.get_tree(), item, pos, b.global_rotation.y) == "":
+				return pos
+	push_warning("[Scenario] no outdoor bin spot in front of %s" % prop.display_name)
+	return b.to_global(Vector3(0, 0, 1.5))
 
 
 ## Inventory = exactly `items` ([id, count]), `cash` dirty money, no clean money.

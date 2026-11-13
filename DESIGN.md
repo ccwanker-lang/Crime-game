@@ -359,12 +359,12 @@ sniper scope, growing/drying/packaging, the black market, storage. Order: 27 fir
     only uses things (plant, water, harvest, open a locker) (changes 6/17) - done
 37. Bed: sleep to skip the night (time jumps to the morning; in co-op all players sleep / vote) - done
 38. Bookcase = storage too, like the locker - done
-39. Trash: throw cardboard boxes and rubbish in a bin, put the bin outside, a garbage truck comes by and empties it - todo
+39. Trash: throw cardboard boxes and rubbish in a bin, put the bin outside, a garbage truck comes by and empties it - done
 40. Money: HUD shows dirty and clean money apart; depositing in a front business shows a message ("€5000 deposited
     -> €4500 clean tomorrow") and another one when the clean money comes in; a screen in the business with what
-    is pending - todo
-41. Mouse wheel scrolls through the hotbar (in build mode it rotates) - todo
-42. Polish (later): animations for planting, watering, harvesting and packaging - todo
+    is pending - done
+41. Mouse wheel scrolls through the hotbar (in build mode it rotates) - done
+42. Polish (later): animations for planting, watering, harvesting and packaging - done
 ORDER AFTER 42 (set by the user, 2026-11-13):
   43. Ranks + XP + unlocks (Progression) - todo
   44. Staff + dealers - todo
@@ -600,6 +600,33 @@ Choices made while working autonomously (what + why).
   the bookshelf model, same 16 slots and window). Because adoption maps furniture to items by file name, every
   bookshelf of a house you buy (and those already adopted in saves) becomes storage automatically; bookshelves in
   houses you don't own stay plain props. gen_items.py has FURNITURE_STATIONS for more of these later.
+- Point 39 (trash): two trash items (category "trash", worth nothing, not sold anywhere): an Empty Box comes with
+  every delivery you take from the delivery box, Plant Waste with every harvest. They only take pocket space, so
+  the pull is tidiness, not a penalty (no fines or smell - could come later). The Trash Bin (legal, €60, Marc's
+  store + webshop) holds 40; E throws all trash you carry in it. It is the only placeable allowed OUTSIDE: on the
+  pavement up to 7 m in front of a crew-owned building, 2.4-9 m from a traffic lane (not on the road, and close
+  enough for the truck). Every morning at 08:00 World/Garbage sends one garbage truck (a green van with an orange
+  beacon, `Car.garbage`) per traffic route that has an outside bin with trash, starting 45 m before the first
+  bin; it stops 3.5 s next to each bin, empties it and goes off duty 50 m after the last one (5 min max). Bins
+  inside a house are never emptied (that is the reason to put them outside). Sleeping to 07:00 still lets the
+  08:00 pickup happen. A full bin shows its lid open with bags sticking out.
+- Point 40 (laundering messages): the HUD already showed dirty and clean apart (point 9), so this point is the
+  feedback. E on the safe of an owned business now opens its back-office screen (instead of depositing at once):
+  rate, fee, room left, total laundered there, and every deposit waiting in the queue (first in, first out) with
+  what comes back clean and when ("around 14:00 tomorrow", rounded up to the hour, computed from the queue ahead
+  + the daily rate). A Deposit button puts all your dirty cash in (up to the room left). The deposit message
+  reads "€5000 deposited at the Bakery -> €4500 clean (minus 10%), ready around ...". Clean money keeps coming in
+  per €100 chunk (HUD clean € goes up), and when ALL of a player's deposits there are clean the business texts
+  them ("All done: €4500 of your money is clean now"); a per-player `paid` tally in the safe's state feeds it.
+- Point 41 (mouse wheel): the wheel steps through all 8 hotbar slots (wraps around), exactly like the number keys:
+  a weapon there is drawn, an item is held, an empty slot = hands free. Before, it only jumped between weapons.
+  In build mode with a placeable selected the wheel still rotates it (placement handles the input first).
+- Point 42 (work animations): stations report the kind of hands-on work their E did (`Station.work`: soil, plant,
+  water, harvest, hang, take, pack, throw); the host sends it to every peer (`Player.host_work`). Everyone sees
+  the character's "Interact" animation (the Quaternius rig has no planting/watering clips), kneeling for low
+  stations (a pot on the floor; pose crouch over a 1.2 s sine), plus a small particle burst: water drops,
+  soil crumbs, leaves. First person: the eyes dip with the kneel and a held watering can tips forward to pour.
+  No movement lock: walking away just cuts it short.
 ## Known issues / later
 - Bullet decals on a car stay where it was hit when the car drives on (decals are not parented to the car).
 - NPCs walk through each other: NavigationAgent avoidance is off because RVO pushed them into

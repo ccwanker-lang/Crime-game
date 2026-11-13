@@ -85,8 +85,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.8, 0.15, -8.4)
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 1.8, 0.15, -8.4)
 npc_name = "Marc"
 shop_name = "Store"
-greeting = "Morning. Soil, watering cans, baggies, storage lockers... it's all on the shelves."
-stock = Array[StringName]([&"soil", &"watering_can", &"baggie", &"storage_locker"])
+greeting = "Morning. Soil, watering cans, baggies, storage lockers, trash bins... it's all on the shelves."
+stock = Array[StringName]([&"soil", &"watering_can", &"baggie", &"storage_locker", &"trash_bin"])
 variant = 1
 color_seed = 7
 

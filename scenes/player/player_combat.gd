@@ -274,17 +274,11 @@ func select(index: int) -> void:
 	weapon_changed.emit()
 
 
-## Owner: next / previous weapon (mouse wheel).
+## Owner (point 41): the mouse wheel scrolls through all hotbar slots, like the number
+## keys (a weapon there is drawn, anything else is held / placed, an empty slot = hands
+## free). In build mode with a placeable selected the wheel rotates it instead (PlayerPlacement).
 func cycle(step: int) -> void:
-	var n: int = player.inventory.size()
-	if n == 0:
-		return
-	var s: int = hotbar_slot()
-	for k: int in n:
-		s = posmod(s + step, n)
-		if weapon_in_slot(s) >= 0:
-			select(weapon_in_slot(s))
-			return
+	select_slot(posmod(maxi(0, hotbar_slot()) + step, GameState.INVENTORY_SLOTS))
 
 
 func _cancel_reload() -> void:

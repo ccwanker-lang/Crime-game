@@ -5,7 +5,7 @@ extends Node3D
 ## rendered as its icon). Origin = where the hand grips it; front = -Z.
 ## Prefabs in res://prefabs/items/ (written by tools/generators/gen_prefabs.py).
 
-@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box")
+@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste")
 var kind: String = "soil_bag":
 	set(v): kind = v; _queue_rebuild()
 ## Main colour (ammo box print, seed packet label...).
@@ -44,6 +44,8 @@ func _rebuild() -> void:
 		"weed_bud": _bud(b, Vector3.ZERO, 1.0)
 		"fresh_weed": _fresh_weed(b)
 		"ammo_box": _ammo_box(b)
+		"empty_box": _empty_box(b)
+		"plant_waste": _plant_waste(b)
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = b.build()
 	_mesh.visibility_range_end = 40.0
@@ -145,8 +147,8 @@ func _fresh_weed(b: MeshBuilder) -> void:
 
 
 ## Seven-fingered fan leaf at `at`, pointing along `dir`.
-func _leaf(b: MeshBuilder, at: Vector3, dir: Vector3, length: float) -> void:
-	b.color = Color(0.2, 0.42, 0.13)
+func _leaf(b: MeshBuilder, at: Vector3, dir: Vector3, length: float, col := Color(0.2, 0.42, 0.13)) -> void:
+	b.color = col
 	var side: Vector3 = dir.cross(Vector3.BACK).normalized()
 	for f: int in 7:
 		var a: float = (f - 3) * 0.42
@@ -166,3 +168,29 @@ func _ammo_box(b: MeshBuilder) -> void:
 	b.color = Color(0.85, 0.7, 0.35)
 	for i: int in 3:  # brass rims showing through the open lid
 		b.cylinder(&"item_metal", Vector3(-0.03 + i * 0.03, 0.0275, -0.05), Vector3(-0.03 + i * 0.03, 0.031, -0.05), 0.006, 0.006, 8)
+
+
+## Point 39: a flattened cardboard box (folded flaps, a strip of tape), held by one edge.
+func _empty_box(b: MeshBuilder) -> void:
+	b.color = Color(0.62, 0.45, 0.27)
+	b.box(&"item_matte", Vector3(0, -0.17, 0), Vector3(0.36, 0.32, 0.02), 0.004)
+	b.color = Color(0.55, 0.39, 0.23)
+	b.box(&"item_matte", Vector3(0, -0.02, 0.006), Vector3(0.34, 0.05, 0.014), 0.003)
+	b.box(&"item_matte", Vector3(0.0, -0.31, -0.006), Vector3(0.34, 0.05, 0.014), 0.003)
+	b.color = Color(0.78, 0.7, 0.5)
+	b.box(&"item_glossy", Vector3(0, -0.17, 0.0105), Vector3(0.05, 0.3, 0.002))
+
+
+## Point 39: a bundle of cut stems and wilted leaves (what's left after a harvest).
+func _plant_waste(b: MeshBuilder) -> void:
+	for i: int in 6:
+		var a: float = (i - 2.5) * 0.18
+		var tip := Vector3(sin(a) * 0.12, -0.3 + cos(a) * 0.04, 0.02 * (i % 3 - 1))
+		b.color = Color(0.45, 0.42, 0.24)
+		b.cylinder(&"item_matte", Vector3(0, -0.02, 0), tip, 0.007, 0.004, 5, false)
+	var leaf := Color(0.4, 0.38, 0.16)
+	for i: int in 4:
+		var at := Vector3((i - 1.5) * 0.05, -0.2 - (i % 2) * 0.06, 0.01)
+		_leaf(b, at, Vector3((i - 1.5) * 0.5, -1.0, 0).normalized(), 0.08, leaf)
+	b.color = Color(0.3, 0.25, 0.15)
+	b.cylinder(&"item_matte", Vector3(0, -0.06, 0), Vector3(0, 0.0, 0), 0.025, 0.025, 8)  # twine

@@ -20,6 +20,9 @@ const SYNC_INTERVAL: float = 3.0
 
 var state: Dictionary = {}
 var _sync_timer: float = 0.0
+## Host (point 42): do_action sets this when the player did hands-on work ("soil", "plant",
+## "water", "harvest", "hang", "take", "pack", "throw") -> Player.host_work plays the animation.
+var work: String = ""
 ## Point 6: set when placed by a player (World._create_placed). Hold E picks it up.
 var placed_uid: String = ""
 ## Placement preview: only the visuals, no state, groups or network.
@@ -151,7 +154,10 @@ func _server_action(peer: int) -> void:
 		return
 	if player.global_position.distance_to(global_position) > Player.INTERACT_DISTANCE + 1.5:
 		return
+	work = ""
 	var msg: String = do_action(player)
+	if work != "":
+		player.host_work(work, global_position)
 	player.send_wallet()
 	if msg != "":
 		player.show_message(msg)

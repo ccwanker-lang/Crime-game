@@ -10,13 +10,17 @@ extends Station
 const CHUNK: int = 100
 const MAX_DAYS: float = 2.0
 
+## Point 40: the ledger window (HUD) refreshes on this (every peer).
+signal ledger_changed
+
 @export var daily_max: int = 1500
 @export_range(0.0, 0.5) var fee: float = 0.1
 
 
 func default_state() -> Dictionary:
 	# queue: player name -> dirty euros still in the safe (insertion order = FIFO)
-	return {"queue": {}, "buffer": 0.0, "laundered": 0}
+	# paid: player name -> clean euros paid out of their current deposits (point 40 message)
+	return {"queue": {}, "buffer": 0.0, "laundered": 0, "paid": {}}
 
 
 func pick_up_blocker() -> String:
@@ -60,6 +64,62 @@ func business_name() -> String:
 	return prop.display_name if prop else "Business"
 
 
+func state_changed() -> void:
+	ledger_changed.emit()
+
+
+## Tap E (point 40): in an owned business the ledger window opens (deposit from there);
+## otherwise the host answers why not.
+func interact() -> void:
+	var me: Player = _local_player()
+	var prop: Property = property()
+	if me and prop and prop.is_crew_owned():
+		me.open_safe(self)
+	else:
+		super()
+
+
+## Owner: the Deposit button of the ledger window (the host runs do_action).
+func deposit() -> void:
+	super.interact()
+
+
+## In-game hours until `who`'s money in the queue is all clean (first in, first out), or -1.
+func hours_until_clean(who: String) -> float:
+	var queue: Dictionary = state["queue"]
+	if not queue.has(who):
+		return -1.0
+	var ahead: int = 0
+	for n: String in queue:
+		ahead += int(queue[n])
+		if n == who:
+			break
+	return maxf(0.0, (ahead - float(state["buffer"])) / (daily_max / 24.0))
+
+
+## "around 14:00 tomorrow" for `hours` from now.
+static func eta_text(now: float, hours: float) -> String:
+	var at: int = ceili(now + hours - 0.001)  # the next full hour
+	var day: int = floori(at / 24.0)
+	var when: String = "today" if day == 0 else ("tomorrow" if day == 1 else "in %d days" % day)
+	return "around %02d:00 %s" % [at % 24, when]
+
+
+func _now() -> float:
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	return dn.hours if dn else 12.0
+
+
+## [{who, dirty, clean, hours}] in queue order (the ledger window).
+func ledger() -> Array:
+	var out: Array = []
+	for who: String in (state["queue"] as Dictionary):
+		var dirty: int = int(state["queue"][who])
+		out.append({"who": who, "dirty": dirty, "clean": int(floor(dirty * (1.0 - fee))),
+				"paid": int((state.get("paid", {}) as Dictionary).get(who, 0)), "hours": hours_until_clean(who)})
+	return out
+
+
 func queued_total() -> int:
 	var total: int = 0
 	for who: String in (state["queue"] as Dictionary):
@@ -96,10 +156,10 @@ func do_action(player: Player) -> String:
 	var queue: Dictionary = state["queue"]
 	queue[who] = int(queue.get(who, 0)) + amount
 	changed()
-	var days: float = float(queued_total()) / maxf(1.0, daily_max)
-	return "€%d in the %s safe. It comes back clean (minus %d%%) within %s." % [
-		amount, business_name(), roundi(fee * 100.0),
-		"a day" if days <= 1.0 else "%d days" % ceili(days)]
+	# Point 40: "€5000 deposited -> €4500 clean, around 14:00 tomorrow".
+	return "€%d deposited at the %s -> €%d clean (minus %d%%), ready %s." % [
+		amount, business_name(), int(floor(queue[who] * (1.0 - fee))), roundi(fee * 100.0),
+		eta_text(_now(), hours_until_clean(who))]
 
 
 ## Host: book the turnover. Clients only show the state the host sends.
@@ -127,11 +187,25 @@ func tick(hours: float) -> bool:
 		var clean: int = int(floor(step * (1.0 - fee)))
 		state["laundered"] = int(state["laundered"]) + clean
 		GameState.add_clean(who, clean)
+		var paid: Dictionary = state.get_or_add("paid", {})
+		paid[who] = int(paid.get(who, 0)) + clean
+		if left <= 0:
+			_done(who, int(paid[who]))
+			paid.erase(who)
 		_notify(who)
 		dirty = true
 	if dirty:
 		changed()
 	return false
+
+
+## Host (point 40): all of `who`'s deposits are clean -> a text from the business.
+func _done(who: String, total: int) -> void:
+	print("[Launder] %s: %s's €%d is clean" % [business_name(), who, total])
+	for p: Node in get_tree().get_nodes_in_group(&"players"):
+		var pl := p as Player
+		if pl.player_name == who:
+			pl.phone_message(business_name(), "All done: €%d of your money is clean now (in your clean account)." % total, "")
 
 
 func _notify(who: String) -> void:

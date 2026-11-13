@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"empty_box"
+display_name = "Empty Box"
+max_stack = 10
+is_legal = true
+base_price = 0
+description = "Flattened cardboard from a delivery. Throw it in a trash bin."
+category = "trash"

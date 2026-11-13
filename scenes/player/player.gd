@@ -130,6 +130,8 @@ var inventory: Array = []
 var shop: Shopkeeper = null
 ## Owner: the storage locker window that is open (null = none).
 var locker: StorageLocker = null
+## Point 40: the ledger window of a front business's safe is open.
+var safe: LaunderSafe = null
 ## Owner (point 34): the customer whose deal window is open (null = none).
 var deal_npc: Pedestrian = null
 ## Admin mode (host only, debug builds): F10 noclip, F11 god mode (no damage, endless ammo), F12 clear wanted.
@@ -253,6 +255,9 @@ func _build_model() -> void:
 			_anim.get_animation(a).loop_mode = Animation.LOOP_NONE
 		elif short == "Idle_Gun_Pointing":
 			aim_anim = _anim.get_animation(a)
+		elif short == "Interact":  # point 42: hands-on work at a station
+			_anim_names[short] = a
+			_anim.get_animation(a).loop_mode = Animation.LOOP_NONE
 	_skeleton = _model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	_pose = PoseModifier.new()
 	_skeleton.add_child(_pose)
@@ -354,7 +359,10 @@ func _update_held_view(delta: float) -> void:
 	var box: AABB = _held_aabb()
 	var dist: float = 0.42 + box.get_longest_axis_size() * 0.75
 	_held_view.rotation = Vector3(0.12, -0.75, 0.04)
-	var anchor := Vector3(0.42 * dist, -0.36 * dist + bob, -dist)
+	var work: float = work_amount()
+	if work > 0.0 and _work_kind == "water":
+		_held_view.rotation += Vector3(-0.9, 0.5, 0.0) * work  # tip the can forward: pour
+	var anchor := Vector3(0.42 * dist - 0.12 * work, -0.36 * dist + bob - 0.08 * work, -dist - 0.1 * work)
 	_held_view.position = anchor - _held_view.basis * box.get_center()
 
 
@@ -435,6 +443,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if locker != null:
 		if event.is_action_pressed("release_mouse") or event.is_action_pressed("interact"):
 			close_locker()
+			get_viewport().set_input_as_handled()
+		return
+	if safe != null:
+		if event.is_action_pressed("release_mouse") or event.is_action_pressed("interact") or not is_instance_valid(safe):
+			close_safe()
 			get_viewport().set_input_as_handled()
 		return
 	if deal_npc != null:
@@ -604,6 +617,7 @@ func _physics_process(delta: float) -> void:
 		_follow_net(delta)
 		if multiplayer.is_server():
 			_host_validate(delta)
+	_work_t = maxf(0.0, _work_t - delta)
 	_update_crouch(delta)
 	_update_anim()
 
@@ -702,7 +716,7 @@ func _apply_crouch_shape() -> void:
 
 func _update_crouch(delta: float) -> void:
 	_crouch_amount = move_toward(_crouch_amount, 1.0 if net_crouch else 0.0, 5.0 * delta)
-	head.position.y = lerpf(EYE_STAND, EYE_CROUCH, _crouch_amount)
+	head.position.y = lerpf(EYE_STAND, EYE_CROUCH, maxf(_crouch_amount, _work_low * work_amount() * 0.8))
 
 
 ## Remote players: smooth towards the last synced state. Big jumps (respawn,
@@ -755,18 +769,108 @@ func _update_anim() -> void:
 	elif net_air:
 		key = "Run"
 		speed_scale = 0.25
+	if _work_t > 0.0 and _anim_names.has("Interact") and move.length() < 0.1:
+		key = "Interact"  # point 42 (started once in _play_work)
+		speed_scale = 1.0
 	var a: String = _anim_names.get(key, _anim_names.get("Idle", ""))
-	if _anim.current_animation != a:
+	if _anim.current_animation != a and not (key == "Interact" and _anim.assigned_animation == a):
 		_anim.play(a, 0.2)
 	_anim.speed_scale = speed_scale
 	# Holding a gun: the body keeps facing forward (the arm must point where you look).
 	if net_weapon != 0:
 		model_yaw *= 0.3
 	_model.rotation.y = lerp_angle(_model.rotation.y, PI + model_yaw, 0.2)
-	_pose.crouch = maxf(_crouch_amount, 0.3 if net_air else 0.0)
+	_pose.crouch = maxf(maxf(_crouch_amount, 0.3 if net_air else 0.0), _work_low * work_amount() * 0.85)
 	_pose.pitch = head.rotation.x
 	_pose.aim = move_toward(_pose.aim, combat.body_aim(), 0.15)
 	_pose.kick = combat.body_kick()
+
+
+# --- Point 42: work animations (planting, watering, harvesting, packaging...) -------------
+
+const WORK_TIME: float = 1.2
+## Particles per work kind: [colour, count, size, spread]; none for the rest.
+const WORK_FX: Dictionary = {
+	"water": [Color(0.45, 0.65, 0.95, 0.85), 40, 0.018, 0.08],
+	"soil": [Color(0.3, 0.2, 0.12), 24, 0.03, 0.15],
+	"plant": [Color(0.3, 0.2, 0.12), 10, 0.02, 0.06],
+	"harvest": [Color(0.25, 0.45, 0.15), 18, 0.035, 0.2],
+}
+var _work_t: float = 0.0
+var _work_kind: String = ""
+var _work_low: float = 0.0  # 1 = the station is low (a pot on the floor): kneel down
+
+
+## 0 -> 1 -> 0 over the work animation (how far the body bends / the view dips).
+func work_amount() -> float:
+	if _work_t <= 0.0:
+		return 0.0
+	return sin(PI * (1.0 - _work_t / WORK_TIME))
+
+
+func is_working() -> bool:
+	return _work_t > 0.0
+
+
+## Host: `kind` of work done at a station at `at` -> every peer plays it.
+func host_work(kind: String, at: Vector3) -> void:
+	if not multiplayer.has_multiplayer_peer():
+		_play_work(kind, at)
+		return
+	if not multiplayer.is_server():
+		return
+	_play_work(kind, at)
+	for peer: int in Net.peers_in_world:
+		if peer != multiplayer.get_unique_id():
+			_play_work.rpc_id(peer, kind, at)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _play_work(kind: String, at: Vector3) -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_remote_sender_id() not in [0, 1]:
+		return
+	_work_t = WORK_TIME
+	_work_kind = kind
+	_work_low = 1.0 if at.y < global_position.y + 0.45 else 0.0
+	if _anim and _anim_names.has("Interact") and not dead:
+		_anim.play(_anim_names["Interact"], 0.15)
+	_work_particles(kind, at)
+
+
+## A short puff at the station: water drops, soil, leaves.
+func _work_particles(kind: String, at: Vector3) -> void:
+	if not WORK_FX.has(kind) or not is_inside_tree():
+		return
+	var fx: Array = WORK_FX[kind]
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.emitting = false
+	p.amount = int(fx[1])
+	p.lifetime = 0.9
+	p.explosiveness = 0.15 if kind == "water" else 0.6
+	p.direction = Vector3.DOWN if kind == "water" else Vector3.UP
+	p.spread = 12.0 if kind == "water" else 60.0
+	p.initial_velocity_min = 0.3
+	p.initial_velocity_max = 1.2
+	p.gravity = Vector3(0, -6.0, 0)
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	p.emission_sphere_radius = float(fx[3])
+	var mesh := SphereMesh.new()
+	mesh.radius = float(fx[2])
+	mesh.height = float(fx[2]) * 2.0
+	mesh.radial_segments = 4
+	mesh.rings = 2
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = fx[0]
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if (fx[0] as Color).a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mesh.material = mat
+	p.mesh = mesh
+	get_tree().current_scene.add_child(p)
+	p.global_position = at + Vector3.UP * (0.7 if kind == "water" else 0.35)
+	p.emitting = true
+	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
 
 
 # --- Interaction (owner only) ----------------------------------------------------
@@ -932,6 +1036,25 @@ func open_locker(l: StorageLocker) -> void:
 	if not ui.close_requested.is_connected(close_locker):
 		ui.close_requested.connect(close_locker)
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+## Owner (point 40): the ledger window of a front business's safe (frees the mouse).
+func open_safe(s: LaunderSafe) -> void:
+	if ui == null or dead or shop != null or locker != null:
+		return
+	safe = s
+	ui.open_safe(s, self)
+	if not ui.close_requested.is_connected(close_safe):
+		ui.close_requested.connect(close_safe)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func close_safe() -> void:
+	safe = null
+	if ui:
+		ui.close_safe()
+	if not auto_walk:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
 func close_locker() -> void:

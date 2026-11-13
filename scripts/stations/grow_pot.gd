@@ -186,6 +186,7 @@ func do_action(player: Player) -> String:
 			state["stage"] = Stage.SOIL
 			state["water"] = 0.0
 			changed()
+			work = "soil"
 			return "Filled the pot with soil."
 		Stage.SOIL:
 			if not GameState.remove_item(who, "weed_seed", 1):
@@ -194,6 +195,7 @@ func do_action(player: Player) -> String:
 			state["growth"] = 0.0
 			state["seed"] = randi() % 100000
 			changed()
+			work = "plant"
 			return "Planted a seed. Water it!"
 		Stage.GROWING:
 			if float(state["water"]) >= REFILL_BELOW:
@@ -202,6 +204,7 @@ func do_action(player: Player) -> String:
 				return "You need a Watering Can."
 			state["water"] = 1.0
 			changed()
+			work = "water"
 			return "Watered the plant."
 		_:
 			if GameState.space_for(who, "fresh_weed") < YIELD:
@@ -211,4 +214,7 @@ func do_action(player: Player) -> String:
 			state["growth"] = 0.0
 			state["water"] = 0.0
 			changed()
+			# Point 39: stems and leaves are left over (a trash bin takes them).
+			GameState.give(who, 0, [{"id": "plant_waste", "count": 1}])
+			work = "harvest"
 			return "Harvested %d Fresh Weed. Dry it on the rack." % YIELD

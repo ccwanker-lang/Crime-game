@@ -68,4 +68,5 @@ func do_action(player: Player) -> String:
 	var packed: int = n - not_packed
 	if packed <= 0:
 		return "Your pockets are full."
+	work = "pack"
 	return "Packaged %d Bag%s of Weed." % [packed, "" if packed == 1 else "s"]

@@ -869,6 +869,133 @@ func _build_locker_panel() -> void:
 	box.add_child(close)
 
 
+# --- Point 40: the ledger window of a front business's safe ------------------------------
+
+var _safe_panel: Control
+var _safe: LaunderSafe
+var _safe_player: Player
+var _safe_title: Label
+var _safe_info: Label
+var _safe_rows: VBoxContainer
+var _safe_deposit: Button
+
+
+func _build_safe_panel() -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.35)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.visible = false
+	add_child(dim)
+	_safe_panel = dim
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dim.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(560, 0)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.09, 0.09, 0.1, 0.94)
+	style.border_color = Color(0.45, 0.75, 0.5, 0.8)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(18)
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	panel.add_child(box)
+	_safe_title = Label.new()
+	_safe_title.add_theme_font_size_override("font_size", 24)
+	_safe_title.add_theme_color_override("font_color", Color(0.6, 0.95, 0.65))
+	box.add_child(_safe_title)
+	_safe_info = Label.new()
+	_safe_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_safe_info.add_theme_color_override("font_color", Color(0.78, 0.78, 0.8))
+	box.add_child(_safe_info)
+	box.add_child(HSeparator.new())
+	var head := Label.new()
+	head.text = "Waiting to be laundered (first in, first out)"
+	head.add_theme_font_size_override("font_size", 18)
+	box.add_child(head)
+	_safe_rows = VBoxContainer.new()
+	_safe_rows.add_theme_constant_override("separation", 4)
+	box.add_child(_safe_rows)
+	box.add_child(HSeparator.new())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	box.add_child(row)
+	_safe_deposit = _button("Deposit")
+	_safe_deposit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_safe_deposit.pressed.connect(func() -> void:
+		if is_instance_valid(_safe):
+			_safe.deposit())
+	row.add_child(_safe_deposit)
+	var close := _button("Close  [E / Esc]")
+	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	close.pressed.connect(func() -> void: close_requested.emit())
+	row.add_child(close)
+
+
+func is_safe_open() -> bool:
+	return _safe_panel != null and _safe_panel.visible
+
+
+func open_safe(s: LaunderSafe, p: Player) -> void:
+	if _safe_panel == null:
+		_build_safe_panel()
+	close_safe()
+	_safe = s
+	_safe_player = p
+	s.ledger_changed.connect(_refresh_safe)
+	p.wallet_changed.connect(_refresh_safe)
+	_refresh_safe()
+	_safe_panel.visible = true
+
+
+func close_safe() -> void:
+	if _safe and is_instance_valid(_safe) and _safe.ledger_changed.is_connected(_refresh_safe):
+		_safe.ledger_changed.disconnect(_refresh_safe)
+	if _safe_player and is_instance_valid(_safe_player) and _safe_player.wallet_changed.is_connected(_refresh_safe):
+		_safe_player.wallet_changed.disconnect(_refresh_safe)
+	_safe = null
+	_safe_player = null
+	if _safe_panel:
+		_safe_panel.visible = false
+
+
+func _refresh_safe() -> void:
+	if _safe == null or not is_instance_valid(_safe) or _safe_player == null:
+		return
+	var s: LaunderSafe = _safe
+	_safe_title.text = "%s - back office safe" % s.business_name()
+	_safe_info.text = "Launders €%d a day for a %d%% fee. Room for €%d more. Laundered here so far: €%d.
+Your clean money: €%d." % [
+			s.daily_max, roundi(s.fee * 100.0), s.capacity_left(), int(s.state.get("laundered", 0)), _safe_player.clean]
+	for c: Node in _safe_rows.get_children():
+		c.queue_free()
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	var now: float = dn.hours if dn else 12.0
+	var list: Array = s.ledger()
+	if list.is_empty():
+		var none := Label.new()
+		none.text = "Nothing in the safe."
+		none.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+		_safe_rows.add_child(none)
+	for e: Dictionary in list:
+		var l := Label.new()
+		var mine: bool = str(e["who"]) == _safe_player.player_name
+		l.text = "%s:  €%d dirty  ->  €%d clean, ready %s%s" % [
+				"You" if mine else str(e["who"]), int(e["dirty"]), int(e["clean"]),
+				LaunderSafe.eta_text(now, float(e["hours"])),
+				"   (€%d already paid out)" % int(e["paid"]) if int(e["paid"]) > 0 else ""]
+		l.add_theme_color_override("font_color", Color(0.95, 0.95, 0.75) if mine else Color(0.85, 0.85, 0.88))
+		_safe_rows.add_child(l)
+	var amount: int = mini(_safe_player.cash, s.capacity_left())
+	_safe_deposit.disabled = amount <= 0
+	_safe_deposit.text = "Deposit €%d dirty cash" % amount if amount > 0 else 			("The safe is full" if s.capacity_left() <= 0 else "You carry no dirty cash")
+
+
 func is_locker_open() -> bool:
 	return _locker_panel != null and _locker_panel.visible
 

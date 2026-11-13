@@ -173,6 +173,15 @@ Godot console exe:
   `placed/<uid>`, furniture sits in a `PlacedFurniture`. Owned properties adopt their building's furniture
   (`Property.host_adopt_furniture`). `StorageLocker` station + HUD storage window
   (point 38: `BookshelfStorage` subclass = the "bookshelf" item, gen_items `FURNITURE_STATIONS`). Tests: `World.debug_weed_corner()`.
+- Trash (point 39): items `empty_box` (DeliveryBox take) / `plant_waste` (harvest), category "trash"; `TrashBin` station
+  (group `trash_bins`, `host_empty`), the only `Placement.OUTDOOR` item (in front of a crew-owned building,
+  `outdoor_property`, `lane_distance` LANE_MIN/MAX). World/Garbage (`Garbage.dispatch()`, 08:00) spawns
+  `Traffic.spawn_garbage_truck` (`Car.garbage`, `garbage_stops`, group `garbage_trucks`). Scenario trash, check trash.
+- Laundering screen (point 40): `LaunderSafe.interact()` opens `Player.open_safe` -> HUD `open_safe` (ledger,
+  `LaunderSafe.ledger()`, `eta_text`, Deposit = `deposit()`); `_done` texts the player. Screenshot flag `--safe`.
+- Mouse wheel (point 41): `PlayerCombat.cycle(step)` = next/previous hotbar slot (`select_slot`).
+- Work animations (point 42): `Station.work` set in do_action -> `Player.host_work(kind, at)` -> every peer
+  `_play_work` ("Interact" clip, kneel via `_work_low`/`work_amount()`, `WORK_FX` particles, can tilt in first person).
 - Storage/drop (point 20): `StorageLocker.request_move(to_locker, index, count)` (count 0 = stack), HUD slot grids
   with drag (`set_drag_forwarding`); `Player.request_drop(index, count)` -> `World.spawn_loot_bag(..., dropped=true)`
   (LootBag shows the item model). Free locker at the Starter Room's `LockerSpot` (world["free_locker"]).

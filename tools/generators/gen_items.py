@@ -52,6 +52,7 @@ STATIONS = {
     "drying_rack": ("Drying Rack", 80, 2, "Dries Fresh Weed into Dried Weed."),
     "packaging_table": ("Packaging Table", 100, 2, "Packs Dried Weed + Baggies into Bags of Weed."),
     "storage_locker": ("Storage Locker", 150, 2, "A lockable cabinet with room for 16 stacks. Shared with your crew."),
+    "trash_bin": ("Trash Bin", 60, 2, "A wheelie bin for empty boxes and plant waste. Put it outside your property: the garbage truck empties it every morning."),
 }
 
 
@@ -83,8 +84,8 @@ for i, (n, p, s, d) in FURNITURE.items():
     scene = f"res://prefabs/stations/{FURNITURE_STATIONS[i]}.tscn" if i in FURNITURE_STATIONS else f"res://prefabs/interiors/{i}.tscn"
     write(i, n, p, s, d + (" Storage for 16 stacks." if i in FURNITURE_STATIONS else ""), scene, "furniture")
 # Production stations are illegal (DESIGN core rules): only the black market sells them.
-# The storage locker is just a cabinet: legal (store + webshop).
+# The storage locker is just a cabinet, the trash bin a bin: legal (store + webshop).
 for i, (n, p, s, d) in STATIONS.items():
     assert os.path.exists(os.path.join(ROOT, "prefabs", "stations", i + ".tscn")), i
-    write(i, n, p, s, d, f"res://prefabs/stations/{i}.tscn", "station", legal=(i == "storage_locker"))
+    write(i, n, p, s, d, f"res://prefabs/stations/{i}.tscn", "station", legal=(i in ("storage_locker", "trash_bin")))
 print(f"wrote {len(FURNITURE) + len(STATIONS)} items")

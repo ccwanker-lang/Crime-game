@@ -55,7 +55,16 @@ const STATION_BOXES: Dictionary = {
 	"drying_rack": [[Vector3(0, 0.8, 0), Vector3(1.14, 1.6, 0.46)]],
 	"packaging_table": [[Vector3(0, 0.41, 0), Vector3(1.0, 0.82, 0.55)]],
 	"storage_locker": [[Vector3(0, 0.95, 0), Vector3(0.9, 1.9, 0.5)]],
+	"trash_bin": [[Vector3(0, 0.525, 0), Vector3(0.6, 1.05, 0.7)]],
 }
+
+## Point 39: items that may also stand OUTSIDE, on the pavement in front of a crew-owned
+## building (up to OUTDOOR_RANGE m from its front wall), close enough to a traffic lane for
+## the garbage truck (LANE_MAX) but not on the road itself (LANE_MIN).
+const OUTDOOR: Array[String] = ["trash_bin"]
+const OUTDOOR_RANGE: float = 7.0
+const LANE_MIN: float = 2.4
+const LANE_MAX: float = 9.0
 
 
 static func _shape_box(shape: Shape3D) -> AABB:
@@ -90,6 +99,37 @@ static func property_at(tree: SceneTree, pos: Vector3) -> Property:
 	return null
 
 
+## Point 39: the crew-owned property whose building's FRONT `pos` is in front of (outside,
+## within OUTDOOR_RANGE of the front wall, about level with the ground floor), or null.
+static func outdoor_property(tree: SceneTree, pos: Vector3) -> Property:
+	for n: Node in tree.get_nodes_in_group(&"properties"):
+		var p := n as Property
+		if p == null or not p.is_crew_owned() or p.building() == null:
+			continue
+		var b: Building = p.building()
+		var l: Vector3 = b.to_local(pos)
+		if l.z > -0.05 and l.z < OUTDOOR_RANGE and absf(l.x) < b.width * 0.5 + 1.0 and absf(l.y) < 1.5:
+			return p
+	return null
+
+
+## Distance from `pos` to the nearest traffic lane (INF without traffic).
+static func lane_distance(tree: SceneTree, pos: Vector3) -> float:
+	var traffic := tree.current_scene.get_node_or_null("Traffic") as Traffic if tree.current_scene else null
+	if traffic == null:
+		return INF
+	var flat := Vector3(pos.x, 0, pos.z)
+	var best: float = INF
+	for route: TrafficRoute in traffic.routes:
+		var step: float = 1.0
+		var d: float = 0.0
+		while d < route.length:
+			var q: Vector3 = route.sample(d)[0]
+			best = minf(best, flat.distance_to(Vector3(q.x, 0, q.z)))
+			d += step
+	return best
+
+
 ## "" when `item` can stand at `pos` (floor point) turned by `yaw`; otherwise why not.
 ## `ignore` = bodies to leave out of the overlap test (the placing player).
 static func check(world: World3D, tree: SceneTree, item: ItemData, pos: Vector3, yaw: float,
@@ -97,8 +137,18 @@ static func check(world: World3D, tree: SceneTree, item: ItemData, pos: Vector3,
 	if item == null or item.place_scene == null:
 		return "You can't place that."
 	var prop: Property = property_at(tree, pos)
+	var outside: bool = false
+	if prop == null and String(item.id) in OUTDOOR:
+		prop = outdoor_property(tree, pos)
+		outside = prop != null
+		if outside:
+			var lane: float = lane_distance(tree, pos)
+			if lane < LANE_MIN:
+				return "Not on the road."
+			if lane > LANE_MAX:
+				return "Closer to the street: the garbage truck must reach it."
 	if prop == null:
-		return "Only inside a property you own."
+		return "Only inside or in front of a property you own." if String(item.id) in OUTDOOR 				else "Only inside a property you own."
 	if not prop.is_crew_owned():
 		return "This isn't your property."
 	var box: AABB = local_box(item)
@@ -124,6 +174,8 @@ static func check(world: World3D, tree: SceneTree, item: ItemData, pos: Vector3,
 		if not space.intersect_shape(q, 1).is_empty():
 			return "Something is in the way."
 	# The whole footprint stays inside the property.
+	if outside:
+		return ""
 	for corner: Vector3 in [Vector3(box.position.x, 0, box.position.z), Vector3(box.end.x, 0, box.position.z),
 			Vector3(box.position.x, 0, box.end.z), Vector3(box.end.x, 0, box.end.z)]:
 		if not prop.contains(pos + basis * corner + Vector3.UP * 0.1):

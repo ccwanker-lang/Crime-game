@@ -47,6 +47,17 @@ const HORN_SHORT := preload("res://assets/audio/vehicles/car_horn_short.ogg")
 ## panic: a crime nearby (report_crime) stops it and the officer gets out and takes
 ## the culprit on; afterwards the officer gets back in and it patrols on.
 @export var police: bool = false
+## Point 39: the garbage truck (green van, orange beacon). World/Garbage sends it out in the
+## morning with `garbage_stops`; it stops next to each bin, empties it and goes off duty
+## after `garbage_left` more metres.
+@export var garbage: bool = false
+## Host: [{bin: TrashBin, prog: float, route: int}] in driving order.
+var garbage_stops: Array = []
+var garbage_left: float = 0.0
+var _garbage_wait: float = 0.0
+var _garbage_life: float = 0.0
+const GARBAGE_STOP_TIME: float = 3.5
+const GARBAGE_MAX_LIFE: float = 300.0
 ## Synced: the light bar flashes (officer out on a call).
 var siren: bool = false:
 	set(v):
@@ -131,9 +142,14 @@ func _ready() -> void:
 	if police:
 		paint = Color(0.92, 0.93, 0.95)
 		add_to_group(&"police")
+	if garbage:
+		paint = Color(0.18, 0.42, 0.24)
+		add_to_group(&"garbage_trucks")
 	ProcCar.build(self, kind, paint)
 	if police:
 		_build_police_gear()
+	if garbage:
+		_build_garbage_gear()
 	for c: Node in find_children("Wheel*", "", true, false):
 		var w := c as Node3D
 		_wheels.append(w)
@@ -339,6 +355,10 @@ func _physics_process(delta: float) -> void:
 	else:
 		_wait_car = 0.0
 	_ignore_cars = maxf(0.0, _ignore_cars - delta)
+	if garbage:
+		target = _garbage_limit(route, target, delta)
+		if is_queued_for_deletion():
+			return
 	speed = move_toward(speed, target, (ACCEL if target > speed else BRAKE) * delta)
 	progress = fposmod(progress + speed * delta, route.length)
 	_place_on(route)
@@ -346,6 +366,58 @@ func _physics_process(delta: float) -> void:
 	net_pos = global_position
 	net_yaw = rotation.y
 	net_speed = speed
+
+
+## Host (point 39): the speed limit of the garbage truck: brake for the next bin, stand
+## still next to it for GARBAGE_STOP_TIME, empty it. Off duty after the last one.
+func _garbage_limit(route: TrafficRoute, target: float, delta: float) -> float:
+	_garbage_life += delta
+	garbage_left -= speed * delta
+	while not garbage_stops.is_empty():
+		var stop: Dictionary = garbage_stops[0]
+		if is_instance_valid(stop["bin"]) and int(stop["route"]) == route_id:
+			break
+		garbage_stops.pop_front()  # bin gone, or the truck left its route (u-turn)
+	if garbage_stops.is_empty():
+		if garbage_left <= 0.0 or _garbage_life > GARBAGE_MAX_LIFE:
+			print("[Garbage] truck %s goes off duty" % name)
+			var traffic := get_parent() as Traffic
+			for j: int in Traffic.JUNCTIONS.size():
+				traffic.release_junction(j, self)
+			queue_free()
+		return target
+	var stop: Dictionary = garbage_stops[0]
+	var ahead: float = fposmod(float(stop["prog"]) - progress, route.length)
+	if ahead > route.length - 4.0:
+		ahead = 0.0  # just rolled past it
+	if ahead < 0.8:
+		_garbage_wait += delta
+		if _garbage_wait >= GARBAGE_STOP_TIME:
+			_garbage_wait = 0.0
+			var n: int = (stop["bin"] as TrashBin).host_empty()
+			garbage_stops.pop_front()
+			print("[Garbage] truck %s emptied a bin (%d trash)" % [name, n])
+		return 0.0
+	return minf(target, sqrt(2.0 * 3.0 * maxf(0.0, ahead - 0.6)))
+
+
+## Point 39: orange beacon on the roof, a dark hopper at the back, yellow side stripe.
+func _build_garbage_gear() -> void:
+	var s: Dictionary = ProcCar.SPECS[kind]
+	var hw: float = float(s["w"]) / 2.0 + 0.004
+	var hl: float = float(s["len"]) / 2.0
+	var roof: float = float(s["roof"])
+	var b := MeshBuilder.new()
+	b.color = Color(0.95, 0.72, 0.1)
+	for side: float in [-1.0, 1.0]:
+		b.box(&"item_glossy", Vector3(side * hw, float(s["body"]) - 0.2, 0.0), Vector3(0.01, 0.1, hl * 1.8))
+	b.color = Color(0.1, 0.11, 0.1)
+	b.box(&"item_matte", Vector3(0, roof * 0.55, hl + 0.12), Vector3(float(s["w"]) * 0.9, roof * 0.8, 0.26), 0.03)
+	b.color = Color(1.0, 0.5, 0.05)
+	b.box(&"item_glossy", Vector3(0, roof + 0.07, float(s["cab_f"]) + 0.3), Vector3(0.22, 0.14, 0.22), 0.03)
+	var mi := MeshInstance3D.new()
+	mi.mesh = b.build()
+	add_child(mi)
 
 
 ## Host: claims the junctions the car is in or about to enter and releases the

@@ -180,6 +180,18 @@ func spawn_police_car(r: int, prog: float, crew: int = 2, heavy: bool = false) -
 	return car
 
 
+## Host (point 39): the garbage truck (a green van) on route `r` at `prog` metres.
+func spawn_garbage_truck(r: int, prog: float) -> Car:
+	var car: Car = CAR.instantiate()
+	car.route_id = r
+	car.progress = prog
+	car.kind = ProcCar.Kind.VAN
+	car.garbage = true
+	car.color_seed = randi()
+	add_child(car, true)
+	return car
+
+
 ## Point 28: the route point closest to `p`: [route index, progress (m), distance].
 func nearest(p: Vector3) -> Array:
 	var best: Array = [0, 0.0, INF]

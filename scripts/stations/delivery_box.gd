@@ -120,4 +120,9 @@ func do_action(player: Player) -> String:
 	var left: Array = GameState.give(player.player_name, 0, items.duplicate(true))
 	state["items"] = left
 	changed()
-	return "Took the delivery." if left.is_empty() else "Your pockets are full - some is still in the box."
+	if not left.is_empty():
+		return "Your pockets are full - some is still in the box."
+	# Point 39: the packaging stays with you: throw it in a trash bin.
+	if GameState.give(player.player_name, 0, [{"id": "empty_box", "count": 1}]).is_empty():
+		return "Took the delivery (and the empty box - throw it in a trash bin)."
+	return "Took the delivery."

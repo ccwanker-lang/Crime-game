@@ -40,3 +40,7 @@ One line per finished part.
 - Point 36: build mode on B - only in build mode can you place, rotate and pick up furniture and stations; outside it E just uses things.
 - Point 37: sleep in your own bed (E, from 20:00) to skip to 07:00 - in co-op when everyone is in bed; plants and racks catch up on the night, you wake up healed. Scenario sleep.
 - Point 38: bookshelves are storage too (same window as the locker), also the ones in houses you buy. Scenario bookshelf.
+- Point 39: trash - deliveries leave an empty box and harvests plant waste; throw them in a trash bin (store/webshop), put the bin outside in front of your house and a garbage truck empties it every morning at 08:00. Scenario trash.
+- Point 40: laundering feedback - the safe opens a screen with everything waiting (how much comes back clean and when) and a Deposit button; the deposit message says "€X deposited -> €Y clean, ready around ..."; the business texts you when all your money is clean. Scenario launder.
+- Point 41: the mouse wheel scrolls through all hotbar slots (in build mode it still rotates the item).
+- Point 42: work animations - planting, watering, harvesting, hanging, packaging and throwing away play an animation (kneeling at pots), with water drops / soil / leaves; the watering can tips over in first person. Scenario grow.

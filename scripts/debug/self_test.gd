@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "regen", "selling", "phone", "traffic", "save"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -110,6 +110,19 @@ func _check_held(world: Node3D) -> void:
 		await get_tree().process_frame
 	_report(p.net_held == &"" and p.get_node_or_null("HeldItem") == null and p.net_weapon == 1,
 			"drawing the pistol puts the item away")
+	# Point 41: the mouse wheel walks through every hotbar slot (pistol -> can -> empty ... -> pistol).
+	p.combat.cycle(1)
+	var after_one: bool = p.combat.selected_slot == 1 and not p.combat.equipped and p.net_held == &"watering_can"
+	p.combat.cycle(1)
+	var after_two: bool = p.combat.selected_slot == 2 and p.net_held == &""
+	p.combat.cycle(-1)
+	p.combat.cycle(-1)
+	_report(after_one and after_two and p.combat.equipped and p.combat.hotbar_slot() == 0,
+			"the mouse wheel scrolls through the hotbar slots (%s, %s, back to the pistol: %s)" % [after_one, after_two,
+			p.combat.equipped])
+	p.combat.select_slot(7)
+	p.combat.cycle(1)
+	_report(p.combat.hotbar_slot() == 0 and p.combat.equipped, "and wraps around from slot 8 to slot 1")
 	p.queue_free()
 	await get_tree().physics_frame
 
@@ -1072,6 +1085,92 @@ func _check_bookshelf(world: Node3D) -> void:
 	await get_tree().physics_frame
 
 
+# --- Trash bin + garbage truck (point 39) --------------------------------------------------
+
+func _check_trash(world: Node3D) -> void:
+	var sr: Property = world.find_child("StarterRoom", true, false).get_node("Property") as Property
+	var b: Building = sr.building()
+	var item: ItemData = ItemDB.get_item(&"trash_bin")
+	_report(item != null and item.is_legal and item.place_scene != null, "the trash bin is a legal placeable item")
+	var spot: Vector3 = Scenarios.outdoor_bin_spot(world, sr)
+	var w3d: World3D = world.get_world_3d()
+	_report(Placement.check(w3d, get_tree(), item, spot, b.global_rotation.y) == "",
+			"a bin may stand on the pavement in front of the Starter Room (%s)" % spot.snapped(Vector3.ONE * 0.1))
+	var road: Array = (world.get_node("Traffic") as Traffic).nearest(spot)
+	var lane: Vector3 = (world.get_node("Traffic") as Traffic).routes[int(road[0])].sample(float(road[1]))[0]
+	var on_road := Vector3(lane.x, spot.y, lane.z)
+	_report(Placement.check(w3d, get_tree(), item, on_road, 0.0) != "",
+			"not on the road ('%s')" % Placement.check(w3d, get_tree(), item, on_road, 0.0))
+	_report(Placement.check(w3d, get_tree(), ItemDB.get_item(&"sofa"), spot, 0.0) != "", "a sofa may not stand outside")
+	var far_front: Vector3 = b.to_global(Vector3(0, 0.1, 12.0))
+	_report(Placement.check(w3d, get_tree(), item, far_front, 0.0) != "", "not far from your own front door")
+	# Trash comes from deliveries and harvests; E throws it in the bin.
+	var bin := world.call("host_place", "trash_bin", spot, b.global_rotation.y) as TrashBin
+	await get_tree().physics_frame
+	_report(bin != null and bin.is_in_group(&"trash_bins"), "a placed trash bin is a station")
+	if bin == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Binman"
+	var front: Vector3 = spot + b.global_basis.z * 1.0
+	p.auto_target = front
+	world.get_node("Players").add_child(p)
+	p.global_position = front + Vector3.UP * 0.1
+	for i: int in 5:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Binman")
+	var d: Dictionary = GameState.get_or_create_player_data("Binman")
+	d["inventory"] = [{"id": "empty_box", "count": 3}, {"id": "plant_waste", "count": 2}, {"id": "baggie", "count": 5}]
+	var msg: String = bin.do_action(p)
+	_report(bin.trash() == 5 and GameState.count_item("Binman", "empty_box") == 0
+			and GameState.count_item("Binman", "plant_waste") == 0 and GameState.count_item("Binman", "baggie") == 5,
+			"E throws only the trash in the bin ('%s', bin %d)" % [msg, bin.trash()])
+	var box := DeliveryBox.new()
+	box.station_id = "test/trash_delivery"
+	add_child(box)
+	box.state["items"] = [{"id": "soil", "count": 1}]
+	box.do_action(p)
+	_report(GameState.count_item("Binman", "empty_box") == 1, "taking a delivery leaves an empty box")
+	box.queue_free()
+	(GameState.world["stations"] as Dictionary).erase("test/trash_delivery")
+	# An inside bin is never collected; the outside one gets a truck that stops and empties it.
+	var inside := world.call("host_place", "trash_bin", b.to_global(Vector3(-1.0, 0.1, -2.0)), 0.0) as TrashBin
+	await get_tree().physics_frame
+	if inside:
+		inside.state["trash"] = 4
+	var garbage: Garbage = Garbage.current(get_tree())
+	var sent: int = garbage.dispatch() if garbage else 0
+	var truck: Car = null
+	for c: Node in get_tree().get_nodes_in_group(&"garbage_trucks"):
+		truck = c as Car
+	_report(sent == 1 and truck != null and truck.garbage_stops.size() == 1,
+			"the garbage truck is sent for the outside bin only (%d truck(s), %d stop(s))" % [sent,
+			truck.garbage_stops.size() if truck else -1])
+	var t: int = 0
+	var stopped_near: float = INF
+	while t < 60 * 40 and bin.trash() > 0 and is_instance_valid(truck):
+		await get_tree().physics_frame
+		t += 1
+		if truck.speed < 0.1:
+			stopped_near = minf(stopped_near, truck.global_position.distance_to(bin.global_position))
+	_report(bin.trash() == 0 and stopped_near < Placement.LANE_MAX + 1.0,
+			"the truck stops next to the bin and empties it (%.1f s, stopped %.1f m from it)" % [t / 60.0, stopped_near])
+	_report(inside == null or inside.trash() == 4, "the bin inside the house is left alone")
+	t = 0
+	while t < 60 * 30 and is_instance_valid(truck):
+		await get_tree().physics_frame
+		t += 1
+	_report(not is_instance_valid(truck), "and goes off duty afterwards (%.1f s)" % [t / 60.0])
+	world.call("host_remove_placed", bin.placed_uid)
+	if inside:
+		world.call("host_remove_placed", inside.placed_uid)
+	p.queue_free()
+	GameState.player_data.erase("Binman")
+	await get_tree().physics_frame
+
+
 # --- Storage + dropping (point 20) ------------------------------------------------------
 
 func _check_storage(world: Node3D) -> void:
@@ -1207,12 +1306,25 @@ func _check_laundering(world: Node3D) -> void:
 	msg = bakery.do_action(p)
 	_report(int(d["cash"]) == 2000 and bakery.queued_total() == 3000,
 			"depositing fills the safe up to 2 days of turnover (cash %d, safe %d)" % [d["cash"], bakery.queued_total()])
+	# Point 40: the deposit message says what comes back and when; the ledger lists it.
+	_report(msg.contains("€3000 deposited") and msg.contains("€2700 clean") and msg.contains("ready around"),
+			"the deposit message tells what comes back clean and when ('%s')" % msg)
+	var ledger: Array = bakery.ledger()
+	_report(ledger.size() == 1 and int(ledger[0]["dirty"]) == 3000 and int(ledger[0]["clean"]) == 2700
+			and absf(float(ledger[0]["hours"]) - 48.0) < 0.01,
+			"the safe's ledger shows the pending money (%s)" % [ledger])
+	_report(LaunderSafe.eta_text(10.0, 48.0) == "around 10:00 in 2 days" and LaunderSafe.eta_text(22.0, 4.0) == "around 02:00 tomorrow",
+			"ready times read well ('%s', '%s')" % [LaunderSafe.eta_text(10.0, 48.0), LaunderSafe.eta_text(22.0, 4.0)])
+	p.last_phone = []
 	bakery.tick(12.0)
 	_report(int(d["clean"]) == 630 and bakery.queued_total() == 2300,
 			"half a day launders €700 (in €100 chunks) -> €630 clean (clean %d, safe %d)" % [d["clean"], bakery.queued_total()])
 	bakery.tick(48.0)
 	_report(int(d["clean"]) == 2700 and bakery.queued_total() == 0 and bakery.state["queue"].is_empty(),
 			"everything comes back clean minus 10%% (clean %d)" % d["clean"])
+	_report(p.last_phone.size() == 3 and str(p.last_phone[0]) == "Bakery" and str(p.last_phone[1]).contains("€2700"),
+			"a text from the business when the money is clean (%s)" % [p.last_phone])
+	_report((bakery.state.get("paid", {}) as Dictionary).is_empty(), "the payout tally starts over after that")
 	_report(GameState.world["stations"].has(bakery.station_id), "the safe state is in the world state (saved)")
 	GameState.player_data.erase("Washer")
 	p.queue_free()
@@ -1237,6 +1349,9 @@ func _check_growing(world: Node3D) -> void:
 	_report(pot != null and lamp != null and rack != null, "placed pots, a grow lamp and a drying rack in the starter room")
 	if pot == null or lamp == null or rack == null:
 		return
+	# (An earlier check - sleep - may have left a grown plant in the shared corner pot.)
+	pot.state.merge(pot.default_state(), true)
+	pot.changed()
 	var stations: Dictionary = GameState.world.get("stations", {})
 	_report(stations.get(pot.station_id) == pot.state, "pot state lives in GameState.world (%s)" % pot.station_id)
 
@@ -1268,6 +1383,16 @@ func _check_growing(world: Node3D) -> void:
 	pot._server_action(1)
 	_report(float(pot.state["water"]) == 1.0 and GameState.count_item("Grower", "watering_can") == 1,
 			"watering fills the soil and keeps the can")
+	# Point 42: hands-on work plays an animation (kneel at the low pot, can tips, drops fall).
+	var drops: int = 0
+	for n: Node in world.get_children():
+		if n is CPUParticles3D:
+			drops += 1
+	_report(p.is_working() and p._work_kind == "water" and p._work_low == 1.0 and drops > 0,
+			"watering plays the work animation (kind '%s', low %.0f, %d particle burst(s))" % [p._work_kind, p._work_low, drops])
+	for i: int in 12:
+		await get_tree().physics_frame
+	_report(p.work_amount() > 0.3 and p._pose.crouch > 0.2, "the body kneels down to the pot (crouch %.2f)" % p._pose.crouch)
 	lamp.state["on"] = true
 	var g0: float = float(pot.state["growth"])
 	pot.tick(1.0)
