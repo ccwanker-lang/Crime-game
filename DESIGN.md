@@ -990,6 +990,9 @@ Choices made while working autonomously (what + why).
   split and stays on main; B builds on it.
 - Point 49b / round-5 order (set by the user, replaces my earlier "49b after 62"): 60 -> 61 -> 63 -> 49b -> 62.
   The pass starts at the farm (Country Lane top), which 62 doesn't move, so 62 can fit the villas round it later.
+- Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
+  the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
+  of the fence) instead of the fence. Shots 96/97.
 - Point 63: Traffic. (a) 5 cars instead of 8 (`Traffic.CAR_COUNT`): half-empty streets read calmer and the
   one-car-per-junction rule no longer builds queues. (b) Lights (`Traffic.LIGHTS`) only at the three Main Road
   junctions (-6, 0), (30, 0), (-114, 0) where most routes cross; the quiet ones keep the reservation. Cycle 36 s:

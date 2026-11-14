@@ -139,8 +139,9 @@ func _build() -> void:
 	b.box(&"item_matte", Vector3(0, 2.2, hw + t / 2.0), Vector3(GATE_W + 0.07, 0.07, 0.07))  # over the gate
 	# Two goals (white frame, grey net bars).
 	for s: float in [-1.0, 1.0]:
-		var gx: float = s * (hl - 0.05)
-		var back: float = gx - s * GOAL_DEPTH
+		# The open mouth faces the pitch; the net is behind it, against the end fence.
+		var back: float = s * (hl - 0.05)
+		var gx: float = back - s * GOAL_DEPTH
 		b.color = Color(0.95, 0.95, 0.95)
 		for z: float in [-GOAL_HALF, GOAL_HALF]:
 			b.box(&"item_matte", Vector3(gx, GOAL_H / 2.0, z), Vector3(0.08, GOAL_H, 0.08))
@@ -287,15 +288,15 @@ func _roll(delta: float) -> void:
 	if absf(ball_pos.z) > lim_z:
 		ball_pos.z = signf(ball_pos.z) * lim_z
 		ball_vel.z = -ball_vel.z * BOUNCE
+	# Goal line = the goal mouth, GOAL_DEPTH in front of the end fence; the net is the fence behind it.
+	var mouth: float = LENGTH / 2.0 - 0.05 - GOAL_DEPTH
+	if absf(ball_pos.x) > mouth and absf(ball_pos.z) < GOAL_HALF - BALL_R and _goal_wait <= 0.0:
+		if _is_host():
+			_goal(0 if ball_pos.x > 0.0 else 1)
+		ball_vel *= 0.2
 	if absf(ball_pos.x) > lim_x:
-		if absf(ball_pos.z) < GOAL_HALF - BALL_R and _goal_wait <= 0.0:
-			if _is_host():
-				_goal(0 if ball_pos.x > 0.0 else 1)
-			ball_pos.x = signf(ball_pos.x) * minf(absf(ball_pos.x), lim_x + GOAL_DEPTH * 0.6)
-			ball_vel *= 0.2
-		else:
-			ball_pos.x = signf(ball_pos.x) * lim_x
-			ball_vel.x = -ball_vel.x * BOUNCE
+		ball_pos.x = signf(ball_pos.x) * lim_x
+		ball_vel.x = -ball_vel.x * BOUNCE
 	_ball.position = ball_pos
 
 

@@ -125,6 +125,8 @@ const SHOTS: Array[Array] = [
 	["92_map_top", Vector3(-59, 330, 140), Vector3(-59, 0, -10)],
 	["93_south_bend", Vector3(-48, 9, 50), Vector3(-70, 0, 80)],
 	["94_south_harbour", Vector3(-60, 22, 100), Vector3(-100, 0, 80)],
+	["96_agora_goals", Vector3(16, 6.5, 38), Vector3(16, 0.5, 28)],
+	["97_agora_goal_close", Vector3(10.5, 1.6, 30.5), Vector3(7.5, 0.8, 28)],
 	["95_traffic_lights", Vector3(28.5, 2.2, 19), Vector3(31, 2.2, -2)],
 ]
 
