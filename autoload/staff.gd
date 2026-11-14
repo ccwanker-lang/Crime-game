@@ -902,6 +902,8 @@ func _run(peer: int, action: String, a: Variant, b: Variant) -> String:
 			msg = Legal.host_fire(player.player_name)
 		"bribe":
 			msg = Legal.host_bribe(player)
+		"tow":
+			msg = Roadside.host_tow(player, str(a))
 		"sync":
 			pass
 	_broadcast()

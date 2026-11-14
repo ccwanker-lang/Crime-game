@@ -58,9 +58,10 @@ const LIST: Array = [
 	["coke_lab", "Rank 4: coca bed, leaf press + refinery in your Starter Room, supplies in your pockets", "E on the coca bed: plant. Hold F7: halfway WATER! (E) - watered = 12 leaves, dry = 6. Harvest, E on the leaf press (12 leaves + Process Fluid) = Coca Paste, E on the refinery, VENT! halfway (E) = 8 Cocaine. Then the packaging table: Bags of Cocaine."],
 	["coke_staff", "Rank 4: a grower + a cook run the cocaine lab in your Starter Room", "Hold F7 and watch: the grower plants + waters the coca bed (seedlings + soil from the locker), the cook presses the leaves and runs the refinery; the cocaine ends up in the locker (E on it). E on a worker = what they are doing."],
 	["courier", "Rank 3: a courier in your Starter Room, bags in the locker, a dealer in Old Town", "Hold F7: the courier takes the bags from the locker to your dealer and brings the cash back (phone text), then buys soil/seeds/baggies for the stations into the locker (paid from your money). Tab > Crew: what everybody does."],
-	["bribe", "Rank 5, 3 wanted stars, €8,000", "Tab > Crew > Lawyer + cop: Bribe Dekker (€1,500 per star) -> the stars are gone. Hire Mr. Hale too (€400 a day): after an arrest he gets 60% of the fine and half of the confiscated goods back (needs a small hook from session A in the arrest code)."],
+	["bribe", "Rank 5, 3 wanted stars, €8,000", "Tab > Crew > Services: Bribe Dekker (€1,500 per star) -> the stars are gone. Hire Mr. Hale too (€400 a day): after an arrest he gets 60% of the fine and half of the confiscated goods back (a text from him)."],
 	["raid_live", "Rank 2, night, AK + ammo in front of your meth lab: the Crows are coming", "The Crows texted: they raid your Starter Room in a moment (3 of them at the door). Kill them all within 2.5 minutes = raid won (+XP); if they're still standing they get in: half the product in the locker + a machine gone. Inside your property you're safe."],
 	["raid_guards", "Rank 4, 2 guards in your Starter Room, you far away, raid in a moment", "Nobody home: the guards fight. Hold F7: the Crows come; each guard takes one down, then they hold the lab (or not: 35% per guard). Read the texts (Tab). Tab > Crew: the guards' status."],
+	["roadside", "Rank 5, your Comet Sedan far away on Carlo's lot, you in front of the Starter Room", "Tab > Crew > Services: Roadside Service, 'Bring it here' (€350). A text; about 30 seconds later the car stands on the pavement of the nearest road (second text with the distance). F = get in. Not near a road / car already close = refused."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -474,6 +475,14 @@ static func run(world: Node, id: String) -> bool:
 			buyer.accept_deal()
 			buyer.face(me.global_position)
 			Pedestrian.force_outcome = "fair"
+		"roadside":
+			Progression.force_gates = true
+			Progression.debug_set_rank(5)
+			_kit(me, 2000, [])
+			var s2r: Node3D = world.find_child("CarDelivery2", true, false) as Node3D
+			if Vehicles.current and s2r:
+				Vehicles.current.host_spawn("sedan", 4, s2r.global_position, s2r.global_rotation.y)
+			_place(me, home_front + sr.building().global_basis.z * 3.0, home_front + sr.building().global_basis.z * 10.0, dn, 12.0)
 		"raid_live", "raid_guards":
 			Progression.force_gates = true
 			Progression.debug_set_rank(2 if id == "raid_live" else 4)

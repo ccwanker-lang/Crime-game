@@ -3,8 +3,8 @@
 Session B notes. To be folded into DESIGN.md (Roadmap status + Decisions) / CHANGELOG.md / CLAUDE.md by
 session A when merging (B may not edit those files).
 
-## MERGED parts 1 + 2 (A, main c95e70c, already in DESIGN/CHANGELOG/CLAUDE.md). Open for the next merge: parts 3-5
-(meth, cocaine, courier/lawyer/bribes) below.
+## MERGED parts 1 + 2 (A, main c95e70c, already in DESIGN/CHANGELOG/CLAUDE.md). Open for the next merge: parts 3-7
+(meth, cocaine, courier/lawyer/bribes, Crow raids + guards, roadside team) below.
 
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
@@ -307,3 +307,39 @@ Code + self-test check `raids` + scenarios raid_live / raid_guards.
 - Raids (milestone 3): `Raids` autoload (nightly roll from rank 2, `announce`/`start`, LIVE raid with World.add_rival
   when crew is near, else guards roll; `_lost` steals locker stock + a machine), Staff role guard (rank 4).
   Scenarios raid_live/raid_guards, self-test check raids.
+
+
+# Part 7: roadside team (DESIGN rank 5 "roadside service team"; Buildings "tow truck team drives to the player")
+
+## Status
+Code + self-test check `roadside` + scenario `roadside`.
+
+## How it works
+- `Roadside` (scripts/staff/roadside.gd, static helper, host): CrewWindow tab "Services" (was "Lawyer + cop") lists
+  the crew's cars with "Bring it here (€350)" -> `Staff.request("tow", uid)` -> `Roadside.host_tow(p, uid)`:
+  rank 5, not in a car, car empty and > 20 m away, a road within 45 m (`kerb_spot`), fee (clean first, legal).
+  Text, then `tow_seconds` (30 s) later `_deliver`: the car is set on the pavement beside the nearest traffic lane
+  (`KERB_OFFSET` 2.9 m right of the lane, outside junction squares, box query free of world/props/players), facing
+  along the traffic, save record updated, text with the distance. Impossible at that moment = fee refunded.
+- Uses A's `Vehicles.current.cars()`, `PlayerCar.seats/_save_record/net_*`, `Traffic.nearest/routes`,
+  `TrafficRoute.sample`, `CarCatalog.MODELS` (read-only, no edits to A's files).
+
+## Decisions (what + why)
+- No tow truck driving through town: the car simply appears after 30 s. Why: a driving tow truck needs Traffic/Car
+  changes (A's files); the service effect (your car where you are) is what the design asks. A can add a visual
+  truck later via the same `_deliver` moment.
+- The car is dropped on the pavement, not in the lane: AI traffic would stop behind a car parked in its lane.
+- Fee €350, clean money first (a legal service, like the lawyer).
+- Fuel + the gas station (rest of Roadmap 48) are A's: they need PlayerCar (fuel use) and the map (station). Asked in B.md.
+
+## Existing files changed (part 7)
+- staff.gd: request "tow". crew_window.gd: tab "Services" + `_fill_roadside`. rank_config.gd: unlock texts rank 4
+  (guards) and rank 5 (roadside team) without "(Later)". self_test.gd: "roadside" at the end of CHECKS
+  (scripts/debug/roadside_test.gd). scenarios.gd: roadside; bribe hint says "Services".
+
+## Te testen door Curry
+- `roadside` (F9): Tab > Crew > Services > "Bring it here": na ~30 s staat je Comet Sedan op de stoep bij de weg.
+
+## For CLAUDE.md (suggested lines)
+- Roadside team (milestone 3): `Roadside` (scripts/staff/roadside.gd, static: `host_tow`, `kerb_spot`, `tow_seconds`),
+  CrewWindow tab "Services", request "tow". Scenario roadside, self-test check roadside.
