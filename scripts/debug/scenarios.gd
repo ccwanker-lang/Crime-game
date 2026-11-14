@@ -47,6 +47,7 @@ const LIST: Array = [
 	["car_dealer", "14:00 at Carlo's Cars with €20,000 clean money", "E on Carlo: the car list (Pony Hatch, Comet Sedan, Mule Van) with top speed, seats and price. Buy one: it appears on the lot outside (nose to the road), Carlo texts you. Walk to it: '[F] Drive the ...'. Buying again fills the next spot; with 4 cars on the lot Carlo says to clear it first."],
 	["driving", "12:00 on the car lot next to your Comet Sedan (+ a Mule Van)", "F = get in (driver's seat), W/S = gas / brake + reverse, A/D = steer, Space = handbrake, H = horn, mouse = look around (the camera swings back behind the car), F = get out beside the door. Speed at the bottom (km/h). Drive onto the road and around town; walls and cars stop you. People you hit at speed get hurt (that is a crime, like a shot). With 2 instances: the second player presses F at the same car = passenger seat."],
 	["cover_garage", "10:00 in your own Corner Garage (South Street) with 3 Spare Parts, a car on the lift", "E on the car on the lift: each press is one work step (sparks, kneel animation, the car rises). Brake pads need 1 Spare Part (you carry 3). After 4 steps: +€260 CLEAN money (a toast message); the next customer comes 2-4 in-game hours later (F7 speeds time up). More parts: phone > Shop > Spare Parts. Then the tool shelf at the back wall: E = it slides aside, walk into the hidden room behind it (build mode B: place stations there). E again closes it."],
+	["prison_intro", "A NEW game's start: you wake up in a prison cell (last day inside)", "Follow the box at the top: walk to the cell door (it slides open), talk to Marco in the yard (E: his lines + his number on your phone), get your things at the RELEASE desk by the gate (wallet back), walk out of the gate and E on the yellow bus. Black screen, 'Two hours later', you stand at the bus stop on the west end of Main Road with Marco's package (pistol + rounds) and his text. F2 = skip. With 2 instances: both wake up in their own cell and the bus leaves when both are on it."],
 	["turf_take", "15:00 in front of the Starter Room: this district is at 96% influence, a customer waits (green €)", "Phone (Tab) > Turf: every district with its meter (red = Crow turf). E on the customer > Confirm deal: the sale pushes the meter past 100% -> a text 'X is yours now', Turf shows it green. Walk into another district: a toast with its name and owner. Your turf: customers pay 15% more, no Crows roam there at night."],
 	["turf_danger", "13:00 in front of the Starter Room: Crow turf (30%), they already warned you, a customer waits", "E on the customer > Confirm deal: a text 'Told you. Look behind you.' and a Crow (black clothes) runs at you from 25-40 m, by day. Fight back (1 = pistol): a dead Crow pushes the district's meter up (+6%), dying to it pushes it down (-8%). Check phone > Turf before and after."],
 	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
@@ -372,6 +373,13 @@ static func run(world: Node, id: String) -> bool:
 			var office: Node3D = world.find_child("CarDealer", true, false) as Node3D
 			var carlo: Node3D = office.find_child("Carlo", true, false) as Node3D
 			_place(me, office.to_global(Vector3(0.0, 0.2, -3.6)), carlo.global_position + Vector3.UP * 1.5, dn, 14.0)
+		"prison_intro":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 24]])  # (what a new player has)
+			if Intro.current:
+				Intro.current.debug_start(me)
+			var prison: Node3D = world.find_child("Prison", true, false) as Node3D
+			if prison and "--yard" in OS.get_cmdline_user_args():  # (screenshot: the yard, Marco, the gate)
+				_place(me, prison.to_global(Vector3(-2, 0.2, -6)), prison.to_global(Vector3(3, 1.2, 14)), dn, 8.0)
 		"turf_take", "turf_danger":
 			var take: bool = id == "turf_take"
 			_kit(me, 100, [["weed_bag", 6], ["pistol", 1], ["ammo_9mm", 36]])

@@ -1,0 +1,436 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/proc_box.gd" id="1_r"]
+[ext_resource type="Script" path="res://scripts/interaction/cell_door.gd" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/bed.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/bench.tscn" id="5_r"]
+[ext_resource type="Script" path="res://scripts/npc/intro_npc.gd" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/npc/shopkeeper.tscn" id="7_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/floodlight_pole.tscn" id="8_r"]
+[ext_resource type="Script" path="res://scripts/procgen/proc_bus.gd" id="9_r"]
+
+[node name="Prison" type="Node3D"]
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -0.3, 6)
+script = ExtResource("1_r")
+size = Vector3(90, 0.3, 80)
+material_key = "concrete"
+
+[node name="WallN" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -20.25)
+script = ExtResource("1_r")
+size = Vector3(50.5, 5, 0.5)
+material_key = "concrete"
+
+[node name="WallW" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -25, 0, 0)
+script = ExtResource("1_r")
+size = Vector3(0.5, 5, 40)
+material_key = "concrete"
+
+[node name="WallE" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 25, 0, 0)
+script = ExtResource("1_r")
+size = Vector3(0.5, 5, 40)
+material_key = "concrete"
+
+[node name="WallS1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -13.75, 0, 20.25)
+script = ExtResource("1_r")
+size = Vector3(22.5, 5, 0.5)
+material_key = "concrete"
+
+[node name="WallS2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 13.75, 0, 20.25)
+script = ExtResource("1_r")
+size = Vector3(22.5, 5, 0.5)
+material_key = "concrete"
+
+[node name="GateBeam" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 4.2, 20.25)
+script = ExtResource("1_r")
+size = Vector3(5, 0.8, 0.6)
+material_key = "metal_dark"
+
+[node name="PrisonSign" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 4.6, 20.6)
+text = "RIVERTON STATE PRISON"
+font_size = 90
+pixel_size = 0.006
+outline_size = 10
+modulate = Color(0.95, 0.95, 0.9, 1)
+
+[node name="BlockW" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0, -15)
+script = ExtResource("1_r")
+size = Vector3(0.3, 3.6, 10)
+material_key = "plaster"
+
+[node name="BlockE" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14, 0, -15)
+script = ExtResource("1_r")
+size = Vector3(0.3, 3.6, 10)
+material_key = "plaster"
+
+[node name="BlockS1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7.6, 0, -10)
+script = ExtResource("1_r")
+size = Vector3(12.8, 3.6, 0.3)
+material_key = "plaster"
+
+[node name="BlockS2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 7.6, 0, -10)
+script = ExtResource("1_r")
+size = Vector3(12.8, 3.6, 0.3)
+material_key = "plaster"
+
+[node name="BlockSTop" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.6, -10)
+script = ExtResource("1_r")
+size = Vector3(2.4, 1, 0.3)
+material_key = "plaster"
+
+[node name="BlockRoof" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.6, -15)
+script = ExtResource("1_r")
+size = Vector3(28.6, 0.3, 10.6)
+material_key = "roof_dark"
+
+[node name="BlockFloor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -15)
+script = ExtResource("1_r")
+size = Vector3(28, 0.05, 10)
+material_key = "floor_tiles"
+
+[node name="CellWall0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(0.2, 3.6, 6)
+material_key = "interior_plaster"
+
+[node name="CellFrontL0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7.3, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontR0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4.7, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontTop0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6, 2.3, -14)
+script = ExtResource("1_r")
+size = Vector3(1.2, 1.3, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellDoor1" type="Node3D" parent="."]
+script = ExtResource("2_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6.6, 0, -13.85)
+width = 1.2
+height = 2.3
+
+[node name="Bunk1" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -7.45, 0.05, -18.4)
+
+[node name="CellLamp1" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6, 3.58, -17)
+
+[node name="Cell1" type="Marker3D" parent="."]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -5.4, 0.1, -17)
+
+[node name="CellWall1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(0.2, 3.6, 6)
+material_key = "interior_plaster"
+
+[node name="CellFrontL1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3.3, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontR1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -0.7, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontTop1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 2.3, -14)
+script = ExtResource("1_r")
+size = Vector3(1.2, 1.3, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellDoor2" type="Node3D" parent="."]
+script = ExtResource("2_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2.6, 0, -13.85)
+width = 1.2
+height = 2.3
+
+[node name="Bunk2" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -3.45, 0.05, -18.4)
+
+[node name="CellLamp2" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 3.58, -17)
+
+[node name="Cell2" type="Marker3D" parent="."]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -1.4, 0.1, -17)
+
+[node name="CellWall2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(0.2, 3.6, 6)
+material_key = "interior_plaster"
+
+[node name="CellFrontL2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0.7, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontR2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 3.3, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontTop2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 2.3, -14)
+script = ExtResource("1_r")
+size = Vector3(1.2, 1.3, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellDoor3" type="Node3D" parent="."]
+script = ExtResource("2_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 1.4, 0, -13.85)
+width = 1.2
+height = 2.3
+
+[node name="Bunk3" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 0.55, 0.05, -18.4)
+
+[node name="CellLamp3" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 3.58, -17)
+
+[node name="Cell3" type="Marker3D" parent="."]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 2.6, 0.1, -17)
+
+[node name="CellWall3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(0.2, 3.6, 6)
+material_key = "interior_plaster"
+
+[node name="CellFrontL3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.7, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontR3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 7.3, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(1.4, 3.6, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellFrontTop3" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 2.3, -14)
+script = ExtResource("1_r")
+size = Vector3(1.2, 1.3, 0.2)
+material_key = "interior_plaster"
+
+[node name="CellDoor4" type="Node3D" parent="."]
+script = ExtResource("2_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5.4, 0, -13.85)
+width = 1.2
+height = 2.3
+
+[node name="Bunk4" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 4.55, 0.05, -18.4)
+
+[node name="CellLamp4" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 3.58, -17)
+
+[node name="Cell4" type="Marker3D" parent="."]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 6.6, 0.1, -17)
+
+[node name="CellWall4" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(0.2, 3.6, 6)
+material_key = "interior_plaster"
+
+[node name="CorridorLamp0" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 3.58, -12)
+
+[node name="CorridorLamp1" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.58, -12)
+
+[node name="CorridorLamp2" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 3.58, -12)
+
+[node name="Bench0" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 9, 0, -4)
+
+[node name="Bench1" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 9, 0, 0)
+
+[node name="Bench2" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -9, 0, -2)
+
+[node name="BarPostL" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, 2)
+script = ExtResource("1_r")
+size = Vector3(0.15, 2.4, 0.15)
+material_key = "metal_dark"
+
+[node name="BarPostR" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 0, 2)
+script = ExtResource("1_r")
+size = Vector3(0.15, 2.4, 0.15)
+material_key = "metal_dark"
+
+[node name="Bar" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3, 2.3, 2)
+script = ExtResource("1_r")
+size = Vector3(2.2, 0.08, 0.08)
+material_key = "metal_dark"
+
+[node name="Marco" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 8.2, 0, -2)
+npc_name = "Marco"
+shop_name = "fellow prisoner"
+greeting = ""
+stock = Array[StringName]([])
+variant = 3
+color_seed = 49
+script = ExtResource("6_r")
+role = "mentor"
+
+[node name="DeskBoothBack" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 0, 11)
+script = ExtResource("1_r")
+size = Vector3(6, 3, 0.2)
+material_key = "plaster"
+
+[node name="DeskBoothSide" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0, 13)
+script = ExtResource("1_r")
+size = Vector3(0.2, 3, 4)
+material_key = "plaster"
+
+[node name="DeskBoothRoof" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 3, 13)
+script = ExtResource("1_r")
+size = Vector3(6.4, 0.2, 4.4)
+material_key = "roof_dark"
+
+[node name="DeskCounter" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 0, 13.6)
+script = ExtResource("1_r")
+size = Vector3(3, 1.05, 0.6)
+material_key = "planks"
+
+[node name="DeskGuard" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -7, 0, 12.4)
+npc_name = "Officer Daems"
+shop_name = "release desk"
+greeting = ""
+stock = Array[StringName]([])
+variant = 5
+color_seed = 77
+script = ExtResource("6_r")
+role = "desk"
+
+[node name="DeskSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 0.1, 15)
+
+[node name="DeskSign" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -7, 2.6, 15.25)
+text = "RELEASE"
+font_size = 64
+pixel_size = 0.006
+outline_size = 8
+modulate = Color(1, 0.85, 0.3, 1)
+
+[node name="TowerBase0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(2.4, 6.5, 2.4)
+material_key = "concrete"
+
+[node name="TowerCab0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 6.5, -17)
+script = ExtResource("1_r")
+size = Vector3(3, 2.2, 3)
+material_key = "plaster"
+
+[node name="TowerRoof0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 8.7, -17)
+script = ExtResource("1_r")
+size = Vector3(3.6, 0.25, 3.6)
+material_key = "roof_dark"
+
+[node name="TowerBase1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 0, -17)
+script = ExtResource("1_r")
+size = Vector3(2.4, 6.5, 2.4)
+material_key = "concrete"
+
+[node name="TowerCab1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 6.5, -17)
+script = ExtResource("1_r")
+size = Vector3(3, 2.2, 3)
+material_key = "plaster"
+
+[node name="TowerRoof1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 8.7, -17)
+script = ExtResource("1_r")
+size = Vector3(3.6, 0.25, 3.6)
+material_key = "roof_dark"
+
+[node name="GateGuard" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 3.6, 0, 18.6)
+npc_name = "Guard"
+shop_name = "gate"
+greeting = ""
+stock = Array[StringName]([])
+variant = 5
+color_seed = 91
+script = ExtResource("6_r")
+role = "guard"
+
+[node name="Flood0" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -20, 0, 15)
+
+[node name="Flood1" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0, 15)
+
+[node name="Flood2" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -20, 0, -6)
+
+[node name="Flood3" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0, -6)
+
+[node name="Flood4" parent="." instance=ExtResource("8_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, 32)
+
+[node name="BusRoad" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, 28)
+script = ExtResource("1_r")
+size = Vector3(60, 0.03, 7)
+material_key = "asphalt"
+
+[node name="Bus" type="StaticBody3D" parent="."]
+script = ExtResource("9_r")
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 0, 0, 27.6)
+boardable = true
+
+[node name="BusSpot" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0.1, 25.2)

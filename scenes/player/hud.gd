@@ -1198,3 +1198,107 @@ func _can_drop_on_slot(_at: Vector2, data: Variant, target_in_locker: bool) -> b
 func _drop_on_slot(_at: Vector2, data: Variant, target_in_locker: bool) -> void:
 	if _locker and is_instance_valid(_locker) and _can_drop_on_slot(_at, data, target_in_locker):
 		_locker.request_move(target_in_locker, int(data["storage_slot"]), 0)
+
+
+# --- Intro / tutorial (point 49) ------------------------------------------------------
+
+var _tut_panel: PanelContainer
+var _tut_label: Label
+var _say_label: Label
+var _say_queue: Array = []
+var _say_speaker: String = ""
+var _say_gen: int = 0
+var _fade_rect: ColorRect
+var _fade_label: Label
+
+
+## The tutorial step box (top centre, under the admin line); "" hides it.
+func set_tutorial(text: String) -> void:
+	if _tut_panel == null:
+		_tut_panel = PanelContainer.new()
+		_tut_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+		_tut_panel.offset_top = 40
+		_tut_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_tut_panel.custom_minimum_size = Vector2(560, 0)
+		_tut_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var st := StyleBoxFlat.new()
+		st.bg_color = Color(0.06, 0.07, 0.1, 0.82)
+		st.border_color = Color(1.0, 0.75, 0.3)
+		st.set_border_width_all(2)
+		st.set_corner_radius_all(10)
+		st.set_content_margin_all(12)
+		_tut_panel.add_theme_stylebox_override("panel", st)
+		var box := VBoxContainer.new()
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tut_panel.add_child(box)
+		var head := Label.new()
+		head.text = "LAST DAY INSIDE"
+		head.add_theme_font_size_override("font_size", 14)
+		head.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+		box.add_child(head)
+		_tut_label = Label.new()
+		_tut_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_tut_label.custom_minimum_size = Vector2(536, 0)
+		_tut_label.add_theme_font_size_override("font_size", 19)
+		box.add_child(_tut_label)
+		var skip := Label.new()
+		skip.text = "F2 = skip the intro"
+		skip.add_theme_font_size_override("font_size", 12)
+		skip.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+		skip.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		box.add_child(skip)
+		add_child(_tut_panel)
+	_tut_label.text = text
+	_tut_panel.visible = text != ""
+
+
+## Spoken lines (subtitles above the hotbar), one after another.
+func say(speaker: String, lines: Array) -> void:
+	if _say_label == null:
+		_say_label = Label.new()
+		_say_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		_say_label.offset_top = -230
+		_say_label.offset_bottom = -150
+		_say_label.offset_left = -420
+		_say_label.offset_right = 420
+		_say_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_say_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		_say_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_say_label.add_theme_font_size_override("font_size", 22)
+		_say_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		_say_label.add_theme_constant_override("outline_size", 7)
+		_say_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_say_label)
+	_say_gen += 1
+	var gen: int = _say_gen
+	for line: Variant in lines:
+		if gen != _say_gen or not is_inside_tree():
+			return
+		_say_label.text = "%s: %s" % [speaker, str(line)]
+		await get_tree().create_timer(clampf(1.2 + str(line).length() * 0.05, 2.0, 5.0)).timeout
+	if gen == _say_gen:
+		_say_label.text = ""
+
+
+## Black screen with a line ("Two hours later..."), fading out after `seconds`.
+func fade(text: String, seconds: float) -> void:
+	if _fade_rect == null:
+		_fade_rect = ColorRect.new()
+		_fade_rect.color = Color(0, 0, 0, 1)
+		_fade_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_fade_rect)
+		_fade_label = Label.new()
+		_fade_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_fade_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_fade_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_fade_label.add_theme_font_size_override("font_size", 30)
+		_fade_rect.add_child(_fade_label)
+	_fade_label.text = text
+	_fade_rect.visible = true
+	_fade_rect.modulate.a = 0.0
+	var tw := create_tween()
+	tw.tween_property(_fade_rect, "modulate:a", 1.0, 0.6)
+	tw.tween_interval(maxf(0.5, seconds - 1.6))
+	tw.tween_property(_fade_rect, "modulate:a", 0.0, 1.0)
+	tw.tween_callback(func() -> void: _fade_rect.visible = false)

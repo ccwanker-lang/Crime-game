@@ -60,6 +60,9 @@ func _ready() -> void:
 		players_root.child_exiting_tree.connect(func(n: Node) -> void:
 			if n is Player:
 				sleep.host_forget(n as Player))
+	var intro := Intro.new()  # point 49: new games start in the prison (host decides, before any player spawns)
+	intro.name = "Intro"
+	add_child(intro)
 	var territory := Territory.new()  # point 51: influence per district (host logic, synced)
 	territory.name = "Territory"
 	add_child(territory)
@@ -326,6 +329,8 @@ func _spawn_player_for(peer: int) -> void:
 		p.health = clampi(int(saved["health"]), 1, Player.MAX_HEALTH)
 	if p and saved.get("mags") is Array:
 		p.combat.host_set_mags(saved["mags"])
+	if p and Intro.current:
+		Intro.current.host_on_spawn(p)  # point 49: during the intro new players wake up in a cell
 
 
 func _create_player(data: Dictionary) -> Node:

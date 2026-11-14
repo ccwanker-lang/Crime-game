@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "territory", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3302,3 +3302,72 @@ func _other_district(all: Dictionary, not_id: String) -> String:
 		if k != not_id:
 			return k
 	return not_id
+
+
+# --- Prison intro (point 49) ----------------------------------------------------------------
+
+func _check_intro(world: Node3D) -> void:
+	var intro: Intro = Intro.current
+	var prison: Node3D = world.find_child("Prison", true, false) as Node3D
+	var doors: Array = prison.find_children("CellDoor*", "Node3D", true, false) if prison else []
+	var bus: ProcBus = prison.find_child("Bus", true, false) as ProcBus if prison else null
+	var stop: Node3D = world.find_child("BusStop", true, false) as Node3D
+	_report(intro != null and not intro.is_running() and prison != null and doors.size() == 4 and bus != null and stop != null,
+			"the prison (4 cell doors, the bus) and the village bus stop exist; --selftest skips the intro")
+	if intro == null or prison == null or doors.size() < 4 or bus == null or stop == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Inmate"
+	world.get_node("Players").add_child(p)
+	p.global_position = stop.global_position + Vector3.UP * 0.3
+	p.auto_target = p.global_position
+	for i: int in 5:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Inmate")
+	GameState.get_or_create_player_data("Inmate")  # new player: €500 + the starter pistol
+	intro.debug_start(p)
+	await get_tree().physics_frame
+	var cell: Node3D = prison.find_child("Cell1", true, false) as Node3D
+	var door := prison.find_child("CellDoor1", true, false) as CellDoor
+	var data: Dictionary = GameState.player_data["Inmate"]
+	_report(p.global_position.distance_to(cell.global_position) < 0.6 and int(data["cash"]) == 0
+			and (data["inventory"] as Array).is_empty() and int(data["intro_step"]) == Intro.Step.WALK and door.locked,
+			"a new player wakes in cell 1 with empty pockets, the cell door locked (step %d)" % int(data.get("intro_step", -1)))
+	intro._host_talk(1, "mentor")
+	_report(int(data["intro_step"]) == Intro.Step.WALK, "Marco can't be reached from the cell")
+	p.auto_target = door.get_center() + door.global_basis.z * 0.3
+	for i: int in 16:
+		await get_tree().create_timer(0.25).timeout
+		if int(data["intro_step"]) != Intro.Step.WALK:
+			break
+	_report(not door.locked and door.is_open and int(data["intro_step"]) == Intro.Step.TALK,
+			"walking to the door: the guard unlocks it and it slides open (%.1f m from it)" % p.global_position.distance_to(door.get_center()))
+	intro._host_talk(1, "desk")
+	_report(int(data["intro_step"]) == Intro.Step.TALK, "the desk sends you to Marco first")
+	intro._host_talk(1, "mentor")
+	_report(int(data["intro_step"]) == Intro.Step.DESK, "talking to Marco: his number, next step the desk")
+	intro._host_board(1)
+	_report(int(data["intro_step"]) == Intro.Step.DESK, "the bus won't take you without your things")
+	intro._host_talk(1, "desk")
+	_report(int(data["intro_step"]) == Intro.Step.BUS and int(data["cash"]) == GameState.STARTING_CASH
+			and GameState.count_item("Inmate", "pistol") == 0, "the desk gives the wallet back (€%d), no pistol" % int(data["cash"]))
+	p.auto_target = stop.global_position  # (the walker would head back to its old target after the ride)
+	intro._host_board(1)
+	await get_tree().create_timer(3.0).timeout
+	_report(not data.has("intro_step") and p.global_position.distance_to(stop.global_position) < 3.0
+			and GameState.count_item("Inmate", "pistol") == 1 and GameState.count_item("Inmate", "ammo_9mm") > 0
+			and not intro.is_running(), "on the bus: dropped at the village bus stop (%.1f m) with Marco's package, intro done" % p.global_position.distance_to(stop.global_position))
+	# Skip (F2): straight to the bus stop with everything.
+	intro.debug_start(p)
+	await get_tree().physics_frame
+	intro._host_skip(1)
+	await get_tree().create_timer(3.0).timeout
+	_report(not data.has("intro_step") and p.global_position.distance_to(stop.global_position) < 3.0
+			and int(data["cash"]) == GameState.STARTING_CASH and GameState.count_item("Inmate", "pistol") == 1,
+			"F2 skips the intro: bus stop, wallet and package")
+	door.apply_net_state({"open": false, "locked": true})
+	GameState.player_data.erase("Inmate")
+	p.queue_free()
+	await get_tree().physics_frame

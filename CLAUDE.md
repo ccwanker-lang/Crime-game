@@ -257,6 +257,13 @@ Godot console exe:
   `sale_hooks.on_sale(seller, npc, bags, paid, outcome)` (Pedestrian._server_sell) and `kill_hooks.on_kill(killer,
   victim)` (PlayerCombat, Player.host_damage for NPC killers); phone app Turf (`--turf` shot flag). Scenarios
   turf_take, turf_danger; self-test check territory.
+- Prison intro (point 49): `Intro` (`scripts/story/intro.gd`, node World/Intro, `Intro.current`): GameState.world["story"]
+  ["intro"] "running"/"done" (`_decide`: new game only; tests/scenarios skip; `--intro` forces), player_data
+  intro_step/intro_stash/intro_cell, `host_on_spawn` (World._spawn_player_for), steps WALK/TALK/DESK/BUS/BOARDED,
+  `request_talk(role)` / `request_board` / `request_skip` (F2), `debug_start(p)`. Prefab `prefabs/buildings/prison.tscn`
+  (gen_prefabs `prison()`, node Prison at gen_world PRISON_POS, markers Cell1-4/DeskSpot/BusSpot, `CellDoor`
+  NetDoor subclass, `IntroNPC` roles mentor/desk/guard, `ProcBus` boardable), marker Markers/BusStop. HUD
+  `set_tutorial` / `say` / `fade`. Scenario prison_intro (`--yard` shot flag), self-test check intro.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

@@ -590,6 +590,19 @@ for i, (x, z) in enumerate([(42, 12), (58, 12), (58, 28), (42, 28)]):
 for i in range(4):
     debug_label(f"Markers/SpawnPoints/Spawn{i + 1}", f"SPAWN {i + 1}")
 
+# Point 49: the prison of the intro, far outside the village (own ground, outside NavRegion: no navmesh there),
+# and the bus stop on Main Road's west edge where the bus drops the released players (marker BusStop, facing east).
+PRISON_POS = (0, 0, -340)
+put("buildings/prison.tscn", PRISON_POS, 0, parent=".", name="Prison")
+sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, -4.4), -90)})
+debug_label("Markers/BusStop", "BUS STOP")
+sc.node("BusStopPole", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/proc_box.gd"), "transform": xform((-62.4, 0.15, -5.5)),
+    "size": "Vector3(0.1, 2.7, 0.1)", "material_key": q("metal_dark")})
+sc.node("BusStopSign", "Label3D", NAV + "/BusStopPole", props={
+    "transform": xform((0, 2.45, 0.08)), "text": q("BUS 12\nRiverton - Prison"), "font_size": "40",
+    "pixel_size": "0.006", "outline_size": "8", "modulate": col(1.0, 0.85, 0.3), "double_sided": "true"})
+
 # --------------------------------------------------------------------------- NPCs
 # Host spawns pedestrians under NPCs; the spawner replicates them to clients.
 sc.node("NPCs", "Node3D", ".")

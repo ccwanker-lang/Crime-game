@@ -756,6 +756,95 @@ building(B + "laundromat.tscn", {**FRONT, "width": "7.5", "shop_sign": q("LAUNDR
          "wall_tint": ptint("plaster", "plaster_blue"), "awning_color": col(0.1, 0.45, 0.5), "variation_seed": "620"}, laundromat_extra)
 
 
+# Point 49: the prison of the intro, far outside the village (gen_world puts it at PRISON_POS). Local layout,
+# +Z = south = the gate and the bus: own concrete ground, a 5 m wall round a 50 x 40 m compound, the cell block
+# (4 cells with sliding barred doors, a corridor, an exit to the yard) on the north side, the yard with Marco,
+# the release desk next to the gate, two guard towers, floodlights. Markers Cell1-4 = where players wake up.
+S["cell_door"] = "res://scripts/interaction/cell_door.gd"
+S["intro_npc"] = "res://scripts/npc/intro_npc.gd"
+S["proc_bus"] = "res://scripts/procgen/proc_bus.gd"
+
+
+def prison():
+    sc = Scene()
+    sc.node("Prison", "Node3D")
+    wall_h = 5.0
+    counter(sc, "Ground", (0, -0.3, 6), (90, 0.3, 80), "concrete")
+    # Outer wall with the gate gap (x -2.5..2.5) in the south side.
+    counter(sc, "WallN", (0, 0, -20.25), (50.5, wall_h, 0.5), "concrete")
+    counter(sc, "WallW", (-25, 0, 0), (0.5, wall_h, 40), "concrete")
+    counter(sc, "WallE", (25, 0, 0), (0.5, wall_h, 40), "concrete")
+    counter(sc, "WallS1", (-13.75, 0, 20.25), (22.5, wall_h, 0.5), "concrete")
+    counter(sc, "WallS2", (13.75, 0, 20.25), (22.5, wall_h, 0.5), "concrete")
+    counter(sc, "GateBeam", (0, wall_h - 0.8, 20.25), (5.0, 0.8, 0.6), "metal_dark")
+    sc.node("PrisonSign", "Label3D", ".", props={
+        "transform": xform((0, wall_h - 0.4, 20.6)), "text": q("RIVERTON STATE PRISON"), "font_size": "90",
+        "pixel_size": "0.006", "outline_size": "10", "modulate": col(0.95, 0.95, 0.9)})
+    # Cell block: x -14..14, z -20..-10, 3.6 m high. Cells (4 m wide) along the north wall, corridor in front.
+    h = 3.6
+    counter(sc, "BlockW", (-14, 0, -15), (0.3, h, 10), "plaster")
+    counter(sc, "BlockE", (14, 0, -15), (0.3, h, 10), "plaster")
+    counter(sc, "BlockS1", (-7.6, 0, -10), (12.8, h, 0.3), "plaster")
+    counter(sc, "BlockS2", (7.6, 0, -10), (12.8, h, 0.3), "plaster")
+    counter(sc, "BlockSTop", (0, 2.6, -10), (2.4, h - 2.6, 0.3), "plaster")
+    counter(sc, "BlockRoof", (0, h, -15), (28.6, 0.3, 10.6), "roof_dark")
+    counter(sc, "BlockFloor", (0, 0, -15), (28, 0.05, 10), "floor_tiles")
+    for i in range(4):
+        x0 = -8.0 + 4.0 * i
+        cx = x0 + 2.0
+        counter(sc, f"CellWall{i}", (x0, 0, -17), (0.2, h, 6), "interior_plaster")
+        # Front wall with a 1.2 m door gap at the cell's middle.
+        counter(sc, f"CellFrontL{i}", (x0 + 0.7, 0, -14), (1.4, h, 0.2), "interior_plaster")
+        counter(sc, f"CellFrontR{i}", (x0 + 3.3, 0, -14), (1.4, h, 0.2), "interior_plaster")
+        counter(sc, f"CellFrontTop{i}", (cx, 2.3, -14), (1.2, h - 2.3, 0.2), "interior_plaster")
+        sc.node(f"CellDoor{i + 1}", "Node3D", ".", props={
+            "script": sc.script(S["cell_door"]), "transform": xform((cx - 0.6, 0, -13.85)),
+            "width": "1.2", "height": "2.3"})
+        inst(sc, f"Bunk{i + 1}", I + "bed.tscn", (x0 + 0.55, 0.05, -18.4), 90)
+        inst(sc, f"CellLamp{i + 1}", I + "ceiling_lamp.tscn", (cx, h - 0.02, -17.0))
+        marker(sc, f"Cell{i + 1}", (cx + 0.6, 0.1, -17.0), 180)
+    counter(sc, "CellWall4", (8.0, 0, -17), (0.2, h, 6), "interior_plaster")
+    for i, x in enumerate((-10, 0, 10)):
+        inst(sc, f"CorridorLamp{i}", I + "ceiling_lamp.tscn", (x, h - 0.02, -12.0))
+    # Yard: benches, a pull-up bar, Marco by the east benches.
+    for i, (x, z, r) in enumerate([(9, -4, -90), (9, 0, -90), (-9, -2, 90)]):
+        inst(sc, f"Bench{i}", P + "bench.tscn", (x, 0, z), r)
+    counter(sc, "BarPostL", (-4, 0, 2), (0.15, 2.4, 0.15), "metal_dark")
+    counter(sc, "BarPostR", (-2, 0, 2), (0.15, 2.4, 0.15), "metal_dark")
+    counter(sc, "Bar", (-3, 2.3, 2), (2.2, 0.08, 0.08), "metal_dark")
+    shopkeeper(sc, "Marco", (8.2, 0, -2.0), "Marco", "fellow prisoner", "", [], 3, 49,
+               {"script": sc.script(S["intro_npc"]), "role": q("mentor")})
+    # Release desk next to the gate (inside the wall, west): a booth with a counter.
+    counter(sc, "DeskBoothBack", (-7, 0, 11), (6, 3, 0.2), "plaster")
+    counter(sc, "DeskBoothSide", (-10, 0, 13), (0.2, 3, 4), "plaster")
+    counter(sc, "DeskBoothRoof", (-7, 3, 13), (6.4, 0.2, 4.4), "roof_dark")
+    counter(sc, "DeskCounter", (-7, 0, 13.6), (3.0, 1.05, 0.6), "planks")
+    shopkeeper(sc, "DeskGuard", (-7, 0, 12.4), "Officer Daems", "release desk", "", [], 5, 77,
+               {"script": sc.script(S["intro_npc"]), "role": q("desk")})
+    marker(sc, "DeskSpot", (-7, 0.1, 15.0), 0)
+    sc.node("DeskSign", "Label3D", ".", props={
+        "transform": xform((-7, 2.6, 15.25)), "text": q("RELEASE"), "font_size": "64", "pixel_size": "0.006",
+        "outline_size": "8", "modulate": col(1.0, 0.85, 0.3)})
+    # Guard towers in the north corners + a guard at the gate.
+    for i, x in enumerate((-22, 22)):
+        counter(sc, f"TowerBase{i}", (x, 0, -17), (2.4, 6.5, 2.4), "concrete")
+        counter(sc, f"TowerCab{i}", (x, 6.5, -17), (3.0, 2.2, 3.0), "plaster")
+        counter(sc, f"TowerRoof{i}", (x, 8.7, -17), (3.6, 0.25, 3.6), "roof_dark")
+    shopkeeper(sc, "GateGuard", (3.6, 0, 18.6), "Guard", "gate", "", [], 5, 91,
+               {"script": sc.script(S["intro_npc"]), "role": q("guard")})
+    for i, (x, z) in enumerate([(-20, 15), (20, 15), (-20, -6), (20, -6), (0, 32)]):
+        inst(sc, f"Flood{i}", P + "floodlight_pole.tscn", (x, 0, z), 0)
+    # Outside the gate: the road stub and the bus (door on its gate side).
+    counter(sc, "BusRoad", (0, 0, 28), (60, 0.03, 7), "asphalt")
+    sc.node("Bus", "StaticBody3D", ".", props={
+        "script": sc.script(S["proc_bus"]), "transform": xform((0, 0, 27.6), 90), "boardable": "true"})
+    marker(sc, "BusSpot", (0, 0.1, 25.2), 0)
+    save(sc, B + "prison.tscn")
+
+
+prison()
+
+
 # --------------------------------------------------------------------------- items
 # Held / dropped / icon models of the small inventory items (ProcItem, origin = grip, front -Z).
 IT = "prefabs/items/"

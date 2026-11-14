@@ -386,7 +386,8 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
       guards, roadside team; fuel + gas station = session A, still todo)
 Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built after 48):
   49. Prison + tutorial intro: last day inside (walk, talk, interact), the fellow prisoner / mentor gives a
-      contact, the bus drops you at the edge of the village without money - todo
+      contact, the bus drops you at the edge of the village without money - DONE (Intro, prison prefab 340 m
+      north of the village, bus stop at Main Road's west end; F2 skips)
   50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
       story progress (missed missions done, no loot/money from them, own cash/items from zero) - todo
   51. Territory per district: the Crows hold every village district at the start, dealing there is dangerous,
@@ -849,3 +850,20 @@ Choices made while working autonomously (what + why).
 - Point 48 (roadside team, session B): Fuel + the gas station (rest of Roadmap 48) are A's: they need PlayerCar (fuel use) and the map (station). Asked in B.md.
 - Merge 2026-11-14: Rook's extra stock (meth/cocaine supplies + machines) stays in `Products.BLACK_MARKET_EXTRA` at
   runtime instead of gen_prefabs. Why: it works, is tested, and the rank gates live next to it in session B's code.
+- Point 49 (prison intro): the prison is one generated prefab 340 m north of the village (outside NavRegion, own
+  concrete ground), not a second scene. Why: one world for co-op (players in the intro and in the village share the
+  same host), no scene switch, the bus ride is a fade + teleport.
+- Point 49: four steps (walk to the cell door, talk to Marco, release desk, board the bus) in a HUD box, Marco's
+  lines as subtitles and his number as a phone text. Why: DESIGN asks walking, talking and interacting; the phone
+  text teaches the phone too.
+- Point 49: "without money" is read as "empty pockets until the desk": everything a new player carries is held at
+  the start, the desk gives back the wallet (the normal €500 start cash), Marco's "package" at the bus stop is the
+  starter pistol + rounds. Why: the €500 start economy and the starter kit stay as balanced and tested; the story
+  still has you walk out with nothing in your hands.
+- Point 49: co-op: every player wakes in their own cell (4 cells); the bus leaves when every player in the intro
+  is on board. F2 skips: the host skips it for everyone, a client only for themselves.
+- Point 49: only NEW games run the intro (no player data and no saved time yet); existing saves, the self-test,
+  netcheck, screenshots and scenarios skip it (`--intro` forces it, scenario prison_intro). Why: never surprise an
+  ongoing game or slow the tests down.
+- Point 49: the village is called Riverton (bus line 12, "Riverton State Prison"). Why: the map has a river through
+  the town (Map layout); no name was chosen yet.
