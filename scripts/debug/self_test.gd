@@ -2594,15 +2594,19 @@ func _check_traffic(world: Node3D) -> void:
 	for c: Node in cars:
 		if (c as Car).route_id == 2:
 			car = c
-	car.progress = 30.0
+	# Point 47a: route 2 starts on Industrial Road now: find the spot on Main Road at x -36 (east lane) by position.
+	var p0: float = 0.0
+	while p0 < traffic.routes[2].length and (traffic.routes[2].sample(p0)[0] as Vector3).x < -36.0:
+		p0 += 1.0
+	car.progress = p0
 	car.speed = Car.CRUISE
 	# Other cars on that route go half a lap away, so none of them queues in front of the test car.
 	var gap_cars: float = 0.0
 	for c: Node in cars:
 		if c != car and (c as Car).route_id == 2:
-			(c as Car).progress = 30.0 + traffic.routes[2].length * 0.5 + gap_cars
+			(c as Car).progress = p0 + traffic.routes[2].length * 0.5 + gap_cars
 			gap_cars += 15.0
-	var person: Pedestrian = world.call("_add_pedestrian", traffic.routes[2].sample(30.0 + 14.0)[0], 0)
+	var person: Pedestrian = world.call("_add_pedestrian", traffic.routes[2].sample(p0 + 14.0)[0], 0)
 	person.set_physics_process(false)
 	await get_tree().create_timer(5.0).timeout
 	var gap: float = car.global_position.distance_to(person.global_position)
@@ -2610,7 +2614,7 @@ func _check_traffic(world: Node3D) -> void:
 			"car stops for a person in the road (speed %.1f, %s, %.1f m away)" % [car.speed, car.blocked_by, gap])
 	person.queue_free()
 	await get_tree().create_timer(3.0).timeout
-	_report(car.speed > 2.0, "car drives on once the road is clear (speed %.1f)" % car.speed)
+	_report(car.speed > 2.0, "car drives on once the road is clear (speed %.1f, %s)" % [car.speed, car.blocked_by])
 	# Smooth bends: a car on the inner loop (tight right turns) through a whole lap,
 	# watched every physics frame: no heading jumps, slow in the bend, fast on the straight.
 	var bender: Car = null
@@ -2788,7 +2792,8 @@ func _check_selling(world: Node3D) -> void:
 	var npcs: Array[Node] = get_tree().get_nodes_in_group(&"npc")
 	var npc: Pedestrian = null
 	for n: Node in npcs:
-		if not (n as Pedestrian).dead:
+		# An ordinary passer-by (an officer or Crow as "customer" made the run-off flaky).
+		if not (n as Pedestrian).dead and not (n is PoliceOfficer or n is Shopkeeper or n is ParkGoer):
 			npc = n as Pedestrian
 	world.call("make_customer", npc)
 	_report(npc.wants > 0 and npc.is_in_group(&"interactable") and npc.is_in_group(&"customer"),

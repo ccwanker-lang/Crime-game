@@ -10,6 +10,8 @@ extends Node
 signal players_changed
 signal join_succeeded
 signal join_failed(reason: String)
+## Client: the ENet link to the host is up; the host still has to accept the registration (it may be busy loading).
+signal connected_to_host
 signal server_disconnected
 
 const DEFAULT_PORT: int = 7777
@@ -131,8 +133,9 @@ static func sanitize_name(raw: String) -> String:
 # --- Multiplayer callbacks --------------------------------------------------
 
 ## Loading the world blocks a peer's main thread for several seconds (houses, furniture):
-## ENet's default timeout (~5 s) would drop it meanwhile. Allow up to PEER_TIMEOUT_MS.
-const PEER_TIMEOUT_MS: int = 45000
+## ENet's default timeout (~5 s) would drop it meanwhile. Allow up to PEER_TIMEOUT_MS (ENet drops a silent peer
+## after half of it). Point 47: the bigger map loads for 20+ s on a busy PC -> 90 s.
+const PEER_TIMEOUT_MS: int = 90000
 
 
 func _set_peer_timeout(peer_id: int) -> void:
@@ -163,6 +166,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 
 func _on_connected_to_server() -> void:
 	print("[Net] Connected, registering as '%s'" % local_name)
+	connected_to_host.emit()
 	_register_player.rpc_id(1, local_name)
 
 

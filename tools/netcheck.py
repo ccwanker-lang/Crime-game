@@ -32,9 +32,14 @@ def kill_tree(p):
     subprocess.run(["taskkill", "/T", "/F", "/PID", str(p.pid)], capture_output=True)
 
 
+all_host = []
+
+
 def collect(p, name, out, t0):
     for line in p.stdout:
         line = line.rstrip()
+        if name == "host":
+            all_host.append(line)
         if any(n in line for n in NOISE):
             continue
         if show_all or "[NetCheck]" in line or "SCRIPT ERROR" in line or "ERROR:" in line or "[Net]" in line:
@@ -45,7 +50,12 @@ t0 = time.time()
 lines = []
 host = start(["--host", f"--port={port}", "--netcheck", "--name=Host"])
 threading.Thread(target=collect, args=(host, "host", lines, t0), daemon=True).start()
-time.sleep(4)
+# Start the client once the host has its world loaded + baked (point 47: the bigger map loads for ~20 s under load).
+for _ in range(240):
+    if any("Navigation mesh baked" in l for l in all_host):
+        break
+    time.sleep(0.5)
+time.sleep(1)
 client = start([f"--join=127.0.0.1", f"--port={port}", "--netcheck", "--name=B"])
 threading.Thread(target=collect, args=(client, "client", lines, t0), daemon=True).start()
 try:

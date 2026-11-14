@@ -6,6 +6,8 @@ extends Control
 const WORLD_SCENE: String = "res://scenes/world/world.tscn"
 const SETTINGS_PATH: String = "user://settings.cfg"
 const CONNECT_TIMEOUT_SEC: float = 10.0
+## Once the link is up the host may still be loading its world (bigger map since point 47): wait this long for it.
+const REGISTER_TIMEOUT_SEC: float = 60.0
 
 @onready var name_edit: LineEdit = %NameEdit
 @onready var ip_edit: LineEdit = %IpEdit
@@ -27,6 +29,7 @@ func _ready() -> void:
 	_connect_timer = Timer.new()
 	_connect_timer.one_shot = true
 	_connect_timer.timeout.connect(_on_connect_timeout)
+	Net.connected_to_host.connect(_on_connected_to_host)
 	add_child(_connect_timer)
 	host_button.pressed.connect(_on_host_pressed)
 	new_game_button.pressed.connect(_on_host_pressed.bind(true))
@@ -71,6 +74,12 @@ func _on_join_pressed() -> void:
 	_set_status("Connecting to %s..." % address)
 	# Give up after a timeout (ENet can take long to notice an unreachable host).
 	_connect_timer.start(CONNECT_TIMEOUT_SEC)
+
+
+func _on_connected_to_host() -> void:
+	if not _connect_timer.is_stopped():
+		_set_status("Connected - waiting for the host to let you in...")
+		_connect_timer.start(REGISTER_TIMEOUT_SEC)
 
 
 func _on_connect_timeout() -> void:

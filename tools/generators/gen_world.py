@@ -627,6 +627,8 @@ def container_stack(x, y, z, rot, levels, length="12m"):
 for x in range(-78, -175, -12):
     if x == -114:
         put(R + "road_t_junction.tscn", (x, 0, 0), 180)
+    elif x == -150:
+        pass  # point 47b: the Country Lane junction (countryside section)
     else:
         put(R + "road_straight.tscn", (x, 0, 0))
 for z in range(12, 73, 12):
@@ -734,6 +736,61 @@ pbox("Breakwater", (-74, -2.0, 160), (4, 3.2, 112), "concrete", col(0.62, 0.6, 0
 for i, (x, z) in enumerate([(-186, 10), (-186, 26), (-186, 44), (-186, 62), (-84, 58), (-84, 72), (-100, 76)]):
     put("nature/tree_medium.tscn", (x + wrng.uniform(-1, 1), 0, z + wrng.uniform(-1, 1)), wrng.uniform(0, 360),
         props={"tree_seed": str(4700 + i)})
+
+# --------------------------------------------------------------------------- the countryside (point 47b)
+# North of Main Road on the west side: Country Lane (x -150) up to Hollow Farm - the Barn (property), the
+# farmhouse, a silo, hay, fenced fields with crop rows. Own random stream.
+frng = random.Random(471)
+put(R + "road_t_junction.tscn", (-150, 0, 0), 0, name="CountryLaneJunction")
+for z in range(-12, -73, -12):
+    put(R + "road_straight.tscn", (-150, 0, z), 90)
+for x, z, r in [(-153.95, -18, 90), (-153.95, -42, 90), (-153.95, -66, 90), (-146.05, -30, -90), (-146.05, -54, -90)]:
+    put("props/street_lamp.tscn", (x, 0.15, z), r)
+put("props/sign_post.tscn", (-144.6, 0.15, -3.72), 0, props={"sign_text": q("COUNTRY LANE")})
+# The farmyard at the top of the lane (packed earth), the barn facing it from the north.
+paved("Farmyard", -150, -88, 44, 20, "soil", 0.06)
+put("buildings/warehouse.tscn", (-150, 0.06, -92), 0, name="Barn", props={
+    "width": "14", "depth": "16", "floor_height": "6", "bays": "3", "door_bay": "1", "variation_seed": "4710",
+    "wall_material": q("corrugated"), "wall_tint": col(0.62, 0.2, 0.16), "roof_material": q("roof_dark"),
+    "roof_type": q("gable"), "roof_pitch": "32", "lit_windows": "0.0"})
+property_node("Barn", "barn", "Hollow Farm Barn", 30000,
+              "Country Lane, Hollow Farm. A big barn far from prying eyes: room for growing and cooking.", 0.0, 4.4)
+put("buildings/row_house_c.tscn", (-166.5, 0.06, -92), 0, name="Farmhouse", props={
+    "width": "8", "floors": "2", "variation_seed": "4711", "wall_material": q("plaster"),
+    "wall_tint": col(0.93, 0.9, 0.8), "enterable": "false"})
+pbox("Silo", (-133, 0.06, -96), (4.2, 11, 4.2), "zinc", col(0.82, 0.84, 0.86))
+pbox("SiloRoof", (-133, 11.06, -96), (4.6, 0.6, 4.6), "roof_dark")
+HAY = col(0.86, 0.72, 0.38)
+for i in range(7):
+    x = -140 + (i % 4) * 1.7 + frng.uniform(-0.2, 0.2)
+    pbox(f"HayBale{i}", (x, 0.06 + (i // 4) * 1.0, -82 + frng.uniform(-0.3, 0.3)), (1.5, 1.0, 1.0), "planks", HAY,
+         frng.uniform(-8, 8))
+put("props/covered_car.tscn", (-160, 0.06, -82), 80)
+for i in range(4):
+    put("props/barrel.tscn", (-131 + frng.uniform(-1, 1), 0.06, -86 + frng.uniform(-1, 1)), 0)
+# Fields either side of the lane: soil with crop rows, a picket fence along the lane.
+CROP = [col(0.38, 0.58, 0.22), col(0.52, 0.66, 0.26), col(0.78, 0.7, 0.32)]
+for fi, (cx, cz, sx, sz) in enumerate([(-174, -42, 28, 56), (-120, -40, 48, 52)]):
+    paved(f"Field{fi}", cx, cz, sx, sz, "soil", 0.04)
+    c = CROP[fi % len(CROP)]
+    for r in range(int(sx / 2.4)):
+        x = cx - sx / 2 + 1.2 + r * 2.4
+        pbox(f"CropRow{fi}_{r}", (x, 0.04, cz), (0.9, 0.55 + frng.uniform(-0.1, 0.15), sz - 2), "trim_paint", c,
+             collision=False)
+for z in range(-76, -8, 6):
+    put("props/garden_fence.tscn", (-157, 0, z), -90, props={"length": "6", "style": q("picket"), "height": "1.1"})
+    put("props/garden_fence.tscn", (-143, 0, z), -90, props={"length": "6", "style": q("picket"), "height": "1.1"})
+# Tree rows along the field edges and round the farm.
+for i in range(12):
+    put("nature/tree_large.tscn" if i % 3 == 0 else "nature/tree_medium.tscn",
+        (-188 + frng.uniform(-1, 1), 0, -120 + i * 9.5), frng.uniform(0, 360), props={"tree_seed": str(4720 + i)})
+for i in range(10):
+    put("nature/tree_medium.tscn", (-176 + i * 10 + frng.uniform(-1.5, 1.5), 0, -112 + frng.uniform(-2, 2)),
+        frng.uniform(0, 360), props={"tree_seed": str(4740 + i)})
+for i, (x, z) in enumerate([(-92, -14), (-84, -30), (-90, -66), (-100, -80), (-112, -100), (-178, -98)]):
+    put("nature/tree_large.tscn", (x, 0, z), frng.uniform(0, 360), props={"tree_seed": str(4760 + i)})
+for (x, z) in [(-160, -78.5), (-140, -78.5), (-128, -90), (-172, -80)]:
+    put(f"nature/shrub_{frng.choice('abcd')}.tscn", (x, 0, z), frng.uniform(0, 360))
 
 # --------------------------------------------------------------------------- invisible walls
 sc.node("Bounds", "StaticBody3D", ".")

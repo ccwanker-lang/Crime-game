@@ -43,7 +43,8 @@
   with Harbour Storage, crane, ship, sea). Full self-test on it: 604 PASS, 2 FAIL in police_life (officer never
   reached the passer-by) while B's self-test ran at the same time; police_life alone and with the checks before it
   passes - a diagnostic print ("police_life before question: ...") stays in for the next full run.
-  Next: 47b (countryside + barn, block ready in the scratchpad idea: Country Lane x -150 to Hollow Farm), 47c.
+- 2026-11-14: point 47b (countryside: Country Lane x -150, Hollow Farm with the Barn for sale, fields). Next: 47c
+  (west districts + Crows at the harbour; needs B's StaffConfig district + rank gates, asked in A.md), then 53. Full self-test on 47b: 606 PASS, 2 FAIL (selling: officer as customer; traffic: test spot moved by 47a) - both fixed in the test and pass. Netcheck passes after the join fixes.
 
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
@@ -68,6 +69,7 @@
   raid_live / raid_guards, roadside: session B's milestone-3 work, now in main.
 - west_side: on Main Road past the tree belt with your car: drive down Industrial Road to the harbour; enter the Lab
   Warehouse and the Harbour Storage (both for sale); try to fall into the sea (you can't); phone map shows the area.
+- countryside: Hollow Farm: enter the red barn (for sale), walk down Country Lane between the fields.
 - gas_station: QuickFuel on North Road, your Comet Sedan almost empty next to pump 1: sit in it (F) -> fuel 6%,
   get out, E on the red pump -> full, €86 gone. The Mule Van at pump 2 is empty: W does nothing.
 - turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.

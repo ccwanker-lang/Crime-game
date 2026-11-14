@@ -115,6 +115,10 @@ const SHOTS: Array[Array] = [
 	["84_quay_edge", Vector3(-120, 1.9, 101.5), Vector3(-160, 1.0, 112)],
 	["85_lab_warehouse", Vector3(-118, 2.0, 22), Vector3(-104, 3.0, 20)],
 	["86_container_yard", Vector3(-120, 3.5, 49), Vector3(-150, 1.0, 50)],
+	# Point 47b: the countryside (Country Lane, Hollow Farm with the barn, fields).
+	["87_country_top", Vector3(-140, 110, 10), Vector3(-140, 0, -60)],
+	["88_country_lane", Vector3(-148.5, 1.8, -8), Vector3(-150, 2.0, -70)],
+	["89_barn", Vector3(-146, 1.8, -78), Vector3(-150, 3.5, -94)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

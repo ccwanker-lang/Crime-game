@@ -382,7 +382,8 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
   47. The full village (chapter 1 map, Map layout): today's test town grown to its full size, in parts:
       47a the west side: Main Road on to the west, Industrial Road (metalworks, container yard, Lab Warehouse
           property), Quay Road + the harbour (quay, Harbour Storage property, crane, moored ship, the sea) - DONE
-      47b the countryside north of Main Road: a country lane, farm fields and the Barn property - todo
+      47b the countryside north of Main Road: a country lane, farm fields and the Barn property - DONE (Country
+          Lane x -150 up to Hollow Farm: barn, farmhouse, silo, hay; two fenced fields with crop rows)
       47c the west in the game: districts + Crows at the harbour (with session B), customers/dealers there - todo
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
       point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - DONE
@@ -909,3 +910,12 @@ Choices made while working autonomously (what + why).
   U-turning at x -66; new junction square at (-114, 0). Routes 0/1/3 unchanged.
 - Point 47a: Pedestrians keep only 12% of random walk spots west of x -76 (`Pedestrian.QUIET_WEST_*`): the quay is
   paved like a square, and without this a big share of the town would wander off to the harbour.
+- Point 47b: Hollow Farm sits at the top of a dead-end Country Lane (x -150), away from Main Road behind fields:
+  the barn is the rank-2 hideout ("far from prying eyes"); no traffic route on the lane (a dead end with only the
+  farm). The barn is an enterable corrugated hall (14 x 16 m, storage furniture), property `barn` €30,000 (rank 2
+  gate asked from session B). Fields are soil with crop rows (scenery, no collision on the rows).
+- Point 47b: Loading the world got slower with the bigger map (host ~18 s + ~3-5 s bake on a busy PC, was ~15 + 1.6).
+  Joining a host that is still loading must not fail: the menu waits 60 s for the registration once the link is up
+  (`REGISTER_TIMEOUT_SEC`, signal `Net.connected_to_host`), and `Net.PEER_TIMEOUT_MS` went 45 s -> 90 s (ENet drops a
+  silent peer after half of it; a client loading the map was dropped after 22.5 s). tools/netcheck.py starts the
+  client once the host has baked its navmesh instead of after a fixed 4 s.
