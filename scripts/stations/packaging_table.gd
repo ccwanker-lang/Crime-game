@@ -41,32 +41,60 @@ func _build() -> void:
 	add_child(cs)
 
 
+## Product -> packaged unit (milestone 3: meth; cocaine later). 1 product + 1 baggie -> 1 bag.
+const PACKS: Array = [["weed_bud", "weed_bag"], ["meth_shard", "meth_bag"], ["cocaine", "coke_bag"]]
+
+
 func prompt_for(player: Player) -> String:
-	var buds: int = carried(player, "weed_bud")
 	var bags: int = carried(player, "baggie")
-	if buds > 0 and bags > 0:
-		return "Package %d Bag%s of Weed" % [mini(buds, bags), "" if mini(buds, bags) == 1 else "s"]
-	if buds > 0:
+	var parts: PackedStringArray = []
+	var any_product: bool = false
+	for pk: Array in PACKS:
+		var have: int = carried(player, pk[0])
+		if have <= 0:
+			continue
+		any_product = true
+		var n: int = mini(have, bags)
+		bags -= n
+		if n > 0:
+			parts.append(_bags(n, pk[1]))
+	if not parts.is_empty():
+		return "Package " + " + ".join(parts)
+	if any_product:
 		return "Packaging table - you need Baggies (store)"
-	return "Packaging table - bring Dried Weed + Baggies"
+	return "Packaging table - bring Dried Weed / Meth Shards / Cocaine + Baggies"
 
 
 func do_action(player: Player) -> String:
 	var who: String = player.player_name
-	var n: int = mini(GameState.count_item(who, "weed_bud"), GameState.count_item(who, "baggie"))
-	if n <= 0:
-		return "You need Dried Weed and Baggies to package."
-	GameState.remove_item(who, "weed_bud", n)
-	GameState.remove_item(who, "baggie", n)
-	var left: Array = GameState.give(who, 0, [{"id": "weed_bag", "count": n}])
-	var not_packed: int = 0
-	for it: Dictionary in left:
-		not_packed += int(it.get("count", 0))
-	if not_packed > 0:
-		# Pockets full: give back what couldn't be packed.
-		GameState.give(who, 0, [{"id": "weed_bud", "count": not_packed}, {"id": "baggie", "count": not_packed}])
-	var packed: int = n - not_packed
-	if packed <= 0:
-		return "Your pockets are full."
+	var done: PackedStringArray = []
+	var full: bool = false
+	for pk: Array in PACKS:
+		var n: int = mini(GameState.count_item(who, pk[0]), GameState.count_item(who, "baggie"))
+		if n <= 0:
+			continue
+		GameState.remove_item(who, pk[0], n)
+		GameState.remove_item(who, "baggie", n)
+		var left: Array = GameState.give(who, 0, [{"id": pk[1], "count": n}])
+		var not_packed: int = 0
+		for it: Dictionary in left:
+			not_packed += int(it.get("count", 0))
+		if not_packed > 0:
+			# Pockets full: give back what couldn't be packed.
+			GameState.give(who, 0, [{"id": pk[0], "count": not_packed}, {"id": "baggie", "count": not_packed}])
+			full = true
+		var packed: int = n - not_packed
+		if packed > 0:
+			done.append(_bags(packed, pk[1]))
+	if done.is_empty():
+		return "Your pockets are full." if full else "You need Dried Weed, Meth Shards or Cocaine, and Baggies, to package."
 	work = "pack"
-	return "Packaged %d Bag%s of Weed." % [packed, "" if packed == 1 else "s"]
+	return "Packaged %s." % " + ".join(done)
+
+
+## "1 Bag of Weed" / "3 Bags of Weed".
+static func _bags(n: int, id: String) -> String:
+	var name: String = item_name(id)
+	if n != 1 and name.begins_with("Bag "):
+		name = "Bags " + name.trim_prefix("Bag ")
+	return "%d %s" % [n, name]

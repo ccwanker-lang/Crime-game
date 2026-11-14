@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://prefabs/stations/leaf_press.tscn" id="2_place"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"leaf_press"
+display_name = "Leaf Press"
+max_stack = 1
+is_legal = false
+base_price = 1500
+description = "Presses 12 Coca Leaves + 1 Process Fluid into Coca Paste."
+place_scene = ExtResource("2_place")
+category = "station"

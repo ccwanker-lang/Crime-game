@@ -32,7 +32,7 @@ static func run(t: Node, world: Node3D) -> void:
 	var msg: String = Staff.debug_hire("Boss", "grower", "starter_room")
 	report.call(msg.begins_with("!") and msg.contains("rank 1") and Staff._members().is_empty(),
 			"rank 0: no grower ('%s')" % msg)
-	report.call(Staff.debug_hire("Boss", "cook", "starter_room").contains("Not in the game"), "cook: not in the game yet")
+	report.call(Staff.role_lock("courier").contains("rank 3"), "courier needs rank 3 ('%s')" % Staff.role_lock("courier"))
 	Progression.debug_set_rank(2)
 
 	# The weed corner in the Starter Room + its free locker.

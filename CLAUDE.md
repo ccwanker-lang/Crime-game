@@ -264,6 +264,21 @@ Godot console exe:
   `answer`, `debug_hire`), `StaffConfig` in `data/staff/staff.tres` (roles, rates, districts), visuals
   `StaffViews`/`StaffNPC` (local), UI `CrewWindow` (phone app "Crew", E on a dealer). Scenarios staff_workers,
   dealers; self-test check staff.
+- Meth (milestone 3): `ProcessStation` (generic timed machine, staff_load/take/attend), `CookStation` (stir at 40%),
+  `CoolingPlate`; items lab_chemicals/activator/meth_tray/meth_shard/meth_bag; `PackagingTable.PACKS`; `Products`
+  autoload (BAGS + prices, Rook's extra stock at runtime, `pick_customer_product`); Staff role cook (`_cook_step`),
+  dealers carry `meth`. Scenarios meth_market/meth_lab/meth_cook/meth_dealer, self-test check meth.
+- Cocaine (milestone 3): `CocaBed` (water at 50%), `LeafPress`, `Refinery` (vent at 60%) = ProcessStations; items
+  coca_seedling/process_fluid/coca_leaves/coca_paste/cocaine/coke_bag; staff `_machine_step` (COOK_MACHINES,
+  GROWER_MACHINES), dealers `DEALER_GOODS`. Scenarios coke_lab/coke_staff, self-test check cocaine.
+- Courier/lawyer/bribes (milestone 3): Staff role courier (`_courier_step`, StaffConfig courier_*), `Legal` autoload
+  (lawyer retainer + `on_player_arrested`, `host_bribe` -> Wanted.clear), CrewWindow tab "Services".
+  Scenarios courier, bribe; self-test check services.
+- Raids (milestone 3): `Raids` autoload (nightly roll from rank 2, `announce`/`start`, LIVE raid with World.add_rival
+  when crew is near, else guards roll; `_lost` steals locker stock + a machine), Staff role guard (rank 4).
+  Scenarios raid_live/raid_guards, self-test check raids.
+- Roadside team (milestone 3): `Roadside` (scripts/staff/roadside.gd, static: `host_tow`, `kerb_spot`, `tow_seconds`),
+  CrewWindow tab "Services", request "tow". Scenario roadside, self-test check roadside.
 - Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
   pedestrians `_flee_loop` until `flee_safe()` (40 m + out of sight, max 45 s). Scenario panic. Kerb check: `--only=kerb`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;

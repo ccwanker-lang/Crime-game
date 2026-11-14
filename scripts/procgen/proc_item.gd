@@ -5,7 +5,7 @@ extends Node3D
 ## rendered as its icon). Origin = where the hand grips it; front = -Z.
 ## Prefabs in res://prefabs/items/ (written by tools/generators/gen_prefabs.py).
 
-@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste")
+@export_enum("soil_bag", "watering_can", "seed_packet", "baggie", "weed_bag", "weed_bud", "fresh_weed", "ammo_box", "empty_box", "plant_waste", "chem_jug", "activator", "meth_tray", "meth_shard", "meth_bag", "coca_seedling", "coca_leaves", "process_fluid", "coca_paste", "cocaine", "coke_bag")
 var kind: String = "soil_bag":
 	set(v): kind = v; _queue_rebuild()
 ## Main colour (ammo box print, seed packet label...).
@@ -46,6 +46,17 @@ func _rebuild() -> void:
 		"ammo_box": _ammo_box(b)
 		"empty_box": _empty_box(b)
 		"plant_waste": _plant_waste(b)
+		"chem_jug": _chem_jug(b)
+		"activator": _activator(b)
+		"meth_tray": _meth_tray(b)
+		"meth_shard": _shards(b, Vector3.ZERO, 1.0)
+		"meth_bag": _meth_bag(b)
+		"coca_seedling": _coca_seedling(b)
+		"coca_leaves": _coca_leaves(b)
+		"process_fluid": _process_fluid(b)
+		"coca_paste": _coca_paste(b)
+		"cocaine": _powder_brick(b)
+		"coke_bag": _coke_bag(b)
 	_mesh = MeshInstance3D.new()
 	_mesh.mesh = b.build()
 	_mesh.visibility_range_end = 40.0
@@ -194,3 +205,112 @@ func _plant_waste(b: MeshBuilder) -> void:
 		_leaf(b, at, Vector3((i - 1.5) * 0.5, -1.0, 0).normalized(), 0.08, leaf)
 	b.color = Color(0.3, 0.25, 0.15)
 	b.cylinder(&"item_matte", Vector3(0, -0.06, 0), Vector3(0, 0.0, 0), 0.025, 0.025, 8)  # twine
+
+
+# --- Meth (milestone 3, session B): abstract props, no labels ------------------------------
+
+## Plastic jerrycan of lab chemicals, gripped at the handle on top.
+func _chem_jug(b: MeshBuilder) -> void:
+	b.color = Color(0.86, 0.84, 0.76)
+	b.box(&"item_matte", Vector3(0, -0.14, 0), Vector3(0.16, 0.22, 0.1), 0.012)
+	b.box(&"item_matte", Vector3(0, -0.01, 0.0), Vector3(0.04, 0.03, 0.08), 0.005)  # handle
+	b.color = Color(0.85, 0.25, 0.08)
+	b.cylinder(&"item_glossy", Vector3(0.05, -0.03, 0), Vector3(0.05, 0.0, 0), 0.018, 0.018, 8, true)  # cap
+	b.color = Color(0.95, 0.75, 0.1)
+	b.box(&"item_matte", Vector3(0, -0.15, 0.051), Vector3(0.1, 0.07, 0.003))  # hazard label band
+
+
+## Small brown glass bottle with a blue cap.
+func _activator(b: MeshBuilder) -> void:
+	b.color = Color(0.42, 0.22, 0.08, 0.9)
+	b.cylinder(&"item_glossy", Vector3(0, -0.07, 0), Vector3(0, 0.0, 0), 0.025, 0.025, 10, true)
+	b.cylinder(&"item_glossy", Vector3(0, 0.0, 0), Vector3(0, 0.018, 0), 0.025, 0.01, 10, false)
+	b.color = Color(0.15, 0.35, 0.8)
+	b.cylinder(&"item_matte", Vector3(0, 0.018, 0), Vector3(0, 0.035, 0), 0.012, 0.012, 8, true)
+
+
+## Shallow steel tray with a pale slab in it.
+func _meth_tray(b: MeshBuilder) -> void:
+	b.color = Color(0.6, 0.6, 0.63)
+	b.box(&"item_metal", Vector3(0, -0.02, -0.1), Vector3(0.3, 0.025, 0.22), 0.004)
+	b.color = Color(0.85, 0.92, 0.97)
+	b.box(&"item_glossy", Vector3(0, -0.005, -0.1), Vector3(0.27, 0.01, 0.19))
+
+
+## A handful of pale blue crystal shards.
+func _shards(b: MeshBuilder, at: Vector3, s: float) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	for i: int in 7:
+		b.color = Color(0.72, 0.88, 0.98).lerp(Color(0.95, 0.98, 1.0), rng.randf())
+		var p := Vector3(rng.randf_range(-0.018, 0.018), rng.randf_range(-0.012, 0.012), rng.randf_range(-0.012, 0.012)) * s
+		b.box(&"item_glossy", at + p, Vector3(rng.randf_range(0.01, 0.022), rng.randf_range(0.008, 0.016), rng.randf_range(0.008, 0.014)) * s)
+
+
+## Zip bag with shards and a blue zip strip.
+func _meth_bag(b: MeshBuilder) -> void:
+	_shards(b, Vector3(0, -0.015, 0), 0.8)
+	b.color = Color(0.95, 0.97, 1.0, 0.28)
+	b.box(&"item_clear", Vector3(0, 0, 0), Vector3(0.07, 0.09, 0.016), 0.002)
+	b.color = Color(0.1, 0.35, 0.85)
+	b.box(&"item_glossy", Vector3(0, 0.037, 0), Vector3(0.07, 0.005, 0.017))
+
+
+# --- Cocaine (milestone 3, session B) ---------------------------------------------------------
+
+## A small shrub in a brown paper pot.
+func _coca_seedling(b: MeshBuilder) -> void:
+	b.color = Color(0.55, 0.42, 0.28)
+	b.cylinder(&"item_matte", Vector3(0, -0.1, 0), Vector3(0, -0.02, 0), 0.035, 0.045, 10, true)
+	b.color = Color(0.35, 0.25, 0.15)
+	b.cylinder(&"item_matte", Vector3(0, -0.02, 0), Vector3(0, 0.07, 0), 0.005, 0.004, 5, false)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	for i: int in 8:
+		b.color = Color(0.22, 0.45, 0.16).lerp(Color(0.35, 0.58, 0.2), rng.randf())
+		b.sphere(&"item_matte", Vector3(rng.randf_range(-0.03, 0.03), rng.randf_range(0.02, 0.08), rng.randf_range(-0.03, 0.03)),
+				0.017, 4, 6, Vector3(1.4, 0.5, 0.9))
+
+
+## A bundle of oval green leaves.
+func _coca_leaves(b: MeshBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 4
+	for i: int in 10:
+		b.color = Color(0.2, 0.42, 0.14).lerp(Color(0.38, 0.6, 0.22), rng.randf())
+		var at := Vector3(rng.randf_range(-0.04, 0.04), rng.randf_range(-0.03, 0.03), rng.randf_range(-0.02, 0.02))
+		b.sphere(&"item_matte", at, 0.022, 4, 6, Vector3(1.6, 0.25, 0.8))
+
+
+## Blue plastic canister with a white cap.
+func _process_fluid(b: MeshBuilder) -> void:
+	b.color = Color(0.2, 0.4, 0.75)
+	b.box(&"item_matte", Vector3(0, -0.11, 0), Vector3(0.12, 0.18, 0.08), 0.01)
+	b.color = Color(0.95, 0.95, 0.95)
+	b.cylinder(&"item_glossy", Vector3(0, -0.02, 0), Vector3(0, 0.01, 0), 0.02, 0.02, 8, true)
+
+
+## A dark green-brown lump wrapped in clear film.
+func _coca_paste(b: MeshBuilder) -> void:
+	b.color = Color(0.45, 0.42, 0.25)
+	b.box(&"item_matte", Vector3(0, -0.02, 0), Vector3(0.1, 0.04, 0.07), 0.012)
+	b.color = Color(0.95, 0.97, 1.0, 0.3)
+	b.box(&"item_clear", Vector3(0, -0.02, 0), Vector3(0.106, 0.046, 0.076), 0.012)
+
+
+## White pressed powder block in film.
+func _powder_brick(b: MeshBuilder) -> void:
+	b.color = Color(0.97, 0.97, 0.95)
+	b.box(&"item_matte", Vector3(0, -0.02, 0), Vector3(0.09, 0.035, 0.06), 0.008)
+	b.color = Color(0.95, 0.97, 1.0, 0.3)
+	b.box(&"item_clear", Vector3(0, -0.02, 0), Vector3(0.095, 0.04, 0.065), 0.008)
+
+
+## Zip bag with white powder and a black zip strip.
+func _coke_bag(b: MeshBuilder) -> void:
+	b.color = Color(0.97, 0.97, 0.95)
+	b.box(&"item_matte", Vector3(0, -0.02, 0), Vector3(0.055, 0.04, 0.012), 0.004)
+	b.color = Color(0.95, 0.97, 1.0, 0.28)
+	b.box(&"item_clear", Vector3(0, 0, 0), Vector3(0.07, 0.09, 0.016), 0.002)
+	b.color = Color(0.08, 0.08, 0.08)
+	b.box(&"item_glossy", Vector3(0, 0.037, 0), Vector3(0.07, 0.005, 0.017))

@@ -6,18 +6,34 @@ extends Resource
 ## role -> {name, rank, wage (€ per in-game day), about, later (true = not in the game yet)}.
 @export var roles: Dictionary = {
 	"grower": {"name": "Grower", "rank": 1, "wage": 80,
-			"about": "Fills, plants, waters and harvests the pots in a property; hangs the harvest on the racks."},
+			"about": "Fills, plants, waters and harvests the weed pots in a property (harvest onto the racks) and tends the coca beds (seedlings + soil from the locker)."},
 	"packager": {"name": "Packager", "rank": 2, "wage": 100,
-			"about": "Takes dried weed off the racks and packages it at a packaging table (baggies from the locker)."},
-	"cook": {"name": "Cook", "rank": 2, "wage": 150, "later": true, "about": "Runs the meth stations (comes with meth)."},
-	"courier": {"name": "Courier", "rank": 3, "wage": 120, "later": true,
-			"about": "Fetches supplies and restocks your dealers (later)."},
+			"about": "Takes dried weed off the racks and packages weed, meth shards and cocaine at a packaging table (baggies from the locker)."},
+	"cook": {"name": "Cook", "rank": 2, "wage": 150,
+			"about": "Runs the machines in a property from the storage locker: meth (cooking station, cooling plate) and cocaine (leaf press, refinery). Stirs and vents in time."},
+	"courier": {"name": "Courier", "rank": 3, "wage": 120,
+			"about": "Works from a property: buys the supplies its stations use into the locker, brings your dealers bags from the locker and their cash back to you."},
+	"guard": {"name": "Guard", "rank": 4, "wage": 200,
+			"about": "Guards a property against Crow raids: takes one raider down first, and holds the place while you're away."},
 	"dealer": {"name": "Dealer", "rank": 1, "wage": 0,
 			"about": "Sells your bags in a district for a commission. Give them stock, collect the cash."},
 }
 ## Worker actions per in-game hour (one action = water/plant/fill/harvest one pot, or package one bag).
 @export var grower_actions_per_hour: float = 4.0
 @export var packager_bags_per_hour: float = 6.0
+## Cook actions per in-game hour (start a cook, stir, pour a tray, break a tray).
+@export var cook_actions_per_hour: float = 3.0
+## Courier trips per in-game hour (one trip = buy one supply, or restock + collect one dealer).
+@export var courier_trips_per_hour: float = 1.0
+## Supplies a courier keeps in the property's lockers (id -> how many), bought only when a station there uses them
+## (`courier_uses`) and the crew's rank allows buying it. Price = base price x `courier_markup`.
+@export var courier_stock: Dictionary = {"soil": 4, "weed_seed": 4, "baggie": 20, "lab_chemicals": 4, "activator": 2,
+		"coca_seedling": 4, "process_fluid": 2}
+@export var courier_uses: Dictionary = {"grow_pot": ["soil", "weed_seed"], "packaging_table": ["baggie"],
+		"cook_station": ["lab_chemicals", "activator"], "coca_bed": ["coca_seedling", "soil"], "leaf_press": ["process_fluid"]}
+@export var courier_markup: float = 1.1
+## A courier restocks a dealer whose stock is below this part of `dealer_capacity`.
+@export var courier_restock_below: float = 0.5
 ## Workers in one property: at most one per bed or storage locker placed in it.
 @export var bed_items: PackedStringArray = ["bed", "storage_locker"]
 
@@ -46,7 +62,7 @@ extends Resource
 	"old_town": {"name": "Old Town", "anchor": Vector3(-24.0, 0.0, -4.6), "sales_per_hour": 1.2, "price": 55},
 	"main_east": {"name": "Main Road East", "anchor": Vector3(36.0, 0.0, 4.6), "sales_per_hour": 1.5, "price": 60},
 	"north": {"name": "North Road", "anchor": Vector3(18.0, 0.0, -43.4), "sales_per_hour": 0.9, "price": 70},
-	"south": {"name": "South Street", "anchor": Vector3(-34.0, 0.0, 49.4), "sales_per_hour": 1.0, "price": 65},
+	"south": {"name": "South Street", "anchor": Vector3(-34.0, 0.0, 55.4), "sales_per_hour": 1.0, "price": 65},
 }
 
 @export_group("Hiring")

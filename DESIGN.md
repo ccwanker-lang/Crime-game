@@ -381,7 +381,9 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
   46. = points 12-13: park, agora - done
   47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
-      point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - todo
+      point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - DONE
+      except the fuel station (session B, merged 2026-11-14: meth, cocaine, courier, lawyer, bribes, Crow raids +
+      guards, roadside team; fuel + gas station = session A, still todo)
 Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built after 48):
   49. Prison + tutorial intro: last day inside (walk, talk, interact), the fellow prisoner / mentor gives a
       contact, the bus drops you at the edge of the village without money - todo
@@ -807,3 +809,43 @@ Choices made while working autonomously (what + why).
 - Point 51: sales and kills reach Territory through new group calls (`sale_hooks.on_sale(seller, npc, bags, paid,
   outcome)`, `kill_hooks.on_kill(killer, victim)`) instead of direct calls. Why: same pattern as session B's
   "progression" hook; other systems (story missions) can listen without touching pedestrian.gd / combat.
+- Point 48 (meth, session B): Abstract steps only (load, stir, pour, break) - DESIGN "abstract game mechanics, no realistic procedures".
+  The stir is the "cook in steps" skill moment: miss it = half the batch. Easy for co-op, readable for the player.
+- Point 48 (meth, session B): One generic `ProcessStation` for all timed machines (cooling plate now; coca processing + refinery next). Why: one
+  tested code path for player use, staff, save and sync.
+- Point 48 (meth, session B): Supplies are added to Rook's stock at runtime instead of editing garage.tscn / gen_prefabs.py. Why: the map and
+  building prefabs are session A's; A can move the ids into gen_prefabs `shopkeeper(...)` stock at merge time.
+- Point 48 (meth, session B): Economy: one cook = €290 supplies (black market -10% = ~€260) -> 12 bags x ~€130 (dealer: x2.2 the district weed
+  price). About 4x the money per hour of a weed pot, but €1,300 of stations and rank 2 first.
+- Point 48 (meth, session B): Meth goes through the existing packaging table (no new table), dealers carry both products in one stock.
+- Point 48 (cocaine, session B): Same pattern as meth (one generic machine class + one attend moment per chain: water the bed, vent the refinery).
+  Why: readable, abstract (DESIGN), every machine works for players and staff alike.
+- Point 48 (cocaine, session B): No grow lamp/pot reuse for coca: a bigger "grow bed" (DESIGN table) that takes seedlings + soil, so growers can
+  run it from the locker without the weed pot's multi-step state machine.
+- Point 48 (cocaine, session B): Economy: one chain = ~€150 supplies -> 8 bags x ~€200 over ~15 in-game hours, but €4,300 of machines and rank 4.
+- Point 48 (cocaine, session B): Watering a coca bed needs no watering can (E is enough): keeps the hand-off simple; the weed pot keeps its can.
+- Point 48 (courier, lawyer, bribes, session B): The courier works from a property (its locker = the warehouse) and also collects the dealers' cash. Why: DESIGN
+  "fetches supplies, delivers to dealers"; collecting makes the dealer network run without driving around, and it
+  keeps the dealers loyal (same rule as collecting yourself).
+- Point 48 (courier, lawyer, bribes, session B): The courier only buys supplies for stations that stand in its property, and only up to small targets: no runaway
+  spending. Paid at +10% (his cut). Illegal supplies are paid with dirty cash first (like the black market).
+- Point 48 (courier, lawyer, bribes, session B): Lawyer and bribes are phone/crew-window services (no NPC office yet; the lawyer's building is on A's map later).
+  Fine back as CLEAN money (a court refund). No jail time exists, so "shorter sentence" = goods + fine back.
+- Point 48 (courier, lawyer, bribes, session B): Bribe price per star (€1,500) makes 5 stars €7,500: a Kingpin expense, not a free reset; the cooldown stops spamming.
+- Point 48 (Crow raids on labs + guards, session B): Raiders never walk INTO the property (A's rule: inside your own property you are safe, Crows don't come in). The
+  "break-in" is the timer: Crows still standing at the door when it runs out = they got in. Why: no changes to the
+  Crow AI (A's files) and the fight happens outside where the AI works.
+- Point 48 (Crow raids on labs + guards, session B): Live raids only when a crew player is close: a real fight when you can take it, a dice roll for guards when you're
+  away (DESIGN: "unless guards or players defend").
+- Point 48 (Crow raids on labs + guards, session B): Machines: only one ProcessStation (meth/cocaine machine) is taken and only when there are no guards: losing a
+  €2,500 refinery is a big hit; guards are the insurance. Weed pots are not taken (small, starter content).
+- Point 48 (Crow raids on labs + guards, session B): Raids start at rank 2 (DESIGN act 2 "First blood (rank 2): the Crows raid your barn"); guards come at rank 4 (DESIGN
+  rank table "guards"); before rank 4 you defend yourself.
+- Point 48 (roadside team, session B): No tow truck driving through town: the car simply appears after 30 s. Why: a driving tow truck needs Traffic/Car
+  changes (A's files); the service effect (your car where you are) is what the design asks. A can add a visual
+  truck later via the same `_deliver` moment.
+- Point 48 (roadside team, session B): The car is dropped on the pavement, not in the lane: AI traffic would stop behind a car parked in its lane.
+- Point 48 (roadside team, session B): Fee €350, clean money first (a legal service, like the lawyer).
+- Point 48 (roadside team, session B): Fuel + the gas station (rest of Roadmap 48) are A's: they need PlayerCar (fuel use) and the map (station). Asked in B.md.
+- Merge 2026-11-14: Rook's extra stock (meth/cocaine supplies + machines) stays in `Products.BLACK_MARKET_EXTRA` at
+  runtime instead of gen_prefabs. Why: it works, is tested, and the rank gates live next to it in session B's code.

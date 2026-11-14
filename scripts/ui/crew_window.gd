@@ -61,7 +61,7 @@ func _ready() -> void:
 	_tabs = HBoxContainer.new()
 	_tabs.add_theme_constant_override("separation", 8)
 	box.add_child(_tabs)
-	for t: Array in [["crew", "Your crew"], ["hire", "Hire (Benny)"]]:
+	for t: Array in [["crew", "Your crew"], ["hire", "Hire (Benny)"], ["legal", "Services"]]:
 		var b := _button(t[1])
 		b.pressed.connect(func() -> void:
 			_tab = t[0]
@@ -152,6 +152,8 @@ func _refresh() -> void:
 		_fill_dealer()
 	elif _tab == "hire":
 		_fill_hire()
+	elif _tab == "legal":
+		_fill_legal()
 	else:
 		_fill_crew()
 
@@ -166,7 +168,7 @@ func _row() -> HBoxContainer:
 func _fill_crew() -> void:
 	_title.text = "Your crew"
 	if Staff.members.is_empty():
-		_list.add_child(_label("Nobody works for you yet. Benny can find people (Hire tab). Growers and packagers work in a property you own (one per bed or storage locker there); dealers sell your bags in a district.", 15, Color(0.7, 0.7, 0.75)))
+		_list.add_child(_label("Nobody works for you yet. Benny can find people (Hire tab). Growers, cooks and packagers work in a property you own (one per bed or storage locker there); dealers sell your bags in a district.", 15, Color(0.7, 0.7, 0.75)))
 	for uid: String in Staff.members:
 		var rec: Dictionary = Staff.members[uid]
 		var row := _row()
@@ -179,6 +181,71 @@ func _fill_crew() -> void:
 			Staff.request("fire", uid))
 		row.add_child(fire)
 	_list.add_child(_label("Dealers: %d of %d at your rank." % [Staff.dealers().size(), Staff.max_dealers()], 14, Color(0.7, 0.7, 0.75)))
+
+
+## Lawyer (rank 4) + the corrupt cop (rank 5): Legal autoload, requests through Staff.request.
+func _fill_legal() -> void:
+	_title.text = "Services: lawyer, corrupt cop, roadside team"
+	var gates: bool = Progression.gates_on()
+	var row := _row()
+	var text := _label("%s  -  €%d a day on retainer
+Arrested? He gets %d%% of the fine and half of the confiscated goods back.%s" % [
+			Legal.LAWYER, Legal.LAWYER_FEE, roundi(Legal.FINE_BACK * 100.0),
+			"
+Working for your crew." if Legal.lawyer != "" else ""], 15)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text)
+	if gates and Progression.rank() < Legal.LAWYER_RANK:
+		row.add_child(_label("Rank %d" % Legal.LAWYER_RANK, 15, BAD))
+	else:
+		var b := _button("Let him go" if Legal.lawyer != "" else "Hire (€%d)" % Legal.LAWYER_FEE)
+		b.pressed.connect(func() -> void:
+			_msg.text = "..."
+			Staff.request("lawyer_fire" if Legal.lawyer != "" else "lawyer_hire"))
+		row.add_child(b)
+	var stars: int = player.wanted_stars if player else 0
+	var row2 := _row()
+	var t2 := _label("%s  -  makes your police file disappear: €%d per wanted star.
+You have %d star%s now." % [
+			Legal.COP, Legal.BRIBE_PER_STAR, stars, "" if stars == 1 else "s"], 15)
+	t2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row2.add_child(t2)
+	if gates and Progression.rank() < Legal.BRIBE_RANK:
+		row2.add_child(_label("Rank %d" % Legal.BRIBE_RANK, 15, BAD))
+	else:
+		var b2 := _button("Bribe (€%d)" % Legal.bribe_price(stars))
+		b2.disabled = stars <= 0
+		b2.pressed.connect(func() -> void:
+			_msg.text = "..."
+			Staff.request("bribe"))
+		row2.add_child(b2)
+	_fill_roadside(gates)
+
+
+## Roadside team (rank 5): one row per crew car, "Bring it here" -> Staff.request("tow", uid).
+func _fill_roadside(gates: bool) -> void:
+	var cars: Array[PlayerCar] = Roadside.cars()
+	var head := _label("%s  -  tows one of your cars to the road next to you: €%d." % [Roadside.CONTACT, Roadside.FEE], 15)
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_list.add_child(head)
+	if gates and Progression.rank() < Roadside.RANK:
+		_list.add_child(_label("Rank %d (%s)" % [Roadside.RANK, Progression.rank_name(Roadside.RANK)], 15, BAD))
+		return
+	if cars.is_empty():
+		_list.add_child(_label("You don't have a car yet (Carlo's Cars).", 14, Color(0.7, 0.7, 0.75)))
+	for car: PlayerCar in cars:
+		var row := _row()
+		var d: int = roundi(car.global_position.distance_to(player.global_position)) if player else 0
+		var t := _label("%s  -  %d m away" % [Roadside.car_name(car), d], 15)
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(t)
+		var b := _button("Bring it here (€%d)" % Roadside.FEE)
+		b.disabled = d < 20
+		var uid: String = car.uid
+		b.pressed.connect(func() -> void:
+			_msg.text = "..."
+			Staff.request("tow", uid))
+		row.add_child(b)
 
 
 func _fill_hire() -> void:
@@ -232,8 +299,8 @@ func _fill_dealer() -> void:
 		_list.add_child(_label("They're gone.", 16, BAD))
 		return
 	_title.text = "%s - your dealer in %s" % [rec["name"], Staff.district_name(str(rec["district"]))]
-	_list.add_child(_label("Stock: %d / %d bags      Waiting for you: €%d      Their cut: %d%%      Loyalty: %d      Sold so far: %d" % [
-			int(rec["stock"]), Staff.config.dealer_capacity, int(rec["cash"]), roundi(float(rec["commission"]) * 100.0),
+	_list.add_child(_label("Stock: %d / %d bags%s      Waiting for you: €%d      Their cut: %d%%      Loyalty: %d      Sold so far: %d" % [
+			int(rec["stock"]), Staff.config.dealer_capacity, Staff.meth_text(rec), int(rec["cash"]), roundi(float(rec["commission"]) * 100.0),
 			roundi(float(rec["loyalty"])), int(rec.get("sold", 0))], 16))
 	_list.add_child(_label("Collect often: a dealer sitting on a lot of your money gets ideas.", 14, Color(0.7, 0.7, 0.75)))
 	var row := _row()
