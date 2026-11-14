@@ -46,6 +46,9 @@
 - 2026-11-14: point 47b (countryside: Country Lane x -150, Hollow Farm with the Barn for sale, fields). Next: 47c
   (west districts + Crows at the harbour; needs B's StaffConfig district + rank gates, asked in A.md), then 53. Full self-test on 47b: 606 PASS, 2 FAIL (selling: officer as customer; traffic: test spot moved by 47a) - both fixed in the test and pass. Netcheck passes after the join fixes.
 
+- 2026-11-14: feature-b merged up to d2d7b72 (bb9810c: dealer turf, bulk deals, roadside jerrycan). Full self-test on
+  the merge: 618 PASS, ALL PASSED; netcheck OK. B's 9bf3ea2 (product quality) is NOT merged yet (not released in B.md).
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
@@ -70,6 +73,7 @@
 - west_side: on Main Road past the tree belt with your car: drive down Industrial Road to the harbour; enter the Lab
   Warehouse and the Harbour Storage (both for sale); try to fall into the sea (you can't); phone map shows the area.
 - countryside: Hollow Farm: enter the red barn (for sale), walk down Country Lane between the fields.
+- bulk_deal (B): 30 bags of meth on you, the Dutchman (yellow name) next to you: E = everything sold at once.
 - gas_station: QuickFuel on North Road, your Comet Sedan almost empty next to pump 1: sit in it (F) -> fuel 6%,
   get out, E on the red pump -> full, €86 gone. The Mule Van at pump 2 is empty: W does nothing.
 - turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.
