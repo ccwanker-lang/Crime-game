@@ -5,6 +5,8 @@ extends Node3D
 ## ParkGoer with role DOG), follows the owner's synced position on its own (top level),
 ## swings its legs with its speed, wags its tail and sniffs the ground when the owner
 ## stands still. A thin lead runs from the owner's hand to the collar. No network sync.
+## Roadmap 67 (session B): `driven` = the visual of a real `Dog` (its parent body moves it; this only animates,
+## draws the lead while `lead_on` and shows the ball in the mouth while `carrying`).
 
 const COATS: Array[Color] = [
 	Color(0.45, 0.28, 0.14), Color(0.08, 0.07, 0.07), Color(0.86, 0.82, 0.74),
@@ -15,6 +17,14 @@ const MAX_SPEED: float = 4.0
 const SIDE: Vector3 = Vector3(0.75, 0.0, -0.55)
 
 var coat: Color = COATS[0]
+var driven: bool = false
+var lead_on: bool = true
+var carrying: bool = false:
+	set(v):
+		carrying = v
+		if _ball:
+			_ball.visible = v
+var _ball: MeshInstance3D
 var _owner3d: Node3D
 var _body: Node3D
 var _head: Node3D
@@ -38,9 +48,9 @@ func setup(owner3d: Node3D, seed_value: int) -> void:
 
 func _ready() -> void:
 	name = "Dog"
-	top_level = true
+	top_level = not driven
 	_build()
-	if _owner3d:
+	if _owner3d and not driven:
 		global_position = _owner3d.global_position + _owner3d.global_basis * SIDE
 	_last = global_position
 
@@ -72,6 +82,12 @@ func _build() -> void:
 	h.box(&"item_matte", Vector3(-0.07, 0.15, -0.03), Vector3(0.04, 0.08, 0.06))  # ears
 	h.box(&"item_matte", Vector3(0.07, 0.15, -0.03), Vector3(0.04, 0.08, 0.06))
 	_head.add_child(_mesh(h))
+	var ball := MeshBuilder.new()  # the fetch ball in the mouth (Dog)
+	ball.color = Color(0.85, 0.95, 0.2)
+	ball.sphere(&"item_matte", Vector3(0, 0.02, -0.25), 0.045, 5, 8)
+	_ball = _mesh(ball)
+	_ball.visible = carrying
+	_head.add_child(_ball)
 	# Legs: pivots at the hips/shoulders, swung in _process.
 	var leg := MeshBuilder.new()
 	leg.color = coat
@@ -119,6 +135,13 @@ func _mesh(b: MeshBuilder) -> MeshInstance3D:
 
 
 func _process(delta: float) -> void:
+	if driven:
+		_animate(delta)
+		var has_owner: bool = _owner3d != null and is_instance_valid(_owner3d) and _owner3d.get("dead") != true
+		_lead.visible = lead_on and has_owner
+		if _lead.visible:
+			_update_lead()
+		return
 	if _owner3d == null or not is_instance_valid(_owner3d):
 		queue_free()
 		return
@@ -136,6 +159,12 @@ func _process(delta: float) -> void:
 		var yaw: float = atan2(-to.x, -to.z)
 		rotation.y = lerp_angle(rotation.y, yaw, minf(1.0, 8.0 * delta))
 	global_position.y = _owner3d.global_position.y
+	_animate(delta)
+	_update_lead()
+
+
+## Legs, tail and sniffing from how far the dog really moved (same on host and clients).
+func _animate(delta: float) -> void:
 	# Speed from how far it really moved (same on host and clients).
 	var moved: float = Vector2(global_position.x - _last.x, global_position.z - _last.z).length()
 	_last = global_position
@@ -154,7 +183,6 @@ func _process(delta: float) -> void:
 		_sniff = maxf(0.0, _sniff - delta * 2.0)
 	_head.rotation.x = -0.7 * _sniff
 	_body.position.y = absf(sin(_phase)) * 0.015 * swing
-	_update_lead()
 
 
 func _update_lead() -> void:

@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -74,6 +74,26 @@ func _count_q(who: String, id: String) -> int:
 ## Milestone 3 product quality (scripts/debug/quality_test.gd).
 func _check_quality(world: Node3D) -> void:
 	await QualityTest.run(self, world)
+
+
+## Roadmap 67 dogs as real NPCs (scripts/debug/dogs_test.gd).
+func _check_dogs(world: Node3D) -> void:
+	await DogsTest.run(self, world)
+
+
+## Roadmap 65 standing on cars (scripts/debug/car_roof_test.gd).
+func _check_car_roof(world: Node3D) -> void:
+	await CarRoofTest.run(self, world)
+
+
+## Roadmap 64 running people over from any side (scripts/debug/run_over_test.gd).
+func _check_run_over(world: Node3D) -> void:
+	await RunOverTest.run(self, world)
+
+
+## Roadmap 66 engine / tyre / brake sound (scripts/debug/engine_sound_test.gd).
+func _check_engine_sound(world: Node3D) -> void:
+	await EngineSoundTest.run(self, world)
 
 
 ## Milestone 3 shooting range (scripts/debug/range_test.gd).
@@ -1963,7 +1983,7 @@ func _check_park(world: Node3D) -> void:
 		smokers.append(y)
 	var from: Vector3 = walker.global_position
 	await get_tree().create_timer(9.0).timeout
-	var dog: ProcDog = walker.get_node_or_null("Dog") as ProcDog
+	var dog: Dog = Dog.of(walker)  # (Roadmap 67, session B: the dog is a real NPC in World/Dogs now)
 	_report(dog != null and dog.global_position.distance_to(walker.global_position) < 2.0
 			and walker.global_position.distance_to(from) > 3.0, "a dog walker walks the park loop with its dog next to it (%.1f m)" % walker.global_position.distance_to(from))
 	var gathered: int = 0

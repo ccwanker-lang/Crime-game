@@ -57,6 +57,9 @@ var test_drive: bool = false
 
 var hits: int = 0  # host: people hit (tests)
 var _hit_until: Dictionary = {}  # host: victim -> msec it may be hit again
+var _hit_yaw: float = 0.0  # host: last yaw + yaw rate for hits from any side (Roadmap 64, session B)
+var _hit_yaw_rate: float = 0.0
+var _hit_yaw_ms: int = 0
 var _last_drive_ms: int = 0
 var _wheels: Array[Node3D] = []
 var _steer_pivots: Array[Node3D] = []
@@ -86,14 +89,7 @@ func _ready() -> void:
 			_steer_pivots.append(n as Node3D)
 			_wheels.append(n.get_child(0) as Node3D)
 	var size: Vector3 = ProcCar.collision_size(kind)
-	var shape := CollisionShape3D.new()
-	shape.name = "Shape"
-	var box := BoxShape3D.new()
-	var h: float = size.y + 0.25 - BODY_LIFT - 0.02
-	box.size = Vector3(size.x, h, size.z)
-	shape.shape = box
-	shape.position.y = BODY_LIFT + h / 2.0
-	add_child(shape)
+	CarShapes.add(self, kind, BODY_LIFT)  # body + cabin: people can stand on the bonnet and the roof (Roadmap 65, B)
 	var label := Label3D.new()  # "F" hint above the roof, only close by
 	label.name = "Hint"
 	label.text = spec["name"]
@@ -498,19 +494,29 @@ func litres_missing() -> int:
 # --- Hitting people (host) ------------------------------------------------------------
 
 func _host_hits() -> void:
-	var v: float = absf(net_speed)
-	if v < HIT_SPEED:
-		return
+	# Roadmap 64 (session B): people are hit from ANY side - the front, reversing over someone, the side or the
+	# swinging rear in a slide. Impact speed = the velocity of the car's point nearest to the person, towards them
+	# (straight motion + the yaw rate's swing); someone merely standing beside a passing car is not hit.
+	var now: int = Time.get_ticks_msec()
+	var dt: float = (now - _hit_yaw_ms) / 1000.0
+	if dt > 0.0 and dt < 0.5:
+		_hit_yaw_rate = lerpf(_hit_yaw_rate, angle_difference(_hit_yaw, global_rotation.y) / dt, 0.5)
+	elif dt >= 0.5:
+		_hit_yaw_rate = 0.0
+	_hit_yaw = global_rotation.y
+	_hit_yaw_ms = now
 	var size: Vector3 = ProcCar.collision_size(int(spec["kind"]))
+	var reach: float = Vector2(size.x, size.z).length() * 0.5
+	if absf(net_speed) < HIT_SPEED and absf(_hit_yaw_rate) * reach < HIT_SPEED:
+		return
 	var q := PhysicsShapeQueryParameters3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(size.x + 0.1, 1.4, 0.9)
+	box.size = Vector3(size.x + 0.7, 1.4, size.z + 0.7)  # the whole car + 35 cm all round
 	q.shape = box
-	var front: float = -(size.z / 2.0 + 0.2) * signf(net_speed)
-	q.transform = global_transform * Transform3D(Basis(), Vector3(0, 0.9, front))
+	q.transform = global_transform * Transform3D(Basis(), Vector3(0, 0.9, 0))
 	q.collision_mask = 4 | 8  # npcs, players
 	q.exclude = [get_rid()]
-	var now: int = Time.get_ticks_msec()
+	var vel: Vector3 = -global_basis.z * net_speed
 	var driver := _player(driver_peer())
 	for hit: Dictionary in get_world_3d().direct_space_state.intersect_shape(q, 8):
 		var victim: Node = hit["collider"]
@@ -520,6 +526,9 @@ func _host_hits() -> void:
 			continue
 		if victim is Player and ((victim as Player).vehicle != null or (victim as Player).dead):
 			continue
+		var v: float = impact_speed((victim as Node3D).global_position, vel, _hit_yaw_rate)
+		if v < HIT_SPEED:
+			continue  # a nudge
 		_hit_until[victim] = now + 1200
 		var dmg: int = 200 if v >= KILL_SPEED else int(10.0 + (v - HIT_SPEED) * 11.0)
 		hits += 1
@@ -537,8 +546,29 @@ func _host_hits() -> void:
 			get_tree().call_group(&"police", "report_crime", driver, at, true)
 			Wanted.report(driver, kind, at)
 			Progression.host_kill(driver, victim)
+			get_tree().call_group(&"kill_hooks", "on_kill", driver, victim)  # territory, like a shot
 		elif victim is Pedestrian or victim is Player:
 			Wanted.report(driver, &"assault", at)
+
+
+## Host (Roadmap 64): how fast the car's point nearest to `at` moves towards it (m/s, 0 if away/along).
+## `vel` = the car's linear velocity, `yaw_rate` = rad/s (+ = turning left).
+func impact_speed(at: Vector3, vel: Vector3, yaw_rate: float) -> float:
+	var local: Vector3 = to_local(at)
+	var size: Vector3 = ProcCar.collision_size(int(spec["kind"]))
+	var near_local := Vector3(clampf(local.x, -size.x * 0.5, size.x * 0.5), 0.0,
+			clampf(local.z, -size.z * 0.5, size.z * 0.5))
+	var near: Vector3 = to_global(near_local)
+	var arm: Vector3 = near - global_position
+	arm.y = 0.0
+	var point_vel: Vector3 = vel + Vector3(0, yaw_rate, 0).cross(arm)
+	var dir: Vector3 = at - near
+	dir.y = 0.0
+	if dir.length() < 0.05:
+		dir = arm  # (inside the hull: away from the centre)
+	if dir.length() < 0.05:
+		return point_vel.length()
+	return maxf(0.0, point_vel.dot(dir.normalized()))
 
 
 ## Every peer: H (the driver asks the host, the host plays it everywhere).

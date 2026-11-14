@@ -79,6 +79,10 @@ const LIST: Array = [
 	["roadside", "Rank 5, your Comet Sedan far away on Carlo's lot, you in front of the Starter Room", "Tab > Crew > Services: Roadside Service, 'Bring it here' (€350). A text; about 30 seconds later the car stands on the pavement of the nearest road (second text with the distance). F = get in. Not near a road / car already close = refused."],
 	["quality", "Rank 3: weed corner + cooking station next to a Fume Hood, premium supplies in your pockets, a customer for Premium Meth outside", "Weed: E on the pot under the lamp (soil, then the Premium Weed Seed is planted first, water) - the prompt says Good/Premium Weed plant; F7: harvest = Premium Fresh Weed, only a rack with the same quality takes it. Meth: E on the cooking station (uses the Pure Reagent: +1, the Fume Hood next to it: +1 = Premium), stir, cooling plate, packaging table = Bags of Premium Meth (gold stars in the hotbar). Outside: the customer pays Premium prices for 2 Bags of Premium Meth (E, Confirm). Tab > Crew > dealers sell the best bags first."],
 	["shooting_range", "Rank 2, at Walt's counter at the Hollow Creek Gun Club (north of Hollow Farm) with a pistol, ammo and €500", "E on Walt: the range window. Start a drill (€40): go to your lane (board under the roof), targets pop up one at a time, bullseye = 2 points; after 45 s you get the score + skill (less spread). Try a gun (€25, e.g. the sniper): it's yours while you stay on the range, walk away and Walt has it back. Free practice: shoot the standing targets - no police, nobody panics."],
+	["car_sounds", "12:00 behind the wheel of your Comet Sedan on the car lot, traffic on Main Road", "Listen: the engine idles, W = it revs up through the gears (pitch drops at each shift), let go = it coasts. Steer hard at speed or brake hard = tyres screech. Traffic cars have their own engine sound; stopping cars sometimes squeal their brakes. F = get out: the engine stops."],
+	["run_over", "12:00 in your Comet Sedan on the car lot, 3 people standing behind it and one beside it", "S = reverse into the people behind you: they are hit (from the back too; fast = dead, ragdoll + police heat like a murder). The one beside the car isn't hit when you drive past slowly; a hard turn swings the rear into people too."],
+	["car_roof", "12:00 on foot next to your parked Comet Sedan and a Mule Van, traffic on Main Road", "Space next to the car: you jump onto the bonnet, jump again: you stand on the roof. The van's roof is higher (jump from its bonnet). Traffic cars have the same shape."],
+	["dogs", "13:00 in the park, a dog walker right in front of you (a game of fetch starts in 3 s)", "Watch: the owner throws the ball, the dog runs off the lead, brings it back and drops it at the owner's feet. Then try: shoot the owner (1) -> the dog stays a moment and runs off; shoot a dog -> it goes limp (a crime, not a murder). Cars hit dogs too."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -620,6 +624,47 @@ static func run(world: Node, id: String) -> bool:
 					var lane: Vector3 = rg.firing_spot(1)
 					_place(me, lane + Vector3.UP * 0.1, rg.target(1, 2).center(), dn, 14.0)
 			me.combat.host_set_mags([8])  # a loaded pistol
+		"car_sounds":
+			_kit(me, 500, [])
+			var cv: Vehicles = Vehicles.current
+			var c2: Node3D = world.find_child("CarDelivery2", true, false) as Node3D
+			if cv and c2:
+				var car: PlayerCar = cv.host_spawn("sedan", 2, c2.global_position, c2.global_rotation.y)
+				_place(me, car.global_transform * Vector3(-1.6, 0.1, 0.0), car.global_position + Vector3.UP * 0.8, dn, 12.0)
+				await world.get_tree().physics_frame
+				car.host_enter(me)
+		"run_over", "car_roof":
+			_kit(me, 500, [])
+			var rv: Vehicles = Vehicles.current
+			var r2: Node3D = world.find_child("CarDelivery2", true, false) as Node3D
+			var r3: Node3D = world.find_child("CarDelivery3", true, false) as Node3D
+			if rv and r2 and r3:
+				var sedan: PlayerCar = rv.host_spawn("sedan", 5, r2.global_position, r2.global_rotation.y)
+				if id == "car_roof":
+					rv.host_spawn("van", 0, r3.global_position, r3.global_rotation.y)
+					_place(me, sedan.global_transform * Vector3(-1.5, 0.1, -1.6), sedan.global_transform * Vector3(0, 1.0, -1.6), dn, 12.0)
+				else:
+					_place(me, sedan.global_transform * Vector3(-1.6, 0.1, 0.0), sedan.global_position + Vector3.UP * 0.8, dn, 12.0)
+					var back: Vector3 = sedan.global_basis.z
+					for i: int in 3:
+						var npc: Pedestrian = world.call("_add_pedestrian", sedan.global_position + back * (4.0 + i * 1.2)
+								+ sedan.global_basis.x * (i - 1) * 0.8, i + 3)
+						npc.hold_for_talk(sedan, 600.0)
+					var beside: Pedestrian = world.call("_add_pedestrian", sedan.global_transform * Vector3(1.6, 0.1, 0.0), 7)
+					beside.hold_for_talk(sedan, 600.0)
+					await world.get_tree().physics_frame
+					sedan.host_enter(me)
+		"dogs":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 24]])
+			var ppath: Array[Vector3] = world.call("park_path")
+			if ppath.size() >= 2:
+				var walker: ParkGoer = world.call("add_park_goer", ppath[0], ParkGoer.Role.DOG)
+				walker.laps_left = 100000
+				_place(me, ppath[0] + (ppath[1] - ppath[0]).normalized() * -5.0 + Vector3.UP * 0.2, ppath[0] + Vector3.UP, dn, 13.0)
+				await world.get_tree().create_timer(3.0).timeout
+				var dog: Dog = Dog.of(walker)
+				if dog:
+					dog.host_fetch(3)
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)

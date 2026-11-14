@@ -8,7 +8,7 @@ part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all a
 New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
-(shooting range).
+(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs).
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -542,3 +542,104 @@ Done: self-test check `range`, scenario `shooting_range`.
   `player_data.range_loan`, `covers(pos)` = legal gunfire, `spread_factor(name)` in PlayerCombat._spread), local build
   `ShootingRange` (marker `ShootingRangeSpot` or FALLBACK_POS) + `RangeTarget` + `RangeDesk` (Walt) + `RangeWindow`.
   Scenario shooting_range, self-test check range.
+
+
+# Parts 13-15: Roadmap 66 (engine sound), 64 (running people over from any side), 65 (standing on cars)
+# (taken over from A, user 2026-11-14)
+
+## Status
+Done: self-test checks `engine_sound`, `run_over`, `car_roof`; scenarios `car_sounds`, `run_over`, `car_roof`.
+
+## How it works
+- 66: `Ambience` (new autoload, autoload/ambience.gd, LOCAL on every peer) gives every Car (group "cars") and
+  PlayerCar (group "player_cars") a `VehicleSound` child (scripts/vehicles/vehicle_sound.gd) - no change in the car
+  scripts for sound. VehicleSound reads only the vehicle's movement (same on host and clients): speed -> simulated
+  6-gear box (`rpm_for`, rpm drops at each shift) -> pitch of two seamless engine loops (engine_on under load,
+  engine_off coasting/idle; crossfaded by acceleration); tyre screech loop on hard cornering (sideways accel > 7 m/s²)
+  or hard braking (> 8 m/s²); a brake squeal now and then (30%) when a car stops. Engine off: wrecks, abandoned
+  standing traffic cars, a PlayerCar without driver or fuel. Garbage truck lower + louder, own cars louder than
+  traffic. Only within 70 m of the camera. Sounds: tools/generators/gen_engine_sounds.py (numpy + ffmpeg) ->
+  assets/audio/vehicles/engine_on/engine_off/tyre_screech/brake_squeal.ogg.
+- 64: `PlayerCar._host_hits` checks the whole car + 35 cm all round (was a box at the nose) and per person the
+  `impact_speed`: the velocity of the car's point nearest to them, towards them (linear speed + the yaw rate's swing).
+  So: front, reversing, the swinging rear in a slide - all hit; someone standing beside a car that drives past isn't.
+  Same damage table as A's (HIT_SPEED 3, KILL_SPEED 10), kill = police report + Wanted kill + XP as before, plus
+  the `kill_hooks` group call (territory) like a shot. Victims ragdoll away from the car (Pedestrian._die).
+- 65: `CarShapes.add(body, kind, bottom)` (scripts/vehicles/car_shapes.gd) replaces the single collision box of Car
+  and PlayerCar by a body box (bonnet/boot height, full length) + a cabin box (roof height between cab_f and cab_b
+  of ProcCar.SPECS). A jump (1.18 m) reaches the bonnet (0.82 m sedan) and from there the roof (1.42 m). The outline
+  equals the old box, so traffic sensing / kerbs / hits / ProcCar.collision_size users are unchanged.
+
+## Decisions (what + why)
+- Engine sound from the movement, not from the car scripts' throttle: one component for traffic, own cars, the host
+  and clients, and A's car code stays as it is. Two loops with pitch instead of a generator per car: cheap with 10+
+  cars; the gearbox model gives the "revs up, shifts, revs up" sound everyone expects.
+- Hits by impact speed towards the person instead of a bigger box at the nose: "from any angle" without making
+  people die from simply standing next to a passing car.
+- Two boxes rather than a convex hull: cheap, exact enough to stand on, keeps the old outline.
+- Traffic cars still never run people over on purpose (A's traffic stops for people).
+
+## Existing files changed (parts 13-15)
+- scripts/vehicles/player_car.gd: `_host_hits` rewritten (+ `impact_speed`, `_hit_yaw*` vars, kill_hooks call),
+  `CarShapes.add` instead of the box in `_ready`. scripts/traffic/car.gd: `CarShapes.add` instead of the box
+  (one line). project.godot: autoload Ambience after RangeClub. self_test.gd: checks engine_sound, run_over, car_roof
+  at the end. scenarios.gd: car_sounds, run_over, car_roof (before bulk_deal).
+
+## Te testen door Curry
+- `car_sounds` (F9): je zit achter het stuur: stationair, W = optrekken door de versnellingen, hard sturen of remmen =
+  piepende banden. Verkeer heeft ook motorgeluid.
+- `run_over` (F9): S = achteruit de 3 mensen achter je in; degene naast de auto blijft ongedeerd als je langzaam
+  langsrijdt.
+- `car_roof` (F9): spring op de motorkap en daarna op het dak (ook van het busje).
+
+## For CLAUDE.md (suggested lines)
+- Car sound (Roadmap 66): `Ambience` autoload attaches `VehicleSound` (engine loops by simulated rpm `rpm_for`, tyre
+  screech, brake squeal; sounds from gen_engine_sounds.py) to every Car / PlayerCar. Check engine_sound, scenario
+  car_sounds. Run over (64): `PlayerCar.impact_speed` (any side), check run_over. Standing on cars (65):
+  `CarShapes.add` (body + cabin boxes), check car_roof.
+
+
+# Part 16: Roadmap 67 - dogs are real NPCs (taken over from A, user 2026-11-14)
+
+## Status
+Done: self-test check `dogs` (+ A's park check adapted), scenario `dogs`.
+
+## How it works
+- `Dog` (scripts/npc/dog.gd, CharacterBody3D on layer 3 = npcs, group "dogs"): `Ambience` makes one for every DOG
+  ParkGoer on EVERY peer at World/Dogs/Dog_<owner name> (same path everywhere -> the host's RPCs reach it; an old
+  dog with the same name goes). HOST AUTHORITATIVE: the host moves it (kinematic along navmesh paths: kerbs would stop
+  a small physics body) and sends `_net(pos, yaw, state)` 10x a second; clients smooth. `Dog.of(npc)` finds it.
+  Looks = ProcDog in its new `driven` mode (animation, lead while FOLLOW, ball in the mouth while `carrying`).
+- States: FOLLOW (on the lead beside the owner), FETCH_OUT / FETCH_BACK, MOURN, FLEE, DEAD.
+- Fetch: at a sniff stop ParkGoer._dog_step now plays fetch half the time (`Dog.auto_fetch`, off in tests):
+  `host_fetch(rounds)` - the owner faces a spot 7-13 m ahead (navmesh), throws (`_throw` RPC: a parabola on every peer),
+  the dog runs off the lead, picks the ball up, brings it back and drops it at the owner's feet; 2-3 rounds.
+- Owner killed -> the dog stays by the body 2.5 s, then runs 35 m away (navmesh path), wanders, gone after 45 s
+  (`_free_rpc`). Owner gone home -> the dog goes too.
+- Killing a dog (HEALTH 30, bullets and cars): `host_damage` returns false (no person kill / murder), the attacking
+  player is reported for assault; `_die(impulse)` on every peer: the visual rides a RigidBody3D "Carcass" (world layer
+  only) pushed away from the hit, legs loose; removed after 60 s.
+
+## Decisions (what + why)
+- One body + local visual per peer at a fixed path instead of a networked spawn: no spawner or World change needed
+  (World is A's), and the dog only exists while its owner does, which every peer sees the same.
+- Kinematic movement on navmesh paths: dogs must cross kerbs and park paths; a physics box got stuck on them.
+- Simple "ragdoll" = one rigid body with the dog on it: dogs have no skeleton; it falls, rolls and lies still.
+- Killing a dog is assault, not murder: stars, but not the murder response.
+
+## Existing files changed (part 16)
+- scripts/npc/park_goer.gd: no ProcDog in `_ready` (the Dog brings its own), `_dog_step` sniff stop -> fetch half the
+  time. scripts/npc/proc_dog.gd: `driven`, `lead_on`, `carrying` (+ ball mesh), `_animate` split out of `_process`
+  (the old behaviour is unchanged when not driven). autoload/ambience.gd: makes the dogs. self_test.gd: A's park check
+  uses `Dog.of(walker)`; new check "dogs". scenarios.gd: dogs.
+- REQUEST for A (world.gd is yours): the netcheck line `n.has_node("Dog")` (World ~line 258) -> `Dog.of(n) != null`
+  (now it prints 0 dogs; nothing fails).
+
+## Te testen door Curry
+- `dogs` (F9): in het park speelt een baasje apport met zijn hond (bal gooien, terugbrengen). Schiet het baasje neer:
+  de hond blijft even en rent weg. Een hond kan ook geraakt worden (valt slap neer).
+
+## For CLAUDE.md (suggested lines)
+- Dogs (Roadmap 67): `Dog` (scripts/npc/dog.gd, layer 3, World/Dogs/Dog_<owner>, made by `Ambience` on every peer,
+  host drives + `_net` RPC), `Dog.of(npc)`, `host_fetch`, `Dog.auto_fetch`, states FOLLOW/FETCH/MOURN/FLEE/DEAD,
+  ProcDog `driven`. Scenario dogs, self-test check dogs.
