@@ -3179,7 +3179,7 @@ func _check_territory(world: Node3D) -> void:
 		ok = ok and Territory.district_at(all[id]["anchor"]) == id and not terr.is_held(id)
 	_report(ok, "every anchor lies in its own district, all Crow turf at the start")
 	var id: String = "old_town" if all.has("old_town") else str(all.keys()[0])
-	var at: Vector3 = NavigationServer3D.map_get_closest_point(world.get_world_3d().navigation_map, all[id]["anchor"])
+	var at: Vector3 = (all[id]["anchor"] as Vector3) + Vector3.UP * 0.15  # (anchors lie on the pavement)
 	var p: Player = WALKER.instantiate()
 	p.auto_walk = true
 	p.name = "1"
@@ -3220,17 +3220,18 @@ func _check_territory(world: Node3D) -> void:
 		var d0: float = sent.global_position.distance_to(p.global_position)
 		Rival.obey_daylight = true
 		var d1: float = d0
-		for i: int in 20:
+		for i: int in 30:
 			await get_tree().create_timer(0.5).timeout
 			d1 = sent.global_position.distance_to(p.global_position)
 			if d1 < d0 - 8.0 or sent.target == p:
 				break
 		_report(d1 < d0 - 8.0 or sent.target == p, "the sent Crow comes for the seller (by day too): %.0f m -> %.0f m%s" % [
 				d0, d1, " and aims at them" if sent.target == p else ""])
+		var kid: String = Territory.district_at(sent.global_position)
 		sent.host_damage(500, p, p.global_position)
-		var inf0: float = terr.influence(id)
+		var inf0: float = terr.influence(kid)
 		get_tree().call_group(&"kill_hooks", "on_kill", p, sent)  # (what PlayerCombat calls after a kill)
-		_report(absf(terr.influence(id) - inf0 - Territory.KILL_CROW_GAIN) < 0.3, "killing a Crow there: +%.0f%%" % Territory.KILL_CROW_GAIN)
+		_report(absf(terr.influence(kid) - inf0 - Territory.KILL_CROW_GAIN) < 0.3, "killing a Crow (in %s): +%.0f%%" % [kid, Territory.KILL_CROW_GAIN])
 	Territory.crow_send_chance = 0.0
 	terr.debug_set(id, 97.0, false)
 	sell.call(1, 60, "fair")

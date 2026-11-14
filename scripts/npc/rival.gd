@@ -173,7 +173,7 @@ func _patrol() -> void:
 	if sent_target != null:
 		if is_instance_valid(sent_target) and not sent_target.dead and _now() < _sent_until and not is_safe(sent_target.global_position) and not Territory.crew_holds(sent_target.global_position):
 			if not _moving or move_target().distance_to(sent_target.global_position) > 4.0:
-				_go(sent_target.global_position, Anim.RUN)
+				_go(sent_target.global_position, Anim.RUN_GUN)  # (officers run only with RUN_GUN)
 			return
 		sent_target = null
 	if role == Role.STREET and obey_daylight and not _night():
