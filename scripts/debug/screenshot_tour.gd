@@ -125,6 +125,7 @@ const SHOTS: Array[Array] = [
 	["92_map_top", Vector3(-59, 330, 140), Vector3(-59, 0, -10)],
 	["93_south_bend", Vector3(-48, 9, 50), Vector3(-70, 0, 80)],
 	["94_south_harbour", Vector3(-60, 22, 100), Vector3(-100, 0, 80)],
+	["95_traffic_lights", Vector3(28.5, 2.2, 19), Vector3(31, 2.2, -2)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

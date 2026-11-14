@@ -428,7 +428,8 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
       office buildings. Layout: the prison (49) behind the mountain north of the farm (see 49b), the rich neighbourhood next to the farm, the business
       district on the other side of the village - todo
   63. Traffic: fewer cars, traffic lights at the big junctions, better flow: no jams or cars stuck behind each
-      other, overtake / drive round when something blocks the road - todo
+      other, overtake / drive round when something blocks the road - DONE (5 cars instead of 8, lights at the 3
+      busy Main Road junctions, cars overtake a car that stands still when the other lane is clear)
       (Split, user 2026-11-14: 64-68 go to session B (feature-b); A does 59-63 + 49b. Point 58 was already done by A.)
   64. Running people over from any angle (ragdoll, damage, a wanted star when it is murder) (extends 45) - todo
   65. Jumping onto cars and standing on them (roof + bonnet with collision) - todo
@@ -989,6 +990,19 @@ Choices made while working autonomously (what + why).
   split and stays on main; B builds on it.
 - Point 49b / round-5 order (set by the user, replaces my earlier "49b after 62"): 60 -> 61 -> 63 -> 49b -> 62.
   The pass starts at the farm (Country Lane top), which 62 doesn't move, so 62 can fit the villas round it later.
+- Point 63: Traffic. (a) 5 cars instead of 8 (`Traffic.CAR_COUNT`): half-empty streets read calmer and the
+  one-car-per-junction rule no longer builds queues. (b) Lights (`Traffic.LIGHTS`) only at the three Main Road
+  junctions (-6, 0), (30, 0), (-114, 0) where most routes cross; the quiet ones keep the reservation. Cycle 36 s:
+  Main Road (x) 16 s green, the cross street 10 s, 2.5 s amber + 2.5 s all red each; every junction its own offset.
+  At a light junction cars of the green axis share the box (no reservation), a car stops at red and at amber when it
+  can still stop (v^2/2a). The clock runs on every peer, the host re-sends it every 4 s (unreliable RPC): no state
+  per light to sync. Poles = local `TrafficLight` visuals (no collision: nothing to bump into or to bake), one
+  head per incoming arm on the right-hand corner before the junction. (c) Overtaking: a car that waited
+  OVERTAKE_WAIT (3 s) behind a car that stands still on its own (abandoned, garbage truck, not queuing at a light /
+  junction / car, never a roadblock) moves 3.5 m left and passes at <= 6 m/s, only on a straight with no junction
+  in the next 32 m, the other lane empty for 32 m and no moving car coming for 75 m; if something comes anyway
+  before it is alongside it pulls back in behind. Why not "drive round anything": cars queuing at a red light must
+  stay queued. (d) The self-test's "car behind a stopped car waits" became "waits or overtakes".
 - Point 61: Grass everywhere = `GrassCover` (scripts/procgen/grass_cover.gd, World child, not headless): 10 m chunks
   within 52 m of the camera (fade 45 m), 2 built per frame, freed when far. A tuft goes where a ray down hits a
   `GroundArea` with `grass` on at ground height, minus every GrassField rect (they keep their own grass) and every

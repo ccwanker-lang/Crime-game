@@ -9,11 +9,28 @@ extends Node3D
 ## south at x -66 down to Quay Road at z 84 = a loop through the harbour).
 
 const CAR := preload("res://prefabs/vehicles/car.tscn")
-const CAR_COUNT: int = 8
+## Point 63: fewer cars (was 8): calmer streets, no queues.
+const CAR_COUNT: int = 5
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time.
 const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0), Vector2(-114, 84)]
 const JUNCTION_HALF: float = 6.0
+## Point 63: junctions with traffic lights (JUNCTIONS index -> arms that have a road + the cycle offset in s).
+## There the lights decide who goes (cars of the green axis share the junction); the others keep the
+## one-car-at-a-time reservation.
+const LIGHTS: Dictionary = {0: {"arms": "WEN", "offset": 0.0}, 1: {"arms": "WENS", "offset": 11.0},
+		4: {"arms": "WES", "offset": 5.0}}
+## Light cycle (s): x green, amber, all red, z green, amber, all red.
+const X_GREEN: float = 16.0
+const Z_GREEN: float = 10.0
+const AMBER: float = 2.5
+const ALL_RED: float = 2.5
+const CYCLE: float = X_GREEN + Z_GREEN + 2.0 * (AMBER + ALL_RED)
+## Corner spot of a light pole (m from the junction centre, on the sidewalk corner).
+const LIGHT_CORNER: float = 4.8
+## Every peer runs the clock; the host re-sends it now and then.
+var light_clock: float = 0.0
+var _light_sync_t: float = 0.0
 
 var routes: Array[TrafficRoute] = []
 var _junction_owner: Dictionary = {}  # junction index -> Car (host)
@@ -21,6 +38,7 @@ var _junction_owner: Dictionary = {}  # junction index -> Car (host)
 
 func _ready() -> void:
 	_build_routes()
+	_build_lights()
 	if multiplayer.is_server() and not "--selftest" in OS.get_cmdline_user_args():
 		var count: int = CAR_COUNT
 		for arg: String in OS.get_cmdline_user_args():
@@ -69,6 +87,58 @@ func _build_routes() -> void:
 		path.add_to_group(&"debug_only")
 		path.visible = false
 		add_child(path)
+
+
+## Point 63: a pole with a head for every arm that has traffic coming in (right-hand corner before the junction).
+func _build_lights() -> void:
+	# approach arm -> [corner sign x, corner sign z, axis, head facing]
+	var heads: Dictionary = {"E": [1.0, -1.0, &"x", Vector3.RIGHT], "W": [-1.0, 1.0, &"x", Vector3.LEFT],
+			"S": [1.0, 1.0, &"z", Vector3.BACK], "N": [-1.0, -1.0, &"z", Vector3.FORWARD]}
+	for j: int in LIGHTS:
+		var c: Vector2 = JUNCTIONS[j]
+		for arm: String in (LIGHTS[j]["arms"] as String):
+			var h: Array = heads[arm]
+			var tl := TrafficLight.new()
+			tl.name = "Light%d%s" % [j, arm]
+			tl.junction = j
+			tl.axis = h[2]
+			tl.facing = h[3]
+			tl.position = Vector3(c.x + float(h[0]) * LIGHT_CORNER, 0.15, c.y + float(h[1]) * LIGHT_CORNER)
+			add_child(tl)
+
+
+func _process(delta: float) -> void:
+	light_clock += delta
+	if not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
+		return
+	_light_sync_t -= delta
+	if _light_sync_t <= 0.0:
+		_light_sync_t = 4.0
+		for peer: int in Net.peers_in_world:
+			if peer != multiplayer.get_unique_id():
+				_sync_lights.rpc_id(peer, light_clock)
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _sync_lights(t: float) -> void:
+	light_clock = t
+
+
+## Point 63: &"green" / &"amber" / &"red" for traffic along `axis` (&"x" or &"z") at junction j
+## (always green at a junction without lights).
+func light_state(j: int, axis: StringName) -> StringName:
+	if not LIGHTS.has(j):
+		return &"green"
+	var t: float = fposmod(light_clock + float(LIGHTS[j]["offset"]), CYCLE)
+	var z_start: float = X_GREEN + AMBER + ALL_RED
+	if axis == &"z":
+		t = fposmod(t - z_start, CYCLE)
+	var green: float = X_GREEN if axis == &"x" else Z_GREEN
+	if t < green:
+		return &"green"
+	if t < green + AMBER:
+		return &"amber"
+	return &"red"
 
 
 ## Host: may `car` drive into junction j? Grants it if nobody else holds it.

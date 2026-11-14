@@ -108,6 +108,19 @@ var _steer: float = 0.0  # front wheel angle (rad, + = left)
 var _steer_pivots: Array[Node3D] = []
 var _hold: float = 0.0  # stay stopped this long after the way is clear (no creeping)
 var _sense_shape := BoxShape3D.new()
+## Point 63: overtaking a car that stands still (abandoned, a garbage stop, stopped for no queue): the car ahead
+## (from _sense), how long we have waited behind it, the car we pass and our sideways offset (- = left lane).
+const OVERTAKE_WAIT: float = 3.0
+const OVERTAKE_OFFSET: float = -3.5
+const OVERTAKE_CLEAR: float = 32.0
+## Oncoming cars this far away can still meet us during the pass (~5 s at cruise).
+const OVERTAKE_ONCOMING: float = 75.0
+const OVERTAKE_SPEED: float = 6.0
+var _ahead_car: Car = null
+var _pass_wait: float = 0.0
+var pass_car: Car = null
+var lane_offset: float = 0.0
+var overtakes: int = 0  # tests
 var _bar_lights: Array[OmniLight3D] = []
 ## Host (police car): officers in the car, and the ones out on a call.
 var crew_size: int = 2
@@ -355,6 +368,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_wait_car = 0.0
 	_ignore_cars = maxf(0.0, _ignore_cars - delta)
+	target = _overtake(route, target, blocker, delta)
 	if garbage:
 		target = _garbage_limit(route, target, delta)
 		if is_queued_for_deletion():
@@ -366,6 +380,80 @@ func _physics_process(delta: float) -> void:
 	net_pos = global_position
 	net_yaw = rotation.y
 	net_speed = speed
+
+
+## Host (point 63): pass a car that stands still in our lane on the left, when the other lane is clear and no
+## junction is near. Returns the speed limit while passing.
+func _overtake(route: TrafficRoute, target: float, blocker: String, delta: float) -> float:
+	if pass_car != null:
+		var gone: bool = not is_instance_valid(pass_car) or pass_car.is_queued_for_deletion()
+		var clen: float = ProcCar.collision_size(kind).z
+		var rel: float = 0.0 if gone else (pass_car.global_position - global_position).dot(-global_basis.z)
+		if gone or rel < -(clen + 2.5):
+			pass_car = null  # past it: back into our lane
+		elif blocker == "car" and rel > clen + 1.0:
+			pass_car = null  # something came the other way before we were alongside: back in behind it
+			_pass_wait = -4.0
+		else:
+			lane_offset = move_toward(lane_offset, OVERTAKE_OFFSET, 2.2 * delta)
+			return minf(target, OVERTAKE_SPEED)
+	lane_offset = move_toward(lane_offset, 0.0, 2.2 * delta)
+	if lane_offset != 0.0:
+		return minf(target, OVERTAKE_SPEED)
+	var stuck: bool = blocker == "car" and _ahead_car != null and speed < 0.5 and _passable(_ahead_car)
+	_pass_wait = _pass_wait + delta if stuck else 0.0
+	if _pass_wait >= OVERTAKE_WAIT and not police and _uturn.is_empty() and _clear_to_pass(route):
+		pass_car = _ahead_car
+		_pass_wait = 0.0
+		overtakes += 1
+	return target
+
+
+## A car that stands still on its own (not queuing at a light, junction or behind another car).
+func _passable(c: Car) -> bool:
+	if c.roadblock:
+		return false
+	if c.abandoned or c.garbage:
+		return true
+	return c.speed < 0.3 and c.blocked_by == "" and c.lane_offset == 0.0
+
+
+## No junction in the next stretch, and the other lane (OVERTAKE_OFFSET to the left) empty for OVERTAKE_CLEAR m.
+func _clear_to_pass(route: TrafficRoute) -> bool:
+	var hl: float = ProcCar.collision_size(kind).z / 2.0
+	for st: Array in route.junctions:
+		var ahead: float = fposmod(st[0] - (progress + hl), route.length)
+		if ahead < OVERTAKE_CLEAR or fposmod(progress + hl - st[0], route.length) < st[1] - st[0] + 2.0 * hl:
+			return false
+	var x: float = 0.0
+	while x < OVERTAKE_CLEAR:
+		if absf(route.curvature(progress + x)) > 0.02:
+			return false  # not in a bend
+		x += 2.0
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var q := PhysicsShapeQueryParameters3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2.2, 1.4, OVERTAKE_CLEAR)
+	q.shape = box
+	q.collision_mask = SENSE_MASK
+	q.exclude = [get_rid(), _ahead_car.get_rid()]
+	var mid: Array = route.sample(progress + OVERTAKE_CLEAR * 0.5)
+	var dir: Vector3 = mid[1]
+	q.transform = Transform3D(Basis.looking_at(dir, Vector3.UP),
+			(mid[0] as Vector3) + dir.cross(Vector3.UP) * OVERTAKE_OFFSET + Vector3.UP * 0.9)
+	for hit: Dictionary in space.intersect_shape(q, 4):
+		if hit["collider"] is Car or hit["collider"] is Pedestrian or hit["collider"] is Player:
+			return false
+	# Further on: no car coming our way that would meet us halfway.
+	box.size = Vector3(2.2, 1.4, OVERTAKE_ONCOMING - OVERTAKE_CLEAR)
+	mid = route.sample(progress + (OVERTAKE_CLEAR + OVERTAKE_ONCOMING) * 0.5)
+	dir = mid[1]
+	q.transform = Transform3D(Basis.looking_at(dir, Vector3.UP),
+			(mid[0] as Vector3) + dir.cross(Vector3.UP) * OVERTAKE_OFFSET + Vector3.UP * 0.9)
+	for hit: Dictionary in space.intersect_shape(q, 4):
+		if hit["collider"] is Car and (hit["collider"] as Car).speed > 0.5:
+			return false
+	return true
 
 
 ## Host (point 39): the speed limit of the garbage truck: brake for the next bin, stand
@@ -433,6 +521,17 @@ func _junction_limit(route: TrafficRoute, seen: Array) -> float:
 		var j: int = st[2]
 		var ahead: float = fposmod(st[0] - front, route.length)
 		var occupying: bool = fposmod(front - st[0], route.length) < (st[1] - st[0]) + 2.0 * hl
+		if Traffic.LIGHTS.has(j):
+			# Point 63: traffic lights: stop at the line on red (and on amber when there's room to stop).
+			if not occupying and ahead < JUNCTION_APPROACH + 6.0 and car_ahead > ahead:
+				var dir: Vector3 = route.sample(st[0])[1]
+				var state: StringName = traffic.light_state(j, &"x" if absf(dir.x) > absf(dir.z) else &"z")
+				var can_stop: bool = speed * speed / (2.0 * 5.0) < ahead - 0.5
+				if state == &"red" or (state == &"amber" and can_stop):
+					limit = minf(limit, sqrt(2.0 * 5.0 * maxf(0.0, ahead - 0.5)))
+					if ahead < 2.0:
+						blocked_by = "light"
+			continue
 		if occupying:
 			needed[j] = true
 		elif ahead < JUNCTION_APPROACH and car_ahead > ahead:
@@ -482,6 +581,8 @@ func _place_on(route: TrafficRoute) -> void:
 	var dir: Vector3 = front - rear
 	rotation.y = atan2(-dir.x, -dir.z)
 	_steer = atan(2.0 * half_base * route.curvature(progress + half_base * 0.5))
+	if lane_offset != 0.0:
+		global_position += global_basis.x * lane_offset  # point 63: overtaking
 	if _swerve > 0.0:
 		# Swerve: a quick sideways jink in the lane (half a sine over SWERVE_TIME).
 		var t: float = 1.0 - _swerve / SWERVE_TIME
@@ -500,18 +601,23 @@ func _sense(route: TrafficRoute) -> Array:
 	q.collision_mask = SENSE_MASK
 	q.exclude = [get_rid()]
 	_ahead_stopped = false
+	_ahead_car = null
 	for k: int in SENSE_SEGMENTS:
 		var ahead: Array = route.sample(progress + half_len + SENSE_LEN * (k + 0.5))
 		var dir: Vector3 = ahead[1]
-		q.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), (ahead[0] as Vector3) + Vector3.UP * 0.9)
+		var at: Vector3 = (ahead[0] as Vector3) + dir.cross(Vector3.UP) * lane_offset  # point 63: passing lane
+		q.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), at + Vector3.UP * 0.9)
 		var what: String = ""
 		for hit: Dictionary in space.intersect_shape(q, 6):
 			var c: Object = hit["collider"]
+			if c == pass_car:
+				continue
 			if c is Pedestrian or c is Player:
 				what = "person"
 				break
 			if c is Car and ((c as Car).abandoned or _ignore_cars <= 0.0):
 				what = "car"
+				_ahead_car = c as Car
 				_ahead_stopped = _ahead_stopped or (c as Car).abandoned
 		if what != "":
 			return [what, k]

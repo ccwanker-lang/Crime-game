@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -2588,6 +2588,85 @@ func fast_route_dir(world: Node3D, car: Car) -> Vector3:
 
 # --- traffic ---------------------------------------------------------------------------
 
+## Point 63: traffic lights (never both axes green, a car stops at red and goes at green) + overtaking a car
+## that stands still.
+func _check_lights(world: Node3D) -> void:
+	var traffic: Traffic = world.get_node("Traffic")
+	for c: Node in get_tree().get_nodes_in_group(&"cars"):
+		c.queue_free()
+	await get_tree().physics_frame
+	var both: int = 0
+	var seen: Dictionary = {}
+	var t: float = 0.0
+	while t < Traffic.CYCLE:
+		traffic.light_clock = t
+		var x: StringName = traffic.light_state(1, &"x")
+		var z: StringName = traffic.light_state(1, &"z")
+		seen[String(x) + "x"] = true
+		seen[String(z) + "z"] = true
+		if x != &"red" and z != &"red":
+			both += 1
+		t += 0.25
+	_report(both == 0 and seen.size() == 6, "traffic lights: x and z never both go, every colour shows (%d clashes, %s)" % [both, seen.keys()])
+	_report(world.find_children("Light*", "TrafficLight", true, false).size() == 10, "10 traffic light poles at 3 junctions (%d)" % 			world.find_children("Light*", "TrafficLight", true, false).size())
+	traffic.spawn_cars(5)
+	await get_tree().physics_frame
+	var car: Car = null
+	var other: Array[Car] = []
+	for c: Node in get_tree().get_nodes_in_group(&"cars"):
+		if (c as Car).route_id == 3 and car == null:
+			car = c
+		else:
+			other.append(c as Car)
+	var route: TrafficRoute = traffic.routes[3]
+	var at_x := func(x: float) -> float:
+		var d: float = 0.0
+		while d < route.length and not ((route.sample(d)[0] as Vector3).x >= x and absf((route.sample(d)[0] as Vector3).z - 1.75) < 0.3):
+			d += 0.5
+		return d
+	for o: Car in other:
+		o.progress = fposmod(o.progress + 1.0, traffic.routes[o.route_id].length)
+		if o.global_position.distance_to(Vector3(-30, 0, 0)) < 60.0:
+			o.progress = fposmod(o.progress + traffic.routes[o.route_id].length * 0.5, traffic.routes[o.route_id].length)
+	# Red for the main road (x) at junction 0 (-6, 0): the car stops before it.
+	traffic.light_clock = Traffic.X_GREEN + Traffic.AMBER + 0.5
+	car.progress = at_x.call(-45.0)
+	car.speed = Car.CRUISE
+	await get_tree().create_timer(7.0).timeout
+	var front: float = car.global_position.x + ProcCar.collision_size(car.kind).z / 2.0
+	_report(car.speed < 0.2 and car.blocked_by == "light" and front < -11.5,
+			"a car stops at a red light before the junction (speed %.1f, %s, front at x %.1f)" % [car.speed, car.blocked_by, front])
+	traffic.light_clock = 0.0
+	await get_tree().create_timer(4.0).timeout
+	_report(car.global_position.x > -6.0, "green: it drives on through the junction (x %.1f)" % car.global_position.x)
+	# Overtaking: a car standing still in the lane (abandoned), the car behind passes it on the left.
+	var stopped: Car = other[0]
+	var r_old: int = stopped.route_id
+	stopped.route_id = 3
+	stopped.progress = at_x.call(-40.0)
+	stopped.abandoned = true
+	stopped.speed = 0.0
+	traffic.light_clock = 0.0
+	car.progress = at_x.call(-62.0)
+	car.speed = Car.CRUISE
+	var went_left: bool = false
+	for i: int in 90:
+		await get_tree().create_timer(0.3).timeout
+		if car.lane_offset < -3.0:
+			went_left = true
+		if car.global_position.x > stopped.global_position.x + 8.0 and car.lane_offset == 0.0:
+			break
+	if car._ahead_car:
+		print("[SelfTest]   blocked by %s (route %d) at %s" % [car._ahead_car.name, car._ahead_car.route_id, car._ahead_car.global_position.snapped(Vector3.ONE * 0.1)])
+	_report(went_left and car.overtakes >= 1 and car.global_position.x > stopped.global_position.x + 5.0 and car.lane_offset == 0.0,
+			"a car overtakes a car standing still and goes back into its lane (left %s, x %.1f vs %.1f, offset %.1f, speed %.1f, %s)" % [
+			went_left, car.global_position.x, stopped.global_position.x, car.lane_offset, car.speed, car.blocked_by])
+	stopped.queue_free()
+	for c: Node in get_tree().get_nodes_in_group(&"cars"):
+		c.queue_free()
+	await get_tree().physics_frame
+
+
 func _check_traffic(world: Node3D) -> void:
 	var traffic: Traffic = world.get_node("Traffic")
 	traffic.spawn_cars(8)
@@ -2783,7 +2862,9 @@ func _check_car_gunfire(world: Node3D, traffic: Traffic) -> void:
 		car.abandon(car.global_position + Vector3(0, 0, 30))
 		await get_tree().create_timer(6.0).timeout
 		var d: float = other.global_position.distance_to(car.global_position)
-		_report(other.speed < 0.2 and d > 3.0, "car behind a stopped car waits (%.1f m behind)" % d)
+		# Point 63: it waits (no driving through it), then overtakes on the left when the other lane is clear.
+		_report(d > 3.0 and (other.speed < 0.2 or other.lane_offset < -1.0),
+				"car behind a stopped car waits or overtakes it (%.1f m away, speed %.1f, offset %.1f)" % [d, other.speed, other.lane_offset])
 	# Shot to a wreck: it stops for good, is towed away and a new car turns up.
 	var before: int = 0
 	for c: Node in traffic.get_children():

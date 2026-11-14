@@ -311,6 +311,9 @@ Godot console exe:
   self-test check bulk. Dealers push turf (`StaffConfig.turf_per_dealer_bag`). Roadside: jerrycan to 15% (`Roadside.JERRYCAN`).
 - Roadside team (milestone 3): `Roadside` (scripts/staff/roadside.gd, static: `host_tow`, `kerb_spot`, `tow_seconds`),
   CrewWindow tab "Services", request "tow". Scenario roadside, self-test check roadside.
+- Traffic lights + overtaking (point 63): `Traffic.LIGHTS` (junction index -> arms, offset), `light_clock` (host
+  re-sends, `_sync_lights`), `light_state(j, axis)`, `TrafficLight` (local pole visuals); `Car._junction_limit` stops at
+  red/amber (blocked_by "light"); `Car._overtake` / `pass_car` / `lane_offset` / `overtakes`. CAR_COUNT 5. Check lights.
 - Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
   pedestrians `_flee_loop` until `flee_safe()` (40 m + out of sight, max 45 s). Scenario panic. Kerb check: `--only=kerb`.
 - Car gunfire (points 23/24): `Car.hear_gunshot` -> `start_uturn` (Traffic.find_escape) or panic; no drivers get out;
