@@ -330,7 +330,7 @@ func _spawn_player_for(peer: int) -> void:
 	if p and saved.get("mags") is Array:
 		p.combat.host_set_mags(saved["mags"])
 	if p and Intro.current:
-		Intro.current.host_on_spawn(p)  # point 49: during the intro new players wake up in a cell
+		Intro.current.host_on_spawn(p, saved.is_empty())  # points 49/50: new players wake up in a cell
 
 
 func _create_player(data: Dictionary) -> Node:

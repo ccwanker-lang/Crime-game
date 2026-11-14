@@ -260,7 +260,8 @@ Godot console exe:
 - Prison intro (point 49): `Intro` (`scripts/story/intro.gd`, node World/Intro, `Intro.current`): GameState.world["story"]
   ["intro"] "running"/"done" (`_decide`: new game only; tests/scenarios skip; `--intro` forces), player_data
   intro_step/intro_stash/intro_cell, `host_on_spawn` (World._spawn_player_for), steps WALK/TALK/DESK/BUS/BOARDED,
-  `request_talk(role)` / `request_board` / `request_skip` (F2), `debug_start(p)`. Prefab `prefabs/buildings/prison.tscn`
+  `request_talk(role)` / `request_board` / `request_skip` (F2), `debug_start(p)`. Point 50: `host_on_spawn(p, new_player)`
+  -> `_begin_late` (short intro after the intro is done), `debug_late_join(p)`, `--late-intro` / `late_join_in_tests`. Prefab `prefabs/buildings/prison.tscn`
   (gen_prefabs `prison()`, node Prison at gen_world PRISON_POS, markers Cell1-4/DeskSpot/BusSpot, `CellDoor`
   NetDoor subclass, `IntroNPC` roles mentor/desk/guard, `ProcBus` boardable), marker Markers/BusStop. HUD
   `set_tutorial` / `say` / `fade`. Scenario prison_intro (`--yard` shot flag), self-test check intro.

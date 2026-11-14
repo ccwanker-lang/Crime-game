@@ -3367,7 +3367,29 @@ func _check_intro(world: Node3D) -> void:
 	_report(not data.has("intro_step") and p.global_position.distance_to(stop.global_position) < 3.0
 			and int(data["cash"]) == GameState.STARTING_CASH and GameState.count_item("Inmate", "pistol") == 1,
 			"F2 skips the intro: bus stop, wallet and package")
+	# Point 50: a new player joining after the intro: the short version (desk + bus), straight out.
+	Intro.late_join_in_tests = true
+	GameState.player_data.erase("Inmate")
+	intro.host_on_spawn(p, true)
+	Intro.late_join_in_tests = false
+	await get_tree().physics_frame
+	data = GameState.player_data["Inmate"]
+	var cell_n: int = int(data.get("intro_cell", 0))
+	var door2 := prison.find_child("CellDoor%d" % maxi(1, cell_n), true, false) as CellDoor
+	_report(int(data.get("intro_step", -1)) == Intro.Step.DESK and not door2.locked and int(data["cash"]) == 0
+			and p.global_position.distance_to(prison.find_child("Cell%d" % maxi(1, cell_n), true, false).global_position) < 0.6,
+			"late joiner: wakes in cell %d, door open, straight to the desk (step %d)" % [cell_n, int(data.get("intro_step", -1))])
+	intro.host_on_spawn(p, false)
+	_report(int(data.get("intro_step", -1)) == Intro.Step.DESK, "a returning player is not reset")
+	intro._host_talk(1, "desk")
+	p.auto_target = stop.global_position
+	intro._host_board(1)
+	await get_tree().create_timer(3.0).timeout
+	_report(not data.has("intro_step") and p.global_position.distance_to(stop.global_position) < 3.0
+			and int(data["cash"]) == GameState.STARTING_CASH and GameState.count_item("Inmate", "pistol") == 1,
+			"late joiner: the bus leaves at once with just them, bus stop + wallet + package")
 	door.apply_net_state({"open": false, "locked": true})
+	door2.apply_net_state({"open": false, "locked": true})
 	GameState.player_data.erase("Inmate")
 	p.queue_free()
 	await get_tree().physics_frame

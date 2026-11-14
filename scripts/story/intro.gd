@@ -18,7 +18,7 @@ enum Step { WALK, TALK, DESK, BUS, BOARDED }
 const STEP_TEXT: Array[String] = [
 	"Your last day inside. Look around (mouse) and walk to the cell door (W A S D).",
 	"The door is open. Find Marco in the yard and talk to him (E).",
-	"Collect your things at the release desk (E), next to the gate.",
+	"Collect your things at the release desk (E), next to the gate (out of the cell block, across the yard).",
 	"Walk out through the gate and get on the bus (E).",
 	"On the bus. Waiting for the others...",
 ]
@@ -33,6 +33,8 @@ const MARCO_LINES: Array[String] = [
 ]
 
 static var current: Intro
+## Tests: run the late-join intro despite --selftest.
+static var late_join_in_tests: bool = false
 
 ## Every peer: the local player's step (-1 = not in the intro), for prompts and the HUD.
 var local_step: int = -1
@@ -103,10 +105,18 @@ func _intro_players() -> Array[Player]:
 # --- Host flow ----------------------------------------------------------------------
 
 ## Host (World._spawn_player_for): a player joined the world. While the intro runs, new players start in a cell.
-func host_on_spawn(p: Player) -> void:
-	if not multiplayer.is_server() or not is_running() or _prison() == null:
+## Point 50: a NEW player joining after the intro (`new_player`) gets the short version (`_begin_late`).
+func host_on_spawn(p: Player, new_player: bool = false) -> void:
+	if not multiplayer.is_server() or _prison() == null:
 		return
 	var data: Dictionary = GameState.get_or_create_player_data(p.player_name)
+	if not is_running():
+		if new_player and not data.has("intro_step") and (late_join_in_tests or not _test_run()
+				or "--late-intro" in OS.get_cmdline_user_args()):
+			_begin_late(p)
+		elif data.has("intro_step"):
+			_send_step(p)  # (a late joiner who left and came back mid-way)
+		return
 	if not data.has("intro_step"):
 		# Everything they carry waits at the desk (wallet) and with Marco's package (the rest).
 		data["intro_stash"] = GameState.take_all(p.player_name)
@@ -125,6 +135,38 @@ func host_on_spawn(p: Player) -> void:
 	elif int(data["intro_step"]) >= Step.TALK:
 		_cell_door(int(data.get("intro_cell", 1))).call_deferred("host_unlock")
 	_send_step(p)
+	_resend_later(p)
+
+
+## Point 50: the short intro of a later joiner: the cell door already open, Marco's number already on the phone,
+## straight to the release desk and the bus (it leaves as soon as they board); the crew gets a text.
+func _begin_late(p: Player) -> void:
+	var data: Dictionary = GameState.get_or_create_player_data(p.player_name)
+	data["intro_stash"] = GameState.take_all(p.player_name)
+	data["intro_step"] = Step.DESK
+	var cell: int = _free_cell()
+	data["intro_cell"] = cell
+	var spot := _prison().find_child("Cell%d" % cell, true, false) as Node3D
+	if spot:
+		_put(p, spot.global_position, spot.global_rotation.y)
+	_cell_door(cell).call_deferred("host_unlock")
+	p.send_wallet()
+	_send_step(p)
+	_resend_later(p)
+	_say_to(p, "Guard", ["%s! Your release came through. Desk, then the bus. Move." % p.player_name])
+	p.phone_message("Marco", "Heard you're out today. Your crew runs things in Riverton now - get on bus 12, they'll fill you in.", "")
+	for n: Node in get_tree().get_nodes_in_group(&"players"):
+		var q := n as Player
+		if q and q != p:
+			q.phone_message("Marco", "%s gets out today. Bus 12 drops them at the stop on Main Road (west end). Pick them up." % p.player_name, "")
+	print("[Intro] %s joins late: short intro in cell %d" % [p.player_name, cell])
+
+
+## Host, scenario / test: `p` joins as a new player after the intro (the short version).
+func debug_late_join(p: Player) -> void:
+	(GameState.world.get_or_add("story", {}) as Dictionary)["intro"] = "done"
+	GameState.get_or_create_player_data(p.player_name).erase("intro_step")
+	_begin_late(p)
 
 
 func _free_cell() -> int:
@@ -145,6 +187,13 @@ func _cell_door(cell: int) -> CellDoor:
 func _put(p: Player, pos: Vector3, yaw: float) -> void:
 	p.teleport(pos)
 	p.rotation.y = yaw  # (the owner turns its own body; on a client it keeps its yaw)
+
+
+## Host: a client's player may not exist on its side yet when it spawns: send the step box again a bit later.
+func _resend_later(p: Player) -> void:
+	await get_tree().create_timer(2.0).timeout
+	if is_instance_valid(p) and p.is_inside_tree() and _step_of(p) >= 0:
+		_send_step(p)
 
 
 func _set_step(p: Player, step: int) -> void:
@@ -284,6 +333,7 @@ func _depart(riders: Array[Player]) -> void:
 	if _departing:
 		return
 	_departing = true
+	var story_start: bool = is_running()  # (a late joiner's ride doesn't change everyone's clock)
 	for p: Player in riders:
 		_fade_for(p, "Two hours later...")
 	await get_tree().create_timer(2.2).timeout
@@ -291,7 +341,7 @@ func _depart(riders: Array[Player]) -> void:
 	if not is_inside_tree():
 		return
 	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
-	if dn and dn.hours < ARRIVE_HOURS:
+	if dn and story_start and dn.hours < ARRIVE_HOURS:
 		dn.set_hours(ARRIVE_HOURS)
 	for i: int in riders.size():
 		if is_instance_valid(riders[i]):
@@ -352,6 +402,8 @@ func _local_hud() -> PlayerHUD:
 
 @rpc("authority", "call_remote", "reliable")
 func _show_step(step: int, text: String) -> void:
+	if step != local_step:
+		print("[Intro] my step: %d %s" % [step, text.left(40)])
 	local_step = step
 	var hud: PlayerHUD = _local_hud()
 	if hud:

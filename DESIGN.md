@@ -389,7 +389,8 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
       contact, the bus drops you at the edge of the village without money - DONE (Intro, prison prefab 340 m
       north of the village, bus stop at Main Road's west end; F2 skips)
   50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
-      story progress (missed missions done, no loot/money from them, own cash/items from zero) - todo
+      story progress (missed missions done, no loot/money from them, own cash/items from zero) - DONE (short intro: cell open, desk, bus
+      leaves at once; the crew gets a text)
   51. Territory per district: the Crows hold every village district at the start, dealing there is dangerous,
       influence meter (sales + won fights), take them over one by one - DONE (Territory, phone app Turf; the
       story acts can read `Territory.held_count()`)
@@ -867,3 +868,9 @@ Choices made while working autonomously (what + why).
   ongoing game or slow the tests down.
 - Point 49: the village is called Riverton (bus line 12, "Riverton State Prison"). Why: the map has a river through
   the town (Map layout); no name was chosen yet.
+- Point 50 (late-join intro): a player with NO player data joining a game whose intro is done gets the short
+  version: their cell door already open, Marco's text already on the phone, straight to the release desk and the
+  bus, which leaves as soon as they board; the others get a text to pick them up. Their clock-free ride does not
+  change the time for everyone. Why: the design's "short intro", without holding up the rest of the crew.
+- Point 50: "the host's story progress" needs no copying: story state lives in GameState.world (crew-wide) and
+  missions are not built yet (53); their cash/items are a normal new player's (€500 + the starter kit), per player.
