@@ -919,3 +919,12 @@ Choices made while working autonomously (what + why).
   (`REGISTER_TIMEOUT_SEC`, signal `Net.connected_to_host`), and `Net.PEER_TIMEOUT_MS` went 45 s -> 90 s (ENet drops a
   silent peer after half of it; a client loading the map was dropped after 22.5 s). tools/netcheck.py starts the
   client once the host has baked its navmesh instead of after a fixed 4 s.
+- Point 48 (dealers + turf, session B): every bag a dealer sells adds `StaffConfig.turf_per_dealer_bag` (2.0) to its
+  district's influence (Territory.host_add, "dealer"). Why: a fair street sale is worth 4; a dealer half, because
+  nobody risks a fight for it.
+- Point 48 (bulk deals, session B): from rank 4 "The Dutchman" texts an offer every 20-30 in-game hours: 20-40 bags of
+  one product for one price (street x 0.8), waiting 6 h 7 m from a district's dealer anchor (BulkBuyerNPC, E = sell
+  all). Why: volume and the risk of carrying 20-40 bags instead of a better price; XP 6 per bag; dirty cash. The meet
+  spot can move to the harbour now that it exists (`BulkDeals._meet_spot`, B's file).
+- Point 48 (roadside + fuel, session B): an (almost) empty crew car (fuel < 15%) can be called even when it is close;
+  the tow team brings a jerrycan up to 15% (~450 m, enough to reach QuickFuel). Crew window shows each car's fuel.

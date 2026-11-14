@@ -3,11 +3,9 @@
 Session B notes. To be folded into DESIGN.md (Roadmap status + Decisions) / CHANGELOG.md / CLAUDE.md by
 session A when merging (B may not edit those files).
 
-## MERGED parts 1 + 2 (A, main c95e70c) and parts 3-7 + the anchor fix (A, merge of 0b00291, 2026-11-14): all
-already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
-
-## Open for the next merge: "Dealers count for A's territory" (last line of the Fix section), "Roadside + fuel" (end
-of the file) + Part 8 (bulk deals).
+## MERGED parts 1 + 2 (A, main c95e70c), parts 3-7 + the anchor fix (A, merge of 0b00291), and the dealer-turf fix,
+part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all already in DESIGN/CHANGELOG/CLAUDE.md.
+New parts go below a new "Open for the next merge" line.
 
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,

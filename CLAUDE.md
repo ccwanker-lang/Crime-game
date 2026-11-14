@@ -296,6 +296,9 @@ Godot console exe:
 - Raids (milestone 3): `Raids` autoload (nightly roll from rank 2, `announce`/`start`, LIVE raid with World.add_rival
   when crew is near, else guards roll; `_lost` steals locker stock + a machine), Staff role guard (rank 4).
   Scenarios raid_live/raid_guards, self-test check raids.
+- Bulk deals (milestone 3): `BulkDeals` autoload (GameState.world["bulk"], rank 4 offers every 20-30 h, `new_offer`,
+  `host_sell`, `request_sell`, synced `offer`, `enabled` off in selftest), visual `BulkBuyerNPC`. Scenario bulk_deal,
+  self-test check bulk. Dealers push turf (`StaffConfig.turf_per_dealer_bag`). Roadside: jerrycan to 15% (`Roadside.JERRYCAN`).
 - Roadside team (milestone 3): `Roadside` (scripts/staff/roadside.gd, static: `host_tow`, `kerb_spot`, `tow_seconds`),
   CrewWindow tab "Services", request "tow". Scenario roadside, self-test check roadside.
 - Panic (point 32): panicking cars skip the junction limit and only crawl past people (`Car.PANIC_MIN_SPEED`);
