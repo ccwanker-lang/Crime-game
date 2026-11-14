@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "regen", "selling", "phone", "traffic", "save", "ranks", "staff"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "territory", "regen", "selling", "phone", "traffic", "save", "ranks", "staff"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3163,3 +3163,116 @@ func _check_garage(world: Node3D) -> void:
 	GameState.player_data.erase("Mech")
 	p.queue_free()
 	await get_tree().physics_frame
+
+
+# --- Territory (point 51) -------------------------------------------------------------------
+
+func _check_territory(world: Node3D) -> void:
+	var terr: Territory = Territory.current
+	_report(terr != null and terr.state == GameState.world.get("territory") and terr.state.size() == Territory.districts().size(),
+			"World/Territory: %d districts in GameState.world[territory]" % (terr.state.size() if terr else 0))
+	if terr == null:
+		return
+	var all: Dictionary = Territory.districts()
+	var ok: bool = true
+	for id: String in all.keys():
+		ok = ok and Territory.district_at(all[id]["anchor"]) == id and not terr.is_held(id)
+	_report(ok, "every anchor lies in its own district, all Crow turf at the start")
+	var id: String = "old_town" if all.has("old_town") else str(all.keys()[0])
+	var at: Vector3 = NavigationServer3D.map_get_closest_point(world.get_world_3d().navigation_map, all[id]["anchor"])
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Turfer"
+	p.auto_target = at
+	world.get_node("Players").add_child(p)
+	p.global_position = at + Vector3.UP * 0.2
+	for i: int in 5:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Turfer")
+	GameState.give("Turfer", 0, [{"id": "weed_bag", "count": 10}])
+	var npc: Pedestrian = world.call("_add_pedestrian", at + Vector3(1.5, 0.1, 0.0), 1)
+	for i: int in 5:
+		await get_tree().physics_frame
+	var sell := func(bags: int, price: int, outcome: String) -> void:
+		npc.become_customer(bags, price, 60.0)
+		npc.accept_deal()
+		p.teleport(npc.global_position + Vector3(1.2, 0.1, 0))
+		Pedestrian.force_outcome = outcome
+		npc._server_sell(1)
+	terr.debug_set(id, 20.0, false)
+	terr.state[id]["warned"] = false
+	Territory.crow_send_chance = 1.0
+	var crows0: int = get_tree().get_nodes_in_group(&"rivals").size()
+	sell.call(2, 120, "fair")
+	_report(is_equal_approx(terr.influence(id), 28.0) and bool(terr.state[id]["warned"])
+			and get_tree().get_nodes_in_group(&"rivals").size() == crows0,
+			"first sale on Crow turf: +8%% (%.0f%%) and only a warning, no Crow yet" % terr.influence(id))
+	sell.call(1, 60, "fair")
+	await get_tree().physics_frame
+	var sent: Rival = null
+	for n: Node in get_tree().get_nodes_in_group(&"rivals"):
+		if (n as Rival).sent_target == p:
+			sent = n as Rival
+	_report(sent != null and sent.global_position.distance_to(p.global_position) > 20.0,
+			"next sale there: a Crow is sent after the seller from %.0f m" % (sent.global_position.distance_to(p.global_position) if sent else -1.0))
+	if sent:
+		var d0: float = sent.global_position.distance_to(p.global_position)
+		Rival.obey_daylight = true
+		var d1: float = d0
+		for i: int in 20:
+			await get_tree().create_timer(0.5).timeout
+			d1 = sent.global_position.distance_to(p.global_position)
+			if d1 < d0 - 8.0 or sent.target == p:
+				break
+		_report(d1 < d0 - 8.0 or sent.target == p, "the sent Crow comes for the seller (by day too): %.0f m -> %.0f m%s" % [
+				d0, d1, " and aims at them" if sent.target == p else ""])
+		sent.host_damage(500, p, p.global_position)
+		var inf0: float = terr.influence(id)
+		get_tree().call_group(&"kill_hooks", "on_kill", p, sent)  # (what PlayerCombat calls after a kill)
+		_report(absf(terr.influence(id) - inf0 - Territory.KILL_CROW_GAIN) < 0.3, "killing a Crow there: +%.0f%%" % Territory.KILL_CROW_GAIN)
+	Territory.crow_send_chance = 0.0
+	terr.debug_set(id, 97.0, false)
+	sell.call(1, 60, "fair")
+	_report(terr.is_held(id) and is_equal_approx(terr.influence(id), 100.0), "a sale past 100%%: the crew takes %s" % id)
+	_report(Territory.crew_holds(at) and not Territory.crew_holds(all[_other_district(all, id)]["anchor"]),
+			"crew_holds: true in %s, false elsewhere" % id)
+	# Customers in crew turf pay more: compare many offers.
+	var sum_held: int = 0
+	for i: int in 20:
+		npc.wants = 0
+		world.call("make_customer", npc)
+		sum_held += int(float(npc.offer) / maxf(1.0, npc.wants))
+	terr.debug_set(id, 40.0, false)
+	var sum_crow: int = 0
+	for i: int in 20:
+		npc.wants = 0
+		world.call("make_customer", npc)
+		sum_crow += int(float(npc.offer) / maxf(1.0, npc.wants))
+	_report(sum_held > sum_crow, "customers on your turf pay more (avg €%d vs €%d per bag)" % [sum_held / 20, sum_crow / 20])
+	# Losing it: held, then a death to a Crow under LOSE_AT.
+	terr.debug_set(id, 55.0, true)
+	var crow_killer: Rival = world.call("add_rival", at + Vector3(0, 0, 30)) as Rival
+	get_tree().call_group(&"kill_hooks", "on_kill", crow_killer, p)
+	_report(not terr.is_held(id) and is_equal_approx(terr.influence(id), 47.0), "killed by a Crow at 55%%: down to %.0f%%, lost to the Crows" % terr.influence(id))
+	# Decay on Crow turf while time passes (sleep).
+	terr.on_hours_skipped(10.0)
+	_report(is_equal_approx(terr.influence(id), 47.0 - Territory.DECAY_PER_HOUR * 10.0), "Crow turf drifts back: %.0f%% after 10 h" % terr.influence(id))
+	_report(terr.status_text(id).contains("Crow turf"), "status: '%s'" % terr.status_text(id))
+	terr.debug_set(id, 0.0, false)
+	terr.state[id]["warned"] = false
+	Territory.crow_send_chance = Territory.CROW_SEND_DEFAULT
+	Pedestrian.force_outcome = ""
+	if crow_killer and is_instance_valid(crow_killer):
+		crow_killer.queue_free()
+	npc.queue_free()
+	GameState.player_data.erase("Turfer")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+func _other_district(all: Dictionary, not_id: String) -> String:
+	for k: String in all.keys():
+		if k != not_id:
+			return k
+	return not_id

@@ -46,6 +46,10 @@ var role: int = Role.YARD
 ## Host: players this Crow saw on the turf (or that shot at it): attacked anywhere.
 var memory: Dictionary = {}
 var _talk_end: float = 0.0
+## Host (point 51): a player this Crow was sent after (selling on Crow turf); hunts them by day too.
+var sent_target: Player
+var _sent_until: float = 0.0
+const SENT_TIME: float = 90.0
 
 
 func _ready() -> void:
@@ -166,6 +170,12 @@ func _patrol() -> void:
 		set_foe(cop, cop.global_position)
 		_rally(cop)
 		return
+	if sent_target != null:
+		if is_instance_valid(sent_target) and not sent_target.dead and _now() < _sent_until and not is_safe(sent_target.global_position) and not Territory.crew_holds(sent_target.global_position):
+			if not _moving or move_target().distance_to(sent_target.global_position) > 4.0:
+				_go(sent_target.global_position, Anim.RUN)
+			return
+		sent_target = null
 	if role == Role.STREET and obey_daylight and not _night():
 		# Daybreak: back to the yard.
 		if on_turf(get_tree(), global_position):
@@ -184,7 +194,7 @@ func _patrol() -> void:
 		if randf() < 0.1:
 			for i: int in 4:
 				var c: Vector3 = random_sidewalk_point(self, 20)
-				if c != Vector3.INF and c.distance_to(home) < ROAM_RADIUS:
+				if c != Vector3.INF and c.distance_to(home) < ROAM_RADIUS and not Territory.crew_holds(c):
 					_go(c, Anim.WALK)
 					break
 		return
@@ -207,6 +217,14 @@ func _patrol() -> void:
 				anim_state = Anim.TALK
 				mate.anim_state = Anim.IDLE
 				break
+
+
+## Host (point 51): go after `p` (Territory.send_crow): a street Crow that knows them, by day too.
+func send_after(p: Player) -> void:
+	role = Role.STREET
+	remember(p, false)
+	sent_target = p
+	_sent_until = _now() + SENT_TIME
 
 
 ## Host: a player in sight and in range it should attack (on the turf, remembered, or

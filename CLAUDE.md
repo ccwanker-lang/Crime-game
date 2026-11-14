@@ -251,6 +251,12 @@ Godot console exe:
   South Street, Property "cover_garage"; gen_world `SKIP_NODES` drops the row houses it replaced). `RepairBay` station
   (`scripts/stations/repair_bay.gd`, `new_job(i)`, JOBS, item `car_parts`), `HiddenShelfDoor` (NetDoor subclass, node
   SecretShelf, marker HiddenRoomSpot). Scenario cover_garage, self-test check garage.
+- Territory (point 51): `Territory` (`scripts/world/territory.gd`, node World/Territory, `Territory.current`), state in
+  GameState.world["territory"] {id: inf/held/warned}, districts = `Staff.config.districts` (nearest anchor,
+  `district_at`), `crew_holds(pos)`, `host_add`, `debug_set`, `send_crow(p)` -> `Rival.send_after(p)`; group hooks
+  `sale_hooks.on_sale(seller, npc, bags, paid, outcome)` (Pedestrian._server_sell) and `kill_hooks.on_kill(killer,
+  victim)` (PlayerCombat, Player.host_damage for NPC killers); phone app Turf (`--turf` shot flag). Scenarios
+  turf_take, turf_danger; self-test check territory.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

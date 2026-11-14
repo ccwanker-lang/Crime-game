@@ -149,6 +149,9 @@ func _show(screen: String) -> void:
 		"resell":
 			_title.text = "Resell"
 			_resell()
+		"turf":
+			_title.text = "Turf"
+			_turf()
 		"crew":  # staff + dealers (CrewWindow)
 			_screen = "home"
 			player.close_phone()
@@ -179,6 +182,7 @@ func _home() -> void:
 	var n: int = total_unread()
 	_app_button("%s%s" % [APP_NAME, "  (%d new)" % n if n > 0 else ""], ACCENT, "list")
 	_app_button("Map", Color(0.45, 0.85, 0.45), "map")
+	_app_button("Turf (districts)", Color(0.55, 0.6, 1.0), "turf")
 	_app_button("QuickShip (legal shop)", Color(1.0, 0.7, 0.3), "shop")
 	_app_button("Resell (furniture)", Color(0.8, 0.55, 1.0), "resell")
 	_app_button("Crew (staff + dealers)", Color(0.95, 0.45, 0.45), "crew")
@@ -337,6 +341,36 @@ func _shop_row(box: VBoxContainer, item: ItemData) -> void:
 				player.webshop_buy(item.id, n))
 		row.add_child(b)
 	box.add_child(row)
+
+
+## Point 51: every district with its influence meter (Crow turf / your turf).
+func _turf() -> void:
+	var t: Territory = Territory.current
+	if t == null:
+		_content.add_child(_label("No signal.", Color(0.6, 0.6, 0.65)))
+		return
+	_content.add_child(_label("The Crows run every street you don't. Sell and win fights in a district to take it (100%%). Crow turf is dangerous; your turf is safe and pays %d%% more." % roundi(Territory.CREW_PRICE_BONUS * 100.0),
+			Color(0.7, 0.7, 0.75)))
+	var box: VBoxContainer = _scroll_box()
+	var here: String = Territory.district_at(player.global_position) if player else ""
+	for id: String in Territory.districts().keys():
+		var held: bool = t.is_held(id)
+		var name_l := _label("%s%s" % [Territory.district_name(id), "  (you are here)" if id == here else ""],
+				Color(0.45, 0.9, 0.5) if held else Color(1.0, 0.5, 0.45))
+		box.add_child(name_l)
+		var bar := ProgressBar.new()
+		bar.min_value = 0.0
+		bar.max_value = Territory.TAKE_AT
+		bar.value = t.influence(id)
+		bar.custom_minimum_size = Vector2(0, 18)
+		bar.show_percentage = false
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = Color(0.3, 0.75, 0.4) if held else Color(0.85, 0.55, 0.25)
+		fill.set_corner_radius_all(6)
+		bar.add_theme_stylebox_override("fill", fill)
+		box.add_child(bar)
+		box.add_child(_label("%s - %d%%" % ["Your turf (lost below %d%%)" % roundi(Territory.LOSE_AT) if held else "Crow turf",
+				roundi(t.influence(id))], Color(0.75, 0.75, 0.8)))
 
 
 ## Furniture and stations you carry: sell one for half the price.

@@ -1170,6 +1170,7 @@ func _server_sell(peer: int) -> void:
 	deal_ok = false
 	# Hook for other systems (ranks/XP, point 43): group "progression" gets every finished sale.
 	get_tree().call_group(&"progression", "on_sale", seller, bags, paid, outcome)
+	get_tree().call_group(&"sale_hooks", "on_sale", seller, self, bags, paid, outcome)  # point 51: territory
 	seller.send_wallet()
 	seller.show_message(msg)
 	if outcome == "run":

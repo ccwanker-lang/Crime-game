@@ -388,7 +388,8 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
   50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
       story progress (missed missions done, no loot/money from them, own cash/items from zero) - todo
   51. Territory per district: the Crows hold every village district at the start, dealing there is dangerous,
-      influence meter (sales + won fights), take them over one by one - todo
+      influence meter (sales + won fights), take them over one by one - DONE (Territory, phone app Turf; the
+      story acts can read `Territory.held_count()`)
   52. Cover garage: own garage property, repair cars for clean money, hidden lab/storage at the back - DONE
       (Corner Garage on South Street, €25,000; RepairBay car lift + Spare Parts; HiddenShelfDoor to the back room)
   53. Story missions per act (chapter 1, acts 1-5; the traitor = an old friend of the players) - todo
@@ -790,3 +791,19 @@ Choices made while working autonomously (what + why).
 - Point 52: the hidden room sits behind a full tool shelf (`HiddenShelfDoor`, a NetDoor subclass that slides 1.2 m
   sideways). It is part of the same Property, so build mode places stations there. Why: NetDoor already gives E,
   host authority and late-join sync; the shelf hides the room from the workshop side.
+- Point 51 (territory): the districts are session B's StaffConfig districts (Old Town, Main Road East, North Road,
+  South Street) and a spot belongs to the nearest anchor. Why: one list for dealers and turf, no second map data
+  to keep in step; the real village map (47) only needs new anchors.
+- Point 51: influence 0-100 per district: +4 per bag sold fair (+2 short, -2 when the customer runs), +6 per Crow
+  killed there, -8 when a Crow kills a player there, Crow turf drifts back 0.5 per in-game hour. At 100 the crew
+  takes it; it is lost again below 50. Why: about 15-25 sales take a district, so it is a goal for several
+  in-game days; the gap between 100 and 50 stops a district flipping back and forth.
+- Point 51: danger on Crow turf = first a warning text per district, then 30% per sale that one Crow is sent
+  after the seller (by day too, `Rival.send_after`, one at a time, gives up after 90 s, at a crew property or
+  on crew turf). Why: act 1 says "the Crows warn you"; one Crow is a fight a rank 0 player can win, and it
+  feeds the meter (+6) when you win.
+- Point 51: crew turf = no street Crows roam there at night, nobody is sent there, customers offer 15% more.
+  Why: "a taken district is safer to deal in" (design) plus a money reason to take more of them.
+- Point 51: sales and kills reach Territory through new group calls (`sale_hooks.on_sale(seller, npc, bags, paid,
+  outcome)`, `kill_hooks.on_kill(killer, victim)`) instead of direct calls. Why: same pattern as session B's
+  "progression" hook; other systems (story missions) can listen without touching pedestrian.gd / combat.

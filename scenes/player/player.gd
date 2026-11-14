@@ -1235,6 +1235,8 @@ func host_damage(amount: int, attacker: Node, from: Vector3 = Vector3.INF) -> bo
 		return false
 	if attacker is PoliceOfficer:
 		print("[Player] %s was shot dead by the police" % player_name)
+	if not attacker is Player:  # (a player's kill: PlayerCombat calls the hook)
+		get_tree().call_group(&"kill_hooks", "on_kill", attacker, self)  # point 51: territory
 	_host_die(attacker as Player, from)
 	return true
 

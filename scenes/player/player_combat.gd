@@ -458,6 +458,7 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 			if victim != player:
 				Wanted.report(player, kind, (victim as Node3D).global_position)
 			Progression.host_kill(player, victim)  # ranks: XP for fights
+			get_tree().call_group(&"kill_hooks", "on_kill", player, victim)  # point 51: territory
 		if player.peer_id == 1:
 			_hit_confirm(heads[victim], killed)
 		else:

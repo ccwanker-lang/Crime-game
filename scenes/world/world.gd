@@ -60,6 +60,9 @@ func _ready() -> void:
 		players_root.child_exiting_tree.connect(func(n: Node) -> void:
 			if n is Player:
 				sleep.host_forget(n as Player))
+	var territory := Territory.new()  # point 51: influence per district (host logic, synced)
+	territory.name = "Territory"
+	add_child(territory)
 	add_child(Wanted.new())  # point 28 (host logic, stars synced per player)
 	var vehicles := Vehicles.new()  # point 45: the crew's own cars (own spawner)
 	vehicles.name = "Vehicles"
@@ -181,6 +184,10 @@ func _net_check() -> void:
 		var safe := find_child("Bakery", true, false).get_node("Safe") as LaunderSafe
 		safe.state["queue"] = {"Nobody": 1234}
 		safe.changed()
+		# Point 51: one district taken, one at 42% (the client must see both).
+		if Territory.current:
+			Territory.current.debug_set("north", 100.0, true)
+			Territory.current.debug_set("old_town", 42.0, false)
 		# Point 11: a Crow standing in its yard (far from the players): the client must see it.
 		Rival.obey_daylight = false
 		var crow: Rival = add_rival()
@@ -251,6 +258,11 @@ func _net_check() -> void:
 	print("[NetCheck] %s sees the park: %d dog walker(s) with a dog, %d smoker(s), ball at %s" % [
 			"host" if multiplayer.is_server() else "client", dogs, smokers,
 			ag.ball_pos.snapped(Vector3.ONE * 0.1) if ag else Vector3.INF])
+	if Territory.current:
+		var turf: PackedStringArray = []
+		for id: String in Territory.current.state.keys():
+			turf.append(Territory.current.status_text(id))
+		print("[NetCheck] %s sees the turf: %s" % ["host" if multiplayer.is_server() else "client", ", ".join(turf)])
 	for pc: Node in get_tree().get_nodes_in_group(&"player_cars"):
 		print("[NetCheck] %s sees own car %s at %s, seats %s" % ["host" if multiplayer.is_server() else "client",
 				(pc as PlayerCar).spec["name"], (pc as Node3D).global_position.snapped(Vector3.ONE * 0.1), (pc as PlayerCar).seats])
@@ -1044,6 +1056,8 @@ func make_customer(npc: Pedestrian = null) -> Pedestrian:
 		product = str(products.call("pick_customer_product"))
 		if products.has_method("price"):
 			price = int(products.call("price", product, price))
+	if Territory.crew_holds(npc.global_position):
+		price = roundi(price * (1.0 + Territory.CREW_PRICE_BONUS))  # point 51: safe turf pays more
 	npc.become_customer(bags, price, CUSTOMER_TIME, product)
 	print("[World] %s wants %d x %s for €%d" % [npc.name, bags, product, price])
 	return npc
