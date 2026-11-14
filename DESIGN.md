@@ -427,6 +427,7 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
       district on the other side of the village - todo
   63. Traffic: fewer cars, traffic lights at the big junctions, better flow: no jams or cars stuck behind each
       other, overtake / drive round when something blocks the road - todo
+      (Split, user 2026-11-14: 64-68 go to session B (feature-b); A does 59-63 + 49b. Point 58 was already done by A.)
   64. Running people over from any angle (ragdoll, damage, a wanted star when it is murder) (extends 45) - todo
   65. Jumping onto cars and standing on them (roof + bonnet with collision) - todo
   66. Engine sound for every car (idle, accelerating, revs), traffic too, plus tyres and brakes - todo
@@ -981,6 +982,9 @@ Choices made while working autonomously (what + why).
   OBJECT: the station's WORK_FX (drops, sparks, dust) or else a small dust `Poof` (scripts/world/poof.gd, local
   CPUParticles3D), and placing / picking up sends `World.host_poof(pos)` to every peer. The watering can still tips
   (that is the held item, not the body). `_work_t` stays for that; `_work_low` is always 0.
+- Feedback round 5 split (user): session B builds 64-68 (run-over, standing on cars, car sounds, dogs, animals) on
+  feature-b; A keeps the bugs, the map (60-62, 49b) and traffic (63). 58 (no kneel) was finished by A before the
+  split and stays on main; B builds on it.
 - Point 49b (roadmap order): the mountain pass is built right AFTER point 62 (the map layout), as part of the map
   work (60-62), because 62 places the neighbourhoods round the farm and the pass starts there; doing it before 62
   would mean moving it again. The prison moves from its current spot to behind the mountain then.
