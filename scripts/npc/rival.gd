@@ -192,8 +192,8 @@ func _patrol() -> void:
 				_go(sent_target.global_position, Anim.RUN_GUN)  # (officers run only with RUN_GUN)
 			return
 		sent_target = null
-	if role == Role.STREET and obey_daylight and not _night():
-		# Daybreak: back to the yard.
+	if role == Role.STREET and ((obey_daylight and not _night()) or PoliceOfficer.in_truce()):
+		# Daybreak (or point 59: a clash with the police just ended): back to the yard.
 		if on_turf(get_tree(), global_position):
 			role = Role.YARD
 			_log("%s is back in the yard" % name)
@@ -268,7 +268,7 @@ func spot_victim() -> Player:
 ## Host (point 31a): the street group at night opens fire on an officer it sees close by
 ## (police vs Crows); in the yard they only fight back.
 func spot_cop() -> PoliceOfficer:
-	if not (role == Role.STREET and (_night() or not obey_daylight)):
+	if not (role == Role.STREET and (_night() or not obey_daylight)) or PoliceOfficer.in_truce():
 		return null
 	var best: PoliceOfficer = null
 	var best_d: float = COP_AGGRO_RANGE
@@ -281,6 +281,12 @@ func spot_cop() -> PoliceOfficer:
 			best = o
 			best_d = d
 	return best
+
+
+## Point 59: the clash is over: walk back to the turf (the street round is done for now).
+func _on_truce() -> void:
+	if role == Role.STREET and not _moving:
+		_go(home, Anim.WALK)
 
 
 func _night() -> bool:

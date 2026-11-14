@@ -180,8 +180,9 @@ Godot console exe:
 - Laundering screen (point 40): `LaunderSafe.interact()` opens `Player.open_safe` -> HUD `open_safe` (ledger,
   `LaunderSafe.ledger()`, `eta_text`, Deposit = `deposit()`); `_done` texts the player. Screenshot flag `--safe`.
 - Mouse wheel (point 41): `PlayerCombat.cycle(step)` = next/previous hotbar slot (`select_slot`).
-- Work animations (point 42): `Station.work` set in do_action -> `Player.host_work(kind, at)` -> every peer
-  `_play_work` ("Interact" clip, kneel via `_work_low`/`work_amount()`, `WORK_FX` particles, can tilt in first person).
+- Work effects (point 42, changed by 58): `Station.work` set in do_action -> `Player.host_work(kind, at)` -> every peer
+  `_play_work` (NO body clip / kneel any more; `WORK_FX` particles at the object or else `Poof.spawn`, the can tilts).
+  Placing / picking up: `World.host_poof(pos)` (all peers).
 - Storage/drop (point 20): `StorageLocker.request_move(to_locker, index, count)` (count 0 = stack), HUD slot grids
   with drag (`set_drag_forwarding`); `Player.request_drop(index, count)` -> `World.spawn_loot_bag(..., dropped=true)`
   (LootBag shows the item model). Free locker at the Starter Room's `LockerSpot` (world["free_locker"]).
@@ -228,7 +229,7 @@ Godot console exe:
   the turf yard. `Rival.role` YARD/STREET, `Rival.turf/on_turf/yard_point`, `memory` + `remember(p)` (shared within 25 m).
   World `_rival_loop` (fills `rival_count` 6 in the yard, sends `rival_street` 2 out at night; `--rivals=N`; 0 in
   selftest/netcheck) / `add_rival(at, ak)` / `rival_died` (respawn 60-120 s). Officer hooks: `_group`, `_head_mesh`,
-  `_target_off_limits`, `_log`, `_leash_center`/`_leash_range`; synced `gun` (weapon id). `Rival.obey_daylight` (tests).
+  `_target_off_limits`, `_log`, `_leash_center`/`_leash_range`; synced `gun` (weapon id). `Rival.obey_daylight` (tests). Point 59: clash clock `PoliceOfficer.clash_max`/`end_clash`/`in_truce()` (truce: no NPC fights, Crows go home).
   Scenarios rivals_night, crows_turf. Round 4 (31a): `PoliceOfficer.foe` (armed NPC of the other side, `set_foe`,
   `is_enemy`, `_rally`, `_fight_foe`), group call `report_npc_crime(shooter, origin)` on "police" (officers +
   `Car.respond(null, origin, npc)`); street Crows attack officers (`Rival.spot_cop`). 31b: World `rival_night_pool`
@@ -247,6 +248,10 @@ Godot console exe:
   (Shopkeeper subclass in `prefabs/buildings/car_dealer.tscn`, `request_buy_car`, markers CarDelivery1-4), `DisplayCar`.
   Player: `vehicle`/`seat`, `enter_vehicle`/`leave_vehicle`/`_ride`/`_car_input`; actions `vehicle` (F) + `horn` (H);
   HUD `set_car`/`update_car`/`_fill_cars`. Scenarios car_dealer, driving (`--drive` shot flag); self-test check vehicles.
+- Border + safety net (points 56/57): gen_world `PLAY` (x -193..75, z -133..106) = the playable area; border =
+  BorderHedge ring 6 m out + Backdrop trees + Bounds walls 7 m out (Quay wall at the sea); one `Ground` (+ GroundSouth).
+  Host safety net: `Player.FALL_Y` (-12), `Player.safe_pos`, `_host_fall_net` (player + PlayerCar). Self-test check
+  ground (hole scan, wall sweep, net). Scenario open_border.
 - West side (point 47a): gen_world section "the west side" (own `wrng`, helpers `paved`/`pbox`/`fence_line`/
   `container_stack`): Main Road to x -180, Industrial Road x -114, Quay Road z 84, quay apron z 90..104, sea =
   `Sea` (water.tres) south of z 104, Bounds W/NW/Quay/WestN/WestS, `GroundWest`, `BackdropWest` (+ `skip_rects` on

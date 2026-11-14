@@ -91,6 +91,17 @@ var _foe_last: Vector3 = Vector3.INF
 var _foe_until: float = 0.0
 ## Mates this close join a fight against a foe.
 const RALLY_RANGE: float = 25.0
+## Point 59: a police-vs-Crows clash (any NPC fight between the sides) lasts at most `clash_max` real seconds;
+## then everybody breaks off (Crows walk back to their turf, officers to their patrol) and a truce of
+## TRUCE_TIME follows in which neither side starts a new fight. Host only (statics).
+const CLASH_MAX: float = 120.0
+const TRUCE_TIME: float = 300.0
+## A new clash starts when the last fight move is this long ago.
+const CLASH_GAP: float = 40.0
+static var clash_max: float = CLASH_MAX
+static var clash_start: float = -1.0
+static var clash_last: float = -1000.0
+static var truce_until: float = 0.0
 ## Point 30 (tests/debug): how many chats this officer had.
 var chats: int = 0
 
@@ -260,8 +271,13 @@ func is_enemy(o: Node) -> bool:
 
 ## Host: fight the NPC `o` (seen / heard at `at`).
 func set_foe(o: PoliceOfficer, at: Vector3) -> void:
-	if dead or not is_enemy(o):
+	if dead or not is_enemy(o) or in_truce():
 		return
+	var t: float = _now()
+	if clash_start < 0.0 or t - clash_last > CLASH_GAP:
+		clash_start = t
+		_log("clash: police vs Crows starts (max %.0f s)" % clash_max)
+	clash_last = t
 	if foe != o:
 		_log("%s takes on %s" % [name, o.name])
 		if target == null:
@@ -276,13 +292,41 @@ func set_foe(o: PoliceOfficer, at: Vector3) -> void:
 
 ## Host (group "police", point 31a): an NPC of the other side (a Crow) fired at `origin`.
 func report_npc_crime(shooter: PoliceOfficer, origin: Vector3) -> void:
-	if not _is_host() or dead or not is_inside_tree() or not is_enemy(shooter):
+	if not _is_host() or dead or not is_inside_tree() or not is_enemy(shooter) or in_truce():
 		return
 	if global_position.distance_to(origin) > HEAR_RANGE:
 		return
 	if foe != null and is_instance_valid(foe) and not foe.dead:
 		return  # already in a fight
 	set_foe(shooter, origin)
+
+
+## Point 59: true while the police and the Crows keep the peace after a clash.
+static func in_truce() -> bool:
+	return Time.get_ticks_msec() / 1000.0 < truce_until
+
+
+## Host (point 59): the clash is over: every officer and Crow drops its NPC foe, the truce starts.
+static func end_clash(tree: SceneTree, why: String = "time") -> void:
+	truce_until = Time.get_ticks_msec() / 1000.0 + TRUCE_TIME
+	clash_start = -1.0
+	var n_off: int = 0
+	for g: StringName in [&"police", &"rivals"]:
+		for n: Node in tree.get_nodes_in_group(g):
+			var o := n as PoliceOfficer
+			if o == null or o.foe == null:
+				continue
+			o.foe = null
+			n_off += 1
+			if o.target == null:
+				o._drop_target()
+			o._on_truce()
+	print("[Police] clash over (%s): %d NPC(s) break off, truce for %.0f s" % [why, n_off, TRUCE_TIME])
+
+
+## Point 59 hook: Rival walks back to its turf.
+func _on_truce() -> void:
+	pass
 
 
 ## Host: mates of our side close by join the fight against `o`.
@@ -420,6 +464,9 @@ func _fight_foe() -> bool:
 	var over: bool = not is_instance_valid(foe) or foe.dead or not foe.is_inside_tree() or _now() > _foe_until
 	if not over and leash != Vector3.INF and _foe_last.distance_to(leash) > _leash_range():
 		over = true
+	if not over and clash_start >= 0.0 and _now() > clash_start + clash_max:
+		end_clash(get_tree())  # point 59: never an endless night fight
+		return false
 	if over:
 		if is_instance_valid(foe):
 			_log("%s is done with %s" % [name, foe.name])

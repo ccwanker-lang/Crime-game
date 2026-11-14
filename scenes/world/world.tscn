@@ -86,7 +86,7 @@ cell_height = 0.1
 agent_height = 1.8
 agent_radius = 0.25
 agent_max_climb = 0.3
-filter_baking_aabb = AABB(-194, -2, -134, 268, 20, 240)
+filter_baking_aabb = AABB(-198.5, -2, -138.5, 279, 20, 250)
 
 [sub_resource type="BoxMesh" id="BoxMesh_2"]
 size = Vector3(0.1, 0.01, 10)
@@ -112,28 +112,22 @@ subdivide_width = 85
 subdivide_depth = 160
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_9"]
-size = Vector3(150, 10, 1)
+size = Vector3(282, 10, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_10"]
-size = Vector3(150, 10, 1)
+size = Vector3(1, 10, 244.8)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_11"]
-size = Vector3(1, 10, 130)
+size = Vector3(1, 10, 253)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_12"]
-size = Vector3(1, 10, 238)
+size = Vector3(154.5, 10, 1)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_13"]
-size = Vector3(121, 10, 1)
+size = Vector3(127.5, 10, 0.4)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_14"]
-size = Vector3(121, 10, 0.4)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_15"]
-size = Vector3(1, 10, 71.5)
-
-[sub_resource type="BoxShape3D" id="BoxShape3D_16"]
-size = Vector3(1, 10, 38)
+size = Vector3(0.4, 10, 8.2)
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_r")
@@ -145,8 +139,14 @@ navigation_mesh = SubResource("NavigationMesh_1")
 
 [node name="Ground" type="StaticBody3D" parent="NavRegion"]
 script = ExtResource("4_r")
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, 3)
-size = Vector2(150, 132)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -59, 0, -18.1)
+size = Vector2(284, 245.8)
+material = ExtResource("3_r")
+
+[node name="GroundSouth" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("4_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5.25, 0, 109.4)
+size = Vector2(155.5, 9.2)
 material = ExtResource("3_r")
 
 [node name="OuterGround" type="StaticBody3D" parent="."]
@@ -163,28 +163,13 @@ size = Vector2(574, 399)
 collision = false
 material = ExtResource("3_r")
 
-[node name="GroundWest" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("4_r")
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -134, 0, -14)
-size = Vector2(118, 236)
-material = ExtResource("3_r")
-
 [node name="Backdrop" type="Node3D" parent="."]
 script = ExtResource("5_r")
-area = Rect2(-75, -60, 150, 132)
-tree_margin = 9.0
+area = Rect2(-193, -133, 268, 239)
+tree_margin = 10.5
 hill_distance = 45.0
 ground_plane = false
-skip_rects = Array[Rect2]([Rect2(-600, -600, 524, 1200)])
-
-[node name="BackdropWest" type="Node3D" parent="."]
-script = ExtResource("5_r")
-area = Rect2(-193, -133, 120, 238)
-tree_margin = 9.0
-hill_distance = 45.0
-ground_plane = false
-backdrop_seed = 47
-skip_rects = Array[Rect2]([Rect2(-77, -64, 600, 140), Rect2(-600, 104, 640, 600)])
+skip_rects = Array[Rect2]([Rect2(-600, 100, 527, 700)])
 
 [node name="RoadStraight1" parent="NavRegion" instance=ExtResource("6_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -66, 0, 0)
@@ -4033,71 +4018,491 @@ transform = Transform3D(0.975801, 0, -0.218659, 0, 1, 0, 0.218659, 0, 0.975801, 
 [node name="ShrubB6" parent="NavRegion" instance=ExtResource("40_r")]
 transform = Transform3D(0.992635, 0, -0.121144, 0, 1, 0, 0.121144, 0, 0.992635, -172, 0, -80)
 
+[node name="BorderHedge1" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -194, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5700
+
+[node name="BorderHedge2" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -184, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5701
+
+[node name="BorderHedge3" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -174, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5702
+
+[node name="BorderHedge4" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -164, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5703
+
+[node name="BorderHedge5" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -154, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5704
+
+[node name="BorderHedge6" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -144, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5705
+
+[node name="BorderHedge7" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -134, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5706
+
+[node name="BorderHedge8" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -124, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5707
+
+[node name="BorderHedge9" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -114, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5708
+
+[node name="BorderHedge10" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5709
+
+[node name="BorderHedge11" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -94, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5710
+
+[node name="BorderHedge12" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -84, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5711
+
+[node name="BorderHedge13" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -74, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5712
+
+[node name="BorderHedge14" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5713
+
+[node name="BorderHedge15" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -54, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5714
+
+[node name="BorderHedge16" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5715
+
+[node name="BorderHedge17" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5716
+
+[node name="BorderHedge18" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5717
+
+[node name="BorderHedge19" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5718
+
+[node name="BorderHedge20" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5719
+
+[node name="BorderHedge21" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5720
+
+[node name="BorderHedge22" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5721
+
+[node name="BorderHedge23" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 26, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5722
+
+[node name="BorderHedge24" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 36, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5723
+
+[node name="BorderHedge25" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 46, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5724
+
+[node name="BorderHedge26" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5725
+
+[node name="BorderHedge27" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5726
+
+[node name="BorderHedge28" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 76, 0, -139)
+size = Vector3(10.4, 1.6, 1)
+hedge_seed = 5727
+
+[node name="BorderHedge29" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -133.921)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5800
+
+[node name="BorderHedge30" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -123.763)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5801
+
+[node name="BorderHedge31" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -113.604)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5802
+
+[node name="BorderHedge32" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -103.446)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5803
+
+[node name="BorderHedge33" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -93.2875)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5804
+
+[node name="BorderHedge34" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -83.1292)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5805
+
+[node name="BorderHedge35" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -72.9708)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5806
+
+[node name="BorderHedge36" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -62.8125)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5807
+
+[node name="BorderHedge37" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -52.6542)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5808
+
+[node name="BorderHedge38" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -42.4958)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5809
+
+[node name="BorderHedge39" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -32.3375)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5810
+
+[node name="BorderHedge40" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -22.1792)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5811
+
+[node name="BorderHedge41" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -12.0208)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5812
+
+[node name="BorderHedge42" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, -1.8625)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5813
+
+[node name="BorderHedge43" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 8.29583)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5814
+
+[node name="BorderHedge44" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 18.4542)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5815
+
+[node name="BorderHedge45" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 28.6125)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5816
+
+[node name="BorderHedge46" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 38.7708)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5817
+
+[node name="BorderHedge47" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 48.9292)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5818
+
+[node name="BorderHedge48" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 59.0875)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5819
+
+[node name="BorderHedge49" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 69.2458)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5820
+
+[node name="BorderHedge50" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 79.4042)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5821
+
+[node name="BorderHedge51" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 89.5625)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5822
+
+[node name="BorderHedge52" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -199, 0, 99.7208)
+size = Vector3(10.5583, 1.6, 1)
+hedge_seed = 5823
+
+[node name="BorderHedge53" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -133.98)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5900
+
+[node name="BorderHedge54" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -123.94)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5901
+
+[node name="BorderHedge55" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -113.9)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5902
+
+[node name="BorderHedge56" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -103.86)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5903
+
+[node name="BorderHedge57" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -93.82)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5904
+
+[node name="BorderHedge58" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -83.78)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5905
+
+[node name="BorderHedge59" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -73.74)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5906
+
+[node name="BorderHedge60" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -63.7)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5907
+
+[node name="BorderHedge61" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -53.66)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5908
+
+[node name="BorderHedge62" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -43.62)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5909
+
+[node name="BorderHedge63" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -33.58)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5910
+
+[node name="BorderHedge64" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -23.54)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5911
+
+[node name="BorderHedge65" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -13.5)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5912
+
+[node name="BorderHedge66" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, -3.46)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5913
+
+[node name="BorderHedge67" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 6.58)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5914
+
+[node name="BorderHedge68" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 16.62)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5915
+
+[node name="BorderHedge69" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 26.66)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5916
+
+[node name="BorderHedge70" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 36.7)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5917
+
+[node name="BorderHedge71" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 46.74)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5918
+
+[node name="BorderHedge72" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 56.78)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5919
+
+[node name="BorderHedge73" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 66.82)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5920
+
+[node name="BorderHedge74" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 76.86)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5921
+
+[node name="BorderHedge75" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 86.9)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5922
+
+[node name="BorderHedge76" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 96.94)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5923
+
+[node name="BorderHedge77" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81, 0, 106.98)
+size = Vector3(10.44, 1.6, 1)
+hedge_seed = 5924
+
+[node name="BorderHedge78" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -67.3833, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6000
+
+[node name="BorderHedge79" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -57.15, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6001
+
+[node name="BorderHedge80" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -46.9167, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6002
+
+[node name="BorderHedge81" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -36.6833, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6003
+
+[node name="BorderHedge82" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -26.45, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6004
+
+[node name="BorderHedge83" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -16.2167, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6005
+
+[node name="BorderHedge84" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -5.98333, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6006
+
+[node name="BorderHedge85" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.25, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6007
+
+[node name="BorderHedge86" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14.4833, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6008
+
+[node name="BorderHedge87" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24.7167, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6009
+
+[node name="BorderHedge88" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 34.95, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6010
+
+[node name="BorderHedge89" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.1833, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6011
+
+[node name="BorderHedge90" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55.4167, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6012
+
+[node name="BorderHedge91" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 65.65, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6013
+
+[node name="BorderHedge92" parent="NavRegion" instance=ExtResource("23_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 75.8833, 0, 112)
+size = Vector3(10.6333, 1.6, 1)
+hedge_seed = 6014
+
 [node name="Bounds" type="StaticBody3D" parent="."]
 
 [node name="WallN" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 5, -61)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -59, 5, -140)
 shape = SubResource("BoxShape3D_9")
 
-[node name="WallS" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 5, 67)
+[node name="WallW" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -200, 5, -17.6)
 shape = SubResource("BoxShape3D_10")
 
 [node name="WallE" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 72.5, 5, 3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 82, 5, -13.5)
 shape = SubResource("BoxShape3D_11")
 
-[node name="WallW" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -192.5, 5, -13.5)
+[node name="WallS" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.75, 5, 113)
 shape = SubResource("BoxShape3D_12")
 
-[node name="WallNW" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -132.5, 5, -132.5)
+[node name="WallQuay" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -136.25, 5, 104.8)
 shape = SubResource("BoxShape3D_13")
 
-[node name="WallQuay" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -132.5, 5, 104.8)
+[node name="WallSeaEast" type="CollisionShape3D" parent="Bounds"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72.5, 5, 108.9)
 shape = SubResource("BoxShape3D_14")
-
-[node name="WallWestN" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72.5, 5, -96.75)
-shape = SubResource("BoxShape3D_15")
-
-[node name="WallWestS" type="CollisionShape3D" parent="Bounds"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72.5, 5, 86)
-shape = SubResource("BoxShape3D_16")
-
-[node name="EdgeNoWalkN" type="NavigationObstacle3D" parent="NavRegion"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -1, 0)
-height = 4.0
-avoidance_enabled = false
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-vertices = PackedVector3Array(-74, 0, -62, 74, 0, -62, 74, 0, -58.5, -74, 0, -58.5)
-
-[node name="EdgeNoWalkS" type="NavigationObstacle3D" parent="NavRegion"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -1, 0)
-height = 4.0
-avoidance_enabled = false
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-vertices = PackedVector3Array(-74, 0, 64.5, 74, 0, 64.5, 74, 0, 68, -74, 0, 68)
-
-[node name="EdgeNoWalkW" type="NavigationObstacle3D" parent="NavRegion"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -1, 0)
-height = 4.0
-avoidance_enabled = false
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-vertices = PackedVector3Array(-74, 0, -62, -71.6, 0, -62, -71.6, 0, 68, -74, 0, 68)
-
-[node name="EdgeNoWalkE" type="NavigationObstacle3D" parent="NavRegion"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, -1, 0)
-height = 4.0
-avoidance_enabled = false
-affect_navigation_mesh = true
-carve_navigation_mesh = true
-vertices = PackedVector3Array(71.6, 0, -62, 74, 0, -62, 74, 0, 68, 71.6, 0, 68)
 
 [node name="Markers" type="Node3D" parent="."]
 

@@ -404,13 +404,17 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
       (Corner Garage on South Street, €25,000; RepairBay car lift + Spare Parts; HiddenShelfDoor to the back room)
 Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order; BEFORE 53-55):
   56. BUG falling through the map: find holes in the collision + a safety net: below a height you are put back on
-      the nearest safe spot (not killed) - todo
+      the nearest safe spot (not killed) - DONE (host safety net: players + crew cars below y -12 go back to the
+      last spot they stood on; ground slabs 4 m thick; self-test check "ground" scans the whole village for holes)
   57. BUG invisible blocks (e.g. from the centre parking through the fields to the farm): walk everywhere up to a
-      border that looks natural (hills, woods, water, fences), no invisible wall in the middle of a field - todo
+      border that looks natural (hills, woods, water, fences), no invisible wall in the middle of a field - DONE
+      (one playable area x -193..75, z -133..106; border = hedge + tree row + hills, the quay at the sea)
   58. BUG E at cooking/placing makes the character kneel every time: no kneel/work animation for normal
-      interactions any more, a short effect at the object instead (e.g. a "poof" when placing) (reverts part of 42) - todo
+      interactions any more, a short effect at the object instead (e.g. a "poof" when placing) (reverts part of 42) - DONE
+      (no Interact clip, no kneel, no eye dip; drops/sparks/dust at the object, a poof on place + pick up)
   59. BUG police and Crows fight all night: it must end - the 20 pool runs out, the police call backup and win,
-      or pull back after a while; a few minutes of gunfight at most (reopens 31b) - todo
+      or pull back after a while; a few minutes of gunfight at most (reopens 31b) - DONE (a clash lasts max
+      2 min, then both sides break off and a 5 min truce follows; Crows walk back to their turf)
   60. Map: the police station's street (South Street) dead-ends: extend it to the docks - todo
   61. Map: grass everywhere it is green (no bare green planes) - todo
   62. Map: houses with driveways and parking, a rich neighbourhood with villas, a business district with tall
@@ -957,3 +961,24 @@ Choices made while working autonomously (what + why).
   town at night and respawn outside the nightly pool (1-2 min). Why: a fixed danger spot you can plan around, next
   to the Harbour Storage you may want to buy - act 3 "steal harbor shipments" will happen there. `Rival.turf(tree,
   post)` / `on_turf` (any turf) / `yard_point(from, post)`; `World.add_rival(at, ak, post)` keeps old calls working.
+- Point 56: The safety net is HOST logic (it sees every player and car): every 0.5 s it remembers the spot under a
+  player/car that stands on world ground (ray on layer 1, flat), and below y -12 puts them back there (players via
+  `teleport`, cars via `_correct` to the driver), with a message - never a death or a loot bag. Why: whatever hole
+  someone finds (a building, a seam, a fast car), the game stays playable. Ground slabs are 4 m thick now (were 1 m)
+  so fast things don't tunnel through.
+- Point 57: The old test-map edges (walls at z -61, z 67, x -72.5, ...) were in the middle of the grown village. Now
+  the whole village is ONE playable area PLAY = x -193..75, z -133..106 (gen_world `PLAY`), with ONE border round it:
+  a 1.6 m hedge 6 m outside, the backdrop's tree row right behind it and the hills further out; the invisible walls sit
+  7 m out, behind the hedge, so you never bump into air in the open. On the sea side the quay edge is the border.
+  The navmesh box stops 0.5 m before the hedge. The empty land north/south of the centre is room for point 62.
+- Point 58: Using a station / placing no longer moves the player's body at all (no "Interact" clip, no kneel, no eye
+  dip): with many E presses in a row (cooking, packaging) the kneel felt like a stutter. The feedback is at the
+  OBJECT: the station's WORK_FX (drops, sparks, dust) or else a small dust `Poof` (scripts/world/poof.gd, local
+  CPUParticles3D), and placing / picking up sends `World.host_poof(pos)` to every peer. The watering can still tips
+  (that is the held item, not the body). `_work_t` stays for that; `_work_low` is always 0.
+- Point 59: A police-vs-Crows clash ends by a CLOCK, not by who dies: `PoliceOfficer.clash_max` (120 real s, from the
+  first `set_foe` between the sides; a new clash starts after 40 s quiet) -> `end_clash` drops every NPC foe and
+  starts a truce (`TRUCE_TIME` 300 s): no `set_foe`, no `report_npc_crime` (officers + patrol cars), `spot_cop` finds
+  nobody, street Crows walk back to their turf (like at daybreak). Why a clock: NPC accuracy at night is low and both
+  sides get reinforcements (pool of 20, patrol crews), so "until one side wins" could still take all night. Fights
+  against PLAYERS are not touched (target/stars stay as they are).

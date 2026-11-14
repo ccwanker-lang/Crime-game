@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1428,11 +1428,16 @@ func _check_growing(world: Node3D) -> void:
 	for n: Node in world.get_children():
 		if n is CPUParticles3D:
 			drops += 1
-	_report(p.is_working() and p._work_kind == "water" and p._work_low == 1.0 and drops > 0,
-			"watering plays the work animation (kind '%s', low %.0f, %d particle burst(s))" % [p._work_kind, p._work_low, drops])
+	_report(p.is_working() and p._work_kind == "water" and drops > 0,
+			"watering: drops at the pot (kind '%s', %d particle burst(s))" % [p._work_kind, drops])
 	for i: int in 12:
 		await get_tree().physics_frame
-	_report(p.work_amount() > 0.3 and p._pose.crouch > 0.2, "the body kneels down to the pot (crouch %.2f)" % p._pose.crouch)
+	# Point 58: no kneeling / body animation for using things any more.
+	_report(p._pose.crouch < 0.05 and p._work_low == 0.0, "the body does not kneel (crouch %.2f)" % p._pose.crouch)
+	var before: int = world.get_children().filter(func(n: Node) -> bool: return n is CPUParticles3D).size()
+	world.call("host_poof", p.global_position + Vector3.UP)
+	var after: int = world.get_children().filter(func(n: Node) -> bool: return n is CPUParticles3D).size()
+	_report(after == before + 1, "placing / picking up makes a poof at the object (%d -> %d)" % [before, after])
 	lamp.state["on"] = true
 	var g0: float = float(pot.state["growth"])
 	pot.tick(1.0)
@@ -1760,6 +1765,40 @@ func _check_police_vs_crows(world: Node3D) -> void:
 			break
 		await get_tree().create_timer(0.3).timeout
 	_report(cop.dead or crow.dead, "police vs Crows: the gunfight ends with one down (cop %d hp, crow %d hp)" % [cop.health, crow.health])
+	# Point 59: a clash never lasts longer than clash_max; then a truce (no new fights, no car response).
+	PoliceOfficer.truce_until = 0.0
+	PoliceOfficer.clash_start = -1.0
+	var max0: float = PoliceOfficer.clash_max
+	PoliceOfficer.clash_max = 2.0
+	var cop2: PoliceOfficer = world.add_officer(spot, spot)
+	var crow3: Rival = world.add_rival(spot + station.global_basis.x * 12.0, 0)
+	crow3.role = Rival.Role.STREET
+	var tough: NpcCombatProfile = crow3.profile.duplicate()
+	tough.accuracy = 0.0
+	tough.damage = 0
+	crow3.profile = tough
+	cop2.profile = tough
+	var fought: bool = false
+	for i: int in 30:
+		await get_tree().create_timer(0.3).timeout
+		if crow3.foe == cop2 or cop2.foe == crow3:
+			fought = true
+			break
+	var ended: bool = false
+	for i: int in 30:
+		await get_tree().create_timer(0.3).timeout
+		if crow3.foe == null and cop2.foe == null and PoliceOfficer.in_truce():
+			ended = true
+			break
+	await get_tree().create_timer(1.0).timeout
+	_report(fought and ended and crow3.foe == null and cop2.foe == null and not cop2.dead and not crow3.dead,
+			"police vs Crows: a clash ends by itself after clash_max, both break off (fought %s, truce %s)" % [fought, PoliceOfficer.in_truce()])
+	crow3.set_foe(cop2, cop2.global_position)
+	_report(crow3.foe == null and crow3.spot_cop() == null, "during the truce nobody starts a new fight")
+	PoliceOfficer.clash_max = max0
+	PoliceOfficer.truce_until = 0.0
+	cop2.queue_free()
+	crow3.queue_free()
 	# A Crow firing near a patrol car: its crew gets out and takes it on.
 	var traffic: Traffic = world.get_node("Traffic") as Traffic
 	var car: Car = traffic.spawn_police_car(3, traffic.routes[3].length * 0.3, 2)
@@ -3494,4 +3533,67 @@ func _check_harbour(world: Node3D) -> void:
 	var harbour_crows: int = world.call("_alive_rivals", &"harbour").size()
 	_report(harbour_crows == 1 and yard_crows == 0, "counted apart: %d harbour, %d yard" % [harbour_crows, yard_crows])
 	r.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Ground + safety net (points 56/57) -----------------------------------------------------
+
+## The playable area of gen_world (PLAY) and where the sea starts.
+const PLAY_RECT := Rect2(-193, -133, 268, 239)
+const QUAY_Z: float = 104.8
+const SEA_X: float = -72.5
+
+
+func _check_ground(world: Node3D) -> void:
+	# Every 2 m over the whole village: a ray from 30 m up must hit world ground (layer 1) between y -1 and 30.
+	var space := world.get_world_3d().direct_space_state
+	var holes: Array[Vector2] = []
+	var x: float = PLAY_RECT.position.x + 1.0
+	while x < PLAY_RECT.end.x:
+		var z: float = PLAY_RECT.position.y + 1.0
+		while z < PLAY_RECT.end.y:
+			if not (x < SEA_X and z > QUAY_Z):
+				var q := PhysicsRayQueryParameters3D.create(Vector3(x, 30, z), Vector3(x, -1.0, z), 1)
+				if space.intersect_ray(q).is_empty():
+					holes.append(Vector2(x, z))
+			z += 2.0
+		x += 4.0 if holes.size() > 50 else 2.0
+	_report(holes.is_empty(), "no holes in the ground over the whole village (%d holes%s)" % [holes.size(),
+			(", first at %s" % holes[0]) if not holes.is_empty() else ""])
+	# No invisible walls inside the village: a sweep across the open north (old edge z -61) and west (old edge x -72.5).
+	var blocked: Array[String] = []
+	for line: Array in [[Vector3(-40, 1, -40), Vector3(-40, 1, -125)], [Vector3(-60, 1, -100), Vector3(-185, 1, -100)],
+			[Vector3(10, 1, 70), Vector3(10, 1, 100)], [Vector3(-60, 1, 80), Vector3(60, 1, 80)]]:
+		var q := PhysicsRayQueryParameters3D.create(line[0], line[1], 1)
+		var hit: Dictionary = space.intersect_ray(q)
+		if not hit.is_empty() and hit["collider"] is StaticBody3D and (hit["collider"] as Node).name == "Bounds":
+			blocked.append("%s at %s" % [(hit["collider"] as Node).name, (hit["position"] as Vector3).snapped(Vector3.ONE)])
+	_report(blocked.is_empty(), "no invisible walls across the open land (%s)" % ", ".join(blocked))
+	# Safety net: a player and a car that fall below the world come back where they stood.
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Faller"
+	world.get_node("Players").add_child(p)
+	p.global_position = Vector3(-40, 0.3, -90)
+	p.auto_target = p.global_position
+	await get_tree().create_timer(1.2).timeout
+	var stood: Vector3 = p.safe_pos
+	p.global_position = Vector3(-40, -30, -90)
+	for i: int in 5:
+		await get_tree().physics_frame
+	_report(stood != Vector3.INF and p.global_position.y > -1.0 and p.global_position.distance_to(stood) < 2.0 and not p.dead,
+			"fell out of the world: back on the last safe spot, alive (%s)" % p.global_position.snapped(Vector3.ONE * 0.1))
+	p.queue_free()
+	var veh: Vehicles = Vehicles.current
+	if veh:
+		var car: PlayerCar = veh.host_spawn("sedan", 0, Vector3(-40, 0.2, -80), 0.0)
+		await get_tree().create_timer(1.2).timeout
+		car.global_position = Vector3(-40, -30, -80)
+		for i: int in 5:
+			await get_tree().physics_frame
+		_report(car.global_position.y > -1.0 and car.global_position.distance_to(Vector3(-40, 0, -80)) < 3.0,
+				"a car that falls through comes back too (%s)" % car.global_position.snapped(Vector3.ONE * 0.1))
+		veh.host_remove(car)
+	GameState.player_data.erase("Faller")
 	await get_tree().physics_frame

@@ -51,14 +51,22 @@ navmesh = sc.subres("NavigationMesh", {
     "geometry_parsed_geometry_type": "1", "geometry_collision_mask": "1",
     "cell_size": "0.1", "cell_height": "0.1",
     "agent_height": "1.8", "agent_radius": "0.25", "agent_max_climb": "0.3",
-    "filter_baking_aabb": "AABB(-194, -2, -134, 268, 20, 240)"})
+    "filter_baking_aabb": "AABB(-198.5, -2, -138.5, 279, 20, 250)"})
 sc.node(NAV, "NavigationRegion3D", ".", props={"navigation_mesh": navmesh})
 
 # Ground everywhere (grass/dirt shader) + an outer ring without collision.
 ground_mat = sc.res("Material", "res://prefabs/materials/ground.tres")
+# Point 57: ONE playable area PLAY (x0, z0, x1, z1) = the whole village, walkable everywhere up to a natural border
+# (hedge + tree row + hills, the quay at the sea) - no invisible walls inside it. Ground reaches past the border.
+PLAY = (-193.0, -133.0, 75.0, 106.0)
+QUAY_Z = 104.8   # the sea starts here west of SEA_X
+SEA_X = -72.5
 sc.node("Ground", "StaticBody3D", NAV, props={
-    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((0, 0, 3)),
-    "size": "Vector2(150, 132)", "material": ground_mat})
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((-59, 0, -18.1)),
+    "size": "Vector2(284, 245.8)", "material": ground_mat})
+sc.node("GroundSouth", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((5.25, 0, 109.4)),
+    "size": "Vector2(155.5, 9.2)", "material": ground_mat})
 # Point 47: the outer ground leaves the sea free (south of the quay, west of x -74).
 sc.node("OuterGround", "StaticBody3D", ".", props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((0, -0.02, -196.5)),
@@ -66,19 +74,13 @@ sc.node("OuterGround", "StaticBody3D", ".", props={
 sc.node("OuterGroundSE", "StaticBody3D", ".", props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((213, -0.02, 303.5)),
     "size": "Vector2(574, 399)", "collision": "false", "material": ground_mat})
-# Point 47: the west side (industrial edge, harbour, countryside) has its own ground with collision.
-sc.node("GroundWest", "StaticBody3D", NAV, props={
-    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((-134, 0, -14)),
-    "size": "Vector2(118, 236)", "material": ground_mat})
 # Point 27: the edge of the world = tree rows, bushes and two rings of soft hills (no empty plane).
+# Point 57: one backdrop round the whole playable area (trees just outside the border hedge), none on the sea.
 sc.node("Backdrop", "Node3D", ".", props={
-    "script": sc.script("res://scripts/procgen/backdrop.gd"), "area": "Rect2(-75, -60, 150, 132)",
-    "tree_margin": "9.0", "hill_distance": "45.0", "ground_plane": "false",
-    "skip_rects": "Array[Rect2]([Rect2(-600, -600, 524, 1200)])"})  # point 47: the west side has its own
-sc.node("BackdropWest", "Node3D", ".", props={
-    "script": sc.script("res://scripts/procgen/backdrop.gd"), "area": "Rect2(-193, -133, 120, 238)",
-    "tree_margin": "9.0", "hill_distance": "45.0", "ground_plane": "false", "backdrop_seed": "47",
-    "skip_rects": "Array[Rect2]([Rect2(-77, -64, 600, 140), Rect2(-600, 104, 640, 600)])"})
+    "script": sc.script("res://scripts/procgen/backdrop.gd"),
+    "area": f"Rect2({PLAY[0]:g}, {PLAY[1]:g}, {PLAY[2] - PLAY[0]:g}, {PLAY[3] - PLAY[1]:g})",
+    "tree_margin": "10.5", "hill_distance": "45.0", "ground_plane": "false",
+    "skip_rects": "Array[Rect2]([Rect2(-600, 100, 527, 700)])"})
 
 # --------------------------------------------------------------------------- roads
 R = "roads/"
@@ -792,25 +794,35 @@ for i, (x, z) in enumerate([(-92, -14), (-84, -30), (-90, -66), (-100, -80), (-1
 for (x, z) in [(-160, -78.5), (-140, -78.5), (-128, -90), (-172, -80)]:
     put(f"nature/shrub_{frng.choice('abcd')}.tscn", (x, 0, z), frng.uniform(0, 360))
 
-# --------------------------------------------------------------------------- invisible walls
+# --------------------------------------------------------------------------- the border (point 57)
+# A hedge 6 m outside PLAY all round (not on the sea side: the quay edge is the border there), the trees of the
+# backdrop right behind it, and the invisible walls 7 m out, behind the hedge - never in the open.
+x0, z0, x1, z1 = PLAY
+HG = 6.0
+def hedge_run(ax, az, bx, bz, seed):
+    length = abs(bx - ax) + abs(bz - az)
+    n = max(1, int(round(length / 10.0)))
+    for i in range(n):
+        t0, t1 = i / n, (i + 1) / n
+        cx, cz = ax + (bx - ax) * (t0 + t1) / 2, az + (bz - az) * (t0 + t1) / 2
+        rot = 0 if az == bz else 90
+        put("nature/hedge.tscn", (cx, 0, cz), rot, name=uname("BorderHedge"),
+            props={"size": v3(length / n + 0.4, 1.6, 1.0), "hedge_seed": str(seed + i)})
+hedge_run(x0 - HG, z0 - HG, x1 + HG, z0 - HG, 5700)          # north
+hedge_run(x0 - HG, z0 - HG, x0 - HG, QUAY_Z, 5800)          # west (down to the quay)
+hedge_run(x1 + HG, z0 - HG, x1 + HG, z1 + HG, 5900)          # east
+hedge_run(SEA_X, z1 + HG, x1 + HG, z1 + HG, 6000)           # south (east of the sea)
 sc.node("Bounds", "StaticBody3D", ".")
-# Point 47: the west side widened the playable area (x -192..-72.5, z -132..105 = the quay edge).
-for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150, 10, 1)),
-                        ("E", (72.5, 5, 3), (1, 10, 130)),
-                        ("W", (-192.5, 5, -13.5), (1, 10, 238)), ("NW", (-132.5, 5, -132.5), (121, 10, 1)),
-                        ("Quay", (-132.5, 5, 104.8), (121, 10, 0.4)),
-                        ("WestN", (-72.5, 5, -96.75), (1, 10, 71.5)), ("WestS", (-72.5, 5, 86), (1, 10, 38))]:
+W = 7.0
+for name, pos, size in [
+        ("N", ((x0 + x1) / 2, 5, z0 - W), (x1 - x0 + 2 * W, 10, 1)),
+        ("W", (x0 - W, 5, (z0 - W + QUAY_Z) / 2), (1, 10, QUAY_Z - z0 + W)),
+        ("E", (x1 + W, 5, (z0 + z1) / 2), (1, 10, z1 - z0 + 2 * W)),
+        ("S", ((SEA_X + x1 + W) / 2, 5, z1 + W), (x1 + W - SEA_X, 10, 1)),
+        ("Quay", ((x0 - W + SEA_X) / 2, 5, QUAY_Z), (SEA_X - x0 + W, 10, 0.4)),
+        ("SeaEast", (SEA_X, 5, (QUAY_Z + z1 + W) / 2), (0.4, 10, z1 + W - QUAY_Z))]:
     sc.node("Wall" + name, "CollisionShape3D", "Bounds", props={
         "transform": xform(pos), "shape": sc.subres("BoxShape3D", {"size": v3(*size)})})
-
-# Keep NPCs away from the invisible map-edge walls (no rubbing along them). W/E stop at 71.6:
-# the edge houses reach x = +-72 and their stairs must stay on the navmesh.
-for name, (x0, z0, x1, z1) in [("N", (-74, -62, 74, -58.5)), ("S", (-74, 64.5, 74, 68)),
-                               ("W", (-74, -62, -71.6, 68)), ("E", (71.6, -62, 74, 68))]:
-    sc.node("EdgeNoWalk" + name, "NavigationObstacle3D", NAV, props={
-        "transform": xform((0, -1, 0)), "height": "4.0", "avoidance_enabled": "false",
-        "affect_navigation_mesh": "true", "carve_navigation_mesh": "true",
-        "vertices": f"PackedVector3Array({x0}, 0, {z0}, {x1}, 0, {z0}, {x1}, 0, {z1}, {x0}, 0, {z1})"})
 
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")

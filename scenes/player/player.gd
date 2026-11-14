@@ -615,6 +615,7 @@ func _weapon_key(event: InputEvent) -> int:
 func _physics_process(delta: float) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_host_regen(delta)
+		_host_fall_net(delta)
 	if vehicle != null:
 		_ride(delta)
 	elif is_local():
@@ -732,7 +733,7 @@ func _apply_crouch_shape() -> void:
 
 func _update_crouch(delta: float) -> void:
 	_crouch_amount = move_toward(_crouch_amount, 1.0 if net_crouch else 0.0, 5.0 * delta)
-	head.position.y = lerpf(EYE_STAND, EYE_CROUCH, maxf(_crouch_amount, _work_low * work_amount() * 0.8))
+	head.position.y = lerpf(EYE_STAND, EYE_CROUCH, _crouch_amount)  # point 58: no dip when using things
 
 
 ## Remote players: smooth towards the last synced state. Big jumps (respawn,
@@ -785,18 +786,16 @@ func _update_anim() -> void:
 	elif net_air:
 		key = "Run"
 		speed_scale = 0.25
-	if _work_t > 0.0 and _anim_names.has("Interact") and move.length() < 0.1:
-		key = "Interact"  # point 42 (started once in _play_work)
-		speed_scale = 1.0
+	# Point 58: no "Interact" body clip for using things any more (was point 42).
 	var a: String = _anim_names.get(key, _anim_names.get("Idle", ""))
-	if _anim.current_animation != a and not (key == "Interact" and _anim.assigned_animation == a):
+	if _anim.current_animation != a:
 		_anim.play(a, 0.2)
 	_anim.speed_scale = speed_scale
 	# Holding a gun: the body keeps facing forward (the arm must point where you look).
 	if net_weapon != 0:
 		model_yaw *= 0.3
 	_model.rotation.y = lerp_angle(_model.rotation.y, PI + model_yaw, 0.2)
-	_pose.crouch = maxf(maxf(_crouch_amount, 0.3 if net_air else 0.0), _work_low * work_amount() * 0.85)
+	_pose.crouch = maxf(_crouch_amount, 0.3 if net_air else 0.0)  # point 58: no kneeling at stations
 	_pose.pitch = head.rotation.x
 	_pose.aim = move_toward(_pose.aim, combat.body_aim(), 0.15)
 	_pose.kick = combat.body_kick()
@@ -846,17 +845,18 @@ func host_work(kind: String, at: Vector3) -> void:
 func _play_work(kind: String, at: Vector3) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_remote_sender_id() not in [0, 1]:
 		return
-	_work_t = WORK_TIME
+	_work_t = WORK_TIME  # only the held item moves (the watering can tips); the body stays as it is
 	_work_kind = kind
-	_work_low = 1.0 if at.y < global_position.y + 0.45 else 0.0
-	if _anim and _anim_names.has("Interact") and not dead:
-		_anim.play(_anim_names["Interact"], 0.15)
+	_work_low = 0.0  # point 58: no kneeling (was point 42)
 	_work_particles(kind, at)
 
 
 ## A short puff at the station: water drops, soil, leaves.
 func _work_particles(kind: String, at: Vector3) -> void:
-	if not WORK_FX.has(kind) or not is_inside_tree():
+	if not is_inside_tree():
+		return
+	if not WORK_FX.has(kind):
+		Poof.spawn(get_tree().current_scene, at + Vector3.UP * 0.5, Color(0.92, 0.9, 0.85, 0.7), 0.7)  # point 58
 		return
 	var fx: Array = WORK_FX[kind]
 	var p := CPUParticles3D.new()
@@ -1566,6 +1566,7 @@ func _host_place(id: String, pos: Vector3, yaw: float) -> String:
 		return reason
 	GameState.remove_item(player_name, id, 1)
 	get_tree().current_scene.call("host_place", id, pos, yaw)
+	get_tree().current_scene.call("host_poof", pos + Vector3.UP * 0.3)  # point 58
 	send_wallet()
 	return ""
 
@@ -1609,6 +1610,9 @@ func _host_pick_up(uid: String) -> String:
 	if GameState.space_for(player_name, id) < 1:
 		return "Your pockets are full."
 	GameState.give(player_name, 0, [{"id": id, "count": 1}] + refund)
+	var gone: Node3D = world.call("get_placed", uid) as Node3D
+	if gone:
+		world.call("host_poof", gone.global_position + Vector3.UP * 0.3)  # point 58
 	world.call("host_remove_placed", uid)
 	send_wallet()
 	return ""
@@ -1690,6 +1694,37 @@ func _teleport(pos: Vector3) -> void:
 	global_position = pos
 	velocity = Vector3.ZERO
 	net_pos = pos
+
+
+# --- Point 56: safety net (host) ---------------------------------------------------------------
+## Below this height a player has fallen out of the world: put back on the last safe spot, not killed.
+const FALL_Y: float = -12.0
+## Host: the last spot where this player stood on solid world ground (checked every 0.5 s).
+var safe_pos: Vector3 = Vector3.INF
+var _safe_check: float = 0.0
+
+
+func _host_fall_net(delta: float) -> void:
+	if dead or vehicle != null:
+		return
+	if global_position.y < FALL_Y:
+		var back: Vector3 = safe_pos
+		if back == Vector3.INF:
+			var world := get_tree().current_scene
+			back = world.call("get_spawn_point", 0) if world and world.has_method("get_spawn_point") else Vector3(0, 1, 0)
+		print("[Player] %s fell out of the world at %s -> back to %s" % [player_name, global_position.snapped(Vector3.ONE * 0.1), back.snapped(Vector3.ONE * 0.1)])
+		teleport(back + Vector3.UP * 0.3)
+		show_message("You fell out of the world - put back where you last stood.")
+		return
+	_safe_check -= delta
+	if _safe_check > 0.0:
+		return
+	_safe_check = 0.5
+	var space := get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.5, global_position + Vector3.DOWN * 1.2, 1)
+	var hit: Dictionary = space.intersect_ray(q)
+	if not hit.is_empty() and (hit["normal"] as Vector3).y > 0.7 and global_position.y > FALL_Y + 5.0:
+		safe_pos = hit["position"]
 
 
 ## Host: move a player anywhere (e.g. respawn at the hospital).

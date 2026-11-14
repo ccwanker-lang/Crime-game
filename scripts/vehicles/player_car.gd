@@ -303,6 +303,7 @@ func _physics_process(delta: float) -> void:
 	if host:
 		_host_hits()
 		_host_fuel()
+		_host_fall_net(delta)
 	_riders_check -= delta
 	if _riders_check <= 0.0:
 		_riders_check = 0.5
@@ -399,6 +400,37 @@ func _correct(pos: Vector3, yaw: float) -> void:
 	global_position = pos
 	rotation.y = yaw
 	speed = 0.0
+
+
+## Point 56: host safety net - a car below Player.FALL_Y goes back to the last spot it stood on the ground.
+var _safe_pos: Vector3 = Vector3.INF
+var _safe_yaw: float = 0.0
+var _safe_check: float = 0.0
+
+
+func _host_fall_net(delta: float) -> void:
+	if global_position.y < Player.FALL_Y:
+		var back: Vector3 = _safe_pos if _safe_pos != Vector3.INF else Vector3(0, 0.2, 2.0)
+		print("[Car] %s fell out of the world -> back to %s" % [name, back.snapped(Vector3.ONE * 0.1)])
+		global_position = back
+		rotation.y = _safe_yaw
+		speed = 0.0
+		net_pos = back
+		net_yaw = _safe_yaw
+		net_speed = 0.0
+		var d: int = driver_peer()
+		if d != 0 and d != multiplayer.get_unique_id():
+			_correct.rpc_id(d, back, _safe_yaw)
+		return
+	_safe_check -= delta
+	if _safe_check > 0.0:
+		return
+	_safe_check = 0.5
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.5, global_position + Vector3.DOWN * 1.5, 1)
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty() and (hit["normal"] as Vector3).y > 0.8 and absf(speed) < 12.0:
+		_safe_pos = (hit["position"] as Vector3) + Vector3.UP * 0.1
+		_safe_yaw = rotation.y
 
 
 ## Host: riders who died, left the game or are gone lose their seat.

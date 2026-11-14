@@ -420,6 +420,21 @@ func _create_placed(data: Dictionary) -> Node:
 	return node
 
 
+## Host (point 58): a short dust poof at `pos` on every peer (placing, picking up).
+func host_poof(pos: Vector3) -> void:
+	Poof.spawn(self, pos)
+	if not multiplayer.has_multiplayer_peer():
+		return
+	for peer: int in Net.peers_in_world:
+		if peer != multiplayer.get_unique_id():
+			_poof.rpc_id(peer, pos)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _poof(pos: Vector3) -> void:
+	Poof.spawn(self, pos)
+
+
 func get_placed(uid: String) -> Node3D:
 	return placed_root.get_node_or_null("P" + uid) as Node3D
 

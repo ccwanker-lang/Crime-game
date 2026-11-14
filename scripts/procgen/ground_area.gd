@@ -45,8 +45,9 @@ func _rebuild() -> void:
 	if collision:
 		var cs := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
-		shape.size = Vector3(size.x, 1.0, size.y)
+		# Point 56: a thick slab (top still at y 0) so nothing fast tunnels through it.
+		shape.size = Vector3(size.x, 4.0, size.y)
 		cs.shape = shape
-		cs.position.y = -0.5
+		cs.position.y = -2.0
 		add_child(cs)
 		_generated.append(cs)

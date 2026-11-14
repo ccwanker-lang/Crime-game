@@ -21,7 +21,7 @@ const LIST: Array = [
 	["night_town", "Main road at 23:00", "Night lighting: street lamps, lit windows, can you see where you walk? F7 (hold) fast-forwards time to dawn."],
 	["sell_weed", "6 bags of weed + a customer with an accepted deal", "The customer right in front of you has a GREEN € (deal accepted): E = a short talk, then 'Confirm deal'. New customers text a proposal (Tab > Hush): Accept, Decline or Counter (+10/25/50%: the higher, the more often they say no or walk off). Only an accepted deal turns their € green."],
 	["phone", "Phone with a customer text, money", "Tab: chat (Accept / Counter / Decline the customer's proposal), map, webshop (buy something legal, it arrives in the delivery box in the Starter Room)."],
-	["grow", "Pot, soil, seeds, water, lamp, rack, table", "B = build mode: place the pot (select it, LMB), B again to leave; add soil, seed, water (E). Place lamp + rack + packaging table. Hold F7 to speed up time. Harvest -> dry -> package. Every E at a pot/rack/table plays a work animation (kneel, water drops, the can tips; V = third person to see the body). The mouse wheel scrolls through the hotbar."],
+	["grow", "Pot, soil, seeds, water, lamp, rack, table", "B = build mode: place the pot (select it, LMB), B again to leave; add soil, seed, water (E). Place lamp + rack + packaging table. Hold F7 to speed up time. Harvest -> dry -> package. Every E at a pot/rack/table gives a short effect at the object (water drops, a poof; the can tips) - your body no longer kneels. The mouse wheel scrolls through the hotbar."],
 	["storage", "Full inventory at the free locker", "E on the locker: click = 1, Shift+click / drag = whole stack, right click in your pockets = drop. G drops the held item, E picks it up."],
 	["furnish", "Own Small House + furniture items", "B = build mode: place furniture (R/wheel rotates), hold E to pick things up (also the house's own furniture). Outside build mode E only uses things (no ghost, no pick-up)."],
 	["black_market", "Night, in the garage, €6,000", "Walk through the open gate to Rook (only at night): buy seeds, pots, baggies."],
@@ -52,6 +52,8 @@ const LIST: Array = [
 	["west_side", "Point 47: the new west side - Industrial Road, the metalworks, the container yard, the harbour with the ship, your car ready", "Drive (F, WASD) or walk: Main Road goes on west past the tree belt; Industrial Road turns south to the harbour (Quay Road). Check: the Lab Warehouse (FOR SALE, Industrial Road) and the Harbour Storage on the quay can be entered; you can't fall into the sea; the phone map (Tab > Map) shows the new roads, the sea and the labels Metalworks/Harbour; traffic drives down to the quay and back."],
 	["countryside", "Point 47b: Hollow Farm at the top of Country Lane - the barn (for sale), farmhouse, silo, fields", "You stand in the farmyard in front of the red barn (FOR SALE, Hollow Farm Barn €30,000): go in (E on the door). Walk down Country Lane between the fields to Main Road. Phone map (Tab > Map) shows the lane and the farm."],
 	["harbour_crows", "Point 47c: the Crows' private pier at the west end of the quay - 3 armed Crows, you with a pistol", "You stand on Quay Road by the PRIVATE PIER sign. The Crows stroll between the containers and leave you alone on the road; step through the gap in the fence onto the pier and they open fire (with F11 god mode you can watch). Kill one: a new one comes after 1-2 minutes."],
+	["no_kneel", "Point 58: no kneeling on E - a poof at the object instead", "Weed corner at home + a sofa and a pot in slot 1/2. V = third person. E on the pots / rack / table: your body stays standing, a short effect plays at the object. B = build mode: place the sofa (LMB) -> poof; hold E on it -> poof, back in your inventory."],
+	["open_border", "Points 56/57: walk anywhere up to the hedge at the edge; the fall safety net", "You stand north of the centre (where the invisible wall used to be) next to your car. Walk or drive north-west across the grass to the farm and on to the hedge at the edge: no invisible walls before it. Safety net: F10 (fly), Ctrl to sink deep under the ground, F10 off -> you fall and land back where you last stood, alive."],
 	["gas_station", "QuickFuel on North Road: your Comet Sedan almost empty next to pump 1, €500", "The car panel (bottom right) shows fuel 6% when you sit in it (F). Get out, E on the red pump: 'Fill up: 43 L for €86' -> full, money gone (clean money first). Drive around town: the % drops (a full tank is about 3 km). Second car (Mule Van) at pump 2 is completely empty: get in, W = nothing, it only rolls. Below 15% you get a 'Low fuel' message."],
 	["turf_take", "15:00 in front of the Starter Room: this district is at 96% influence, a customer waits (green €)", "Phone (Tab) > Turf: every district with its meter (red = Crow turf). E on the customer > Confirm deal: the sale pushes the meter past 100% -> a text 'X is yours now', Turf shows it green. Walk into another district: a toast with its name and owner. Your turf: customers pay 15% more, no Crows roam there at night."],
 	["turf_danger", "13:00 in front of the Starter Room: Crow turf (30%), they already warned you, a customer waits", "E on the customer > Confirm deal: a text 'Told you. Look behind you.' and a Crow (black clothes) runs at you from 25-40 m, by day. Fight back (1 = pistol): a dead Crow pushes the district's meter up (+6%), dying to it pushes it down (-8%). Check phone > Turf before and after."],
@@ -394,6 +396,16 @@ static func run(world: Node, id: String) -> bool:
 			for k: int in 3 - (world.call("_alive_rivals", &"harbour") as Array).size():
 				world.add_rival(Rival.yard_point(world, &"harbour"), -1, &"harbour")
 			_place(me, Vector3(-163, 0.3, 86.5), Vector3(-176, 1.2, 96), dn, 14.0)
+		"no_kneel":
+			_kit(me, 500, [["sofa", 1], ["grow_pot", 1], ["soil", 2], ["weed_seed", 2], ["watering_can", 1]])
+			world.call("debug_weed_corner")
+			_place(me, at_home, at_home + sr.building().global_basis.z * -3.0, dn, 11.0)
+		"open_border":
+			_kit(me, 200, [])
+			var veh: Vehicles = Vehicles.current
+			if veh:
+				veh.host_spawn("sedan", 1, Vector3(-36, 0.2, -66), PI, "", 1.0)
+			_place(me, Vector3(-40, 0.3, -64), Vector3(-120, 1.5, -95), dn, 13.0)
 		"gas_station":
 			_kit(me, 500, [])
 			var veh: Vehicles = Vehicles.current

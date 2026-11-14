@@ -645,7 +645,8 @@ func can_see(p: Player) -> bool:
 ## Host (group "police", point 31a): an armed NPC of the other side (a Crow) fired close by:
 ## the crew gets out and takes it on (no stars: those are for players).
 func report_npc_crime(shooter: PoliceOfficer, origin: Vector3) -> void:
-	if not _is_host() or not police or wrecked or roadblock or crew_size <= 0 or shooter == null or shooter.dead:
+	if not _is_host() or not police or wrecked or roadblock or crew_size <= 0 or shooter == null or shooter.dead \
+			or PoliceOfficer.in_truce():
 		return
 	if global_position.distance_to(origin) > PoliceOfficer.HEAR_RANGE:
 		return

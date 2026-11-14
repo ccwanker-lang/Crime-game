@@ -119,6 +119,10 @@ const SHOTS: Array[Array] = [
 	["87_country_top", Vector3(-140, 110, 10), Vector3(-140, 0, -60)],
 	["88_country_lane", Vector3(-148.5, 1.8, -8), Vector3(-150, 2.0, -70)],
 	["89_barn", Vector3(-146, 1.8, -78), Vector3(-150, 3.5, -94)],
+	# Point 57: the border (hedge + trees), the old north edge now open, the whole map from above.
+	["90_border_north", Vector3(-40, 1.8, -120), Vector3(-40, 2.0, -150)],
+	["91_open_north", Vector3(-80, 1.8, -50), Vector3(-130, 1.5, -80)],
+	["92_map_top", Vector3(-59, 330, 140), Vector3(-59, 0, -10)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

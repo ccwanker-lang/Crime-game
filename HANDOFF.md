@@ -86,6 +86,9 @@
 - cover_garage: E on the car on the lift (4x) -> +€260 clean; E on the tool shelf at the back -> hidden room.
 - driving: next to your own Comet Sedan (+ a Mule Van): F in, WASD, Space handbrake, H horn, mouse looks around,
   F out. With 2 instances the second player presses F at the same car = passenger.
+- open_border: walk/drive north-west through the fields to the farm and the hedge; F10 + Ctrl under the ground, F10 off -> back.
+- no_kneel: E on pots/rack/table (V = third person): no kneeling, an effect at the object; B: place/pick up the sofa = poof.
+- police_vs_crows: they fight at most 2 minutes, then break off (the Crow walks home).
 - (from before, still untested by you) trash, launder, grow (work animations + mouse wheel), sleep, bookshelf.
 
 ## Known

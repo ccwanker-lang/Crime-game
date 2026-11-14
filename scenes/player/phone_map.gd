@@ -7,7 +7,7 @@ extends Control
 ## (the estate agent's window) properties for sale get an orange pin, and `focus` centres
 ## the map on one property and highlights it.
 
-const BOUNDS := Rect2(-194, -134, 270, 242)  # world x, z (point 47: + the west side)
+const BOUNDS := Rect2(-199, -139, 280, 251)  # world x, z (point 47: + the west side, 57: one area)
 ## Point 47: the sea south of the harbour quay (world x, z).
 const SEA := Rect2(-260, 104.5, 186, 80)
 const LANDMARKS: Dictionary = {
