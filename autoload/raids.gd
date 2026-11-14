@@ -23,7 +23,8 @@ const XP_WIN: int = 80
 const CROWS: String = "Black Crows"
 ## What raiders take from the lockers (drugs, bags, supplies).
 const LOOT_IDS: Array[String] = ["weed_bag", "meth_bag", "coke_bag", "weed_bud", "fresh_weed", "meth_shard", "meth_tray",
-		"cocaine", "coca_paste", "coca_leaves", "lab_chemicals", "activator", "coca_seedling", "process_fluid"]
+		"cocaine", "coca_paste", "coca_leaves", "lab_chemicals", "activator", "coca_seedling", "process_fluid",
+		"premium_seed", "pure_reagent", "pure_solvent"]
 
 ## Host: the live raid going on now ({} = none): {prop, raiders: Array[Rival], until (s), guards}.
 var live: Dictionary = {}
@@ -219,7 +220,10 @@ func _lost(prop: Property, guards: Array) -> Dictionary:
 	var pid: String = String(prop.property_id)
 	var lockers: Array = Staff._stations_in(pid, StorageLocker)
 	var stolen: int = 0
-	for id: String in LOOT_IDS:
+	var ids: Array[String] = []
+	for base_id: String in LOOT_IDS:
+		ids.append_array(Quality.variants(base_id))  # every quality of the products
+	for id: String in ids:
 		var n: int = floori(Staff._locker_count(lockers, id) * STEAL_SHARE)
 		if n > 0 and Staff._locker_take(lockers, id, n):
 			stolen += n

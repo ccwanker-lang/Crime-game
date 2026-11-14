@@ -27,7 +27,32 @@ var _collision: CollisionShape3D
 
 
 func default_state() -> Dictionary:
-	return {"stage": Stage.EMPTY, "water": 0.0, "growth": 0.0, "seed": 0}
+	return {"stage": Stage.EMPTY, "water": 0.0, "growth": 0.0, "seed": 0, "q": 0, "lit": 0.0}
+
+
+## Product quality (Quality): +1 for a Premium Weed Seed ("q"), +1 when at least half of the growth happened
+## under a grow lamp ("lit" = growth fraction made under a lamp).
+const LAMP_SHARE: float = 0.5
+
+
+func harvest_tier() -> int:
+	var t: int = 1 + int(state.get("q", 0))
+	if float(state.get("lit", 0.0)) >= LAMP_SHARE:
+		t += 1
+	return clampi(t, 1, Quality.MAX)
+
+
+func harvest_id() -> String:
+	return Quality.with_tier("fresh_weed", harvest_tier())
+
+
+## Host + staff: plant `seed_id` ("weed_seed" / "premium_seed").
+func plant(seed_id: String) -> void:
+	state["stage"] = Stage.GROWING
+	state["growth"] = 0.0
+	state["seed"] = randi() % 100000
+	state["q"] = 1 if seed_id == "premium_seed" else 0
+	state["lit"] = 0.0
 
 
 func pick_up_blocker() -> String:
@@ -140,7 +165,11 @@ func tick(hours: float) -> bool:
 		return false
 	var old_step: int = roundi(float(state["growth"]) * WeedPlant.STEPS)
 	state["water"] = maxf(0.0, water - hours / WATER_HOURS)
-	state["growth"] = minf(1.0, float(state["growth"]) + hours / GROW_HOURS * growth_rate())
+	var rate: float = growth_rate()
+	var before: float = float(state["growth"])
+	state["growth"] = minf(1.0, before + hours / GROW_HOURS * rate)
+	if rate > 1.0:
+		state["lit"] = float(state.get("lit", 0.0)) + float(state["growth"]) - before
 	if float(state["growth"]) >= 1.0 and _is_host():
 		state["stage"] = Stage.READY
 		changed()
@@ -156,10 +185,16 @@ func status_text() -> String:
 			return "Pot with soil"
 		Stage.GROWING:
 			var w: float = float(state["water"])
-			return "Weed plant %d%% - %s" % [int(float(state["growth"]) * 100.0),
+			return "%s plant %d%% - %s" % [_plant_name(), int(float(state["growth"]) * 100.0),
 					"DRY, not growing" if w <= 0.0 else "water %d%%" % int(w * 100.0)]
 		_:
-			return "Weed plant - ready to harvest"
+			return "%s plant - ready to harvest" % _plant_name()
+
+
+## "Weed" / "Good Weed" / "Premium Weed" (the quality the harvest will have now).
+func _plant_name() -> String:
+	var w: String = Quality.NAMES[harvest_tier()] if harvest_tier() > 1 else ""
+	return (w + " Weed") if w != "" else "Weed"
 
 
 func prompt_for(player: Player) -> String:
@@ -168,13 +203,15 @@ func prompt_for(player: Player) -> String:
 		Stage.EMPTY:
 			return ("Fill with soil" if carried(player, "soil") > 0 else "Needs a Bag of Soil (Store)") + "   [%s]" % status
 		Stage.SOIL:
+			if carried(player, "premium_seed") > 0:
+				return "Plant a Premium Weed Seed (+1 quality)   [%s]" % status
 			return ("Plant a Weed Seed" if carried(player, "weed_seed") > 0 else "Needs a Weed Seed (Contact)") + "   [%s]" % status
 		Stage.GROWING:
 			if float(state["water"]) >= REFILL_BELOW:
 				return status
 			return ("Water the plant" if carried(player, "watering_can") > 0 else "Needs water (Watering Can)") + "   [%s]" % status
 		_:
-			return "Harvest %d Fresh Weed" % YIELD
+			return "Harvest %d %s" % [YIELD, item_name(harvest_id())]
 
 
 func do_action(player: Player) -> String:
@@ -189,11 +226,10 @@ func do_action(player: Player) -> String:
 			work = "soil"
 			return "Filled the pot with soil."
 		Stage.SOIL:
-			if not GameState.remove_item(who, "weed_seed", 1):
+			var seed_id: String = "premium_seed" if GameState.count_item(who, "premium_seed") > 0 else "weed_seed"
+			if not GameState.remove_item(who, seed_id, 1):
 				return "You need a Weed Seed."
-			state["stage"] = Stage.GROWING
-			state["growth"] = 0.0
-			state["seed"] = randi() % 100000
+			plant(seed_id)
 			changed()
 			work = "plant"
 			return "Planted a seed. Water it!"
@@ -207,9 +243,11 @@ func do_action(player: Player) -> String:
 			work = "water"
 			return "Watered the plant."
 		_:
-			if GameState.space_for(who, "fresh_weed") < YIELD:
+			var hid: String = harvest_id()
+			if GameState.space_for(who, hid) < YIELD:
 				return "Your pockets are full."
-			GameState.give(who, 0, [{"id": "fresh_weed", "count": YIELD}])
+			GameState.give(who, 0, [{"id": hid, "count": YIELD}])
+			Quality.host_made(hid)
 			state["stage"] = Stage.EMPTY
 			state["growth"] = 0.0
 			state["water"] = 0.0
@@ -217,4 +255,4 @@ func do_action(player: Player) -> String:
 			# Point 39: stems and leaves are left over (a trash bin takes them).
 			GameState.give(who, 0, [{"id": "plant_waste", "count": 1}])
 			work = "harvest"
-			return "Harvested %d Fresh Weed. Dry it on the rack." % YIELD
+			return "Harvested %d %s. Dry it on the rack." % [YIELD, item_name(hid)]

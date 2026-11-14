@@ -19,6 +19,8 @@ var _trays: Array[MeshInstance3D] = []
 func _init() -> void:
 	inputs = {"lab_chemicals": 2, "activator": 1}
 	output_id = "meth_tray"
+	quality_step = true
+	mix_id = "pure_reagent"
 	output_count = 2
 	hours = COOK_HOURS
 	label = "Cooking station"

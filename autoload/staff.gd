@@ -89,15 +89,25 @@ func describe(rec: Dictionary) -> String:
 	return "%s - %s (€%d/day)" % [_property_name(str(rec["property"])), str(rec.get("status", "")), int(rec["wage"])]
 
 
-## Dealer stock: "stock" = all bags; these record keys count the dearer bags among them (sold first, in this
-## order). The rest is weed.
-const DEALER_GOODS: Array = [["coke_bag", "coke"], ["meth_bag", "meth"]]
+## Dealer stock: "stock" = all bags; `dealer_goods()` record keys count the dearer bags among them (sold first,
+## most expensive first: every product + quality, Products.bag_ids). The rest is standard weed.
+## Keys: "coke" / "meth" for the standard bags (old saves), the item id for the better qualities.
+var _goods: Array = []
+
+
+func dealer_goods() -> Array:
+	if _goods.is_empty():
+		for id: String in Products.bag_ids():
+			if id != "weed_bag":
+				_goods.append([id, {"coke_bag": "coke", "meth_bag": "meth"}.get(id, id)])
+		_goods.sort_custom(func(a: Array, b: Array) -> bool: return Products.price(a[0], 100) > Products.price(b[0], 100))
+	return _goods
 
 
 ## " (3 meth, 2 cocaine)" for the dearer bags a dealer holds, else "".
 func meth_text(rec: Dictionary) -> String:
 	var parts: PackedStringArray = []
-	for g: Array in DEALER_GOODS:
+	for g: Array in dealer_goods():
 		if int(rec.get(g[1], 0)) > 0:
 			parts.append("%d %s" % [int(rec[g[1]]), Products.short_name(g[0])])
 	return " (%s)" % ", ".join(parts) if not parts.is_empty() else ""
@@ -106,7 +116,7 @@ func meth_text(rec: Dictionary) -> String:
 ## Bags of weed among a dealer's stock.
 func dealer_weed(rec: Dictionary) -> int:
 	var n: int = int(rec["stock"])
-	for g: Array in DEALER_GOODS:
+	for g: Array in dealer_goods():
 		n -= int(rec.get(g[1], 0))
 	return n
 
@@ -322,7 +332,7 @@ func _grower_step(rec: Dictionary) -> String:
 				continue
 			match stage:
 				GrowPot.Stage.READY:
-					if not _store_harvest(racks, lockers, GrowPot.YIELD):
+					if not _store_harvest(racks, lockers, GrowPot.YIELD, pot.harvest_id()):
 						missing = "no room on the racks / in the locker"
 						continue
 					s["stage"] = GrowPot.Stage.EMPTY
@@ -335,13 +345,13 @@ func _grower_step(rec: Dictionary) -> String:
 					s["water"] = 1.0
 					return _did(rec, pot, "watered a plant")
 				GrowPot.Stage.SOIL:
-					if not _locker_take(lockers, "weed_seed", 1):
+					# Premium Weed Seeds first (+1 quality, Quality).
+					var seed_id: String = "premium_seed" if _locker_count(lockers, "premium_seed") > 0 else "weed_seed"
+					if not _locker_take(lockers, seed_id, 1):
 						missing = "needs Weed Seeds in the locker"
 						continue
-					s["stage"] = GrowPot.Stage.GROWING
-					s["growth"] = 0.0
-					s["seed"] = randi() % 100000
-					return _did(rec, pot, "planted a seed")
+					pot.plant(seed_id)
+					return _did(rec, pot, "planted a %s" % ("premium seed" if seed_id == "premium_seed" else "seed"))
 				GrowPot.Stage.EMPTY:
 					if not _locker_take(lockers, "soil", 1):
 						missing = "needs Soil in the locker" if missing == "" else missing
@@ -361,27 +371,26 @@ func _did(rec: Dictionary, st: Station, what: String) -> String:
 	return what
 
 
-## Host: fresh weed onto the racks (the rest in a locker). False if it doesn't all fit.
-func _store_harvest(racks: Array, lockers: Array, amount: int) -> bool:
+## Host: fresh weed (`fresh` = its quality id) onto the racks that take it (one quality per rack), the rest in
+## a locker. False if it doesn't all fit.
+func _store_harvest(racks: Array, lockers: Array, amount: int, fresh: String = "fresh_weed") -> bool:
 	var room: int = 0
 	for r: DryingRack in racks:
-		room += DryingRack.CAPACITY - int(r.state["wet"]) - int(r.state["dry"])
+		if r.can_hang(fresh):
+			room += DryingRack.CAPACITY - int(r.state["wet"]) - int(r.state["dry"])
 	for l: StorageLocker in lockers:
-		room += _locker_room(l, "fresh_weed")
+		room += _locker_room(l, fresh)
 	if room < amount:
 		return false
 	for r: DryingRack in racks:
-		var free: int = DryingRack.CAPACITY - int(r.state["wet"]) - int(r.state["dry"])
-		var hang: int = mini(free, amount)
-		if hang <= 0:
+		if amount <= 0 or not r.can_hang(fresh):
 			continue
-		var wet: int = int(r.state["wet"])
-		r.state["progress"] = float(r.state["progress"]) * wet / float(wet + hang)
-		r.state["wet"] = wet + hang
-		r.changed()
-		amount -= hang
+		var hung: int = r.hang(fresh, amount)
+		if hung > 0:
+			r.changed()
+			amount -= hung
 	if amount > 0:
-		_locker_put(lockers, "fresh_weed", amount)
+		_locker_put(lockers, fresh, amount)
 	return true
 
 
@@ -397,15 +406,16 @@ func _packager_step(rec: Dictionary) -> String:
 		var dry: int = int(r.state["dry"])
 		if dry <= 0:
 			continue
+		var bid: String = r.bud_id()
 		var fits: int = 0
 		for l: StorageLocker in lockers:
-			fits += _locker_room(l, "weed_bud")
+			fits += _locker_room(l, bid)
 		var take: int = mini(dry, fits)
 		if take <= 0:
 			break
-		_locker_put(lockers, "weed_bud", take)
+		_locker_put(lockers, bid, take)
 		r.state["dry"] = dry - take
-		return _did(rec, r, "took %d Dried Weed off a rack" % take)
+		return _did(rec, r, "took %d %s off a rack" % [take, Station.item_name(bid)])
 	var tables: Array = _stations_in(prop, PackagingTable)
 	if tables.is_empty():
 		_set_status(rec, "needs a packaging table here")
@@ -470,7 +480,7 @@ func _machine_step(rec: Dictionary, kinds: Array[Script], report: bool) -> Strin
 	for m: ProcessStation in machines:
 		var n: int = m.staff_take(put)
 		if n > 0:
-			return _did(rec, m, "took %d %s off the %s" % [n, Station.item_name(m.output_id), m.label.to_lower()])
+			return _did(rec, m, "took %d %s off the %s" % [n, Station.item_name(m.out_id()), m.label.to_lower()])
 	for m: ProcessStation in machines:
 		if m.staff_attend():
 			return _did(rec, m, "%s" % m.attend_verb.to_lower())
@@ -507,7 +517,7 @@ func _courier_step(rec: Dictionary) -> String:
 		var room: int = config.dealer_capacity - int(d["stock"])
 		var brought: int = 0
 		if low:
-			for g: Array in DEALER_GOODS + [["weed_bag", ""]]:
+			for g: Array in dealer_goods() + [["weed_bag", ""]]:
 				var k: int = mini(_locker_count(lockers, g[0]), room - brought)
 				if k <= 0:
 					continue
@@ -640,7 +650,7 @@ func _dealer_tick(rec: Dictionary, hours: float) -> void:
 			rec["sell"] = float(rec["sell"]) - 1.0
 			rec["stock"] = int(rec["stock"]) - 1
 			var price: int = int(dist.get("price", 60))
-			for g: Array in DEALER_GOODS:
+			for g: Array in dealer_goods():
 				if int(rec.get(g[1], 0)) > 0:
 					rec[g[1]] = int(rec[g[1]]) - 1
 					price = Products.price(g[0], price)
@@ -811,7 +821,7 @@ func host_fire(who: String, uid: String) -> String:
 	print("[Staff] %s fired %s" % [who, rec["name"]])
 	if rec["role"] == "dealer":
 		var back: Array = [{"id": "weed_bag", "count": dealer_weed(rec)}]
-		for g: Array in DEALER_GOODS:
+		for g: Array in dealer_goods():
 			back.append({"id": g[0], "count": int(rec.get(g[1], 0))})
 		var left: Array = GameState.give(who, int(rec["cash"]), back)
 		_send_wallet(who)
@@ -833,15 +843,15 @@ func host_dealer(player: Player, uid: String, action: String) -> String:
 	var who: String = player.player_name
 	match action:
 		"give":
-			# Every kind of bag (DEALER_GOODS first, then weed); "stock" = all bags.
+			# Every kind of bag (dealer_goods() first, then weed); "stock" = all bags.
 			var carried: int = GameState.count_item(who, "weed_bag")
-			for g: Array in DEALER_GOODS:
+			for g: Array in dealer_goods():
 				carried += GameState.count_item(who, g[0])
 			var n: int = mini(carried, config.dealer_capacity - int(rec["stock"]))
 			if n <= 0:
 				return "!You have no bags to give." if carried == 0 else "!%s can't carry more." % rec["name"]
 			var left: int = n
-			for g: Array in DEALER_GOODS:
+			for g: Array in dealer_goods():
 				var k: int = mini(GameState.count_item(who, g[0]), left)
 				GameState.remove_item(who, g[0], k)
 				rec[g[1]] = int(rec.get(g[1], 0)) + k

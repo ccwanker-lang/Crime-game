@@ -7,6 +7,8 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all already in DESIGN/CHANGELOG/CLAUDE.md.
 New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: Part 9 (product quality), Part 10 (A's requests round 47: districts + property ranks).
+
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
 HUD rank panel, saved with the world, host authoritative + synced, F9 scenario `ranks`, self-test check `ranks`.
@@ -398,3 +400,62 @@ Done: self-test check `bulk` PASS, scenario `bulk_deal` OK.
   by; the team brings a jerrycan: fuel up to 15% (~450 m, enough for the gas station), text says so. CrewWindow shows
   each car's fuel %. Why: A's "Out of fuel" text points to the tow team; without fuel the car can't move at all.
   Roadside self-test checks it.
+
+
+# Part 9: product quality (DESIGN Products "quality (better seeds/machines -> better customers)"; user 2026-11-14:
+# "better seeds, machines and mixes give higher quality, better customers and higher prices; weed, meth and coke")
+
+## Status
+Done: self-test check `quality` PASS (+ growing/meth/staff/raids/bulk still PASS), scenario `quality`.
+
+## How it works
+- 3 tiers: Standard (the existing item), Good (`<id>_q2`), Premium (`<id>_q3`) = separate items for fresh_weed,
+  weed_bud, weed_bag, meth_tray, meth_shard, meth_bag, cocaine, coke_bag (tools/generators/gen_quality_items.py:
+  same model via model_scene, price x1.4 / x1.9, icon = base icon + 1/2 gold stars). Helper `Quality`
+  (scripts/products/quality.gd): base/tier/with_tier/variants/best_with/word, `host_made` -> GameState.world["quality"].
+- Where quality is made:
+  - Weed: GrowPot: Premium Weed Seed (`premium_seed`, black market, rank 1, planted before normal seeds) +1, at least
+    half of the growth under a grow lamp (`state.lit`) +1. DryingRack holds one quality at a time (`state.tier`).
+  - Meth: CookStation (`ProcessStation.quality_step`): Pure Reagent (`pure_reagent`, rank 2, the `mix_id`, used up
+    when it is in your pockets / the cook's locker) +1, a Fume Hood (`fume_hood` station, rank 3, `FumeHood.RANGE`
+    2.5 m) +1. CoolingPlate passes the tray's quality on (tiered inputs: best quality first).
+  - Cocaine: Refinery = quality step (Pure Solvent `pure_solvent`, rank 4, + Fume Hood).
+  - PackagingTable.PACKS = every quality (`static var`), same quality in -> out.
+- Selling: `Products.price` x the tier factor (A's customer price + dealers + bulk). `Products.pick_customer_product`
+  -> `pick_quality`: once the crew made Good/Premium of a product, 50% of its customers ask for the best quality,
+  the rest for a lower one (so standard bags still sell). Customers want that exact item (A's _server_sell unchanged).
+- Dealers: `Staff.dealer_goods()` (was the const DEALER_GOODS) = every bag but standard weed, dearest first (old keys
+  "meth"/"coke" for the standard bags, item id for the others). Raids steal every quality. Staff grower plants
+  premium seeds first, hangs by quality; packager takes each rack's quality.
+
+## Decisions (what + why)
+- Quality as separate item ids, not a field on stacks: inventory, lockers, loot bags, dealers, police confiscation
+  and A's sale code are all id based, so nothing else had to change (and mixed stacks can't happen).
+- 3 tiers, +1 per source, max Premium: one "better ingredient" + one "better machine" per product, so every product
+  has the same two choices (seed/lamp, reagent/hood, solvent/hood). Mixes = the reagent/solvent (consumed per run).
+- Quality lives in the chain items up to the bag (fresh weed, buds, trays, shards, cocaine), not in coca leaves or
+  paste: the refinery is the cocaine quality step, so the earlier steps don't need tiers.
+- A rack holds one quality: drying mixed batches would need an average and lose the premium.
+- Price x1.4 (Good) / x1.9 (Premium): Premium weed (€114) is still below standard meth (€132), Premium meth is above
+  standard cocaine; supplies cost €45/€160/€220 per run, the hood €1,800 once.
+- Customers ask for what the crew has made (world["quality"]); 50% the best, so a crew with only Premium still
+  gets half its customers, and Standard keeps selling.
+- The growing self-test check (A's) counts every quality now (`_count_q`): its pot stands under the lamp = Good weed.
+
+## Existing files changed (part 9)
+- process_station.gd (`_plan`, `_quality_for`, `out_id`, `hood_near`, tier in state), cook_station.gd + refinery.gd
+  (quality_step + mix_id), grow_pot.gd (`plant`, `harvest_tier/harvest_id`, lit), drying_rack.gd (tier, `can_hang`,
+  `hang`, `bud_id`), packaging_table.gd (PACKS), products.gd (price/short_name/bag_ids/pick_quality + black market
+  stock), staff.gd (`dealer_goods()`, grower/packager), bulk_deals.gd (quality pick), raids.gd (loot), rank_config.gd
+  (gates + texts), gen_items.py (fume_hood). New: quality.gd, fume_hood.gd + prefab, gen_quality_items.py, 19 items
+  + icons, quality_test.gd. self_test.gd: "quality" at the end + `_count_q` in A's growing check. meth_test.gd:
+  compares product bases. scenarios.gd: quality.
+
+## Te testen door Curry
+- `quality` (F9): plant de Premium Weed Seed onder de lamp (prompt toont Good/Premium), kook meth naast de Fume Hood
+  met Pure Reagent = Premium (gouden sterren), en verkoop 2 Bags of Premium Meth aan de klant buiten.
+
+## For CLAUDE.md (suggested lines)
+- Product quality (milestone 3): `Quality` (scripts/products/quality.gd, tiers 1-3 = item ids `<id>_q2/_q3`,
+  gen_quality_items.py), sources: GrowPot premium_seed + lamp, ProcessStation `quality_step` (`mix_id` pure_reagent /
+  pure_solvent, `FumeHood`), `Products.pick_quality`, `Staff.dealer_goods()`. Scenario quality, self-test check quality.

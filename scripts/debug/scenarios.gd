@@ -77,6 +77,7 @@ const LIST: Array = [
 	["raid_live", "Rank 2, night, AK + ammo in front of your meth lab: the Crows are coming", "The Crows texted: they raid your Starter Room in a moment (3 of them at the door). Kill them all within 2.5 minutes = raid won (+XP); if they're still standing they get in: half the product in the locker + a machine gone. Inside your property you're safe."],
 	["raid_guards", "Rank 4, 2 guards in your Starter Room, you far away, raid in a moment", "Nobody home: the guards fight. Hold F7: the Crows come; each guard takes one down, then they hold the lab (or not: 35% per guard). Read the texts (Tab). Tab > Crew: the guards' status."],
 	["roadside", "Rank 5, your Comet Sedan far away on Carlo's lot, you in front of the Starter Room", "Tab > Crew > Services: Roadside Service, 'Bring it here' (€350). A text; about 30 seconds later the car stands on the pavement of the nearest road (second text with the distance). F = get in. Not near a road / car already close = refused."],
+	["quality", "Rank 3: weed corner + cooking station next to a Fume Hood, premium supplies in your pockets, a customer for Premium Meth outside", "Weed: E on the pot under the lamp (soil, then the Premium Weed Seed is planted first, water) - the prompt says Good/Premium Weed plant; F7: harvest = Premium Fresh Weed, only a rack with the same quality takes it. Meth: E on the cooking station (uses the Pure Reagent: +1, the Fume Hood next to it: +1 = Premium), stir, cooling plate, packaging table = Bags of Premium Meth (gold stars in the hotbar). Outside: the customer pays Premium prices for 2 Bags of Premium Meth (E, Confirm). Tab > Crew > dealers sell the best bags first."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -583,6 +584,27 @@ static func run(world: Node, id: String) -> bool:
 			buyer.accept_deal()
 			buyer.face(me.global_position)
 			Pedestrian.force_outcome = "fair"
+		"quality":
+			Progression.force_gates = true
+			Progression.debug_set_rank(3)
+			await _lab(world, sr, [["cook_station", Vector3(1.5, 0.15, -8.2)], ["cooling_plate", Vector3(1.6, 0.15, -6.9)],
+					["fume_hood", Vector3(-0.2, 0.15, -8.3)]])
+			world.call("debug_weed_corner")
+			await world.get_tree().physics_frame
+			for pot: GrowPot in Staff._stations_in("starter_room", GrowPot):
+				if pot.growth_rate() > 1.0:  # the pot under the lamp: empty, ready for a premium seed
+					pot.state = pot.default_state()
+					pot.changed()
+					break
+			_kit(me, 2000, [["premium_seed", 2], ["soil", 1], ["watering_can", 1], ["lab_chemicals", 2], ["activator", 1],
+					["pure_reagent", 1], ["baggie", 20], ["meth_bag_q3", 3]])
+			GameState.world["quality"] = {"meth_bag": 3}
+			var buyer: Pedestrian = world.call("_add_pedestrian", home_front + sr.building().global_basis.z * 3.0, 1)
+			buyer.become_customer(2, Products.price("meth_bag_q3", 60) * 2, 900.0, "meth_bag_q3")
+			buyer.accept_deal()
+			Pedestrian.force_outcome = "fair"
+			var qspot: Vector3 = sr.building().to_global(Vector3(0.6, 0.2, -6.6))
+			_place(me, qspot, sr.building().to_global(Vector3(1.5, 1.0, -8.2)), dn, 10.0)
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)

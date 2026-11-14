@@ -83,7 +83,7 @@ func new_offer(product: String = "", bags: int = 0, at: Vector3 = Vector3.INF, y
 		for id: String in Products.BAGS:
 			if Progression.rank() >= int(Products.BAGS[id]["rank"]):
 				choices.append(id)
-		product = choices.pick_random() if not choices.is_empty() else "weed_bag"
+		product = Products.pick_quality(choices.pick_random() if not choices.is_empty() else "weed_bag")
 	if bags <= 0:
 		bags = BAG_COUNTS.pick_random()
 	var district: String = ""

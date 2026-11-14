@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://prefabs/items/weed_bag.tscn" id="2_model"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"weed_bag_q2"
+display_name = "Bag of Good Weed"
+max_stack = 20
+is_legal = false
+base_price = 84
+description = "Packaged product, ready to sell. Quality: Good (2 of 3)."
+model_scene = ExtResource("2_model")
