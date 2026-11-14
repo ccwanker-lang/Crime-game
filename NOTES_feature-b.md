@@ -7,7 +7,30 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all already in DESIGN/CHANGELOG/CLAUDE.md.
 New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: Part 9 (product quality), Part 10 (A's requests round 47: districts + property ranks).
+## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
+(shooting range).
+
+## Planned (in this order, from Curry 2026-11-14)
+1. Part 9: product quality - done (below).
+2. Part 11: shooting range (rank 2): practice on targets, try every gun, a small skill bonus (less spread).
+3. Parts 13-17: taken over from A's list (user 2026-11-14; A doesn't do them; "E makes you crouch" is already fixed
+   by A), after the range and BEFORE part 12:
+   13. Engine sound for every car (idle, accelerating, revs) + tyres and brakes.
+   14. Running people over from any angle (ragdoll, damage, a wanted star for murder).
+   15. Jumping onto cars and standing on them (collision on the roof and bonnet).
+   16. Dogs as real NPCs: flee when their owner dies, can be killed, play fetch with their owner.
+   17. Birds (fly, sit on roofs), cats, pigeons, ducks by the water.
+   Animals spawn from code or markers (no world.tscn / gen_world.py). A's car scripts touched -> listed in B.md.
+4. Part 12 (last): staff assignment (Schedule I style):
+   - E on any worker opens a menu: their locker, their stations, and the route between them.
+   - A route per production chain, picked per station: meth = locker -> cooking station(s) -> cooling plate(s) ->
+     packaging table; weed = locker -> pots -> drying rack -> packaging table; coke = locker -> coca bed(s) ->
+     leaf press -> refinery -> packaging table. The worker takes supplies from their locker, carries them along the
+     route and puts the end product back in that locker.
+   - A max number of stations per worker (e.g. a cook: 2 cooking stations + 2 cooling plates), shown in the menu.
+   - Staff locker: a special locker with a wage slot. Put money in; every game day each worker assigned to it takes
+     their daily wage. Empty -> they stop working and text you.
+   No map files.
 
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
@@ -459,3 +482,63 @@ Done: self-test check `quality` PASS (+ growing/meth/staff/raids/bulk still PASS
 - Product quality (milestone 3): `Quality` (scripts/products/quality.gd, tiers 1-3 = item ids `<id>_q2/_q3`,
   gen_quality_items.py), sources: GrowPot premium_seed + lamp, ProcessStation `quality_step` (`mix_id` pure_reagent /
   pure_solvent, `FumeHood`), `Products.pick_quality`, `Staff.dealer_goods()`. Scenario quality, self-test check quality.
+
+
+# Part 10: A's requests after 47a/47b (districts + property ranks)
+- StaffConfig.districts: "docks" (The Docks, anchor (-110.4, 0, 40) on Industrial Road's kerb, 0.8 sales/h, €75) and
+  "countryside" (Countryside, anchor (-146, 0, -60) on Country Lane's pavement, 0.5 sales/h, €80). Why: quiet areas
+  (A keeps few pedestrians in the west) sell slower but pay more; Territory picks them up by itself.
+- RankConfig.property_rank: barn 2, lab_warehouse 3, harbor_storage 4 (as A asked, = DESIGN Progression table);
+  rank texts name them.
+
+
+# Part 11: the shooting range (DESIGN Progression rank 2 "shooting range"; user 2026-11-14: "practice, try weapons,
+# maybe a small skill bonus")
+
+## Status
+Done: self-test check `range`, scenario `shooting_range`.
+
+## How it works
+- `ShootingRange` (scripts/range/shooting_range.gd): "Hollow Creek Gun Club", built in code on every peer (local, like
+  StaffViews) by the `RangeClub` autoload at the marker `ShootingRangeSpot` if the map has one, else at
+  (-100, 0, -124) facing west (the free strip north of Hollow Farm, between the tree row z -112 and the NW wall).
+  3 lanes, `RangeTarget` pop-up targets at 10/20/32 m (layer 2, `host_damage`/`is_head_hit` like a person; bullseye
+  9 cm), an earth berm, a covered firing line with a scoreboard per lane, the club hut with Walt (`RangeDesk`).
+- `RangeClub` (autoload/range_club.gd, HOST AUTHORITATIVE): E on Walt -> `RangeWindow` (scripts/ui/range_window.gd)
+  -> `request("drill"|"try"|"return", arg)` -> `host_request`. Rank 2 gate (Progression.gates_on()).
+  - Drill (€40, clean money first = a legal club): 45 s on a free lane, one target up at a time (1.7 s + 0.04 s/m),
+    hit 1 point, bullseye 2. Leaving the range or dying ends it. Result -> skill + best score + XP (score/2, max 10).
+  - Try a gun (€25): any LOADOUT gun (also above your rank) + 2 magazines; goes back (gun, its loaded rounds, unused
+    lent rounds) when you walk 45 m from the range, after 10 minutes or with "Hand it back". One at a time; not a gun
+    you already carry. player_data["range_loan"].
+  - Skill 0..1 per player name in GameState.world["range"]["skill"] (+ "best"), synced to every peer: gain per drill =
+    min(0.06, points x 0.004) x (1 - skill/2). `RangeClub.spread_factor(name)` = 1 - 0.2 x skill.
+- PlayerCombat (2 lines): `_spread` multiplies by `RangeClub.spread_factor`; `_host_fire` skips the hear_gunshot /
+  report_crime / cars calls when `RangeClub.covers(origin)` (legal gunfire). Hits/kills of people still count.
+- Free practice: lanes without a drill keep all targets up; hits give the normal hit marker.
+- Staff._broadcast also calls `RangeClub.sync()` (late join); clients ask for targets + skill when their range spawns.
+
+## Decisions (what + why)
+- Built in code at a fallback spot instead of in the map: the map is A's (world.tscn / gen_world.py). A can add a
+  Marker3D `ShootingRangeSpot` (position + yaw = shooters face its -Z) wherever it fits; the range moves there.
+- Skill bonus = only less spread, max 20%: small, visible with every gun, and no change to damage balance. Diminishing
+  gain so ~25-30 good drills get you most of it; it costs money (fee) and time, never free XP grinding (max 10 XP).
+- Loaner guns ignore the rank gate on purpose ("test weapons" before you can buy them), but they never leave the
+  range. A loaner that dies with you stays in your loot bag (rare at the range; not worth a special case).
+- The range is legal: no police, panic or traffic reaction to shots there; it is far west so nobody else is near.
+
+## Existing files changed (part 10 + 11)
+- player_combat.gd (2 hooks, see above), staff.gd (`RangeClub.sync()` in `_broadcast`), staff_config.gd (2
+  districts), rank_config.gd (property ranks + texts), project.godot (autoload RangeClub after BulkDeals). New:
+  range_club.gd, shooting_range.gd, range_target.gd, range_desk.gd, range_window.gd, range_test.gd. self_test.gd:
+  "range" at the end of CHECKS. scenarios.gd: shooting_range (before bulk_deal).
+
+## Te testen door Curry
+- `shooting_range` (F9): je staat bij Walt (rang 2). E = venster: start een drill (€40) en schiet de opduikende
+  doelen op je baan; probeer een geweer (€25, bv. de sniper) en loop weg: Walt heeft hem terug. Geen politie.
+
+## For CLAUDE.md (suggested lines)
+- Shooting range (milestone 3): `RangeClub` autoload (GameState.world["range"] skill/best, drills, loaner guns
+  `player_data.range_loan`, `covers(pos)` = legal gunfire, `spread_factor(name)` in PlayerCombat._spread), local build
+  `ShootingRange` (marker `ShootingRangeSpot` or FALLBACK_POS) + `RangeTarget` + `RangeDesk` (Walt) + `RangeWindow`.
+  Scenario shooting_range, self-test check range.

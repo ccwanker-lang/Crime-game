@@ -78,6 +78,7 @@ const LIST: Array = [
 	["raid_guards", "Rank 4, 2 guards in your Starter Room, you far away, raid in a moment", "Nobody home: the guards fight. Hold F7: the Crows come; each guard takes one down, then they hold the lab (or not: 35% per guard). Read the texts (Tab). Tab > Crew: the guards' status."],
 	["roadside", "Rank 5, your Comet Sedan far away on Carlo's lot, you in front of the Starter Room", "Tab > Crew > Services: Roadside Service, 'Bring it here' (€350). A text; about 30 seconds later the car stands on the pavement of the nearest road (second text with the distance). F = get in. Not near a road / car already close = refused."],
 	["quality", "Rank 3: weed corner + cooking station next to a Fume Hood, premium supplies in your pockets, a customer for Premium Meth outside", "Weed: E on the pot under the lamp (soil, then the Premium Weed Seed is planted first, water) - the prompt says Good/Premium Weed plant; F7: harvest = Premium Fresh Weed, only a rack with the same quality takes it. Meth: E on the cooking station (uses the Pure Reagent: +1, the Fume Hood next to it: +1 = Premium), stir, cooling plate, packaging table = Bags of Premium Meth (gold stars in the hotbar). Outside: the customer pays Premium prices for 2 Bags of Premium Meth (E, Confirm). Tab > Crew > dealers sell the best bags first."],
+	["shooting_range", "Rank 2, at Walt's counter at the Hollow Creek Gun Club (north of Hollow Farm) with a pistol, ammo and €500", "E on Walt: the range window. Start a drill (€40): go to your lane (board under the roof), targets pop up one at a time, bullseye = 2 points; after 45 s you get the score + skill (less spread). Try a gun (€25, e.g. the sniper): it's yours while you stay on the range, walk away and Walt has it back. Free practice: shoot the standing targets - no police, nobody panics."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -605,6 +606,20 @@ static func run(world: Node, id: String) -> bool:
 			Pedestrian.force_outcome = "fair"
 			var qspot: Vector3 = sr.building().to_global(Vector3(0.6, 0.2, -6.6))
 			_place(me, qspot, sr.building().to_global(Vector3(1.5, 1.0, -8.2)), dn, 10.0)
+		"shooting_range":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
+			for i: int in 3:
+				await world.get_tree().process_frame
+			var rg: ShootingRange = ShootingRange.current
+			if rg:
+				var at: Vector3 = rg.desk.global_position + rg.desk.global_basis.z * 1.4 + Vector3.UP * 0.2
+				_place(me, at, rg.desk.global_position + Vector3.UP * 1.5, dn, 14.0)
+				if "--range-view" in OS.get_cmdline_user_args():  # screenshot flag: down lane 2
+					var lane: Vector3 = rg.firing_spot(1)
+					_place(me, lane + Vector3.UP * 0.1, rg.target(1, 2).center(), dn, 14.0)
+			me.combat.host_set_mags([8])  # a loaded pistol
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)

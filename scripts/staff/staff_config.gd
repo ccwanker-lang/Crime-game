@@ -65,6 +65,8 @@ extends Resource
 	"main_east": {"name": "Main Road East", "anchor": Vector3(36.0, 0.0, 4.6), "sales_per_hour": 1.5, "price": 60},
 	"north": {"name": "North Road", "anchor": Vector3(18.0, 0.0, -43.4), "sales_per_hour": 0.9, "price": 70},
 	"south": {"name": "South Street", "anchor": Vector3(-34.0, 0.0, 55.4), "sales_per_hour": 1.0, "price": 65},
+	"docks": {"name": "The Docks", "anchor": Vector3(-110.4, 0.0, 40.0), "sales_per_hour": 0.8, "price": 75},
+	"countryside": {"name": "Countryside", "anchor": Vector3(-146.0, 0.0, -60.0), "sales_per_hour": 0.5, "price": 80},
 }
 
 @export_group("Hiring")

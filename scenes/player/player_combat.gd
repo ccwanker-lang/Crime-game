@@ -338,6 +338,7 @@ func _spread(dir: Vector3) -> Vector3:
 		s = weapon.spread_air
 	if player.net_crouch:
 		s *= 0.6
+	s *= RangeClub.spread_factor(player.player_name)  # shooting range skill (session B)
 	return _cone(dir, s)
 
 
@@ -464,9 +465,11 @@ func _host_fire(index: int, origin: Vector3, dir: Vector3) -> void:
 		else:
 			_hit_confirm.rpc_id(player.peer_id, heads[victim], killed)
 	# Pedestrians nearby react to the bang (host AI); police come for the shooter (point 10).
-	get_tree().call_group(&"npc", "hear_gunshot", origin)
-	get_tree().call_group(&"police", "report_crime", player, origin, false)
-	get_tree().call_group(&"cars", "hear_gunshot", origin)
+	# Not on the shooting range (RangeClub): gunfire there is legal.
+	if not RangeClub.covers(origin):
+		get_tree().call_group(&"npc", "hear_gunshot", origin)
+		get_tree().call_group(&"police", "report_crime", player, origin, false)
+		get_tree().call_group(&"cars", "hear_gunshot", origin)
 	# Everyone else sees and hears the shot.
 	for peer: int in [1] + Net.peers_in_world:
 		if peer == player.peer_id:

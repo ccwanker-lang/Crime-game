@@ -954,6 +954,7 @@ func _broadcast() -> void:
 		_set_members.rpc(m, c)
 	Legal.sync()
 	BulkDeals.sync()
+	RangeClub.sync()
 
 
 ## Client: ask for the members list (its World is up).
