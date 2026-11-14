@@ -64,5 +64,6 @@ One line per finished part.
 - Point 47c: the Black Crows guard a private pier at the west end of the harbour (3 armed Crows, a fence and a KEEP OUT sign): step onto it and they shoot; scenario harbour_crows, self-test check harbour.
 - Points 56/57: no more endless falling - a player or car that falls out of the world is put back where it last stood; no more invisible walls in the fields - the whole village is one open area up to a hedge with trees and hills behind it (the quay at the sea); scenario open_border, self-test check ground.
 - Point 58: E at a station or placing furniture no longer makes your character kneel - a short effect at the object instead (a dust poof when placing / picking up); scenario no_kneel.
+- Point 61: grass on every green plane (it grows round you as you walk or drive), never on roads, paths, fields or in buildings; scenario grass, self-test check grass.
 - Point 60: South Street (police station) no longer dead-ends: it bends south and runs on to the harbour / Quay Road; traffic drives it both ways; scenario harbour_road.
 - Point 59: police vs Crows gunfights end after at most 2 minutes, then a 5-minute truce (the Crows walk back to their turf); scenario police_vs_crows, self-test check police_vs_crows.

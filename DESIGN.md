@@ -422,7 +422,8 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
       2 min, then both sides break off and a 5 min truce follows; Crows walk back to their turf)
   60. Map: the police station's street (South Street) dead-ends: extend it to the docks - DONE (bend south at
       x -66, down to Quay Road at z 84 = a T junction; traffic loops 3/4 drive it both ways)
-  61. Map: grass everywhere it is green (no bare green planes) - todo
+  61. Map: grass everywhere it is green (no bare green planes) - DONE (GrassCover: tufts in 10 m chunks round
+      the camera wherever a ray hits green ground; roads, paths, fields and buildings stay bare)
   62. Map: houses with driveways and parking, a rich neighbourhood with villas, a business district with tall
       office buildings. Layout: the prison (49) behind the mountain north of the farm (see 49b), the rich neighbourhood next to the farm, the business
       district on the other side of the village - todo
@@ -988,6 +989,13 @@ Choices made while working autonomously (what + why).
   split and stays on main; B builds on it.
 - Point 49b / round-5 order (set by the user, replaces my earlier "49b after 62"): 60 -> 61 -> 63 -> 49b -> 62.
   The pass starts at the farm (Country Lane top), which 62 doesn't move, so 62 can fit the villas round it later.
+- Point 61: Grass everywhere = `GrassCover` (scripts/procgen/grass_cover.gd, World child, not headless): 10 m chunks
+  within 52 m of the camera (fade 45 m), 2 built per frame, freed when far. A tuft goes where a ray down hits a
+  `GroundArea` with `grass` on at ground height, minus every GrassField rect (they keep their own grass) and every
+  RoadTile square (asphalt is at the same height as the ground). Why chunks round the camera and not grass fields
+  over the whole map: 280 x 250 m of tufts would be ~300k instances; the cover costs the same everywhere (~80
+  chunks). Why rays: no list of "green rectangles" to keep up to date - new buildings, paths and fields (point 62)
+  are bare by themselves. Cost measured: 02_street 61 -> 55 FPS.
 - Point 60: South Street goes on where its barriers stood: a curve tile at (-66, 60), down to a curve at (-66, 84),
   west along z 84 into Quay Road; the old corner (-114, 84) is now a T junction (`QuayJunction`, in
   `Traffic.JUNCTIONS`). Why curves and not one more T: the land west of x -72 at z 60 is the industrial block. The

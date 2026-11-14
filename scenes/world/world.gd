@@ -50,6 +50,9 @@ func _ready() -> void:
 
 	_set_debug_visible(false)
 	add_child(ScenarioMenu.new())  # F9
+	# Point 61: grass on every green plane, built round the camera (only where something is drawn).
+	if DisplayServer.get_name() != "headless":
+		add_child(GrassCover.new())
 	# Point 37: sleeping skips the night (host logic, World/Sleep).
 	var sleep := Sleep.new()
 	sleep.name = "Sleep"

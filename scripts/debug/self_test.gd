@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3542,6 +3542,40 @@ func _check_harbour(world: Node3D) -> void:
 const PLAY_RECT := Rect2(-193, -133, 268, 239)
 const QUAY_Z: float = 104.8
 const SEA_X: float = -72.5
+
+
+## Point 61: grass on the open green land, none on roads, soil fields or in buildings.
+func _check_grass(world: Node3D) -> void:
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var skip: Array[Rect2] = GrassCover.field_rects(get_tree())
+	var open: int = GrassCover.tuft_points(space, Vector2i(-4, -7), skip).size()  # the field north of the centre
+	var full: int = int(GrassCover.CHUNK * GrassCover.CHUNK * GrassCover.DENSITY * 0.8)
+	_report(open >= full, "open green land is covered with grass (%d tufts in a 10 m chunk, want >= %d)" % [open, full])
+	var on_road: int = 0
+	for key: Vector2i in [Vector2i(0, -1), Vector2i(0, 0), Vector2i(-2, -1), Vector2i(-2, 0)]:
+		for p: Vector3 in GrassCover.tuft_points(space, key, skip):
+			if absf(p.z) < 5.8:
+				on_road += 1
+	_report(on_road == 0, "no grass on Main Road or its pavements (%d tufts there)" % on_road)
+	var field: int = GrassCover.tuft_points(space, Vector2i(-13, -5), skip).size()  # inside the soil field (-120, -40)
+	_report(field == 0, "no grass on the soil fields (%d)" % field)
+	var store: Building = world.find_child("Store", true, false) as Building
+	var inside: int = 0
+	if store:
+		var c: Vector3 = store.global_position
+		var mid := Vector2(c.x, c.z) + Vector2(store.global_basis.z.x, store.global_basis.z.z) * -4.0
+		for p: Vector3 in GrassCover.tuft_points(space, Vector2i(floori(mid.x / 10.0), floori(mid.y / 10.0)), skip):
+			if Vector2(p.x, p.z).distance_to(mid) < 2.0:
+				inside += 1
+	_report(store != null and inside == 0, "no grass inside a building (%d)" % inside)
+	var dup: int = 0
+	for r: Rect2 in skip.slice(0, 3):
+		var k := Vector2i(floori(r.get_center().x / 10.0), floori(r.get_center().y / 10.0))
+		for p: Vector3 in GrassCover.tuft_points(space, k, skip):
+			if r.has_point(Vector2(p.x, p.z)):
+				dup += 1
+	_report(skip.size() > 0 and dup == 0, "the hand-placed grass fields keep their own grass (%d bare rects, %d doubles)" % [skip.size(), dup])
 
 
 func _check_ground(world: Node3D) -> void:

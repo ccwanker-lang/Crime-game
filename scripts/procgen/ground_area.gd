@@ -11,6 +11,8 @@ extends StaticBody3D
 	set(v): collision = v; _queue_rebuild()
 @export var material: Material:
 	set(v): material = v; _queue_rebuild()
+## Point 61: GrassCover grows grass tufts on this ground (off for ground that isn't green).
+@export var grass: bool = true
 
 var _generated: Array[Node] = []
 var _pending: bool = false

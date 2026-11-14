@@ -54,6 +54,7 @@ const LIST: Array = [
 	["harbour_crows", "Point 47c: the Crows' private pier at the west end of the quay - 3 armed Crows, you with a pistol", "You stand on Quay Road by the PRIVATE PIER sign. The Crows stroll between the containers and leave you alone on the road; step through the gap in the fence onto the pier and they open fire (with F11 god mode you can watch). Kill one: a new one comes after 1-2 minutes."],
 	["no_kneel", "Point 58: no kneeling on E - a poof at the object instead", "Weed corner at home + a sofa and a pot in slot 1/2. V = third person. E on the pots / rack / table: your body stays standing, a short effect plays at the object. B = build mode: place the sofa (LMB) -> poof; hold E on it -> poof, back in your inventory."],
 	["open_border", "Points 56/57: walk anywhere up to the hedge at the edge; the fall safety net", "You stand north of the centre (where the invisible wall used to be) next to your car. Walk or drive north-west across the grass to the farm and on to the hedge at the edge: no invisible walls before it. Safety net: F10 (fly), Ctrl to sink deep under the ground, F10 off -> you fall and land back where you last stood, alive."],
+	["grass", "Point 61: grass on every green plane", "You stand in the open field north of the centre. Look and walk around: grass tufts everywhere the ground is green (fields, verges, along the border hedge, round the farm), none on roads, pavements, the soil fields or in buildings. It grows in about 50 m round you and fades out further away. Drive a car around: the grass keeps up."],
 	["harbour_road", "Point 60: South Street (the police station's street) now runs on to the harbour", "You stand on South Street next to your car, facing west. Drive (F, W) past the police station: where the road used to end at barriers it now bends south, down to the quay and into Quay Road (crane, ship). Traffic drives the same loop both ways; on the phone map (Tab > Map) the road is there too."],
 	["gas_station", "QuickFuel on North Road: your Comet Sedan almost empty next to pump 1, €500", "The car panel (bottom right) shows fuel 6% when you sit in it (F). Get out, E on the red pump: 'Fill up: 43 L for €86' -> full, money gone (clean money first). Drive around town: the % drops (a full tank is about 3 km). Second car (Mule Van) at pump 2 is completely empty: get in, W = nothing, it only rolls. Below 15% you get a 'Low fuel' message."],
 	["turf_take", "15:00 in front of the Starter Room: this district is at 96% influence, a customer waits (green €)", "Phone (Tab) > Turf: every district with its meter (red = Crow turf). E on the customer > Confirm deal: the sale pushes the meter past 100% -> a text 'X is yours now', Turf shows it green. Walk into another district: a toast with its name and owner. Your turf: customers pay 15% more, no Crows roam there at night."],
@@ -407,6 +408,9 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 1, Vector3(-36, 0.2, -66), PI, "", 1.0)
 			_place(me, Vector3(-40, 0.3, -64), Vector3(-120, 1.5, -95), dn, 13.0)
+		"grass":
+			_kit(me, 200, [])
+			_place(me, Vector3(-40, 0.3, -66), Vector3(-90, 1.0, -80), dn, 12.0)
 		"harbour_road":
 			_kit(me, 300, [])
 			var veh: Vehicles = Vehicles.current

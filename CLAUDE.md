@@ -248,6 +248,8 @@ Godot console exe:
   (Shopkeeper subclass in `prefabs/buildings/car_dealer.tscn`, `request_buy_car`, markers CarDelivery1-4), `DisplayCar`.
   Player: `vehicle`/`seat`, `enter_vehicle`/`leave_vehicle`/`_ride`/`_car_input`; actions `vehicle` (F) + `horn` (H);
   HUD `set_car`/`update_car`/`_fill_cars`. Scenarios car_dealer, driving (`--drive` shot flag); self-test check vehicles.
+- Grass cover (point 61): `GrassCover` (World child, not headless): chunks round the camera, tufts where a ray hits a
+  `GroundArea` (`grass` export) minus GrassField + RoadTile squares (`field_rects`, `tuft_points`). Self-test check grass.
 - Border + safety net (points 56/57): gen_world `PLAY` (x -193..75, z -133..106) = the playable area; border =
   BorderHedge ring 6 m out + Backdrop trees + Bounds walls 7 m out (Quay wall at the sea); one `Ground` (+ GroundSouth).
   Host safety net: `Player.FALL_Y` (-12), `Player.safe_pos`, `_host_fall_net` (player + PlayerCar). Self-test check

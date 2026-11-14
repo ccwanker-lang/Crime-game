@@ -88,6 +88,7 @@
   F out. With 2 instances the second player presses F at the same car = passenger.
 - open_border: walk/drive north-west through the fields to the farm and the hedge; F10 + Ctrl under the ground, F10 off -> back.
 - no_kneel: E on pots/rack/table (V = third person): no kneeling, an effect at the object; B: place/pick up the sofa = poof.
+- grass: walk/drive around the open field: grass everywhere it is green, none on roads/paths/fields.
 - harbour_road: drive west along South Street past the old barriers: it bends down to the harbour / Quay Road.
 - police_vs_crows: they fight at most 2 minutes, then break off (the Crow walks home).
 - (from before, still untested by you) trash, launder, grow (work animations + mouse wheel), sleep, bookshelf.
