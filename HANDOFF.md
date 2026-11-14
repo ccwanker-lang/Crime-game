@@ -30,11 +30,16 @@
 
 - Point 51 (territory) committed (50f96a7): targeted checks + netcheck pass; full self-test: see below.
 
+- 2026-11-14 (after the restart): feature-b merged (e787b69, B's meth/cocaine/courier/lawyer/bribes/raids/
+  roadside). Point 49 (prison intro, 8dec644) and point 50 (late-join intro, 893985f) committed; targeted check
+  `intro` + scenarios pass, a 2-process late-join run works (client gets its step box). Full self-test on the merge:
+  see the end of this file when done. Round 4 + admin mode were already built (5da614a, c566f9c).
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
 3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14) DONE, cover garage (52) DONE,
-   territory per district (51) DONE, the remote prison + tutorial intro + late-join intro (49-50), the full village
+   territory per district (51) DONE, the remote prison + tutorial intro + late-join intro (49-50) DONE, the full village
    map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
 
 ## Te testen door Curry (F9 in the game, or --scenario=<name>)
@@ -47,6 +52,10 @@
 - park: 15:00 at the park entrance: paths, benches, dog walkers with dogs, youths smoking in a circle.
 - agora: 15:00 on the pitch, a 2-against-2 match; walk into the ball to kick it, GOAL! + score board.
 - car_dealer: in Carlo's office with €20,000 clean: E on Carlo, buy a car, it waits on the lot outside.
+- prison_intro: a new game's start in the cell (walk to the door, Marco, desk, bus; F2 skips).
+- late_join: the short intro of a friend who joins later (door open, desk, bus).
+- meth_market / meth_lab / meth_cook / meth_dealer / meth_customer, coke_lab / coke_staff, courier, bribe,
+  raid_live / raid_guards, roadside: session B's milestone-3 work, now in main.
 - turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.
 - turf_danger: sell to the customer -> "Told you. Look behind you." + a Crow runs at you by day; shoot it, check Turf.
 - cover_garage: E on the car on the lift (4x) -> +€260 clean; E on the tool shelf at the back -> hidden room.
