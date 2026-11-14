@@ -35,11 +35,15 @@
   `intro` + scenarios pass, a 2-process late-join run works (client gets its step box). Full self-test on the merge:
   see the end of this file when done. Round 4 + admin mode were already built (5da614a, c566f9c).
 
+- 2026-11-14: rest of point 48 (fuel + QuickFuel gas station on North Road, 191fede): check `fuel` + `vehicles` and
+  scenario gas_station pass. The old full self-test on the merge hung in the traffic check under CPU load (B was
+  running its own self-test at the same time); a fresh full run on 191fede follows (result below when done).
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
 3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14) DONE, cover garage (52) DONE,
-   territory per district (51) DONE, the remote prison + tutorial intro + late-join intro (49-50) DONE, the full village
+   territory per district (51) DONE, the remote prison + tutorial intro + late-join intro (49-50) DONE, fuel station (rest of 48) DONE, the full village
    map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
 
 ## Te testen door Curry (F9 in the game, or --scenario=<name>)
@@ -56,6 +60,8 @@
 - late_join: the short intro of a friend who joins later (door open, desk, bus).
 - meth_market / meth_lab / meth_cook / meth_dealer / meth_customer, coke_lab / coke_staff, courier, bribe,
   raid_live / raid_guards, roadside: session B's milestone-3 work, now in main.
+- gas_station: QuickFuel on North Road, your Comet Sedan almost empty next to pump 1: sit in it (F) -> fuel 6%,
+  get out, E on the red pump -> full, €86 gone. The Mule Van at pump 2 is empty: W does nothing.
 - turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.
 - turf_danger: sell to the customer -> "Told you. Look behind you." + a Crow runs at you by day; shoot it, check Turf.
 - cover_garage: E on the car on the lift (4x) -> +€260 clean; E on the tool shelf at the back -> hidden room.
