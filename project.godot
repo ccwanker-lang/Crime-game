@@ -24,6 +24,7 @@ Progression="*res://autoload/progression.gd"
 Staff="*res://autoload/staff.gd"
 Products="*res://autoload/products.gd"
 Legal="*res://autoload/legal.gd"
+Raids="*res://autoload/raids.gd"
 
 [display]
 

@@ -59,6 +59,8 @@ const LIST: Array = [
 	["coke_staff", "Rank 4: a grower + a cook run the cocaine lab in your Starter Room", "Hold F7 and watch: the grower plants + waters the coca bed (seedlings + soil from the locker), the cook presses the leaves and runs the refinery; the cocaine ends up in the locker (E on it). E on a worker = what they are doing."],
 	["courier", "Rank 3: a courier in your Starter Room, bags in the locker, a dealer in Old Town", "Hold F7: the courier takes the bags from the locker to your dealer and brings the cash back (phone text), then buys soil/seeds/baggies for the stations into the locker (paid from your money). Tab > Crew: what everybody does."],
 	["bribe", "Rank 5, 3 wanted stars, €8,000", "Tab > Crew > Lawyer + cop: Bribe Dekker (€1,500 per star) -> the stars are gone. Hire Mr. Hale too (€400 a day): after an arrest he gets 60% of the fine and half of the confiscated goods back (needs a small hook from session A in the arrest code)."],
+	["raid_live", "Rank 2, night, AK + ammo in front of your meth lab: the Crows are coming", "The Crows texted: they raid your Starter Room in a moment (3 of them at the door). Kill them all within 2.5 minutes = raid won (+XP); if they're still standing they get in: half the product in the locker + a machine gone. Inside your property you're safe."],
+	["raid_guards", "Rank 4, 2 guards in your Starter Room, you far away, raid in a moment", "Nobody home: the guards fight. Hold F7: the Crows come; each guard takes one down, then they hold the lab (or not: 35% per guard). Read the texts (Tab). Tab > Crew: the guards' status."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -472,6 +474,28 @@ static func run(world: Node, id: String) -> bool:
 			buyer.accept_deal()
 			buyer.face(me.global_position)
 			Pedestrian.force_outcome = "fair"
+		"raid_live", "raid_guards":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2 if id == "raid_live" else 4)
+			await meth_lab(world, sr)
+			world.call("debug_weed_corner")
+			await world.get_tree().physics_frame
+			for l: StorageLocker in Staff._stations_in("starter_room", StorageLocker):
+				l.state["items"] = [{"id": "meth_bag", "count": 12}, {"id": "weed_bag", "count": 8}, {"id": "lab_chemicals", "count": 4}]
+				l.changed()
+				break
+			if id == "raid_live":
+				_kit(me, 2000, [["ak47", 1], ["ammo_762", 120]])
+				_place(me, home_front + sr.building().global_basis.z * 3.0, home_front + sr.building().global_basis.z * 10.0, dn, 23.0)
+				me.combat.select_slot(0)
+			else:
+				_kit(me, 4000, [])
+				Staff.debug_hire(me.player_name, "guard", "starter_room")
+				Staff.debug_hire(me.player_name, "guard", "starter_room")
+				_at_keeper(world, me, "GunShop", dn, 22.5)
+			Raids._data()["rolled"] = true  # no random second raid tonight
+			Raids.announce("starter_room")
+			Raids._data()["pending"]["at"] = float(Raids._data()["time"]) + 0.05
 		"meth_dealer":
 			Progression.force_gates = true
 			Progression.debug_set_rank(1)
@@ -483,7 +507,7 @@ static func run(world: Node, id: String) -> bool:
 			var dpos: Vector3 = dealer.get("pos", Vector3(-24, 0, -4.6))
 			var yaw: float = float(dealer.get("yaw", 0.0))
 			_place(me, dpos + Vector3(-sin(yaw), 0, -cos(yaw)) * 2.2 + Vector3.UP * 0.2, dpos + Vector3.UP * 1.4, dn, 15.0)
-	if id in ["weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
+	if id in ["raid_live", "weapons_light", "weapons_heavy", "traffic_gunfire", "panic", "rivals_night", "crows_turf", "death_respawn"]:
 		_no_police(world)
 	me.send_wallet()
 	me.combat.host_send_all_ammo()

@@ -264,3 +264,46 @@ Done: self-test check `services` PASS; scenarios courier / bribe OK. The lawyer'
 - Courier/lawyer/bribes (milestone 3): Staff role courier (`_courier_step`, StaffConfig courier_*), `Legal` autoload
   (lawyer retainer + `on_player_arrested`, `host_bribe` -> Wanted.clear), CrewWindow tab "Lawyer + cop".
   Scenarios courier, bribe; self-test check services.
+
+
+# Part 6: Crow raids on labs + guards (DESIGN "Lab raids: rivals steal stock/machines unless guards or players defend")
+
+## Status
+Code + self-test check `raids` + scenarios raid_live / raid_guards.
+
+## How it works
+- `Raids` autoload (autoload/raids.gd, host), state GameState.world["raids"] {rolled, pending {prop, at}, wins, losses,
+  time}. Once per night (DayNight.is_night) with crew rank >= 2: 30% chance the Crows pick a crew-owned "lab" (property
+  with production stations), text "Black Crows" warning, the raid WARN_HOURS (2 in-game hours) later.
+- `start(prop)`: raiders = clamp(2 + rank/2, 2, 5); every guard there takes one down first (all down = won).
+  A crew player within 35 m: LIVE raid: `World.add_rival(front spot)` with role STREET, `remember(player)`; they wait at
+  the front (walk back if they stray); kill them all within 150 s = won, else lost (they go back to the yard).
+  Nobody there: won with 35% per guard, else lost.
+- Lost: 50% of every drug/bag/supply stack in the property's lockers (`LOOT_IDS`) is gone; without guards also one
+  placed ProcessStation (`host_remove_placed`); each guard there dies with 40%. Won: +80 crew XP. Texts to the crew.
+- Guard = Staff role (rank 4, €200/day, a bed/locker in the property like other workers), status "on guard".
+
+## Decisions (what + why)
+- Raiders never walk INTO the property (A's rule: inside your own property you are safe, Crows don't come in). The
+  "break-in" is the timer: Crows still standing at the door when it runs out = they got in. Why: no changes to the
+  Crow AI (A's files) and the fight happens outside where the AI works.
+- Live raids only when a crew player is close: a real fight when you can take it, a dice roll for guards when you're
+  away (DESIGN: "unless guards or players defend").
+- Machines: only one ProcessStation (meth/cocaine machine) is taken and only when there are no guards: losing a
+  €2,500 refinery is a big hit; guards are the insurance. Weed pots are not taken (small, starter content).
+- Raids start at rank 2 (DESIGN act 2 "First blood (rank 2): the Crows raid your barn"); guards come at rank 4 (DESIGN
+  rank table "guards"); before rank 4 you defend yourself.
+
+## Existing files changed (part 6)
+- project.godot: autoload `Raids`. staff_config.gd: role guard. staff.gd: guard status, candidates.
+- self_test.gd: "raids" at the end of CHECKS (scripts/debug/raid_test.gd). scenarios.gd: raid_live, raid_guards.
+- Uses A's `World.add_rival`, `Rival.role/home/remember/memory`, `Pedestrian._go` (read-only use, no edits).
+
+## Te testen door Curry
+- `raid_live` (F9): nacht, AK in je handen, de Crows komen naar je Starter Room: schiet ze neer binnen 2,5 minuut.
+- `raid_guards`: jij bent ver weg, 2 bewakers verdedigen het lab (F7); lees de sms'jes.
+
+## For CLAUDE.md (suggested lines)
+- Raids (milestone 3): `Raids` autoload (nightly roll from rank 2, `announce`/`start`, LIVE raid with World.add_rival
+  when crew is near, else guards roll; `_lost` steals locker stock + a machine), Staff role guard (rank 4).
+  Scenarios raid_live/raid_guards, self-test check raids.

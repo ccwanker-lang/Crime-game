@@ -25,6 +25,10 @@ var lawyer: String = ""
 var _bribed_at: Dictionary = {}  # host: player name -> in-game clock of the last bribe
 
 
+func _ready() -> void:
+	add_to_group(&"arrest_hooks")  # Player.host_arrest (session A) -> on_player_arrested
+
+
 func _data() -> Dictionary:
 	var d: Variant = GameState.world.get("legal")
 	if not d is Dictionary:

@@ -240,6 +240,9 @@ func _pay_wages() -> void:
 # --- Host: workers -------------------------------------------------------------------------
 
 func _worker_tick(rec: Dictionary, hours: float) -> void:
+	if rec["role"] == "guard":
+		_set_status(rec, "on guard (raids: %s)" % ("coming!" if _raid_pending(str(rec["property"])) else "quiet"))
+		return
 	var rate: float = config.packager_bags_per_hour
 	match str(rec["role"]):
 		"grower": rate = config.grower_actions_per_hour
@@ -264,6 +267,11 @@ func _worker_tick(rec: Dictionary, hours: float) -> void:
 		did += 1
 	if did > 0:
 		_mark()
+
+
+func _raid_pending(prop_id: String) -> bool:
+	var r: Variant = GameState.world.get("raids")
+	return r is Dictionary and str(((r as Dictionary).get("pending", {}) as Dictionary).get("prop", "")) == prop_id
 
 
 ## Stations of one kind in the worker's property.
@@ -673,7 +681,7 @@ func _lose_dealer(rec: Dictionary, text: String, why: String) -> void:
 
 func _new_candidates() -> void:
 	var list: Array = []
-	var roles: Array = ["grower", "packager", "dealer", "dealer", "grower", "packager", "cook", "courier"]
+	var roles: Array = ["grower", "packager", "dealer", "dealer", "grower", "packager", "cook", "courier", "guard"]
 	for i: int in config.candidates:
 		list.append(_make_candidate(roles[i % roles.size()] if i < 3 else roles.pick_random()))
 	_data()["candidates"] = list
@@ -737,7 +745,7 @@ func host_hire(who: String, index: int, place: String) -> String:
 		_place_worker(rec, prop)
 	_members()[rec["uid"]] = rec
 	cands.remove_at(index)
-	cands.append(_make_candidate(["grower", "packager", "dealer", "cook", "courier"].pick_random()))
+	cands.append(_make_candidate(["grower", "packager", "dealer", "cook", "courier", "guard"].pick_random()))
 	_mark()
 	print("[Staff] %s hired %s as %s (%s)" % [who, rec["name"], role, place])
 	if role == "dealer":

@@ -13,6 +13,8 @@ extends Resource
 			"about": "Runs the machines in a property from the storage locker: meth (cooking station, cooling plate) and cocaine (leaf press, refinery). Stirs and vents in time."},
 	"courier": {"name": "Courier", "rank": 3, "wage": 120,
 			"about": "Works from a property: buys the supplies its stations use into the locker, brings your dealers bags from the locker and their cash back to you."},
+	"guard": {"name": "Guard", "rank": 4, "wage": 200,
+			"about": "Guards a property against Crow raids: takes one raider down first, and holds the place while you're away."},
 	"dealer": {"name": "Dealer", "rank": 1, "wage": 0,
 			"about": "Sells your bags in a district for a commission. Give them stock, collect the cash."},
 }
