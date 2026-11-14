@@ -59,6 +59,12 @@ static func run(t: Node, world: Node3D) -> void:
 	# Already close: refused, no money.
 	res = Roadside.host_tow(p, car.uid)
 	report.call(res.begins_with("!") and int(GameState.player_data["Boss"]["cash"]) == cash, "car already here: refused ('%s')" % res)
+	# Close by but out of fuel (A's point 48): the team comes with a jerrycan.
+	car.fuel = 0.0
+	res = Roadside.host_tow(p, car.uid)
+	report.call(not res.begins_with("!") and is_equal_approx(car.fuel, Roadside.JERRYCAN)
+			and int(GameState.player_data["Boss"]["cash"]) == cash - Roadside.FEE and str(p.last_phone[1]).contains("jerrycan"),
+			"empty tank: a jerrycan (fuel %d%%), '%s'" % [roundi(car.fuel * 100.0), str(p.last_phone[1])])
 
 	Roadside.tow_seconds = old_tow
 	Progression.force_gates = gates0

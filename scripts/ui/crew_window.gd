@@ -236,11 +236,11 @@ func _fill_roadside(gates: bool) -> void:
 	for car: PlayerCar in cars:
 		var row := _row()
 		var d: int = roundi(car.global_position.distance_to(player.global_position)) if player else 0
-		var t := _label("%s  -  %d m away" % [Roadside.car_name(car), d], 15)
+		var t := _label("%s  -  %d m away, fuel %d%%" % [Roadside.car_name(car), d, roundi(car.fuel * 100.0)], 15)
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(t)
 		var b := _button("Bring it here (€%d)" % Roadside.FEE)
-		b.disabled = d < 20
+		b.disabled = d < 20 and car.fuel >= Roadside.JERRYCAN  # (an empty car close by: they bring a jerrycan)
 		var uid: String = car.uid
 		b.pressed.connect(func() -> void:
 			_msg.text = "..."

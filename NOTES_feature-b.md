@@ -6,7 +6,8 @@ session A when merging (B may not edit those files).
 ## MERGED parts 1 + 2 (A, main c95e70c) and parts 3-7 + the anchor fix (A, merge of 0b00291, 2026-11-14): all
 already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: "Dealers count for A's territory" (last line of the Fix section) + Part 8 (bulk deals).
+## Open for the next merge: "Dealers count for A's territory" (last line of the Fix section), "Roadside + fuel" (end
+of the file) + Part 8 (bulk deals).
 
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
@@ -392,3 +393,10 @@ Done: self-test check `bulk` PASS, scenario `bulk_deal` OK.
 - Bulk deals (milestone 3): `BulkDeals` autoload (GameState.world["bulk"], rank 4 offers every 20-30 h, `new_offer`,
   `host_sell`, `request_sell`, synced `offer`, `enabled` off in selftest), visual `BulkBuyerNPC`. Scenario bulk_deal,
   self-test check bulk.
+
+
+# Roadside + fuel (after A's point 48)
+- An (almost) empty crew car (`PlayerCar.fuel` < `Roadside.JERRYCAN` 0.15) can be called even when it stands close
+  by; the team brings a jerrycan: fuel up to 15% (~450 m, enough for the gas station), text says so. CrewWindow shows
+  each car's fuel %. Why: A's "Out of fuel" text points to the tow team; without fuel the car can't move at all.
+  Roadside self-test checks it.
