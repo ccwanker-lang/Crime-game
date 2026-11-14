@@ -348,3 +348,7 @@ Code + self-test check `roadside` + scenario `roadside`.
 # Fix (A's request 2026-11-14)
 - StaffConfig district "south" anchor Vector3(-34, 0, 49.4) -> (-34, 0, 55.4): the old spot was inside the building
   row (now A's cover garage, the dealer snapped onto the workshop floor); the new one is on South Street's pavement.
+- Dealers count for A's territory (point 51): every bag a dealer sells adds `StaffConfig.turf_per_dealer_bag` (2.0)
+  influence to their district via `Territory.current.host_add(district, n, "dealer")` (staff.gd `_dealer_tick`).
+  Why: a player's fair street sale is worth 4; a dealer half of that, because nobody risks a fight for it. Staff
+  self-test checks the meter.
