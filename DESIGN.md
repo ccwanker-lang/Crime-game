@@ -389,7 +389,8 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
       story progress (missed missions done, no loot/money from them, own cash/items from zero) - todo
   51. Territory per district: the Crows hold every village district at the start, dealing there is dangerous,
       influence meter (sales + won fights), take them over one by one - todo
-  52. Cover garage: own garage property, repair cars for clean money, hidden lab/storage at the back - todo
+  52. Cover garage: own garage property, repair cars for clean money, hidden lab/storage at the back - DONE
+      (Corner Garage on South Street, €25,000; RepairBay car lift + Spare Parts; HiddenShelfDoor to the back room)
   53. Story missions per act (chapter 1, acts 1-5; the traitor = an old friend of the players) - todo
   54. The city + the highway link (chapter 2 map: skyscrapers, downtown, hillside) - todo
   55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
@@ -777,3 +778,15 @@ Choices made while working autonomously (what + why).
   random pause at the start).
 - Arrest hook for session B's lawyer: `Player.host_arrest` calls group "arrest_hooks" `on_player_arrested(p, fine,
   taken_items)` after the fine (B's Legal autoload refunds part of it). Why: B owns the lawyer, A owns player.gd.
+- Point 52 (cover garage): the Corner Garage replaces RowHouseB5 + RowHouseC3 on South Street (x -42..-29.6);
+  gen_world `SKIP_NODES` leaves just those two nodes out while their rng calls and names still run, so every other
+  house keeps its look and name. Why: one fixed spot near the estate agent without reshuffling the whole row.
+- Point 52: repairs are a `RepairBay` station (one E = one work step, "repair" work animation with sparks), a
+  customer car every 2-4 in-game hours once the garage is crew owned, 4 job types (3-6 steps, 0-3 Spare Parts,
+  €140-600). Pay is CLEAN money to the one who finishes + 10 crew XP. Why: the garage is a front business, so it
+  should give legal money like the launder shops, but it costs time at the lift instead of a daily cap.
+- Point 52: Spare Parts (`car_parts`, €40, legal) come from the phone webshop only; no new shop NPC. Why: the
+  webshop already delivers every legal item, and buying parts online fits a small garage.
+- Point 52: the hidden room sits behind a full tool shelf (`HiddenShelfDoor`, a NetDoor subclass that slides 1.2 m
+  sideways). It is part of the same Property, so build mode places stations there. Why: NetDoor already gives E,
+  host authority and late-join sync; the shelf hides the room from the workshop side.

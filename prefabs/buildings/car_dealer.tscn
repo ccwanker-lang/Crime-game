@@ -45,10 +45,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.2, 0.15, -7.4)
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 0.15, -7.5)
 
 [node name="Plant" parent="." instance=ExtResource("6_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.6, 0.15, -0.9)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2.7, 0.15, -0.8)
 
 [node name="Sofa" parent="." instance=ExtResource("7_r")]
-transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -2.6, 0.15, -2.6)
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 2.9, 0.15, -3.4)
 
 [node name="Lamp" parent="." instance=ExtResource("8_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.98, -4)

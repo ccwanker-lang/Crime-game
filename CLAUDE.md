@@ -247,6 +247,10 @@ Godot console exe:
   (Shopkeeper subclass in `prefabs/buildings/car_dealer.tscn`, `request_buy_car`, markers CarDelivery1-4), `DisplayCar`.
   Player: `vehicle`/`seat`, `enter_vehicle`/`leave_vehicle`/`_ride`/`_car_input`; actions `vehicle` (F) + `horn` (H);
   HUD `set_car`/`update_car`/`_fill_cars`. Scenarios car_dealer, driving (`--drive` shot flag); self-test check vehicles.
+- Cover garage (point 52): `prefabs/buildings/cover_garage.tscn` (gen_prefabs `cover_garage_extra`, node CoverGarage on
+  South Street, Property "cover_garage"; gen_world `SKIP_NODES` drops the row houses it replaced). `RepairBay` station
+  (`scripts/stations/repair_bay.gd`, `new_job(i)`, JOBS, item `car_parts`), `HiddenShelfDoor` (NetDoor subclass, node
+  SecretShelf, marker HiddenRoomSpot). Scenario cover_garage, self-test check garage.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

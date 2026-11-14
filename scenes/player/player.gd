@@ -811,6 +811,7 @@ const WORK_FX: Dictionary = {
 	"soil": [Color(0.3, 0.2, 0.12), 24, 0.03, 0.15],
 	"plant": [Color(0.3, 0.2, 0.12), 10, 0.02, 0.06],
 	"harvest": [Color(0.25, 0.45, 0.15), 18, 0.035, 0.2],
+	"repair": [Color(1.0, 0.72, 0.25), 14, 0.012, 0.1],  # point 52: sparks at the car lift
 }
 var _work_t: float = 0.0
 var _work_kind: String = ""

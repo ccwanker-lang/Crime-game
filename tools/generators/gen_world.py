@@ -21,11 +21,18 @@ def uname(base):
     return f"{base}{counter[base]}"
 
 
+# Point 52: random row houses replaced by a fixed building. Their rng calls and names still happen (so every
+# other house keeps its look and name); only the node is left out.
+SKIP_NODES = {"RowHouseB5", "RowHouseC3"}
+
+
 def put(prefab, pos, rot=0.0, parent=NAV, name=None, props=None, scale=1.0):
     p = {"transform": xform(pos, rot, scale)}
     p.update(props or {})
     base = name or prefab.split("/")[-1].replace(".tscn", "").title().replace("_", "")
     nm = name if name else uname(base)
+    if nm in SKIP_NODES:
+        return nm
     sc.node(nm, None, parent, instance=PF + prefab, props=p)
     return nm
 
@@ -370,6 +377,10 @@ property_node("SouthWarehouse", "south_warehouse", "Warehouse", 45000,
               "South Street, west end. 16 x 12 m hall, 5.5 m high. Room for a big lab.", 0.0, 4.2)
 last_type[0] = None
 row(-42, -24, 54, True, gS)
+# Point 52: the cover garage where RowHouseB5 + RowHouseC3 stood (x -42..-29.6).
+put("buildings/cover_garage.tscn", (-35.8, 0, 54), 0, name="CoverGarage")
+property_node("CoverGarage", "cover_garage", "Corner Garage", 25000,
+              "South Street. A real car workshop (repairs pay clean money) with a hidden room behind the tool shelf.", -4.2, 4.6)
 fixed("buildings/real_estate.tscn", -24, 8.0, 54, True, gS, name="RealEstate")
 property_node("Bakery", "bakery", "Bakery", 12000,
               "Shop row on the main road. Front business: launders up to €1,500 dirty cash a day (10% fee).", 0.0, 4.6)

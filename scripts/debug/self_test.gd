@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "regen", "selling", "phone", "traffic", "save", "ranks", "staff"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "regen", "selling", "phone", "traffic", "save", "ranks", "staff"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3092,5 +3092,74 @@ func _check_vehicles(world: Node3D) -> void:
 	if is_instance_valid(npc):
 		npc.queue_free()
 	GameState.player_data.erase("Driver")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Cover garage (point 52) ----------------------------------------------------------------
+
+func _check_garage(world: Node3D) -> void:
+	var garage: Node3D = world.find_child("CoverGarage", true, false) as Node3D
+	var prop: Property = garage.get_node_or_null("Property") as Property if garage else null
+	var bay: RepairBay = garage.find_child("RepairBay", true, false) as RepairBay if garage else null
+	var shelf: HiddenShelfDoor = garage.find_child("SecretShelf", true, false) as HiddenShelfDoor if garage else null
+	_report(prop != null and bay != null and shelf != null and prop.for_sale and bay.property() == prop,
+			"the cover garage: for sale, a car lift, a secret shelf door")
+	if prop == null or bay == null or shelf == null:
+		return
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Mech"
+	var at_bay: Vector3 = bay.global_position + bay.global_basis.x * 0.6 + bay.global_basis.z * 2.8
+	p.auto_target = at_bay
+	world.get_node("Players").add_child(p)
+	p.global_position = at_bay
+	for i: int in 5:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Mech")
+	GameState.get_or_create_player_data("Mech")
+	bay.work = ""
+	var msg: String = bay.do_action(p)
+	_report(msg.begins_with("Buy the garage") and not prop.is_crew_owned(), "not owned: the lift does nothing (%s)" % msg)
+	prop.host_set_owned("Mech")
+	bay.new_job(1)  # new brake pads: 1 part, 4 steps, €260
+	msg = bay.do_action(p)
+	_report(int(bay.state["done"]) == 0 and "Spare Parts" in msg, "a job that needs parts waits for them (%s)" % msg)
+	GameState.give("Mech", 0, [{"id": "car_parts", "count": 2}])
+	var clean0: int = int(GameState.player_data["Mech"]["clean"])
+	for i: int in 4:
+		bay.work = ""
+		msg = bay.do_action(p)
+		if i == 0:
+			_report(bay.work == "repair" and int(bay.state["done"]) == 1 and GameState.count_item("Mech", "car_parts") == 1,
+					"working uses the part and plays the repair animation (%s)" % msg)
+	var clean1: int = int(GameState.player_data["Mech"]["clean"])
+	_report(clean1 == clean0 + 260 and int(bay.state["job"]) == -1 and float(bay.state["wait"]) >= bay.wait_hours.x,
+			"4 steps later: done, €%d CLEAN money, next customer in %.1f h (%s)" % [clean1 - clean0, float(bay.state["wait"]), msg])
+	bay.state["wait"] = 0.05
+	bay.tick(0.1)
+	_report(int(bay.state["job"]) >= 0 and str(bay.state["who"]) != "", "the next customer brings a car (%s)" % bay.prompt_for(p))
+	# The hidden room: the shelf blocks the gap until it slides aside.
+	var room: Node3D = garage.find_child("HiddenRoomSpot", true, false) as Node3D
+	var before: Vector3 = garage.to_global(Vector3(0.0, 0.2, -8.0))
+	p.global_position = before
+	p.auto_target = room.global_position
+	await get_tree().create_timer(2.5).timeout
+	var blocked: bool = garage.to_local(p.global_position).z > -10.0
+	_report(blocked and not shelf.is_open, "the closed shelf blocks the way to the hidden room (z %.1f)" % garage.to_local(p.global_position).z)
+	shelf.interact()
+	await get_tree().create_timer(1.0).timeout
+	p.auto_target = room.global_position
+	await get_tree().create_timer(3.0).timeout
+	_report(shelf.is_open and p.global_position.distance_to(room.global_position) < 0.8,
+			"pulled aside: you walk into the hidden room (%.1f m from its middle, at %s local)" % [
+			p.global_position.distance_to(room.global_position), garage.to_local(p.global_position).snapped(Vector3.ONE * 0.1)])
+	var why: String = Placement.check(world.get_world_3d(), get_tree(), ItemDB.get_item(&"grow_pot"),
+			room.global_position + Vector3(1.5, 0, 0), 0.0)
+	_report(why == "", "stations can be placed in the hidden room ('%s')" % why)
+	shelf.interact()
+	await get_tree().create_timer(1.0).timeout
+	GameState.player_data.erase("Mech")
 	p.queue_free()
 	await get_tree().physics_frame

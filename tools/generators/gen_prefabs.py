@@ -523,8 +523,8 @@ def car_dealer_extra(sc):
     inst(sc, "Chair2", I + "dining_chair.tscn", (0.5, FLOOR, -3.8), 0)
     inst(sc, "Cabinet", I + "drawer_cabinet.tscn", (2.2, FLOOR, -7.4), 0)
     inst(sc, "Shelf", I + "wall_shelf.tscn", (-2.0, FLOOR, -7.5), 0)
-    inst(sc, "Plant", I + "potted_plant.tscn", (2.6, FLOOR, -0.9))
-    inst(sc, "Sofa", I + "sofa_modern.tscn", (-2.6, FLOOR, -2.6), 90)
+    inst(sc, "Plant", I + "potted_plant.tscn", (2.7, FLOOR, -0.8))
+    inst(sc, "Sofa", I + "sofa_modern.tscn", (2.9, FLOOR, -3.4), -90)  # (the door is in the left bay)
     inst(sc, "Lamp", I + "ceiling_lamp.tscn", (0, 2.98, -4.0))
     shopkeeper(sc, "Carlo", (0.0, FLOOR, -6.1), "Carlo", "Carlo's Cars",
                "Wheels! Every car on the lot runs, mostly. Cash or... cash.", [], 2, 33,
@@ -598,6 +598,52 @@ def safe(sc, pos, daily_max, rot=0.0):
 def counter(sc, name, pos, size, material="planks"):
     sc.node(name, "StaticBody3D", ".", props={
         "transform": xform(pos), "script": sc.script(S["proc_box"]), "size": v3(*size), "material_key": q(material)})
+
+
+# Point 52: the cover garage (a property, rank 1): a real workshop in front (car lift = RepairBay, repairs pay
+# clean money) and a hidden room at the back behind a tool shelf that slides aside (HiddenShelfDoor).
+COVER_W = 12.4
+
+
+def cover_garage_extra(sc):
+    wz = -10.1  # the wall between the workshop and the hidden room
+    top = 4.35
+    # Front: big letters + a closed roller shutter over the right two bays (cars come in through the back alley).
+    sc.node("Sign", "Label3D", ".", props={
+        "transform": xform((2.0, 4.05, 0.08)), "text": q("AUTO REPAIR"), "font_size": "110", "pixel_size": "0.007",
+        "outline_size": "12", "modulate": col(0.4, 0.8, 1.0), "double_sided": "false"})
+    sc.node("Shutter", "StaticBody3D", ".", props={
+        "script": sc.script("res://scripts/procgen/roller_shutter.gd"), "transform": xform((2.0, 0.0, 0.02)),
+        "size": "Vector2(7.0, 3.3)"})
+    # Workshop: the lift with the customer's car, workbench, tools, racks, tyres.
+    inst(sc, "RepairBay", "prefabs/stations/repair_bay.tscn", (2.0, FLOOR, -5.0), 0)
+    counter(sc, "Workbench", (-4.6, FLOOR, -8.9), (2.6, 0.9, 0.8), "metal_dark")
+    inst(sc, "ToolCart", I + "tool_cart.tscn", (-1.0, FLOOR, -4.4), 15)
+    inst(sc, "Rack1", I + "metal_rack.tscn", (5.6, FLOOR, -2.0), -90)
+    inst(sc, "Rack2", I + "steel_shelves.tscn", (5.6, FLOOR, -8.4), -90)
+    inst(sc, "Barrel1", P + "barrel.tscn", (-5.4, FLOOR, -1.4))
+    inst(sc, "Barrel2", P + "barrel.tscn", (-4.8, FLOOR, -1.0))
+    inst(sc, "Crate1", P + "crate_flat.tscn", (-5.3, FLOOR, -6.0), 90)
+    inst(sc, "Lamp1", I + "hanging_lamp.tscn", (-2.5, 4.35, -4.0))
+    inst(sc, "Lamp2", I + "hanging_lamp.tscn", (2.5, 4.35, -5.0))
+    # The wall with the gap for the secret door (x -0.6..0.6); the shelf stands in front of it, slides right.
+    counter(sc, "HiddenWallL", ((-6.2 + -0.6) / 2, FLOOR, wz), (5.6, top, 0.2), "interior_plaster")
+    counter(sc, "HiddenWallR", ((0.6 + 6.2) / 2, FLOOR, wz), (5.6, top, 0.2), "interior_plaster")
+    counter(sc, "HiddenWallTop", (0.0, FLOOR + 2.3, wz), (1.2, top - 2.3, 0.2), "interior_plaster")
+    sc.node("SecretShelf", "Node3D", ".", props={
+        "script": sc.script("res://scripts/interaction/hidden_shelf_door.gd"),
+        "transform": xform((-0.6, FLOOR, wz + 0.1 + 0.47)), "width": "1.2", "height": "2.3", "depth": "0.45"})
+    # The hidden room (3.6 m deep): bare, a lamp and an old crate; the crew builds its lab/storage here.
+    inst(sc, "HiddenLamp", I + "hanging_lamp.tscn", (0.0, 4.35, -12.0))
+    inst(sc, "HiddenCrate", P + "crate_long.tscn", (5.0, FLOOR, -13.0), 0)
+    marker(sc, "HiddenRoomSpot", (0.0, FLOOR, -12.0), 0)
+
+
+building(B + "cover_garage.tscn", {
+    "width": str(COVER_W), "depth": "14.0", "floors": "1", "floor_height": "4.5", "bays": "3",
+    "wall_material": q("concrete"), "roof_type": q("flat"), "door_bay": "0", "door_color": col(0.15, 0.3, 0.5),
+    "string_courses": "false", "enterable": "true", "shop_sign": q("AUTO REPAIR"), "floor_material": q("concrete"),
+    "chimney": q("none"), "lit_windows": "0.0", "variation_seed": "52"}, cover_garage_extra)
 
 
 def bakery_extra(sc):

@@ -46,6 +46,7 @@ const LIST: Array = [
 	["agora", "15:00 on the agora, a 2-against-2 match going on", "Four NPCs in red and blue shirts play football (passes, shots, GOAL! + score board). Walk into the ball to kick it yourself (Shift = harder). The match ends after a few minutes and they walk off; on a normal day a match starts now and then between 09:00 and 20:00."],
 	["car_dealer", "14:00 at Carlo's Cars with €20,000 clean money", "E on Carlo: the car list (Pony Hatch, Comet Sedan, Mule Van) with top speed, seats and price. Buy one: it appears on the lot outside (nose to the road), Carlo texts you. Walk to it: '[F] Drive the ...'. Buying again fills the next spot; with 4 cars on the lot Carlo says to clear it first."],
 	["driving", "12:00 on the car lot next to your Comet Sedan (+ a Mule Van)", "F = get in (driver's seat), W/S = gas / brake + reverse, A/D = steer, Space = handbrake, H = horn, mouse = look around (the camera swings back behind the car), F = get out beside the door. Speed at the bottom (km/h). Drive onto the road and around town; walls and cars stop you. People you hit at speed get hurt (that is a crime, like a shot). With 2 instances: the second player presses F at the same car = passenger seat."],
+	["cover_garage", "10:00 in your own Corner Garage (South Street) with 3 Spare Parts, a car on the lift", "E on the car on the lift: each press is one work step (sparks, kneel animation, the car rises). Brake pads need 1 Spare Part (you carry 3). After 4 steps: +€260 CLEAN money (a toast message); the next customer comes 2-4 in-game hours later (F7 speeds time up). More parts: phone > Shop > Spare Parts. Then the tool shelf at the back wall: E = it slides aside, walk into the hidden room behind it (build mode B: place stations there). E again closes it."],
 	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
 	["staff_workers", "Rank 2: a grower + a packager in your Starter Room", "Hold F7 to speed up time and watch: the grower fills the pots with soil, plants, waters and harvests onto the drying rack; the packager takes the dried weed off and packages it (bags end up in the locker: E on it). E on a worker = what they are doing. Tab > Crew: your staff, wages, Fire, and Benny's candidates (Hire tab)."],
 	["dealers", "Rank 1, 10 bags, next to your dealer in Old Town", "E on the dealer: Give all my bags, then hold F7: they sell about 1 bag per in-game hour (+XP, top-left panel). E again: Collect. Tab > Crew > Hire: Benny's people (pick a district or a property). Rank 1 allows 1 dealer: F8 a few times for more."],
@@ -357,6 +358,16 @@ static func run(world: Node, id: String) -> bool:
 			var office: Node3D = world.find_child("CarDealer", true, false) as Node3D
 			var carlo: Node3D = office.find_child("Carlo", true, false) as Node3D
 			_place(me, office.to_global(Vector3(0.0, 0.2, -3.6)), carlo.global_position + Vector3.UP * 1.5, dn, 14.0)
+		"cover_garage":
+			_kit(me, 500, [["car_parts", 3]])
+			var garage: Node3D = world.find_child("CoverGarage", true, false) as Node3D
+			var gprop: Property = garage.get_node_or_null("Property") as Property if garage else null
+			var bay: RepairBay = garage.find_child("RepairBay", true, false) as RepairBay if garage else null
+			if gprop and bay:
+				gprop.host_set_owned(me.player_name)
+				bay.new_job(1)
+				_place(me, bay.global_position + bay.global_basis.x * 0.6 + bay.global_basis.z * 4.2,
+						bay.global_position + Vector3.UP * 1.0, dn, 10.0)
 		"driving":
 			_kit(me, 500, [])
 			var veh: Vehicles = Vehicles.current
@@ -399,8 +410,8 @@ static func run(world: Node, id: String) -> bool:
 		for c: Node in world.get_tree().get_nodes_in_group(&"player_cars"):
 			near.append("own car %s %.0f m" % [(c as PlayerCar).spec["name"], (c as Node3D).global_position.distance_to(me.global_position)])
 		var prop: Property = Placement.property_at(world.get_tree(), me.global_position)
-		print("[ScenarioCheck] %s: at %s (%s), %.1f h, health %d, wanted %d, cash %d clean %d, items %s, near: %s" % [id,
-				me.global_position.snapped(Vector3.ONE * 0.1), prop.display_name if prop else "street",
+		print("[ScenarioCheck] %s: at %s yaw %d (%s), %.1f h, health %d, wanted %d, cash %d clean %d, items %s, near: %s" % [id,
+				me.global_position.snapped(Vector3.ONE * 0.1), roundi(rad_to_deg(me.rotation.y)), prop.display_name if prop else "street",
 				dn.hours if dn else -1.0, me.health, me.wanted_stars, int(data["cash"]), int(data.get("clean", 0)),
 				(data["inventory"] as Array).map(func(it: Dictionary) -> String: return "%dx %s" % [int(it["count"]), it["id"]]),
 				", ".join(near)])
