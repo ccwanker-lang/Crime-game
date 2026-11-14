@@ -59,6 +59,6 @@
 - `--only=npc_combat` needs `pedestrians` in the same run (it uses the pedestrians that check spawns).
 - Push: the user made github.com/ccwanker-lang/Crime-game (PUBLIC). Setting origin + pushing was blocked by the
   permission classifier on 2026-11-14; the user runs `git remote set-url origin https://github.com/ccwanker-lang/Crime-game.git`
-  + `git push -u origin main feature-b` themselves (or allows it).
+  + pushed main themselves. From now on A runs `git push origin main` after every commit; B pushes feature-b.
 - Netcheck: after the respawn the client's 5 m crouch walk bumps into the host (both stand at the hospital spawn);
   harmless, it has always been like that.
