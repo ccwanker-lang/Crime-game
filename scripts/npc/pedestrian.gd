@@ -931,6 +931,11 @@ func _pick_seat() -> Node3D:
 	return free.pick_random() if not free.is_empty() else null
 
 
+## Point 47: west of this x (industrial edge, harbour) only this share of random walk spots is kept.
+const QUIET_WEST_X: float = -76.0
+const QUIET_WEST_CHANCE: float = 0.12
+
+
 ## A random outdoor point on a sidewalk/square (raised 0.15 m paving, open sky).
 static func random_sidewalk_point(from: Node3D, max_tries: int = 60) -> Vector3:
 	var world := from.get_world_3d()
@@ -939,6 +944,8 @@ static func random_sidewalk_point(from: Node3D, max_tries: int = 60) -> Vector3:
 		var p: Vector3 = NavigationServer3D.map_get_random_point(world.navigation_map, 1, true)
 		if p.y > 2.0:
 			continue  # flat roofs
+		if p.x < QUIET_WEST_X and randf() > QUIET_WEST_CHANCE:
+			continue  # point 47: the industrial edge + harbour stay quiet (few passers-by)
 		# What is actually under this point? (navmesh heights are rounded)
 		var down := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 1.0, p + Vector3.DOWN * 1.5, 1)
 		var hit: Dictionary = space.intersect_ray(down)

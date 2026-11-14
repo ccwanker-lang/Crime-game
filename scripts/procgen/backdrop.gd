@@ -19,6 +19,9 @@ extends Node3D
 	set(v): backdrop_seed = v; _queue_rebuild()
 @export var ground_plane: bool = true:
 	set(v): ground_plane = v; _queue_rebuild()
+## Point 47: no trees or hills inside these world rects (xz) - where another backdrop or the sea takes over.
+@export var skip_rects: Array[Rect2] = []:
+	set(v): skip_rects = v; _queue_rebuild()
 
 var _generated: Array[Node] = []
 var _pending: bool = false
@@ -68,9 +71,11 @@ func _rebuild() -> void:
 	# Tree row with bushes in between.
 	for p: Array in _ring(area.grow(tree_margin), 7.5):
 		var at: Vector2 = p[0] + (p[1] as Vector2) * rng.randf_range(-2.0, 2.5)
-		var base := Vector3(at.x, 0, at.y)
 		var h: float = rng.randf_range(6.0, 9.5)
 		var cr: float = rng.randf_range(2.2, 3.4)
+		if _skipped(at):
+			continue
+		var base := Vector3(at.x, 0, at.y)
 		near.cylinder(&"bark", base, base + Vector3(0, h * 0.5, 0), 0.22, 0.14, 6, false, 1.0)
 		near.blob(&"leaves", base + Vector3(0, h - cr * 0.8, 0), 1.0, Vector3(cr, cr * 0.9, cr), rng, greens, 0.12)
 		if rng.randf() < 0.6:
@@ -86,6 +91,8 @@ func _rebuild() -> void:
 			var r: float = rng.randf_range(24.0, 40.0) * (1.0 + ring * 0.5)
 			var sc := Vector3(rng.randf_range(0.9, 1.3), rng.randf_range(0.28, 0.5), rng.randf_range(0.7, 1.0))
 			var bm: MeshBuilder = near if ring == 0 else far
+			if _skipped(at):
+				continue
 			bm.blob(&"leaves", Vector3(at.x, -r * sc.y * 0.35, at.y), r, sc, rng, hill_cols if ring == 0 else far_cols, 0.06, 2, -0.4)
 			# A few clumps of trees on the near hills.
 			if ring == 0 and rng.randf() < 0.7:
@@ -104,3 +111,10 @@ func _rebuild() -> void:
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
 		_generated.append(mi)
+
+
+func _skipped(at: Vector2) -> bool:
+	for r: Rect2 in skip_rects:
+		if r.has_point(at):
+			return true
+	return false

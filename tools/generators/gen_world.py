@@ -51,7 +51,7 @@ navmesh = sc.subres("NavigationMesh", {
     "geometry_parsed_geometry_type": "1", "geometry_collision_mask": "1",
     "cell_size": "0.1", "cell_height": "0.1",
     "agent_height": "1.8", "agent_radius": "0.25", "agent_max_climb": "0.3",
-    "filter_baking_aabb": "AABB(-74, -2, -62, 148, 20, 130)"})
+    "filter_baking_aabb": "AABB(-194, -2, -134, 268, 20, 240)"})
 sc.node(NAV, "NavigationRegion3D", ".", props={"navigation_mesh": navmesh})
 
 # Ground everywhere (grass/dirt shader) + an outer ring without collision.
@@ -59,13 +59,26 @@ ground_mat = sc.res("Material", "res://prefabs/materials/ground.tres")
 sc.node("Ground", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((0, 0, 3)),
     "size": "Vector2(150, 132)", "material": ground_mat})
+# Point 47: the outer ground leaves the sea free (south of the quay, west of x -74).
 sc.node("OuterGround", "StaticBody3D", ".", props={
-    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((0, -0.02, 3)),
-    "size": "Vector2(1000, 1000)", "collision": "false", "material": ground_mat})
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((0, -0.02, -196.5)),
+    "size": "Vector2(1000, 601)", "collision": "false", "material": ground_mat})
+sc.node("OuterGroundSE", "StaticBody3D", ".", props={
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((213, -0.02, 303.5)),
+    "size": "Vector2(574, 399)", "collision": "false", "material": ground_mat})
+# Point 47: the west side (industrial edge, harbour, countryside) has its own ground with collision.
+sc.node("GroundWest", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((-134, 0, -14)),
+    "size": "Vector2(118, 236)", "material": ground_mat})
 # Point 27: the edge of the world = tree rows, bushes and two rings of soft hills (no empty plane).
 sc.node("Backdrop", "Node3D", ".", props={
     "script": sc.script("res://scripts/procgen/backdrop.gd"), "area": "Rect2(-75, -60, 150, 132)",
-    "tree_margin": "9.0", "hill_distance": "45.0", "ground_plane": "false"})
+    "tree_margin": "9.0", "hill_distance": "45.0", "ground_plane": "false",
+    "skip_rects": "Array[Rect2]([Rect2(-600, -600, 524, 1200)])"})  # point 47: the west side has its own
+sc.node("BackdropWest", "Node3D", ".", props={
+    "script": sc.script("res://scripts/procgen/backdrop.gd"), "area": "Rect2(-193, -133, 120, 238)",
+    "tree_margin": "9.0", "hill_distance": "45.0", "ground_plane": "false", "backdrop_seed": "47",
+    "skip_rects": "Array[Rect2]([Rect2(-77, -64, 600, 140), Rect2(-600, 104, 640, 600)])"})
 
 # --------------------------------------------------------------------------- roads
 R = "roads/"
@@ -93,7 +106,7 @@ for x in range(-54, 19, 12):
     put(R + "road_straight.tscn", (x, 0, 60), 0, props={"crossing": "true"} if x == -30 else None)
 
 # Road ends: barriers at the map edge.
-for x, z, r in [(-71, -1.8, 90), (-71, 1.8, 90), (71, -1.8, 90), (71, 1.8, 90), (71, -49.8, 90), (71, -46.2, 90),
+for x, z, r in [(71, -1.8, 90), (71, 1.8, 90), (71, -49.8, 90), (71, -46.2, 90),
                 (28.2, 65, 0), (31.8, 65, 0), (-59.6, 58.2, 90), (-59.6, 61.8, 90)]:
     put("props/road_barrier.tscn", (x, 0, z), r)
 
@@ -566,10 +579,170 @@ sc.node("GasKiosk", "StaticBody3D", NAV, props={"script": sc.script(BOX), "trans
 sc.node("GasKioskSign", "Label3D", NAV, props={"transform": xform((53.6, 2.5, -54.36)), "text": q("SHOP  24/7"),
         "font_size": "48", "pixel_size": "0.008", "modulate": col(1.0, 0.85, 0.3), "outline_size": "8"})
 
+# --------------------------------------------------------------------------- the west side (point 47)
+# Industrial edge (south of Main Road, x -180..-80), the harbour (Quay Road z 84, quay apron, the sea south of
+# z 104) and room for the countryside north of Main Road (47b). Own random stream: the town keeps its layout.
+wrng = random.Random(47)
+CONC = "res://scripts/procgen/paved_area.gd"
+
+
+def paved(name, cx, cz, sx, sz, surface="concrete", h=0.05):
+    sc.node(name, "StaticBody3D", NAV, props={"script": sc.script(CONC), "transform": xform((cx, 0, cz)),
+            "size": f"Vector2({sx:g}, {sz:g})", "surface": q(surface), "height": f"{h:g}", "edge": "false"})
+
+
+def pbox(name, pos, size, mat, tint=None, rot=0.0, parent=NAV, collision=True):
+    props = {"script": sc.script(BOX), "transform": xform(pos, rot), "size": v3(*size), "material_key": q(mat)}
+    if tint:
+        props["tint"] = tint
+    if not collision:
+        props["collision"] = "false"
+    sc.node(name, "StaticBody3D", parent, props=props)
+
+
+def fence_line(x0, z0, x1, z1, y=0.05, gaps=()):
+    """Chain-link fence in 2 m panels from (x0, z0) to (x1, z1) (along X or Z); `gaps` = panel starts left open."""
+    if z0 == z1:
+        for x in range(int(min(x0, x1)), int(max(x0, x1)), 2):
+            if x not in gaps:
+                put("props/chainlink_fence.tscn", (x, y, z0))
+    else:
+        for z in range(int(min(z0, z1)), int(max(z0, z1)), 2):
+            if z not in gaps:
+                put("props/chainlink_fence.tscn", (x0, y, z), -90)
+
+
+CONTAINER_COLS = [col(0.62, 0.16, 0.12), col(0.15, 0.3, 0.55), col(0.2, 0.42, 0.3),
+                  col(0.75, 0.5, 0.15), col(0.5, 0.52, 0.55), col(0.85, 0.85, 0.82)]
+
+
+def container_stack(x, y, z, rot, levels, length="12m"):
+    for lv in range(levels):
+        put(f"props/container_{length}.tscn", (x, y + lv * 2.6, z), rot + wrng.uniform(-1.5, 1.5),
+            name=uname("Container"), props={"color": wrng.choice(CONTAINER_COLS)})
+
+
+# Roads: Main Road on to the west (road end x -180), Industrial Road south at x -114, round the corner
+# into Quay Road (z 84) along the harbour.
+for x in range(-78, -175, -12):
+    if x == -114:
+        put(R + "road_t_junction.tscn", (x, 0, 0), 180)
+    else:
+        put(R + "road_straight.tscn", (x, 0, 0))
+for z in range(12, 73, 12):
+    put(R + "road_straight.tscn", (-114, 0, z), 90)
+put(R + "road_curve.tscn", (-114, 0, 84), -90)        # north <-> west
+for x in range(-126, -175, -12):
+    put(R + "road_straight.tscn", (x, 0, 84))
+for x, z in [(-181, -1.8), (-181, 1.8), (-181, 82.2), (-181, 85.8)]:
+    put("props/road_barrier.tscn", (x, 0, z), 90)
+for x, z, r in [(-90, -3.95, 180), (-132, -3.95, 180), (-162, -3.95, 180),
+                (-84, 3.95, 0), (-102, 3.95, 0), (-138, 3.95, 0), (-168, 3.95, 0),
+                (-117.95, 18, 90), (-117.95, 42, 90), (-117.95, 66, 90),
+                (-110.05, 38, -90), (-110.05, 60, -90),
+                (-132, 80.05, 180), (-156, 80.05, 180), (-128, 87.95, 0), (-172, 87.95, 0)]:
+    put("props/street_lamp.tscn", (x, 0.15, z), r)
+put("props/sign_post.tscn", (-108.6, 0.15, 3.72), 0, props={"sign_text": q("INDUSTRIAL ROAD")})
+put("props/sign_post.tscn", (-120.4, 0.15, 80.3), 180, props={"sign_text": q("QUAY ROAD")})
+
+# West block: the metalworks (front on Main Road) and a fenced container yard behind it.
+paved("FactoryYard", -150, 17, 60, 22)
+paved("ContainerYard", -150, 52, 60, 48)
+put("buildings/warehouse.tscn", (-150, 0.05, 6.4), 180, name="Factory", props={
+    "width": "30", "depth": "19", "floor_height": "8.5", "bays": "6", "door_bay": "2", "enterable": "false",
+    "furnish": q("none"), "wall_material": q("concrete"), "wall_tint": col(0.72, 0.7, 0.66), "roof_type": q("flat"),
+    "variation_seed": "4701"})
+sc.node("FactorySign", "Label3D", NAV, props={"transform": xform((-150, 7.2, 6.3), 180),
+        "text": q("RIVERTON METALWORKS"), "font_size": "96", "pixel_size": "0.014",
+        "modulate": col(0.92, 0.9, 0.85), "outline_size": "16", "double_sided": "false"})
+for i, x in enumerate((-160.0, -155.5)):
+    pbox(f"FactoryChimney{i}", (x, 8.5, 18), (1.6, 10 - i * 2, 1.6), "brick_old")
+fence_line(-178, 30, -122, 30, gaps=(-126, -124))
+fence_line(-178, 30, -178, 74)
+fence_line(-122, 30, -122, 74, gaps=(48,))
+fence_line(-178, 74, -122, 74)
+for x, z in [(-176.5, 31.5), (-123.5, 31.5), (-176.5, 72.5), (-123.5, 72.5)]:
+    put("props/floodlight_pole.tscn", (x, 0.05, z), 45 if x > -150 else -45)
+for i in range(7):
+    container_stack(-170 + (i % 2) * 2.7, 0.05, 36 + i * 5.2, 0, wrng.choice([1, 2, 2, 3]))
+for i in range(5):
+    container_stack(-144 + i * 4.6, 0.05, 66, 90, wrng.choice([1, 2, 3]))
+for i in range(3):
+    container_stack(-140 + i * 3.0, 0.05, 40, 90, 1, "6m")
+for pos in [(-150, 0.05, 50), (-145, 0.05, 54.5), (-157, 0.05, 46)]:
+    put("props/covered_car.tscn", pos, wrng.uniform(0, 360))
+for i in range(6):
+    put("props/barrel.tscn", (-131.5 + wrng.uniform(-1.5, 1.5), 0.05, 58 + wrng.uniform(-2, 2)), 0)
+for i in range(4):
+    put("props/crate_long.tscn", (-162 + i * 0.7, 0.05, 28.2), 0)
+
+# East block: the lab warehouse (property, front on Industrial Road), a small yard and a workshop.
+paved("EastIndustrial", -94, 42, 28, 72)
+put("buildings/warehouse.tscn", (-108.2, 0.05, 20), -90, name="LabWarehouse", props={
+    "variation_seed": "4702", "wall_tint": col(0.62, 0.55, 0.48)})
+property_node("LabWarehouse", "lab_warehouse", "Lab Warehouse", 60000,
+              "Industrial Road. 16 x 12 m hall with a loading door; the neighbours make metal, not questions.",
+              0.0, 4.2)
+fence_line(-106, 34, -82, 34, gaps=(-106, -104))
+fence_line(-106, 50, -82, 50)
+fence_line(-82, 34, -82, 50)
+for i in range(3):
+    container_stack(-96 + i * 4.4, 0.05, 42 + wrng.uniform(-2, 2), 90, wrng.choice([1, 2]), "6m")
+put("buildings/warehouse.tscn", (-108.2, 0.05, 64), -90, name="Workshop", props={
+    "width": "18", "depth": "14", "floor_height": "6", "bays": "4", "enterable": "false", "furnish": q("none"),
+    "wall_tint": col(0.35, 0.5, 0.42), "variation_seed": "4703"})
+
+# The harbour: quay apron (z 90..104), the harbour storage hall (property), stacks, a crane, a moored ship.
+paved("QuayApron", -133, 97, 118, 14, "concrete", 0.15)
+pbox("QuayWall", (-133, -3.0, 104.6), (118, 3.15, 1.2), "concrete", col(0.75, 0.74, 0.7))
+put("buildings/warehouse.tscn", (-150, 0.15, 90.2), 180, name="HarborStorage", props={
+    "width": "22", "depth": "12", "floor_height": "6.5", "bays": "5", "door_bay": "2", "variation_seed": "4704",
+    "wall_tint": col(0.4, 0.52, 0.66)})
+property_node("HarborStorage", "harbor_storage", "Harbour Storage", 90000,
+              "Quay Road, on the water. 22 x 12 m hall; shipments come in right outside the door.", 0.0, 4.6)
+sc.node("HarborSign", "Label3D", NAV, props={"transform": xform((-150, 6.0, 90.0), 180),
+        "text": q("RIVERTON HARBOUR"), "font_size": "80", "pixel_size": "0.012",
+        "modulate": col(0.95, 0.95, 0.92), "outline_size": "14", "double_sided": "false"})
+for x in range(-186, -76, 8):
+    if not -162 <= x <= -138:
+        put("props/bollard.tscn", (x + 0.5, 0.15, 103.6))
+for i in range(4):
+    container_stack(-182 + i * 3.0, 0.15, 96, 90, wrng.choice([2, 3]))
+for i in range(3):
+    container_stack(-128 + i * 3.0, 0.15, 95.5, 90, wrng.choice([1, 2, 3]))
+YEL = col(0.95, 0.72, 0.12)
+for i, (x, z) in enumerate([(-104, 92.5), (-94, 92.5), (-104, 102.5), (-94, 102.5)]):
+    pbox(f"CraneLeg{i}", (x, 0.15, z), (0.7, 14, 0.7), "trim_paint", YEL)
+pbox("CraneBeamN", (-99, 14.15, 92.5), (11, 1.0, 1.0), "trim_paint", YEL)
+pbox("CraneBeamS", (-99, 14.15, 102.5), (11, 1.0, 1.0), "trim_paint", YEL)
+pbox("CraneBoom", (-99, 15.15, 108), (2.0, 1.0, 30), "trim_paint", YEL, collision=False)
+pbox("CraneCab", (-99, 12.4, 97.5), (3, 2.2, 3), "trim_paint", col(0.9, 0.9, 0.88), collision=False)
+# The ship along the quay (in the water, not reachable).
+pbox("ShipHull", (-150, -2.5, 111.5), (58, 5.5, 11), "trim_paint", col(0.62, 0.16, 0.12), collision=False)
+pbox("ShipDeck", (-150, 3.0, 111.5), (57, 0.3, 10.4), "concrete", col(0.5, 0.5, 0.5), collision=False)
+pbox("ShipBridge", (-173, 3.3, 111.5), (8, 7, 9.4), "trim_paint", col(0.92, 0.92, 0.9), collision=False)
+pbox("ShipFunnel", (-175, 10.3, 111.5), (2.4, 3.5, 2.4), "trim_paint", col(0.85, 0.3, 0.12), collision=False)
+for i in range(6):
+    put("props/container_12m.tscn", (-160 + (i % 3) * 12.6, 3.3 + (i // 3) * 2.6, 110.2 + (i // 3) * 1.3), 0,
+        name=uname("ShipContainer"), props={"color": wrng.choice(CONTAINER_COLS)})
+# The sea + a breakwater hiding where the water meets the land east of the harbour.
+water_mesh = sc.subres("PlaneMesh", {"size": "Vector2(426, 800)", "subdivide_width": "85", "subdivide_depth": "160"})
+sc.node("Sea", "MeshInstance3D", ".", props={"transform": xform((-287, -0.9, 504)), "mesh": water_mesh,
+        "material_override": sc.res("Material", "res://prefabs/materials/water.tres"), "cast_shadow": "0"})
+pbox("Breakwater", (-74, -2.0, 160), (4, 3.2, 112), "concrete", col(0.62, 0.6, 0.56), collision=False)
+# Trees round the edges of the yards.
+for i, (x, z) in enumerate([(-186, 10), (-186, 26), (-186, 44), (-186, 62), (-84, 58), (-84, 72), (-100, 76)]):
+    put("nature/tree_medium.tscn", (x + wrng.uniform(-1, 1), 0, z + wrng.uniform(-1, 1)), wrng.uniform(0, 360),
+        props={"tree_seed": str(4700 + i)})
+
 # --------------------------------------------------------------------------- invisible walls
 sc.node("Bounds", "StaticBody3D", ".")
+# Point 47: the west side widened the playable area (x -192..-72.5, z -132..105 = the quay edge).
 for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150, 10, 1)),
-                        ("W", (-72.5, 5, 3), (1, 10, 130)), ("E", (72.5, 5, 3), (1, 10, 130))]:
+                        ("E", (72.5, 5, 3), (1, 10, 130)),
+                        ("W", (-192.5, 5, -13.5), (1, 10, 238)), ("NW", (-132.5, 5, -132.5), (121, 10, 1)),
+                        ("Quay", (-132.5, 5, 104.8), (121, 10, 0.4)),
+                        ("WestN", (-72.5, 5, -96.75), (1, 10, 71.5)), ("WestS", (-72.5, 5, 86), (1, 10, 38))]:
     sc.node("Wall" + name, "CollisionShape3D", "Bounds", props={
         "transform": xform(pos), "shape": sc.subres("BoxShape3D", {"size": v3(*size)})})
 

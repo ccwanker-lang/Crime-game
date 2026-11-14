@@ -2481,6 +2481,8 @@ func _check_police_life(world: Node3D) -> void:
 	var ped: Pedestrian = world.call("_add_pedestrian", spot, 0)
 	var cop: PoliceOfficer = world.add_officer(spot + station.global_basis.x * 8.0, spot)
 	await get_tree().create_timer(1.8).timeout
+	print("[SelfTest] police_life before question: cop target %s, busy %s, ped free %s, fleeing %s, %.1f m" % [
+			cop.target, cop.is_busy(), ped.free_for_talk(), ped.is_fleeing(), cop.global_position.distance_to(ped.global_position)])
 	cop.question(ped)
 	var talked: bool = false
 	var gap: float = INF

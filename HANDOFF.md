@@ -39,6 +39,12 @@
   scenario gas_station pass. The old full self-test on the merge hung in the traffic check under CPU load (B was
   running its own self-test at the same time); a fresh full run on 191fede follows (result below when done).
 
+- 2026-11-14: point 47a (west side: Industrial Road, metalworks, container yard, Lab Warehouse, Quay Road, harbour
+  with Harbour Storage, crane, ship, sea). Full self-test on it: 604 PASS, 2 FAIL in police_life (officer never
+  reached the passer-by) while B's self-test ran at the same time; police_life alone and with the checks before it
+  passes - a diagnostic print ("police_life before question: ...") stays in for the next full run.
+  Next: 47b (countryside + barn, block ready in the scratchpad idea: Country Lane x -150 to Hollow Farm), 47c.
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
@@ -60,6 +66,8 @@
 - late_join: the short intro of a friend who joins later (door open, desk, bus).
 - meth_market / meth_lab / meth_cook / meth_dealer / meth_customer, coke_lab / coke_staff, courier, bribe,
   raid_live / raid_guards, roadside: session B's milestone-3 work, now in main.
+- west_side: on Main Road past the tree belt with your car: drive down Industrial Road to the harbour; enter the Lab
+  Warehouse and the Harbour Storage (both for sale); try to fall into the sea (you can't); phone map shows the area.
 - gas_station: QuickFuel on North Road, your Comet Sedan almost empty next to pump 1: sit in it (F) -> fuel 6%,
   get out, E on the red pump -> full, €86 gone. The Mule Van at pump 2 is empty: W does nothing.
 - turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.

@@ -379,7 +379,11 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
   44. Staff + dealers - done (session B, merged 2026-11-13; hiring via the phone app "Crew" until there is a bar)
   45. = point 14: car dealer + driving yourself - done
   46. = points 12-13: park, agora - done
-  47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
+  47. The full village (chapter 1 map, Map layout): today's test town grown to its full size, in parts:
+      47a the west side: Main Road on to the west, Industrial Road (metalworks, container yard, Lab Warehouse
+          property), Quay Road + the harbour (quay, Harbour Storage property, crane, moored ship, the sea) - DONE
+      47b the countryside north of Main Road: a country lane, farm fields and the Barn property - todo
+      47c the west in the game: districts + Crows at the harbour (with session B), customers/dealers there - todo
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
       point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - DONE
       (session B, merged 2026-11-14: meth, cocaine, courier, lawyer, bribes, Crow raids + guards, roadside team;
@@ -885,3 +889,23 @@ Choices made while working autonomously (what + why).
 - Point 48 (fuel): QuickFuel sits on the north side of North Road at x 34-56 (trees/lamp there dropped via
   SKIP_NODES), a raised concrete forecourt like Carlo's lot, two pumps under a canopy, posts on the pump line so both
   lanes are free to drive through. The fuel % is in the car panel and the save record.
+- Point 47a (map): The village grows WEST (x -192..-72.5), not around the whole town: the old map's north, east
+  and south edges stay as they are (no layout changes, no re-done self-test spots), and the DESIGN sketch puts the
+  industrial edge, harbour and countryside in the west/south-west. The tree row at x -75 stays as a green belt
+  between Old Town and the industry.
+- Point 47a: No river in the village for now: the sketch's river splits Old Town from Downtown, and Downtown is the
+  city (chapter 2, Roadmap 54). The village gets the sea at the harbour instead. No terrain heights yet either
+  (flat ground keeps the navmesh, traffic and placement simple); the backdrop hills give the height around it.
+- Point 47a: One navmesh region, its baking box widened (x -194..74, z -134..106). Bake time went from ~1.0 s to
+  ~3 s on the host (measured with the new "in N ms" in the bake log line); a second region would need border/edge
+  tuning for the seam on Main Road. Clients still skip the bake.
+- Point 47a: The sea is a water shader plane (prefabs/materials/water.tres, 3 colour bands + slow waves) below the
+  quay; no swimming: an invisible wall on the quay edge (Bounds/Quay) and the outer ground split round the sea.
+  The ship, crane boom and breakwater are scenery without collision.
+- Point 47a: Properties in the west: Lab Warehouse (Industrial Road, €60,000) and Harbour Storage (on the quay,
+  €90,000), both enterable warehouses with storage furniture (rank gates 3/4 from the Progression table: asked
+  session B to add them to RankConfig.property_rank, B's file).
+- Point 47a: Traffic: route 2 (Main Road end to end) now turns down Industrial Road to the quay and back instead of
+  U-turning at x -66; new junction square at (-114, 0). Routes 0/1/3 unchanged.
+- Point 47a: Pedestrians keep only 12% of random walk spots west of x -76 (`Pedestrian.QUIET_WEST_*`): the quay is
+  paved like a square, and without this a big share of the town would wander off to the harbour.

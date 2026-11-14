@@ -9,6 +9,7 @@ const PEDESTRIAN: PackedScene = preload("res://prefabs/npc/pedestrian.tscn")
 const PEDESTRIAN_COUNT: int = 10
 
 @onready var nav_region: NavigationRegion3D = $NavRegion
+var _bake_started_ms: int = 0
 @onready var spawn_points: Node3D = $Markers/SpawnPoints
 @onready var npcs: Node3D = $NPCs
 @onready var players_root: Node3D = $Players
@@ -40,6 +41,7 @@ func _ready() -> void:
 	# stall their connection right after joining.
 	if multiplayer.is_server():
 		nav_region.bake_finished.connect(_on_nav_baked)
+		_bake_started_ms = Time.get_ticks_msec()
 		nav_region.bake_navigation_mesh(false)  # false = bake right now, not on a thread
 
 	var role: String = "HOST" if Net.is_host() else "CLIENT (peer %d)" % multiplayer.get_unique_id()
@@ -672,7 +674,7 @@ func get_spawn_point(index: int) -> Vector3:
 
 func _on_nav_baked() -> void:
 	var polygons: int = nav_region.navigation_mesh.get_polygon_count()
-	print("[World] Navigation mesh baked: %d polygons" % polygons)
+	print("[World] Navigation mesh baked: %d polygons in %d ms" % [polygons, Time.get_ticks_msec() - _bake_started_ms])
 	_after_navmesh.call_deferred()
 
 

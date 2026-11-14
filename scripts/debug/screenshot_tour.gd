@@ -107,6 +107,14 @@ const SHOTS: Array[Array] = [
 	["77_crows_house_night", Vector3(50.5, 1.8, 10.2), Vector3(56.5, 2.0, 17.0)],
 	["78_crows_house_day", Vector3(49.0, 3.0, 9.0), Vector3(56.0, 4.0, 17.0)],
 	["79_scenario_menu", Vector3(-30, 1.9, 2.5), Vector3(-32, 3.5, -6)],
+	# Point 47: the west side (industrial edge + harbour), from above and at eye level.
+	["80_west_top", Vector3(-130, 150, 120), Vector3(-130, 0, 30)],
+	["81_industrial_road", Vector3(-110.5, 1.8, 2.5), Vector3(-114, 2.0, 40)],
+	["82_metalworks", Vector3(-128, 2.2, -4.5), Vector3(-150, 4.0, 10)],
+	["83_harbour", Vector3(-112, 2.0, 88), Vector3(-150, 3.0, 100)],
+	["84_quay_edge", Vector3(-120, 1.9, 101.5), Vector3(-160, 1.0, 112)],
+	["85_lab_warehouse", Vector3(-118, 2.0, 22), Vector3(-104, 3.0, 20)],
+	["86_container_yard", Vector3(-120, 3.5, 49), Vector3(-150, 1.0, 50)],
 ]
 
 var hide_nodes: Array = []  # CanvasItems hidden during the tour (e.g. the HUD)

@@ -4,14 +4,14 @@ extends Node3D
 ## them. Cars are children of this node, replicated by World/CarSpawner.
 ##
 ## Right-hand traffic, lanes 1.75 m from the road centre. Roads: main road
-## z = 0 (x -72..72), side street x = -6 and x = 30 (z 0..-48), top road
+## z = 0 (x -180..72; point 47: Industrial Road x = -114 (z 0..84) + Quay Road z = 84 (x -180..-114)), side street x = -6 and x = 30 (z 0..-48), top road
 ## z = -48 (x -6..72), south road x = 30 (z 0..66), South Street z = 60 (x -60..30, dead end west).
 
 const CAR := preload("res://prefabs/vehicles/car.tscn")
 const CAR_COUNT: int = 8
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time.
-const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60)]
+const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0)]
 const JUNCTION_HALF: float = 6.0
 
 var routes: Array[TrafficRoute] = []
@@ -43,10 +43,11 @@ func _build_routes() -> void:
 	routes.append(TrafficRoute.new(
 			[Vector2(-4.25, -1.75), Vector2(-4.25, -46.25), Vector2(28.25, -46.25), Vector2(28.25, -1.75)],
 			[2.5, 4.25, 2.5, 2.5]))
-	# 2: main road end to end, U-turns before the barriers.
+	# 2: main road east end <-> Industrial Road + Quay Road (point 47), U-turns before the barriers.
 	routes.append(TrafficRoute.new(
-			[Vector2(-66, 1.75), Vector2(66, 1.75), Vector2(66, -1.75), Vector2(-66, -1.75)],
-			[1.75, 1.75, 1.75, 1.75]))
+			[Vector2(-112.25, 1.75), Vector2(66, 1.75), Vector2(66, -1.75), Vector2(-115.75, -1.75),
+			Vector2(-115.75, 82.25), Vector2(-174, 82.25), Vector2(-174, 85.75), Vector2(-112.25, 85.75)],
+			[2.5, 1.75, 1.75, 5.0, 4.25, 1.75, 1.75, 7.75]))
 	# 3: main road west part + the south road + South Street (U-turn at its dead end).
 	routes.append(TrafficRoute.new(
 			[Vector2(-66, 1.75), Vector2(28.25, 1.75), Vector2(28.25, 58.25), Vector2(-54, 58.25),

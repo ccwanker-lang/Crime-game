@@ -7,10 +7,13 @@ extends Control
 ## (the estate agent's window) properties for sale get an orange pin, and `focus` centres
 ## the map on one property and highlights it.
 
-const BOUNDS := Rect2(-76, -58, 152, 128)  # world x, z
+const BOUNDS := Rect2(-194, -134, 270, 242)  # world x, z (point 47: + the west side)
+## Point 47: the sea south of the harbour quay (world x, z).
+const SEA := Rect2(-260, 104.5, 186, 80)
 const LANDMARKS: Dictionary = {
 	"Store": "Store", "Hospital": "Hospital",
 	"GunShop": "Guns", "ContactHideout": "Dries", "Garage": "Garage", "PoliceStation": "Police",
+	"Factory": "Metalworks", "HarborSign": "Harbour",
 }
 
 var _roads: Array[PackedVector2Array] = []
@@ -97,6 +100,8 @@ func _poly(points: PackedVector2Array) -> PackedVector2Array:
 func _draw() -> void:
 	_update_centre()
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.16, 0.22, 0.15))
+	var sea_a: Vector2 = _to_map(SEA.position)
+	draw_rect(Rect2(sea_a, _to_map(SEA.end) - sea_a), Color(0.16, 0.3, 0.4))
 	for r: PackedVector2Array in _roads:
 		if r.size() >= 3:
 			draw_colored_polygon(_poly(r), Color(0.33, 0.33, 0.36))
