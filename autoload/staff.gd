@@ -943,6 +943,7 @@ func _broadcast() -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and multiplayer.get_peers().size() > 0:
 		_set_members.rpc(m, c)
 	Legal.sync()
+	BulkDeals.sync()
 
 
 ## Client: ask for the members list (its World is up).
@@ -961,6 +962,7 @@ func _request_sync() -> void:
 		var c: Array = (d as Dictionary).get("candidates", []) if d is Dictionary else []
 		_set_members.rpc_id(multiplayer.get_remote_sender_id(), m, c)
 		Legal.sync()
+		BulkDeals.sync()
 
 
 @rpc("authority", "call_remote", "reliable")
