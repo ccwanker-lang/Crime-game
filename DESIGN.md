@@ -398,7 +398,7 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
       out of sight of the farm and the village. A mountain road from the farm (top of Country Lane) winds up with
       hairpin bends; at the top snow, rocks, pines and guardrails; on the far side it goes down to the remote prison.
       The mountain blocks the view between the village and the prison. The tutorial bus drives over this pass to the
-      village. Cars can drive up and down it; traffic and the navmesh work on it - todo (built right after 62)
+      village. Cars can drive up and down it; traffic and the navmesh work on it - todo (order: 60, 61, 63, 49b, 62)
   50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
       story progress (missed missions done, no loot/money from them, own cash/items from zero) - DONE (short intro: cell open, desk, bus
       leaves at once; the crew gets a text)
@@ -985,9 +985,8 @@ Choices made while working autonomously (what + why).
 - Feedback round 5 split (user): session B builds 64-68 (run-over, standing on cars, car sounds, dogs, animals) on
   feature-b; A keeps the bugs, the map (60-62, 49b) and traffic (63). 58 (no kneel) was finished by A before the
   split and stays on main; B builds on it.
-- Point 49b (roadmap order): the mountain pass is built right AFTER point 62 (the map layout), as part of the map
-  work (60-62), because 62 places the neighbourhoods round the farm and the pass starts there; doing it before 62
-  would mean moving it again. The prison moves from its current spot to behind the mountain then.
+- Point 49b / round-5 order (set by the user, replaces my earlier "49b after 62"): 60 -> 61 -> 63 -> 49b -> 62.
+  The pass starts at the farm (Country Lane top), which 62 doesn't move, so 62 can fit the villas round it later.
 - Point 59: A police-vs-Crows clash ends by a CLOCK, not by who dies: `PoliceOfficer.clash_max` (120 real s, from the
   first `set_foe` between the sides; a new clash starts after 40 s quiet) -> `end_clash` drops every NPC foe and
   starts a truce (`TRUCE_TIME` 300 s): no `set_foe`, no `report_npc_crime` (officers + patrol cars), `spot_cop` finds
