@@ -16,6 +16,8 @@ const KERB_OFFSET: float = 2.9
 ## Farthest a road may be from the caller.
 const MAX_ROAD: float = 45.0
 const JUNCTION_MARGIN: float = 4.0
+## Point 48 (A's fuel): an (almost) empty car gets a jerrycan up to this much fuel - enough for the gas station.
+const JERRYCAN: float = 0.15
 
 ## Seconds from the call to the drop (tests make it 0).
 static var tow_seconds: float = 30.0
@@ -117,7 +119,8 @@ static func host_tow(p: Player, uid: String) -> String:
 		return "!The truck is already on its way with your %s." % car_name(car)
 	if _occupied(car):
 		return "!Somebody is sitting in your %s." % car_name(car)
-	if car.global_position.distance_to(p.global_position) < 20.0:
+	var empty: bool = car.fuel < JERRYCAN
+	if car.global_position.distance_to(p.global_position) < 20.0 and not empty:
 		return "!Your %s is right here." % car_name(car)
 	if kerb_spot(p.get_tree(), p.global_position, car).is_empty():
 		return "!\"Can't find you. Walk to a road and call again.\""
@@ -151,6 +154,8 @@ static func _deliver(tree: SceneTree, who: String, uid: String) -> void:
 	var spot: Array = []
 	if p and car and not _occupied(car) and not p.dead:
 		spot = kerb_spot(tree, p.global_position, car)
+		if spot.is_empty() and car.global_position.distance_to(p.global_position) < 20.0:
+			spot = [car.global_position, car.rotation.y]  # (an empty car close by: they only bring fuel)
 	if spot.is_empty():
 		if GameState.player_data.has(who):
 			GameState.add_clean(who, FEE)
@@ -165,7 +170,11 @@ static func _deliver(tree: SceneTree, who: String, uid: String) -> void:
 	car.net_pos = spot[0]
 	car.net_yaw = float(spot[1])
 	car.net_speed = 0.0
+	var can: bool = car.fuel < JERRYCAN
+	if can:
+		car.fuel = JERRYCAN
 	car._save_record()
 	var dist: int = roundi((spot[0] as Vector3).distance_to(p.global_position))
-	p.phone_message(CONTACT, "Your %s is parked by the road, %d m from you. Keys are in it." % [car_name(car), dist], "")
+	p.phone_message(CONTACT, "Your %s is parked by the road, %d m from you. Keys are in it.%s" % [car_name(car), dist,
+			" Put a jerrycan in, enough for the gas station." if can else ""], "")
 	print("[Roadside] delivered %s to %s at %s (%d m)" % [uid, who, spot[0], dist])

@@ -6,6 +6,9 @@ session A when merging (B may not edit those files).
 ## MERGED parts 1 + 2 (A, main c95e70c) and parts 3-7 + the anchor fix (A, merge of 0b00291, 2026-11-14): all
 already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: "Dealers count for A's territory" (last line of the Fix section), "Roadside + fuel" (end
+of the file) + Part 8 (bulk deals).
+
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
 HUD rank panel, saved with the world, host authoritative + synced, F9 scenario `ranks`, self-test check `ranks`.
@@ -348,3 +351,52 @@ Code + self-test check `roadside` + scenario `roadside`.
 # Fix (A's request 2026-11-14)
 - StaffConfig district "south" anchor Vector3(-34, 0, 49.4) -> (-34, 0, 55.4): the old spot was inside the building
   row (now A's cover garage, the dealer snapped onto the workshop floor); the new one is on South Street's pavement.
+- Dealers count for A's territory (point 51): every bag a dealer sells adds `StaffConfig.turf_per_dealer_bag` (2.0)
+  influence to their district via `Territory.current.host_add(district, n, "dealer")` (staff.gd `_dealer_tick`).
+  Why: a player's fair street sale is worth 4; a dealer half of that, because nobody risks a fight for it. Staff
+  self-test checks the meter.
+
+
+# Part 8: bulk deals (DESIGN rank 4 "bulk deals"; Products "selling ... bulk")
+
+## Status
+Done: self-test check `bulk` PASS, scenario `bulk_deal` OK.
+
+## How it works
+- `BulkDeals` autoload (autoload/bulk_deals.gd, host), state GameState.world["bulk"] {offer, next, time, done, missed}.
+  From rank 4, every 20-30 in-game hours "The Dutchman (bulk)" texts the crew: 20/25/30/40 bags of a product the rank
+  allows (Products.BAGS) for one total price (street price x `BULK_DISCOUNT` 0.8, the district's weed price), waiting
+  `WAIT_HOURS` 6 on the pavement 7 m from a district's dealer anchor (`_meet_spot`, navmesh snap).
+- Every peer: the synced `offer` -> `BulkBuyerNPC` (scripts/staff/bulk_buyer_npc.gd, local visual like StaffNPC, yellow
+  label). E -> `BulkDeals.request_sell()` -> host `host_sell(p)`: within 4 m, all the bags in the pockets, paid as
+  dirty cash, +6 XP per bag, offer gone. Missed = "Waited for nothing" text. Late join: `Staff._broadcast` /
+  `_request_sync` call `BulkDeals.sync()`.
+- `BulkDeals.enabled` (random offers) is off in --selftest; the bulk check turns it on.
+
+## Decisions (what + why)
+- One buyer, one offer at a time, met on foot in a district (no harbor yet - the harbor is A's map; when it exists
+  the meet spot can move there). Why: the design's "bulk at the harbor" needs that map; the deal itself works now.
+- 20% below street price but all at once and no rip-off: the trade-off is the volume and the risk of carrying
+  20-40 bags through town (police confiscate, Crows rob loot bags), not the price.
+- XP 6 per bag (a fair street sale gives 10 + 15 per deal): less per bag, much more per minute.
+- Dirty cash, like every drug sale.
+
+## Existing files changed (part 8)
+- project.godot: autoload `BulkDeals`. staff.gd: `BulkDeals.sync()` in `_broadcast` / `_request_sync`.
+  rank_config.gd: rank 4 text "bulk deals" without "(Later)". self_test.gd: "bulk" at the end of CHECKS
+  (scripts/debug/bulk_test.gd). scenarios.gd: bulk_deal.
+
+## Te testen door Curry
+- `bulk_deal` (F9): 30 zakjes meth op zak, de Dutchman staat naast je (gele naam): E = alles in één keer verkocht.
+
+## For CLAUDE.md (suggested lines)
+- Bulk deals (milestone 3): `BulkDeals` autoload (GameState.world["bulk"], rank 4 offers every 20-30 h, `new_offer`,
+  `host_sell`, `request_sell`, synced `offer`, `enabled` off in selftest), visual `BulkBuyerNPC`. Scenario bulk_deal,
+  self-test check bulk.
+
+
+# Roadside + fuel (after A's point 48)
+- An (almost) empty crew car (`PlayerCar.fuel` < `Roadside.JERRYCAN` 0.15) can be called even when it stands close
+  by; the team brings a jerrycan: fuel up to 15% (~450 m, enough for the gas station), text says so. CrewWindow shows
+  each car's fuel %. Why: A's "Out of fuel" text points to the tow team; without fuel the car can't move at all.
+  Roadside self-test checks it.

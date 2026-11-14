@@ -69,6 +69,7 @@ const LIST: Array = [
 	["raid_live", "Rank 2, night, AK + ammo in front of your meth lab: the Crows are coming", "The Crows texted: they raid your Starter Room in a moment (3 of them at the door). Kill them all within 2.5 minutes = raid won (+XP); if they're still standing they get in: half the product in the locker + a machine gone. Inside your property you're safe."],
 	["raid_guards", "Rank 4, 2 guards in your Starter Room, you far away, raid in a moment", "Nobody home: the guards fight. Hold F7: the Crows come; each guard takes one down, then they hold the lab (or not: 35% per guard). Read the texts (Tab). Tab > Crew: the guards' status."],
 	["roadside", "Rank 5, your Comet Sedan far away on Carlo's lot, you in front of the Starter Room", "Tab > Crew > Services: Roadside Service, 'Bring it here' (€350). A text; about 30 seconds later the car stands on the pavement of the nearest road (second text with the distance). F = get in. Not near a road / car already close = refused."],
+	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
 ## The scenario to set up when the World is ready ("" = none).
@@ -527,6 +528,14 @@ static func run(world: Node, id: String) -> bool:
 			buyer.accept_deal()
 			buyer.face(me.global_position)
 			Pedestrian.force_outcome = "fair"
+		"bulk_deal":
+			Progression.force_gates = true
+			Progression.debug_set_rank(4)
+			_kit(me, 500, [["meth_bag", 30]])
+			var spot: Vector3 = home_front + sr.building().global_basis.z * 3.0
+			_place(me, spot, spot + sr.building().global_basis.x * 2.0 + Vector3.UP * 1.4, dn, 15.0)
+			BulkDeals._data()["next"] = 1.0e9  # no random second offer
+			BulkDeals.new_offer("meth_bag", 30, spot + sr.building().global_basis.x * 2.0, sr.building().global_rotation.y - PI / 2.0)
 		"roadside":
 			Progression.force_gates = true
 			Progression.debug_set_rank(5)

@@ -14,7 +14,7 @@ extends Resource
 	"Grow lamp, shotgun, Small House, a grower, 1 dealer. (Later: first car)",
 	"Meth (cooking station, cooling plate, lab supplies at the black market), a cook, SMG, Bakery front, Family House, packagers",
 	"Couriers, AK-47, Barber + Laundromat fronts, 2 dealers",
-	"Cocaine (coca bed, leaf press, refinery at the black market), sniper rifle, South Warehouse, a lawyer, guards (Crows raid your labs). (Later: bulk deals)",
+	"Cocaine (coca bed, leaf press, refinery at the black market), sniper rifle, South Warehouse, a lawyer, guards (Crows raid your labs), bulk deals (the Dutchman buys 20-40 bags at once)",
 	"Bribe the police, up to 4 dealers, the roadside team (tow your car to you)",
 	"Up to 5 dealers. (Later: attack the Crows' HQ, the highway to region 2)",
 ]

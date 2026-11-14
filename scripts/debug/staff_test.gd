@@ -144,6 +144,7 @@ static func run(t: Node, world: Node3D) -> void:
 	msg = Staff.host_dealer(p, str(dealer["uid"]), "give")
 	report.call(int(dealer["stock"]) == 6 and GameState.count_item("Boss", "weed_bag") == 0, "gave the dealer 6 bags ('%s')" % msg)
 	var xp0: int = Progression.host_xp()
+	var turf0: float = Territory.current.influence("old_town") if Territory.current else 0.0
 	var rate: float = float(cfg.districts["old_town"]["sales_per_hour"])
 	var old_arrest: float = cfg.arrest_chance_per_hour
 	cfg.arrest_chance_per_hour = 0.0
@@ -153,6 +154,10 @@ static func run(t: Node, world: Node3D) -> void:
 	report.call(int(dealer["stock"]) == 2 and int(dealer["cash"]) == expect and Progression.host_xp() - xp0 == 4 * cfg.xp_per_dealer_bag,
 			"dealer sold 4 bags: €%d waiting (cut %d%%), +%d XP" % [int(dealer["cash"]), roundi(float(dealer["commission"]) * 100.0),
 			Progression.host_xp() - xp0])
+	if Territory.current:
+		var gain: float = Territory.current.influence("old_town") - turf0
+		report.call(is_equal_approx(gain, minf(4 * cfg.turf_per_dealer_bag, Territory.TAKE_AT - turf0)),
+				"the dealer's 4 sales push Old Town's turf meter (+%.0f)" % gain)
 	cash0 = int(GameState.get_or_create_player_data("Boss")["cash"])
 	msg = Staff.host_dealer(p, str(dealer["uid"]), "collect")
 	report.call(int(GameState.get_or_create_player_data("Boss")["cash"]) == cash0 + expect and int(dealer["cash"]) == 0,

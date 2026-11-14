@@ -57,6 +57,8 @@ extends Resource
 @export var greed_loyalty_per_hour: float = 1.5
 ## XP for the crew per bag a dealer sells.
 @export var xp_per_dealer_bag: int = 4
+## Territory influence per bag a dealer sells in their district (a fair street sale by a player = 4, A's Territory).
+@export var turf_per_dealer_bag: float = 2.0
 ## Districts: id -> {name, anchor (pavement near here, snapped to the navmesh), sales_per_hour, price}.
 @export var districts: Dictionary = {
 	"old_town": {"name": "Old Town", "anchor": Vector3(-24.0, 0.0, -4.6), "sales_per_hour": 1.2, "price": 55},

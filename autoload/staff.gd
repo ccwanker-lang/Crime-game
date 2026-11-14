@@ -650,6 +650,8 @@ func _dealer_tick(rec: Dictionary, hours: float) -> void:
 			sold += 1
 		if sold > 0:
 			Progression.host_add(sold * config.xp_per_dealer_bag, "dealer sale")
+			if Territory.current:  # point 51 (A): dealer sales push the district's influence meter too
+				Territory.current.host_add(str(rec["district"]), sold * config.turf_per_dealer_bag, "dealer")
 			print("[Staff] dealer %s sold %d (stock %d, cash €%d)" % [rec["name"], sold, rec["stock"], rec["cash"]])
 			if int(rec["stock"]) == 0:
 				_text(str(rec["employer"]), "%s here. Sold out in %s, bring me more. €%d waiting for you." % [
@@ -941,6 +943,7 @@ func _broadcast() -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and multiplayer.get_peers().size() > 0:
 		_set_members.rpc(m, c)
 	Legal.sync()
+	BulkDeals.sync()
 
 
 ## Client: ask for the members list (its World is up).
@@ -959,6 +962,7 @@ func _request_sync() -> void:
 		var c: Array = (d as Dictionary).get("candidates", []) if d is Dictionary else []
 		_set_members.rpc_id(multiplayer.get_remote_sender_id(), m, c)
 		Legal.sync()
+		BulkDeals.sync()
 
 
 @rpc("authority", "call_remote", "reliable")
