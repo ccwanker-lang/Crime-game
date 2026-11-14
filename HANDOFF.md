@@ -1,4 +1,4 @@
-# HANDOFF (2026-11-13, session A)
+# HANDOFF (2026-11-14, session A)
 
 ## Parallel sessions
 - Session A (this one) = main in C:\Users\alexc\game. Session B = feature-b in C:\Users\alexc\game-b (ranks + XP,
@@ -22,10 +22,16 @@
   `PlayerCar` + `Vehicles` + `CarDealer`. Check `vehicles` passes, netcheck: the client drives, the host sees it.
   Full self-test on the point-45 commit: see the line below (update it when it is done).
 
+- 2026-11-14: point 52 (cover garage) was uncommitted after the hard shutdown; finished (scenario cover_garage,
+  car_parts icon) and committed (e8aa5a6). Full self-test on it: ALL PASSED (502). Netcheck 7794: both exit 0
+  (the first two runs had the client too late while the self-test ran alongside - rerun fixed it).
+- Asked B (A.md) to move StaffConfig "south" anchor to the pavement (z 55.4): it now snaps into the garage.
+- feature-b NOT yet "KLAAR OM TE MERGEN" (B works on raids, uncommitted in game-b).
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
-3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14) DONE, cover garage (52),
+3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14) DONE, cover garage (52) DONE,
    territory per district (51), the remote prison + tutorial intro + late-join intro (49-50), the full village
    map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
 
@@ -39,6 +45,7 @@
 - park: 15:00 at the park entrance: paths, benches, dog walkers with dogs, youths smoking in a circle.
 - agora: 15:00 on the pitch, a 2-against-2 match; walk into the ball to kick it, GOAL! + score board.
 - car_dealer: in Carlo's office with €20,000 clean: E on Carlo, buy a car, it waits on the lot outside.
+- cover_garage: E on the car on the lift (4x) -> +€260 clean; E on the tool shelf at the back -> hidden room.
 - driving: next to your own Comet Sedan (+ a Mule Van): F in, WASD, Space handbrake, H horn, mouse looks around,
   F out. With 2 instances the second player presses F at the same car = passenger.
 - (from before, still untested by you) trash, launder, grow (work animations + mouse wheel), sleep, bookshelf.
@@ -46,6 +53,8 @@
 ## Known
 - The "activities" pedestrian check is random and fails now and then.
 - `--only=npc_combat` needs `pedestrians` in the same run (it uses the pedestrians that check spawns).
-- No git push: `origin` (github.com/ccwanker-lang/game) answers "Repository not found" - commits stay local.
+- Push: the user made github.com/ccwanker-lang/Crime-game (PUBLIC). Setting origin + pushing was blocked by the
+  permission classifier on 2026-11-14; the user runs `git remote set-url origin https://github.com/ccwanker-lang/Crime-game.git`
+  + `git push -u origin main feature-b` themselves (or allows it).
 - Netcheck: after the respawn the client's 5 m crouch walk bumps into the host (both stand at the hospital spawn);
   harmless, it has always been like that.
