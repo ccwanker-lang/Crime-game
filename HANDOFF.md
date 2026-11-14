@@ -28,11 +28,13 @@
 - Asked B (A.md) to move StaffConfig "south" anchor to the pavement (z 55.4): it now snaps into the garage.
 - feature-b NOT yet "KLAAR OM TE MERGEN" (B works on raids, uncommitted in game-b).
 
+- Point 51 (territory) committed (50f96a7): targeted checks + netcheck pass; full self-test: see below.
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
 3. Roadmap in the user's order: park + agora (46 = 12-13) DONE, car dealer + driving (45 = 14) DONE, cover garage (52) DONE,
-   territory per district (51), the remote prison + tutorial intro + late-join intro (49-50), the full village
+   territory per district (51) DONE, the remote prison + tutorial intro + late-join intro (49-50), the full village
    map (47), then the chapter 1 story missions (53). Meth/cocaine (48) is session B's for now.
 
 ## Te testen door Curry (F9 in the game, or --scenario=<name>)
@@ -45,6 +47,8 @@
 - park: 15:00 at the park entrance: paths, benches, dog walkers with dogs, youths smoking in a circle.
 - agora: 15:00 on the pitch, a 2-against-2 match; walk into the ball to kick it, GOAL! + score board.
 - car_dealer: in Carlo's office with €20,000 clean: E on Carlo, buy a car, it waits on the lot outside.
+- turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.
+- turf_danger: sell to the customer -> "Told you. Look behind you." + a Crow runs at you by day; shoot it, check Turf.
 - cover_garage: E on the car on the lift (4x) -> +€260 clean; E on the tool shelf at the back -> hidden room.
 - driving: next to your own Comet Sedan (+ a Mule Van): F in, WASD, Space handbrake, H horn, mouse looks around,
   F out. With 2 instances the second player presses F at the same car = passenger.
