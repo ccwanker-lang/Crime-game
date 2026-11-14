@@ -394,6 +394,11 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
   49. Prison + tutorial intro: last day inside (walk, talk, interact), the fellow prisoner / mentor gives a
       contact, the bus drops you at the edge of the village without money - DONE (Intro, prison prefab 340 m
       north of the village, bus stop at Main Road's west end; F2 skips)
+  49b. (user, 2026-11-14, changes 49 and the prison part of 62) The prison lies on the OTHER side of a mountain,
+      out of sight of the farm and the village. A mountain road from the farm (top of Country Lane) winds up with
+      hairpin bends; at the top snow, rocks, pines and guardrails; on the far side it goes down to the remote prison.
+      The mountain blocks the view between the village and the prison. The tutorial bus drives over this pass to the
+      village. Cars can drive up and down it; traffic and the navmesh work on it - todo (built right after 62)
   50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
       story progress (missed missions done, no loot/money from them, own cash/items from zero) - DONE (short intro: cell open, desk, bus
       leaves at once; the crew gets a text)
@@ -418,7 +423,7 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
   60. Map: the police station's street (South Street) dead-ends: extend it to the docks - todo
   61. Map: grass everywhere it is green (no bare green planes) - todo
   62. Map: houses with driveways and parking, a rich neighbourhood with villas, a business district with tall
-      office buildings. Layout: the prison (49) near the farm, the rich neighbourhood next to it, the business
+      office buildings. Layout: the prison (49) behind the mountain north of the farm (see 49b), the rich neighbourhood next to the farm, the business
       district on the other side of the village - todo
   63. Traffic: fewer cars, traffic lights at the big junctions, better flow: no jams or cars stuck behind each
       other, overtake / drive round when something blocks the road - todo
@@ -976,6 +981,9 @@ Choices made while working autonomously (what + why).
   OBJECT: the station's WORK_FX (drops, sparks, dust) or else a small dust `Poof` (scripts/world/poof.gd, local
   CPUParticles3D), and placing / picking up sends `World.host_poof(pos)` to every peer. The watering can still tips
   (that is the held item, not the body). `_work_t` stays for that; `_work_low` is always 0.
+- Point 49b (roadmap order): the mountain pass is built right AFTER point 62 (the map layout), as part of the map
+  work (60-62), because 62 places the neighbourhoods round the farm and the pass starts there; doing it before 62
+  would mean moving it again. The prison moves from its current spot to behind the mountain then.
 - Point 59: A police-vs-Crows clash ends by a CLOCK, not by who dies: `PoliceOfficer.clash_max` (120 real s, from the
   first `set_foe` between the sides; a new clash starts after 40 s quiet) -> `end_clash` drops every NPC foe and
   starts a truce (`TRUCE_TIME` 300 s): no `set_foe`, no `report_npc_crime` (officers + patrol cars), `spot_cop` finds
