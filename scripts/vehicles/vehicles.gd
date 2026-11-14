@@ -26,14 +26,14 @@ func _exit_tree() -> void:
 
 
 ## Host: a new car (or one from the save when uid is given).
-func host_spawn(model_id: String, paint: int, pos: Vector3, yaw: float, uid: String = "") -> PlayerCar:
+func host_spawn(model_id: String, paint: int, pos: Vector3, yaw: float, uid: String = "", fuel: float = 1.0) -> PlayerCar:
 	if uid == "":
 		var next: int = int(GameState.world.get("vehicles_next", 1))
 		GameState.world["vehicles_next"] = next + 1
 		uid = str(next)
 	var cars: Dictionary = GameState.world.get_or_add("vehicles", {})
-	cars[uid] = {"model": model_id, "paint": paint, "pos": pos, "yaw": yaw}
-	return spawner.spawn({"uid": uid, "model": model_id, "paint": paint, "pos": pos, "yaw": yaw}) as PlayerCar
+	cars[uid] = {"model": model_id, "paint": paint, "pos": pos, "yaw": yaw, "fuel": fuel}
+	return spawner.spawn({"uid": uid, "model": model_id, "paint": paint, "pos": pos, "yaw": yaw, "fuel": fuel}) as PlayerCar
 
 
 ## Host: remove a car for good (tests).
@@ -54,6 +54,7 @@ func _create(data: Dictionary) -> Node:
 	car.paint_index = int(data["paint"])
 	car.net_pos = data["pos"]
 	car.net_yaw = float(data["yaw"])
+	car.fuel = float(data.get("fuel", 1.0))
 	car.position = data["pos"]
 	car.rotation.y = float(data["yaw"])
 	var sync := MultiplayerSynchronizer.new()
@@ -62,8 +63,9 @@ func _create(data: Dictionary) -> Node:
 	for prop: String in [":net_pos", ":net_yaw", ":net_speed", ":net_steer"]:
 		cfg.add_property(NodePath("." + prop))
 		cfg.property_set_replication_mode(NodePath("." + prop), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
-	cfg.add_property(NodePath(".:seats"))
-	cfg.property_set_replication_mode(NodePath(".:seats"), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+	for prop: String in [":seats", ":fuel"]:
+		cfg.add_property(NodePath("." + prop))
+		cfg.property_set_replication_mode(NodePath("." + prop), SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
 	sync.replication_config = cfg
 	car.add_child(sync)
 	Net.limit_sync_to_world(sync)
@@ -94,7 +96,7 @@ func restore() -> void:
 		if not CarCatalog.MODELS.has(str(r.get("model", ""))):
 			cars_rec.erase(uid)
 			continue
-		host_spawn(str(r["model"]), int(r.get("paint", 0)), r["pos"], float(r.get("yaw", 0.0)), uid)
+		host_spawn(str(r["model"]), int(r.get("paint", 0)), r["pos"], float(r.get("yaw", 0.0)), uid, float(r.get("fuel", 1.0)))
 
 
 ## Nearest car to a point within `max_dist` of its body (null if none).

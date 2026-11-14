@@ -247,6 +247,10 @@ Godot console exe:
   (Shopkeeper subclass in `prefabs/buildings/car_dealer.tscn`, `request_buy_car`, markers CarDelivery1-4), `DisplayCar`.
   Player: `vehicle`/`seat`, `enter_vehicle`/`leave_vehicle`/`_ride`/`_car_input`; actions `vehicle` (F) + `horn` (H);
   HUD `set_car`/`update_car`/`_fill_cars`. Scenarios car_dealer, driving (`--drive` shot flag); self-test check vehicles.
+- Fuel (point 48 rest): `PlayerCar.fuel` (0-1, synced, saved; `FUEL_RANGE` 3 km, `TANK_LITRES`, `FUEL_PRICE`,
+  `host_use_fuel(m)`, `host_refuel()`, `litres_missing()`; empty = no throttle). `FuelPump` (`scripts/vehicles/fuel_pump.gd`,
+  group `fuel_pumps`, `car_here()`, `_host_fill(peer)`), gas station QuickFuel in gen_world (FuelPump1/2, Markers/GasStation).
+  Scenario gas_station, self-test check fuel.
 - Cover garage (point 52): `prefabs/buildings/cover_garage.tscn` (gen_prefabs `cover_garage_extra`, node CoverGarage on
   South Street, Property "cover_garage"; gen_world `SKIP_NODES` drops the row houses it replaced). `RepairBay` station
   (`scripts/stations/repair_bay.gd`, `new_job(i)`, JOBS, item `car_parts`), `HiddenShelfDoor` (NetDoor subclass, node

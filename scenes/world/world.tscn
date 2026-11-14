@@ -71,9 +71,11 @@
 [ext_resource type="Script" path="res://scripts/world/agora.gd" id="69_r"]
 [ext_resource type="PackedScene" path="res://prefabs/buildings/car_dealer.tscn" id="70_r"]
 [ext_resource type="Script" path="res://scripts/vehicles/display_car.gd" id="71_r"]
-[ext_resource type="PackedScene" path="res://prefabs/buildings/prison.tscn" id="72_r"]
-[ext_resource type="Script" path="res://scripts/procgen/proc_box.gd" id="73_r"]
-[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="74_r"]
+[ext_resource type="Script" path="res://scripts/procgen/proc_box.gd" id="72_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/ceiling_lamp.tscn" id="73_r"]
+[ext_resource type="Script" path="res://scripts/vehicles/fuel_pump.gd" id="74_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/prison.tscn" id="75_r"]
+[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="76_r"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
@@ -1735,9 +1737,6 @@ transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 0, 0.1
 [node name="StreetLamp33" parent="NavRegion" instance=ExtResource("44_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 18, 0.15, -51.95)
 
-[node name="StreetLamp34" parent="NavRegion" instance=ExtResource("44_r")]
-transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 48, 0.15, -51.95)
-
 [node name="StreetLamp35" parent="NavRegion" instance=ExtResource("44_r")]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 64, 0.15, -51.95)
 
@@ -1886,22 +1885,6 @@ tree_seed = 617
 [node name="TreeLarge12" parent="NavRegion" instance=ExtResource("29_r")]
 transform = Transform3D(-0.136017, 0, 0.990706, 0, 1, 0, -0.990706, 0, -0.136017, 31.1325, 0, -58.8571)
 tree_seed = 618
-
-[node name="TreeMedium30" parent="NavRegion" instance=ExtResource("21_r")]
-transform = Transform3D(-0.270417, 0, -0.962743, 0, 1, 0, 0.962743, 0, -0.270417, 37.3938, 0, -57.2242)
-tree_seed = 619
-
-[node name="TreeMedium31" parent="NavRegion" instance=ExtResource("21_r")]
-transform = Transform3D(-0.964373, 0, -0.264547, 0, 1, 0, 0.264547, 0, -0.964373, 42.6927, 0, -58.3696)
-tree_seed = 620
-
-[node name="TreeLarge13" parent="NavRegion" instance=ExtResource("29_r")]
-transform = Transform3D(-0.335644, 0, -0.941989, 0, 1, 0, 0.941989, 0, -0.335644, 51.0145, 0, -57.6637)
-tree_seed = 621
-
-[node name="TreeMedium32" parent="NavRegion" instance=ExtResource("21_r")]
-transform = Transform3D(-0.730605, 0, 0.6828, 0, 1, 0, -0.6828, 0, -0.730605, 56.6702, 0, -56.9376)
-tree_seed = 622
 
 [node name="TreeMedium33" parent="NavRegion" instance=ExtResource("21_r")]
 transform = Transform3D(-0.873328, 0, 0.487133, 0, 1, 0, -0.487133, 0, -0.873328, 62.4603, 0, -56.1863)
@@ -2167,6 +2150,76 @@ modulate = Color(1, 0.85, 0.3, 1)
 outline_size = 14
 double_sided = false
 
+[node name="GasForecourt" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("31_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45, 0, -56.4)
+size = Vector2(22, 8)
+surface = "concrete"
+height = 0.15
+edge = false
+
+[node name="GasPost0" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 37.4, 0.15, -56.4)
+size = Vector3(0.3, 4.4, 0.3)
+material_key = "metal_dark"
+
+[node name="GasPost1" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 0.15, -56.4)
+size = Vector3(0.3, 4.4, 0.3)
+material_key = "metal_dark"
+
+[node name="GasPost2" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50.6, 0.15, -56.4)
+size = Vector3(0.3, 4.4, 0.3)
+material_key = "metal_dark"
+
+[node name="GasCanopy" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 4.55, -56.4)
+size = Vector3(13.6, 0.45, 7.2)
+material_key = "trim_paint"
+tint = Color(0.92, 0.92, 0.9, 1)
+
+[node name="GasSign" type="Label3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 4.78, -52.78)
+text = "QUICKFUEL"
+font_size = 96
+pixel_size = 0.012
+modulate = Color(0.95, 0.25, 0.2, 1)
+outline_size = 14
+
+[node name="GasLamp0" parent="NavRegion" instance=ExtResource("73_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 41, 4.53, -56.4)
+
+[node name="GasLamp1" parent="NavRegion" instance=ExtResource("73_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47, 4.53, -56.4)
+
+[node name="FuelPump1" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("74_r")
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 41, 0.15, -56.4)
+
+[node name="FuelPump2" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("74_r")
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 47, 0.15, -56.4)
+
+[node name="GasKiosk" type="StaticBody3D" parent="NavRegion"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 53.6, 0.15, -57.2)
+size = Vector3(4.0, 3.0, 5.6)
+material_key = "plaster"
+tint = Color(0.95, 0.9, 0.82, 1)
+
+[node name="GasKioskSign" type="Label3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 53.6, 2.5, -54.36)
+text = "SHOP  24/7"
+font_size = 48
+pixel_size = 0.008
+modulate = Color(1, 0.85, 0.3, 1)
+outline_size = 8
+
 [node name="Bounds" type="StaticBody3D" parent="."]
 
 [node name="WallN" type="CollisionShape3D" parent="Bounds"]
@@ -2381,7 +2434,7 @@ outline_size = 12
 modulate = Color(1, 0.95, 0.75, 1)
 no_depth_test = true
 
-[node name="Prison" parent="." instance=ExtResource("72_r")]
+[node name="Prison" parent="." instance=ExtResource("75_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -340)
 
 [node name="BusStop" type="Marker3D" parent="Markers"]
@@ -2396,8 +2449,11 @@ outline_size = 12
 modulate = Color(1, 0.95, 0.75, 1)
 no_depth_test = true
 
+[node name="GasStation" type="Marker3D" parent="Markers"]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 44, 0.2, -52.6)
+
 [node name="BusStopPole" type="StaticBody3D" parent="NavRegion"]
-script = ExtResource("73_r")
+script = ExtResource("72_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -62.4, 0.15, -5.5)
 size = Vector3(0.1, 2.7, 0.1)
 material_key = "metal_dark"
@@ -2419,7 +2475,7 @@ _spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res:
 spawn_path = NodePath("../NPCs")
 
 [node name="Traffic" type="Node3D" parent="."]
-script = ExtResource("74_r")
+script = ExtResource("76_r")
 
 [node name="CarSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://prefabs/vehicles/car.tscn")

@@ -21,6 +21,11 @@ const STEER_RATE: float = 2.6
 const HIT_SPEED: float = 3.0  # below this a car only nudges people
 const KILL_SPEED: float = 10.0
 const MAX_DRIVE_RATE: float = 1.5  # host check: x the model's top speed
+## Fuel (point 48 rest): a full tank lasts this many metres; litres per tank and price per litre at the pump.
+const FUEL_RANGE: float = 3000.0
+const TANK_LITRES: float = 45.0
+const FUEL_PRICE: float = 2.0
+const LOW_FUEL: float = 0.15
 
 var uid: String = ""
 var model_id: String = "hatch"
@@ -43,6 +48,10 @@ var seats: PackedInt32Array = PackedInt32Array([0, 0, 0, 0]):
 var speed: float = 0.0
 var steer: float = 0.0
 ## Tests drive without a keyboard: x = steer (+ left), y = throttle (+ forward), z = handbrake.
+## 0..1, host-owned, synced (on change, in 0.5% steps) and saved with the car.
+var fuel: float = 1.0
+var _fuel_from: Vector3 = Vector3.INF
+var _fuel_used: float = 0.0
 var test_input: Vector3 = Vector3.ZERO
 var test_drive: bool = false
 
@@ -293,6 +302,7 @@ func _physics_process(delta: float) -> void:
 		steer = net_steer
 	if host:
 		_host_hits()
+		_host_fuel()
 	_riders_check -= delta
 	if _riders_check <= 0.0:
 		_riders_check = 0.5
@@ -317,7 +327,7 @@ func _read_input() -> Vector3:
 func _simulate(delta: float, input: Vector3) -> void:
 	var max_speed: float = float(spec["max_speed"])
 	var accel: float = float(spec["accel"])
-	var throttle: float = clampf(input.y, -1.0, 1.0)
+	var throttle: float = clampf(input.y, -1.0, 1.0) if fuel > 0.0 else 0.0  # empty tank: it only rolls
 	if throttle > 0.05:
 		speed = move_toward(speed, 0.0, BRAKE * delta) if speed < -0.3 \
 				else move_toward(speed, max_speed * throttle, accel * delta)
@@ -407,10 +417,50 @@ func _host_check_riders() -> void:
 	_save_record()
 
 
-## Host: keep the save record up to date (where it is parked).
+## Host: keep the save record up to date (where it is parked, how much fuel).
 func _save_record() -> void:
 	var cars: Dictionary = GameState.world.get_or_add("vehicles", {})
-	cars[uid] = {"model": model_id, "paint": paint_index, "pos": global_position, "yaw": rotation.y}
+	cars[uid] = {"model": model_id, "paint": paint_index, "pos": global_position, "yaw": rotation.y, "fuel": fuel}
+
+
+## Host: fuel burnt by the distance the car moved with someone at the wheel.
+func _host_fuel() -> void:
+	if driver_peer() == 0:
+		_fuel_from = Vector3.INF
+		return
+	if _fuel_from != Vector3.INF:
+		host_use_fuel(Vector2(net_pos.x - _fuel_from.x, net_pos.z - _fuel_from.z).length())
+	_fuel_from = net_pos
+
+
+## Host: `metres` driven (also tests). Updates `fuel` in 0.5% steps; texts the driver once when it runs low/out.
+func host_use_fuel(metres: float) -> void:
+	if fuel <= 0.0 or metres <= 0.0 or metres > 30.0:
+		return
+	_fuel_used += metres / FUEL_RANGE
+	if _fuel_used < 0.005:
+		return
+	var before: float = fuel
+	fuel = maxf(0.0, fuel - _fuel_used)
+	_fuel_used = 0.0
+	var driver := _player(driver_peer())
+	if driver and before > LOW_FUEL and fuel <= LOW_FUEL:
+		driver.show_message("Low fuel (%d%%). Fill up at the gas station on North Road." % roundi(fuel * 100.0))
+	elif driver and before > 0.0 and fuel <= 0.0:
+		driver.show_message("Out of fuel. Push... or call the roadside team.")
+
+
+## Host: fill the tank up; returns the litres put in.
+func host_refuel() -> float:
+	var litres: float = (1.0 - fuel) * TANK_LITRES
+	fuel = 1.0
+	_fuel_used = 0.0
+	_save_record()
+	return litres
+
+
+func litres_missing() -> int:
+	return ceili((1.0 - fuel) * TANK_LITRES - 0.01)
 
 
 # --- Hitting people (host) ------------------------------------------------------------

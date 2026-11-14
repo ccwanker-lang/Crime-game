@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3391,5 +3391,70 @@ func _check_intro(world: Node3D) -> void:
 	door.apply_net_state({"open": false, "locked": true})
 	door2.apply_net_state({"open": false, "locked": true})
 	GameState.player_data.erase("Inmate")
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Fuel + gas station (point 48, rest) ---------------------------------------------------
+
+func _check_fuel(world: Node3D) -> void:
+	var pumps: Array[Node] = get_tree().get_nodes_in_group(&"fuel_pumps")
+	var veh: Vehicles = Vehicles.current
+	_report(pumps.size() == 2 and veh != null and world.find_child("GasStation", true, false) != null,
+			"QuickFuel: 2 pumps and the GasStation marker")
+	if pumps.size() < 2 or veh == null:
+		return
+	var pump := pumps[0] as FuelPump
+	var car: PlayerCar = veh.host_spawn("sedan", 1, pump.global_position + Vector3(0, 0, -2.2), PI / 2.0, "", 0.5)
+	await get_tree().physics_frame
+	for i: int in 12:
+		car.host_use_fuel(25.0)  # one call per frame of driving; jumps > 30 m count as teleports
+	_report(absf(car.fuel - 0.4) < 0.006, "300 m driven: 50%% -> %d%% (a full tank = %.0f km)" % [roundi(car.fuel * 100.0), PlayerCar.FUEL_RANGE / 1000.0])
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Tanker"
+	world.get_node("Players").add_child(p)
+	p.global_position = pump.global_position + Vector3(1.5, 0.2, 1.2)
+	p.auto_target = p.global_position
+	for i: int in 3:
+		await get_tree().physics_frame
+	GameState.player_data.erase("Tanker")
+	var data: Dictionary = GameState.get_or_create_player_data("Tanker")
+	data["cash"] = 30
+	data["clean"] = 0
+	_report(pump.car_here() == car and pump.get_interaction_prompt().contains("27 L"), "pump prompt: '%s'" % pump.get_interaction_prompt())
+	pump._host_fill(1)
+	_report(car.fuel < 1.0 and int(data["cash"]) == 30, "not enough money: no fuel ('%s')" % p.last_message)
+	data["cash"] = 20
+	data["clean"] = 100
+	pump._host_fill(1)
+	_report(is_equal_approx(car.fuel, 1.0) and int(data["clean"]) == 46 and int(data["cash"]) == 20,
+			"filled up: 27 L for €54, clean money first ('%s')" % p.last_message)
+	var rec: Dictionary = (GameState.world.get("vehicles", {}) as Dictionary).get(car.uid, {})
+	_report(is_equal_approx(float(rec.get("fuel", -1.0)), 1.0), "the fuel is in the save record")
+	# Empty tank: full throttle does nothing.
+	car.fuel = 0.0
+	p.global_position = car.exit_spot(0)
+	p.auto_target = p.global_position
+	await get_tree().physics_frame
+	car.host_enter(p)
+	car.test_drive = true
+	car.test_input = Vector3(0, 1, 0)
+	var start: Vector3 = car.global_position
+	await get_tree().create_timer(1.0).timeout
+	var moved: float = car.global_position.distance_to(start)
+	_report(moved < 0.3 and absf(car.speed) < 0.1, "empty tank: full throttle moves it %.2f m" % moved)
+	car.fuel = 1.0
+	var top: float = 0.0
+	for i: int in 90:
+		await get_tree().physics_frame
+		top = maxf(top, absf(car.speed))
+	_report(top > 2.0 and car.global_position.distance_to(start) > 2.0, "with fuel it drives again (%.1f m/s, %.1f m)" % [top, car.global_position.distance_to(start)])
+	car.test_input = Vector3.ZERO
+	car.test_drive = false
+	car.host_exit(p)
+	veh.host_remove(car)
+	GameState.player_data.erase("Tanker")
 	p.queue_free()
 	await get_tree().physics_frame

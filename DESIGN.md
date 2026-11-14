@@ -382,8 +382,8 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
   47. The full village (chapter 1 map, Map layout): today's test town grown to its full size - todo
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
       point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - DONE
-      except the fuel station (session B, merged 2026-11-14: meth, cocaine, courier, lawyer, bribes, Crow raids +
-      guards, roadside team; fuel + gas station = session A, still todo)
+      (session B, merged 2026-11-14: meth, cocaine, courier, lawyer, bribes, Crow raids + guards, roadside team;
+      session A 2026-11-14: fuel + the QuickFuel gas station on North Road)
 Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built after 48):
   49. Prison + tutorial intro: last day inside (walk, talk, interact), the fellow prisoner / mentor gives a
       contact, the bus drops you at the edge of the village without money - DONE (Intro, prison prefab 340 m
@@ -874,3 +874,14 @@ Choices made while working autonomously (what + why).
   change the time for everyone. Why: the design's "short intro", without holding up the rest of the crew.
 - Point 50: "the host's story progress" needs no copying: story state lives in GameState.world (crew-wide) and
   missions are not built yet (53); their cash/items are a normal new player's (€500 + the starter kit), per player.
+- Point 48 (fuel, session A): Fuel only for crew cars (PlayerCar); town traffic never refuels. A full tank = 3 km
+  (`FUEL_RANGE`), ~10 laps of the village: enough to forget it for an evening, often enough to matter. 45 L at €2/L
+  (a full tank €90, small next to deals). Why: a light upkeep cost, not a chore.
+- Point 48 (fuel): Fuel is burnt by distance (host, from net_pos per frame, jumps > 30 m = teleports ignored), stored in
+  0.5% steps so the synced value changes rarely. An empty car keeps rolling and steering but gets no throttle: push
+  it off the road or call the roadside team (B's tow). Low (15%) / empty texts to the driver.
+- Point 48 (fuel): Paying at the pump is a legal purchase (clean money first, like the webshop). Filling needs the
+  driver out and the car still; one E fills the whole tank (no litre picker: less UI, same result).
+- Point 48 (fuel): QuickFuel sits on the north side of North Road at x 34-56 (trees/lamp there dropped via
+  SKIP_NODES), a raised concrete forecourt like Carlo's lot, two pumps under a canopy, posts on the pump line so both
+  lanes are free to drive through. The fuel % is in the car panel and the save record.

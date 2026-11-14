@@ -23,7 +23,9 @@ def uname(base):
 
 # Point 52: random row houses replaced by a fixed building. Their rng calls and names still happen (so every
 # other house keeps its look and name); only the node is left out.
-SKIP_NODES = {"RowHouseB5", "RowHouseC3"}
+SKIP_NODES = {"RowHouseB5", "RowHouseC3",
+              # Point 48 (fuel): the gas station north of North Road (x 34..56) replaces these trees + one lamp.
+              "TreeMedium30", "TreeMedium31", "TreeLarge13", "TreeMedium32", "StreetLamp34"}
 
 
 def put(prefab, pos, rot=0.0, parent=NAV, name=None, props=None, scale=1.0):
@@ -539,6 +541,31 @@ sc.node("CarLotSign", "Label3D", NAV, props={
     "transform": xform((36.4, 2.6, 56.5), -90), "text": q("CARLO'S CARS\nused + new"), "font_size": "64",
     "pixel_size": "0.01", "modulate": col(1.0, 0.85, 0.3), "outline_size": "14", "double_sided": "false"})
 
+# Point 48 (fuel): QuickFuel, the gas station on the north side of North Road: a raised forecourt (cars drive
+# up like onto Carlo's lot), a canopy with lights over two pumps (FuelPump), a small kiosk. Marker GasStation.
+GAS = (45.0, -56.4, 22.0, 8.0)
+sc.node("GasForecourt", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((GAS[0], 0, GAS[1])),
+    "size": f"Vector2({GAS[2]:g}, {GAS[3]:g})", "surface": q("concrete"), "height": "0.15", "edge": "false"})
+BOX = "res://scripts/procgen/proc_box.gd"
+# Posts on the pump line (z -56.4) so both lanes (z -54.2 / -58.6) stay free to drive through along X.
+for i, (x, z) in enumerate([(37.4, -56.4), (44.0, -56.4), (50.6, -56.4)]):
+    sc.node(f"GasPost{i}", "StaticBody3D", NAV, props={"script": sc.script(BOX), "transform": xform((x, 0.15, z)),
+            "size": "Vector3(0.3, 4.4, 0.3)", "material_key": q("metal_dark")})
+sc.node("GasCanopy", "StaticBody3D", NAV, props={"script": sc.script(BOX), "transform": xform((44.0, 4.55, -56.4)),
+        "size": "Vector3(13.6, 0.45, 7.2)", "material_key": q("trim_paint"), "tint": col(0.92, 0.92, 0.9)})
+sc.node("GasSign", "Label3D", NAV, props={"transform": xform((44.0, 4.78, -52.78)), "text": q("QUICKFUEL"),
+        "font_size": "96", "pixel_size": "0.012", "modulate": col(0.95, 0.25, 0.2), "outline_size": "14"})
+for i, x in enumerate((41.0, 47.0)):
+    put("interiors/ceiling_lamp.tscn", (x, 4.53, -56.4), 0, name=f"GasLamp{i}")
+for i, x in enumerate((41.0, 47.0)):
+    sc.node(f"FuelPump{i + 1}", "StaticBody3D", NAV, props={
+        "script": sc.script("res://scripts/vehicles/fuel_pump.gd"), "transform": xform((x, 0.15, -56.4), 90)})
+sc.node("GasKiosk", "StaticBody3D", NAV, props={"script": sc.script(BOX), "transform": xform((53.6, 0.15, -57.2)),
+        "size": "Vector3(4.0, 3.0, 5.6)", "material_key": q("plaster"), "tint": col(0.95, 0.9, 0.82)})
+sc.node("GasKioskSign", "Label3D", NAV, props={"transform": xform((53.6, 2.5, -54.36)), "text": q("SHOP  24/7"),
+        "font_size": "48", "pixel_size": "0.008", "modulate": col(1.0, 0.85, 0.3), "outline_size": "8"})
+
 # --------------------------------------------------------------------------- invisible walls
 sc.node("Bounds", "StaticBody3D", ".")
 for name, pos, size in [("N", (0, 5, -61), (150, 10, 1)), ("S", (0, 5, 67), (150, 10, 1)),
@@ -596,6 +623,7 @@ PRISON_POS = (0, 0, -340)
 put("buildings/prison.tscn", PRISON_POS, 0, parent=".", name="Prison")
 sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, -4.4), -90)})
 debug_label("Markers/BusStop", "BUS STOP")
+sc.node("GasStation", "Marker3D", "Markers", props={"transform": xform((44.0, 0.2, -52.6), 180)})
 sc.node("BusStopPole", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/proc_box.gd"), "transform": xform((-62.4, 0.15, -5.5)),
     "size": "Vector3(0.1, 2.7, 0.1)", "material_key": q("metal_dark")})

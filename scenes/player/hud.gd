@@ -531,7 +531,9 @@ func update_car(car: PlayerCar) -> void:
 	if not _car_panel.visible:
 		return
 	var kmh: int = roundi(absf(car.speed) * 3.6)
-	_car_label.text = "%s   %d km/h%s" % [car.spec["name"], kmh, "  R" if car.speed < -0.3 else ""]
+	_car_label.text = "%s   %d km/h%s   fuel %d%%" % [car.spec["name"], kmh, "  R" if car.speed < -0.3 else "",
+			roundi(car.fuel * 100.0)]
+	_car_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35) if car.fuel <= PlayerCar.LOW_FUEL else Color(0.95, 0.95, 0.95))
 
 
 ## Ranks: "Rank 2" in place of a Buy button.

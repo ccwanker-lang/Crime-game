@@ -49,6 +49,7 @@ const LIST: Array = [
 	["cover_garage", "10:00 in your own Corner Garage (South Street) with 3 Spare Parts, a car on the lift", "E on the car on the lift: each press is one work step (sparks, kneel animation, the car rises). Brake pads need 1 Spare Part (you carry 3). After 4 steps: +€260 CLEAN money (a toast message); the next customer comes 2-4 in-game hours later (F7 speeds time up). More parts: phone > Shop > Spare Parts. Then the tool shelf at the back wall: E = it slides aside, walk into the hidden room behind it (build mode B: place stations there). E again closes it."],
 	["prison_intro", "A NEW game's start: you wake up in a prison cell (last day inside)", "Follow the box at the top: walk to the cell door (it slides open), talk to Marco in the yard (E: his lines + his number on your phone), get your things at the RELEASE desk by the gate (wallet back), walk out of the gate and E on the yellow bus. Black screen, 'Two hours later', you stand at the bus stop on the west end of Main Road with Marco's package (pistol + rounds) and his text. F2 = skip. With 2 instances: both wake up in their own cell and the bus leaves when both are on it."],
 	["late_join", "A friend joins an ongoing game: the short prison intro", "You wake up in a cell with the door already open; the guard tells you to go. Marco's text is on your phone. Walk across the yard to the RELEASE desk by the gate (E), then E on the bus: it leaves at once (black screen) and drops you at the bus stop on Main Road with Marco's package. In a real co-op game the others get a text that you are coming."],
+	["gas_station", "QuickFuel on North Road: your Comet Sedan almost empty next to pump 1, €500", "The car panel (bottom right) shows fuel 6% when you sit in it (F). Get out, E on the red pump: 'Fill up: 43 L for €86' -> full, money gone (clean money first). Drive around town: the % drops (a full tank is about 3 km). Second car (Mule Van) at pump 2 is completely empty: get in, W = nothing, it only rolls. Below 15% you get a 'Low fuel' message."],
 	["turf_take", "15:00 in front of the Starter Room: this district is at 96% influence, a customer waits (green €)", "Phone (Tab) > Turf: every district with its meter (red = Crow turf). E on the customer > Confirm deal: the sale pushes the meter past 100% -> a text 'X is yours now', Turf shows it green. Walk into another district: a toast with its name and owner. Your turf: customers pay 15% more, no Crows roam there at night."],
 	["turf_danger", "13:00 in front of the Starter Room: Crow turf (30%), they already warned you, a customer waits", "E on the customer > Confirm deal: a text 'Told you. Look behind you.' and a Crow (black clothes) runs at you from 25-40 m, by day. Fight back (1 = pistol): a dead Crow pushes the district's meter up (+6%), dying to it pushes it down (-8%). Check phone > Turf before and after."],
 	["ranks", "Rank 0 (10 XP short of rank 1) in the gun shop", "Top left: rank, XP bar and what the next rank unlocks. E on Vince: the guns show 'Rank N' instead of Buy. Turn round: the customer (green €, deal already accepted): E, Confirm deal -> +XP -> RANK UP banner (Hustler). Vince again: the shotgun can be bought now. F8 = +100 XP (try the estate agent's list too)."],
@@ -374,6 +375,15 @@ static func run(world: Node, id: String) -> bool:
 			var office: Node3D = world.find_child("CarDealer", true, false) as Node3D
 			var carlo: Node3D = office.find_child("Carlo", true, false) as Node3D
 			_place(me, office.to_global(Vector3(0.0, 0.2, -3.6)), carlo.global_position + Vector3.UP * 1.5, dn, 14.0)
+		"gas_station":
+			_kit(me, 500, [])
+			var veh: Vehicles = Vehicles.current
+			var pump1: Node3D = world.find_child("FuelPump1", true, false) as Node3D
+			var pump2: Node3D = world.find_child("FuelPump2", true, false) as Node3D
+			if veh and pump1 and pump2:
+				veh.host_spawn("sedan", 4, pump1.global_position + Vector3(0, 0, -2.2), PI / 2.0, "", 0.06)
+				veh.host_spawn("van", 0, pump2.global_position + Vector3(0, 0, -2.4), PI / 2.0, "", 0.0)
+				_place(me, pump1.global_position + Vector3(1.6, 0.1, 1.4), pump1.global_position + Vector3.UP * 1.0, dn, 13.0)
 		"late_join":
 			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 24]])  # (what a new player has)
 			if Intro.current:
