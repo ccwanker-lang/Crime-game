@@ -343,3 +343,8 @@ Code + self-test check `roadside` + scenario `roadside`.
 ## For CLAUDE.md (suggested lines)
 - Roadside team (milestone 3): `Roadside` (scripts/staff/roadside.gd, static: `host_tow`, `kerb_spot`, `tow_seconds`),
   CrewWindow tab "Services", request "tow". Scenario roadside, self-test check roadside.
+
+
+# Fix (A's request 2026-11-14)
+- StaffConfig district "south" anchor Vector3(-34, 0, 49.4) -> (-34, 0, 55.4): the old spot was inside the building
+  row (now A's cover garage, the dealer snapped onto the workshop floor); the new one is on South Street's pavement.
