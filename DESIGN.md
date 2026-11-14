@@ -420,7 +420,8 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
   59. BUG police and Crows fight all night: it must end - the 20 pool runs out, the police call backup and win,
       or pull back after a while; a few minutes of gunfight at most (reopens 31b) - DONE (a clash lasts max
       2 min, then both sides break off and a 5 min truce follows; Crows walk back to their turf)
-  60. Map: the police station's street (South Street) dead-ends: extend it to the docks - todo
+  60. Map: the police station's street (South Street) dead-ends: extend it to the docks - DONE (bend south at
+      x -66, down to Quay Road at z 84 = a T junction; traffic loops 3/4 drive it both ways)
   61. Map: grass everywhere it is green (no bare green planes) - todo
   62. Map: houses with driveways and parking, a rich neighbourhood with villas, a business district with tall
       office buildings. Layout: the prison (49) behind the mountain north of the farm (see 49b), the rich neighbourhood next to the farm, the business
@@ -987,6 +988,13 @@ Choices made while working autonomously (what + why).
   split and stays on main; B builds on it.
 - Point 49b / round-5 order (set by the user, replaces my earlier "49b after 62"): 60 -> 61 -> 63 -> 49b -> 62.
   The pass starts at the farm (Country Lane top), which 62 doesn't move, so 62 can fit the villas round it later.
+- Point 60: South Street goes on where its barriers stood: a curve tile at (-66, 60), down to a curve at (-66, 84),
+  west along z 84 into Quay Road; the old corner (-114, 84) is now a T junction (`QuayJunction`, in
+  `Traffic.JUNCTIONS`). Why curves and not one more T: the land west of x -72 at z 60 is the industrial block. The
+  old route 3 (U-turn at the dead end) became two loops (3 clockwise, 4 the other way) over main road, the south road,
+  South Street, the harbour and Industrial Road, so traffic uses the new stretch in both directions and the harbour
+  is no longer a cul-de-sac. Two edge trees on the bend's spot were dropped (their random draws kept, so the rest of
+  the map keeps its layout).
 - Point 59: A police-vs-Crows clash ends by a CLOCK, not by who dies: `PoliceOfficer.clash_max` (120 real s, from the
   first `set_foe` between the sides; a new clash starts after 40 s quiet) -> `end_clash` drops every NPC foe and
   starts a truce (`TRUCE_TIME` 300 s): no `set_foe`, no `report_npc_crime` (officers + patrol cars), `spot_cop` finds

@@ -256,7 +256,7 @@ Godot console exe:
   `container_stack`): Main Road to x -180, Industrial Road x -114, Quay Road z 84, quay apron z 90..104, sea =
   `Sea` (water.tres) south of z 104, Bounds W/NW/Quay/WestN/WestS, `GroundWest`, `BackdropWest` (+ `skip_rects` on
   Backdrop), properties lab_warehouse / harbor_storage, traffic route 2 via the quay, junction (-114, 0).
-  PhoneMap.BOUNDS/SEA. Shots 80-86 (`80_west_top`). Scenario west_side. 47b: section "the countryside" (`frng`):
+  PhoneMap.BOUNDS/SEA. Shots 80-86 (`80_west_top`). Scenario west_side. Point 60: South Street bends at (-66, 60) down to Quay Road (T `QuayJunction` at (-114, 84)); traffic routes 3/4 = the harbour loop both ways; shots 93/94, scenario harbour_road. 47b: section "the countryside" (`frng`):
   Country Lane x -150 (T at (-150, 0)), Hollow Farm (Barn = property `barn`, Farmhouse, Silo), Field0/1; shots 87-89,
   scenario countryside. 47c: Crows' pier: `Rival.post` (&"yard"/&"harbour"), `Rival.TURF_NODES` (TurfYard /
   HarbourTurf = Node3D with meta size), `turf(tree, post)`, `yard_point(from, post)`, World `rival_harbour` (3),

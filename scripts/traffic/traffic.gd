@@ -5,13 +5,14 @@ extends Node3D
 ##
 ## Right-hand traffic, lanes 1.75 m from the road centre. Roads: main road
 ## z = 0 (x -180..72; point 47: Industrial Road x = -114 (z 0..84) + Quay Road z = 84 (x -180..-114)), side street x = -6 and x = 30 (z 0..-48), top road
-## z = -48 (x -6..72), south road x = 30 (z 0..66), South Street z = 60 (x -60..30, dead end west).
+## z = -48 (x -6..72), south road x = 30 (z 0..66), South Street z = 60 (x -66..30; point 60: it bends
+## south at x -66 down to Quay Road at z 84 = a loop through the harbour).
 
 const CAR := preload("res://prefabs/vehicles/car.tscn")
 const CAR_COUNT: int = 8
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time.
-const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0)]
+const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0), Vector2(-114, 84)]
 const JUNCTION_HALF: float = 6.0
 
 var routes: Array[TrafficRoute] = []
@@ -47,12 +48,18 @@ func _build_routes() -> void:
 	routes.append(TrafficRoute.new(
 			[Vector2(-112.25, 1.75), Vector2(66, 1.75), Vector2(66, -1.75), Vector2(-115.75, -1.75),
 			Vector2(-115.75, 82.25), Vector2(-174, 82.25), Vector2(-174, 85.75), Vector2(-112.25, 85.75)],
-			[2.5, 1.75, 1.75, 5.0, 4.25, 1.75, 1.75, 7.75]))
-	# 3: main road west part + the south road + South Street (U-turn at its dead end).
+			[2.5, 1.75, 1.75, 5.0, 2.5, 1.75, 1.75, 5.0]))
+	# 3 (point 60): harbour loop clockwise: main road east, the south road down, South Street west, its bend down to
+	# the harbour, Quay Road west, Industrial Road up (all right turns).
 	routes.append(TrafficRoute.new(
-			[Vector2(-66, 1.75), Vector2(28.25, 1.75), Vector2(28.25, 58.25), Vector2(-54, 58.25),
-			Vector2(-54, 61.75), Vector2(31.75, 61.75), Vector2(31.75, -1.75), Vector2(-66, -1.75)],
-			[1.75, 2.5, 2.5, 1.75, 1.75, 5.0, 5.0, 1.75]))
+			[Vector2(-112.25, 1.75), Vector2(28.25, 1.75), Vector2(28.25, 58.25), Vector2(-67.75, 58.25),
+			Vector2(-67.75, 82.25), Vector2(-112.25, 82.25)],
+			[2.5, 2.5, 2.5, 7.75, 4.25, 2.5]))
+	# 4 (point 60): the same loop the other way round (left turns).
+	routes.append(TrafficRoute.new(
+			[Vector2(31.75, -1.75), Vector2(-115.75, -1.75), Vector2(-115.75, 85.75), Vector2(-64.25, 85.75),
+			Vector2(-64.25, 61.75), Vector2(31.75, 61.75)],
+			[5.0, 5.0, 5.0, 7.75, 4.25, 5.0]))
 	for r: TrafficRoute in routes:
 		r.mark_junctions(JUNCTIONS, JUNCTION_HALF)
 		# The driving line as a Path3D (debug: F3 shows it).

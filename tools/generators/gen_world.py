@@ -102,14 +102,14 @@ for x in (6, 18, 42, 54, 66):
     put(R + "road_straight.tscn", (x, 0, -48))
 for z in range(12, 49, 12):
     put(R + "road_straight.tscn", (30, 0, z), 90)
-# Point 8: South Street branches west off the side road at z 60 (dead end at x -60).
+# Point 8: South Street branches west off the side road at z 60 (point 60: on to the docks, see the west side).
 put(R + "road_t_junction.tscn", (30, 0, 60), 90)
 for x in range(-54, 19, 12):
     put(R + "road_straight.tscn", (x, 0, 60), 0, props={"crossing": "true"} if x == -30 else None)
 
 # Road ends: barriers at the map edge.
 for x, z, r in [(71, -1.8, 90), (71, 1.8, 90), (71, -49.8, 90), (71, -46.2, 90),
-                (28.2, 65, 0), (31.8, 65, 0), (-59.6, 58.2, 90), (-59.6, 61.8, 90)]:
+                (28.2, 65, 0), (31.8, 65, 0)]:
     put("props/road_barrier.tscn", (x, 0, z), r)
 
 # Manholes
@@ -502,14 +502,16 @@ for i in range(26):
         props={"tree_seed": str(600 + i)})
     if i % 2 == 0:
         tx, tz, tr = x + rng.uniform(-1.5, 1.5), 63 + rng.uniform(-2, 2), rng.uniform(0, 360)
-        if not -62 < tx < 59:  # South Street runs there (z 54..66), then Carlo's car lot (point 45)
+        if not -74 < tx < 59:  # South Street runs there (z 54..66, point 60: bend at x -66), then Carlo's car lot
             put("nature/tree_medium.tscn", (tx, 0, tz), tr, props={"tree_seed": str(700 + i)})
 for i in range(18):
     z = -50 + i * 6.5
     if abs(z) < 8 or abs(z + 48) < 8:
         continue
-    put("nature/tree_medium.tscn", (-75 + rng.uniform(-1, 1), 0, z), rng.uniform(0, 360),
-        props={"tree_seed": str(800 + i)})
+    tx, tr = -75 + rng.uniform(-1, 1), rng.uniform(0, 360)
+    if z > 50:
+        continue  # point 60: South Street bends south there
+    put("nature/tree_medium.tscn", (tx, 0, z), tr, props={"tree_seed": str(800 + i)})
 
 # --------------------------------------------------------------------------- park + agora (point 46)
 # Own random stream: everything above keeps its exact layout.
@@ -635,9 +637,19 @@ for x in range(-78, -175, -12):
         put(R + "road_straight.tscn", (x, 0, 0))
 for z in range(12, 73, 12):
     put(R + "road_straight.tscn", (-114, 0, z), 90)
-put(R + "road_curve.tscn", (-114, 0, 84), -90)        # north <-> west
+put(R + "road_t_junction.tscn", (-114, 0, 84), 0, name="QuayJunction")  # W, E + Industrial Road north (point 60)
 for x in range(-126, -175, -12):
     put(R + "road_straight.tscn", (x, 0, 84))
+# Point 60: South Street goes on from its old dead end (x -60): bend south at x -66, down to the harbour, bend
+# west into Quay Road (z 84) - the police station's street now reaches the docks.
+put(R + "road_curve.tscn", (-66, 0, 60), 90)           # east <-> south
+put(R + "road_straight.tscn", (-66, 0, 72), 90)
+put(R + "road_curve.tscn", (-66, 0, 84), -90)          # north <-> west
+for x in (-78, -90, -102):
+    put(R + "road_straight.tscn", (x, 0, 84))
+for x, z, r in [(-69.95, 70, 90), (-62.05, 76, -90), (-84, 87.95, 0), (-96, 80.05, 180), (-108, 87.95, 0)]:
+    put("props/street_lamp.tscn", (x, 0.15, z), r)
+put("props/sign_post.tscn", (-60.4, 0.15, 56.3), 0, props={"sign_text": q("TO THE HARBOUR")})
 for x, z in [(-181, -1.8), (-181, 1.8), (-181, 82.2), (-181, 85.8)]:
     put("props/road_barrier.tscn", (x, 0, z), 90)
 for x, z, r in [(-90, -3.95, 180), (-132, -3.95, 180), (-162, -3.95, 180),
