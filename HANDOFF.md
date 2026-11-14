@@ -50,7 +50,7 @@
   the merge: 618 PASS, ALL PASSED; netcheck OK. B's 9bf3ea2 (product quality) is NOT merged yet (not released in B.md).
 
 - 2026-11-14: point 47c (Crows' private pier at the harbour). Checks harbour + rivals pass; scenario OK.
-  Next: 53 (chapter 1 story missions).
+  Next: feedback round 5 = Roadmap 56-68 (bugs 56-59 first, then 60-68 in order), THEN 53-55.
 
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.

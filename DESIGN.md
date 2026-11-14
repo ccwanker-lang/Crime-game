@@ -402,6 +402,28 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
       story acts can read `Territory.held_count()`)
   52. Cover garage: own garage property, repair cars for clean money, hidden lab/storage at the back - DONE
       (Corner Garage on South Street, €25,000; RepairBay car lift + Spare Parts; HiddenShelfDoor to the back room)
+Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order; BEFORE 53-55):
+  56. BUG falling through the map: find holes in the collision + a safety net: below a height you are put back on
+      the nearest safe spot (not killed) - todo
+  57. BUG invisible blocks (e.g. from the centre parking through the fields to the farm): walk everywhere up to a
+      border that looks natural (hills, woods, water, fences), no invisible wall in the middle of a field - todo
+  58. BUG E at cooking/placing makes the character kneel every time: no kneel/work animation for normal
+      interactions any more, a short effect at the object instead (e.g. a "poof" when placing) (reverts part of 42) - todo
+  59. BUG police and Crows fight all night: it must end - the 20 pool runs out, the police call backup and win,
+      or pull back after a while; a few minutes of gunfight at most (reopens 31b) - todo
+  60. Map: the police station's street (South Street) dead-ends: extend it to the docks - todo
+  61. Map: grass everywhere it is green (no bare green planes) - todo
+  62. Map: houses with driveways and parking, a rich neighbourhood with villas, a business district with tall
+      office buildings. Layout: the prison (49) near the farm, the rich neighbourhood next to it, the business
+      district on the other side of the village - todo
+  63. Traffic: fewer cars, traffic lights at the big junctions, better flow: no jams or cars stuck behind each
+      other, overtake / drive round when something blocks the road - todo
+  64. Running people over from any angle (ragdoll, damage, a wanted star when it is murder) (extends 45) - todo
+  65. Jumping onto cars and standing on them (roof + bonnet with collision) - todo
+  66. Engine sound for every car (idle, accelerating, revs), traffic too, plus tyres and brakes - todo
+  67. Dogs are real NPCs: the owner killed -> the dog runs off; dogs can be killed (ragdoll); owners play fetch
+      (throw a ball, the dog brings it back and drops it) (extends 46) - todo
+  68. Atmosphere: birds flying and sitting on roofs, other animals (cats, pigeons, ducks at the water) - todo
   53. Story missions per act (chapter 1, acts 1-5; the traitor = an old friend of the players) - todo
   54. The city + the highway link (chapter 2 map: skyscrapers, downtown, hillside) - todo
   55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
