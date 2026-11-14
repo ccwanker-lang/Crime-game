@@ -713,6 +713,7 @@ func _after_navmesh() -> void:
 		_rival_loop()
 	else:
 		rival_count = 0  # (tests spawn their own Crows; no replacements)
+		rival_harbour = 0
 	# Test scenario (F9 / --scenario=): set the host player up now that NPCs can walk.
 	if multiplayer.is_server() and Scenarios.pending != "":
 		Scenarios.run(self, Scenarios.pending)
@@ -874,6 +875,8 @@ func _park_loop() -> void:
 const RIVAL := preload("res://prefabs/npc/rival.tscn")
 ## Point 31: how many Crows live in the yard in total (--rivals=N; 0 = none)...
 var rival_count: int = 6
+## Point 47c: Crows on their pier at the harbour (day and night, never into town; own respawns, not from the pool).
+var rival_harbour: int = 3
 ## ...and how many of them roam the streets at night.
 var rival_street: int = 2
 ## Share of Crows that carry an AK-47 instead of a pistol.
@@ -890,15 +893,17 @@ var rival_pool_left: int = 0
 var _was_night: bool = false
 
 
-func _alive_rivals() -> Array:
+func _alive_rivals(post_id: StringName = &"yard") -> Array:
 	return get_tree().get_nodes_in_group(&"rivals").filter(
-			func(r: Node) -> bool: return not (r as Pedestrian).dead and r.is_inside_tree())
+			func(r: Node) -> bool: return not (r as Pedestrian).dead and r.is_inside_tree() and (r as Rival).post == post_id)
 
 
 ## Host: fill the yard, then every night send `rival_street` of them into town.
 func _rival_loop() -> void:
 	if rival_count <= 0:
 		return
+	for i: int in rival_harbour:
+		add_rival(Rival.yard_point(self, &"harbour"), -1, &"harbour")
 	for i: int in rival_count:
 		add_rival(Rival.yard_point(self))
 	rival_pool_left = maxi(0, rival_night_pool - rival_count)
@@ -928,10 +933,17 @@ func _rival_loop() -> void:
 			phone_all("Unknown", "The Crows are out tonight. Stay off the streets or stay strapped.")
 
 
-## Host: one Crow (role YARD) at `at`, or at its house's door (RivalSpawn markers).
-func add_rival(at: Vector3 = Vector3.INF, ak: int = -1) -> Rival:
-	var house: Node3D = find_child("CrowsHouse", true, false) as Node3D
-	var spots: Array = house.find_children("RivalSpawn*", "Marker3D", true, false) if house else []
+## Host: one Crow (role YARD) at `at`, or at its house's door (RivalSpawn markers). Point 47c: `post_id`
+## &"harbour" = one of the harbour crew (comes out of Markers/HarbourCrows, stays on the pier).
+func add_rival(at: Vector3 = Vector3.INF, ak: int = -1, post_id: StringName = &"yard") -> Rival:
+	var spots: Array = []
+	if post_id == &"harbour":
+		var m: Node3D = get_marker("HarbourCrows")
+		if m:
+			spots = [m]
+	else:
+		var house: Node3D = find_child("CrowsHouse", true, false) as Node3D
+		spots = house.find_children("RivalSpawn*", "Marker3D", true, false) if house else []
 	var spawn: Vector3 = (spots.pick_random() as Node3D).global_position if not spots.is_empty() else at
 	if at == Vector3.INF:
 		at = spawn
@@ -941,8 +953,9 @@ func add_rival(at: Vector3 = Vector3.INF, ak: int = -1) -> Rival:
 	r.gun = &"ak47" if (ak == 1 or (ak < 0 and randf() < RIVAL_AK_CHANCE)) else &"pistol"
 	r.position = at
 	r.home = spawn if spawn != Vector3.INF else at
+	r.post = post_id
 	npcs.add_child(r, true)
-	print("[Crows] %s joins the yard (%s)" % [r.name, r.gun])
+	print("[Crows] %s joins the %s (%s)" % [r.name, post_id, r.gun])
 	return r
 
 
@@ -959,8 +972,13 @@ func refill_rival_pool() -> void:
 
 ## Host (Rival._on_died): a new Crow comes out of the house after 1-2 minutes, as long as
 ## tonight's pool (point 31b) isn't used up.
-func rival_died() -> void:
+func rival_died(post_id: StringName = &"yard") -> void:
 	await get_tree().create_timer(randf_range(rival_respawn.x, rival_respawn.y)).timeout
+	if post_id == &"harbour":
+		if rival_harbour > 0 and rival_count > 0 and is_inside_tree() and multiplayer.is_server() \
+				and _alive_rivals(&"harbour").size() < rival_harbour:
+			add_rival(Rival.yard_point(self, &"harbour"), -1, &"harbour")
+		return
 	if rival_count <= 0 or not is_inside_tree() or not multiplayer.is_server() or _alive_rivals().size() >= rival_count:
 		return
 	if rival_pool_left <= 0:

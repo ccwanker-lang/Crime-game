@@ -384,7 +384,8 @@ ORDER AFTER 42 (set by the user, 2026-11-13):
           property), Quay Road + the harbour (quay, Harbour Storage property, crane, moored ship, the sea) - DONE
       47b the countryside north of Main Road: a country lane, farm fields and the Barn property - DONE (Country
           Lane x -150 up to Hollow Farm: barn, farmhouse, silo, hay; two fenced fields with crop rows)
-      47c the west in the game: districts + Crows at the harbour (with session B), customers/dealers there - todo
+      47c the west in the game: the Crows' private pier at the harbour - DONE; a "docks" district (+ countryside) for
+          dealers/turf and the rank gates of the new properties are session B's files (asked in A.md)
   48. The rest of milestone 3, in this order: meth, then cocaine; lawyer, bribes (heat = the wanted system of
       point 28); lab raids; roadside team, fuel station (territory, story and the garage moved to 49-55) - DONE
       (session B, merged 2026-11-14: meth, cocaine, courier, lawyer, bribes, Crow raids + guards, roadside team;
@@ -928,3 +929,9 @@ Choices made while working autonomously (what + why).
   spot can move to the harbour now that it exists (`BulkDeals._meet_spot`, B's file).
 - Point 48 (roadside + fuel, session B): an (almost) empty crew car (fuel < 15%) can be called even when it is close;
   the tow team brings a jerrycan up to 15% (~450 m, enough to reach QuickFuel). Crew window shows each car's fuel.
+- Point 47c: The Crows hold the harbour (DESIGN "They run ... the harbor"): a fenced private pier at the west end of
+  the quay (HarbourTurf, x -190..-164) with 3 Crows (`World.rival_harbour`) of their own post (`Rival.post`
+  &"harbour"). They behave like yard Crows (attack on their turf, remember you, leash on the pier) but never go into
+  town at night and respawn outside the nightly pool (1-2 min). Why: a fixed danger spot you can plan around, next
+  to the Harbour Storage you may want to buy - act 3 "steal harbor shipments" will happen there. `Rival.turf(tree,
+  post)` / `on_turf` (any turf) / `yard_point(from, post)`; `World.add_rival(at, ak, post)` keeps old calls working.

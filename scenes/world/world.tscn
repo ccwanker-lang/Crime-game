@@ -4281,6 +4281,47 @@ no_depth_test = true
 [node name="GasStation" type="Marker3D" parent="Markers"]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, 44, 0.2, -52.6)
 
+[node name="HarbourCrows" type="Marker3D" parent="Markers"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -168, 0.2, 97)
+
+[node name="DebugLabel" type="Label3D" parent="Markers/HarbourCrows" groups=["debug_only"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 2.2, 0)
+billboard = 1
+text = "HARBOUR CROWS"
+font_size = 40
+outline_size = 12
+modulate = Color(1, 0.95, 0.75, 1)
+no_depth_test = true
+
+[node name="HarbourTurf" type="Node3D" parent="NavRegion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -177, 0.15, 96.5)
+metadata/size = Vector2(26, 15)
+
+[node name="ChainlinkFence189" parent="NavRegion" instance=ExtResource("57_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -164, 0.15, 90)
+
+[node name="ChainlinkFence190" parent="NavRegion" instance=ExtResource("57_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -164, 0.15, 92)
+
+[node name="ChainlinkFence191" parent="NavRegion" instance=ExtResource("57_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -164, 0.15, 94)
+
+[node name="ChainlinkFence192" parent="NavRegion" instance=ExtResource("57_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -164, 0.15, 100)
+
+[node name="ChainlinkFence193" parent="NavRegion" instance=ExtResource("57_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -164, 0.15, 102)
+
+[node name="HarbourTurfSign" type="Label3D" parent="NavRegion"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -163.8, 2.6, 93)
+text = "PRIVATE PIER
+KEEP OUT"
+font_size = 56
+pixel_size = 0.008
+modulate = Color(0.95, 0.3, 0.2, 1)
+outline_size = 10
+double_sided = false
+
 [node name="BusStopPole" type="StaticBody3D" parent="NavRegion"]
 script = ExtResource("72_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -62.4, 0.15, -5.5)

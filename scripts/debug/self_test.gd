@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3469,4 +3469,29 @@ func _check_fuel(world: Node3D) -> void:
 	veh.host_remove(car)
 	GameState.player_data.erase("Tanker")
 	p.queue_free()
+	await get_tree().physics_frame
+
+
+# --- Crows at the harbour (point 47c) ------------------------------------------------------
+
+func _check_harbour(world: Node3D) -> void:
+	var t: Rect2 = Rival.turf(get_tree(), &"harbour")
+	var yard: Rect2 = Rival.turf(get_tree(), &"yard")
+	_report(t.size.x > 10.0 and t.get_center().x < -150.0 and yard.size.x > 10.0 and not t.intersects(yard),
+			"two Crow turfs: the yard %s and the harbour pier %s" % [yard, t])
+	var r: Rival = world.add_rival(Vector3.INF, 0, &"harbour")
+	await get_tree().physics_frame
+	var marker: Node3D = world.get_marker("HarbourCrows")
+	_report(r.post == &"harbour" and marker != null and r.home.distance_to(marker.global_position) < 0.5,
+			"a harbour Crow comes from Markers/HarbourCrows (post %s)" % r.post)
+	var spot: Vector3 = Rival.yard_point(r)
+	_report(spot != Vector3.INF and t.has_point(Vector2(spot.x, spot.z)), "its stroll spots are on the pier (%s)" % spot)
+	var leash: Vector3 = r._leash_center()
+	_report(t.has_point(Vector2(leash.x, leash.z)), "its leash is the pier, not the yard")
+	_report(Rival.on_turf(get_tree(), Vector3(-176, 0.2, 98)) and Rival.on_turf(get_tree(), Vector3(50, 0, 27))
+			and not Rival.on_turf(get_tree(), Vector3(-140, 0.2, 84)), "on_turf: pier + yard yes, Quay Road no")
+	var yard_crows: int = world.call("_alive_rivals").size()
+	var harbour_crows: int = world.call("_alive_rivals", &"harbour").size()
+	_report(harbour_crows == 1 and yard_crows == 0, "counted apart: %d harbour, %d yard" % [harbour_crows, yard_crows])
+	r.queue_free()
 	await get_tree().physics_frame

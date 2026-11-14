@@ -43,6 +43,9 @@ const LOOT_GUN_CHANCE: float = 0.1
 static var obey_daylight: bool = true
 
 var role: int = Role.YARD
+## Point 47c: where this Crow belongs: &"yard" (their house, can go out at night) or &"harbour" (the Crows' pier on
+## the quay; always there, never goes into town).
+var post: StringName = &"yard"
 ## Host: players this Crow saw on the turf (or that shot at it): attacked anywhere.
 var memory: Dictionary = {}
 var _talk_end: float = 0.0
@@ -93,26 +96,39 @@ func is_safe(pos: Vector3) -> bool:
 
 # --- The turf ---------------------------------------------------------------------------
 
-static var _turf_cache: Rect2 = Rect2()
+static var _turf_cache: Dictionary = {}  # post -> Rect2
+## Point 47c: the node that marks each post's turf (a PavedArea "size", or a Node3D with meta "size").
+const TURF_NODES: Dictionary = {&"yard": "TurfYard", &"harbour": "HarbourTurf"}
 
 
-## The Crows' fenced yard (XZ), from the World's "TurfYard" paved area.
-static func turf(tree: SceneTree) -> Rect2:
-	if _turf_cache.size == Vector2.ZERO and tree and tree.current_scene:
-		var yard: Node3D = tree.current_scene.find_child("TurfYard", true, false) as Node3D
-		if yard:
-			var size: Vector2 = yard.get("size")
-			_turf_cache = Rect2(yard.global_position.x - size.x / 2.0, yard.global_position.z - size.y / 2.0, size.x, size.y)
-	return _turf_cache
+## The Crows' fenced yard (XZ), from the World's "TurfYard" paved area; `post` &"harbour" = their pier.
+static func turf(tree: SceneTree, post_id: StringName = &"yard") -> Rect2:
+	var cached: Rect2 = _turf_cache.get(post_id, Rect2())
+	if cached.size == Vector2.ZERO and tree and tree.current_scene:
+		var node: Node3D = tree.current_scene.find_child(TURF_NODES.get(post_id, "TurfYard"), true, false) as Node3D
+		if node:
+			var size: Variant = node.get("size")
+			if size == null:
+				size = node.get_meta("size", Vector2.ZERO)
+			var sz: Vector2 = size
+			cached = Rect2(node.global_position.x - sz.x / 2.0, node.global_position.z - sz.y / 2.0, sz.x, sz.y)
+			_turf_cache[post_id] = cached
+	return cached
 
 
+## On any Crow turf (the yard or the harbour pier).
 static func on_turf(tree: SceneTree, pos: Vector3) -> bool:
-	return turf(tree).has_point(Vector2(pos.x, pos.z))
+	for post_id: StringName in TURF_NODES:
+		if turf(tree, post_id).has_point(Vector2(pos.x, pos.z)):
+			return true
+	return false
 
 
-## Host: a random walkable spot in the yard (or INF).
-static func yard_point(from: Node3D) -> Vector3:
-	var r: Rect2 = turf(from.get_tree()).grow(-2.0)
+## Host: a random walkable spot in the yard (or INF); `post_id` &"harbour" = on the pier.
+static func yard_point(from: Node3D, post_id: StringName = &"") -> Vector3:
+	if post_id == &"":
+		post_id = (from as Rival).post if from is Rival else &"yard"
+	var r: Rect2 = turf(from.get_tree(), post_id).grow(-2.0)
 	var map: RID = from.get_world_3d().navigation_map
 	for i: int in 12:
 		var want := Vector3(randf_range(r.position.x, r.end.x), 0.1, randf_range(r.position.y, r.end.y))
@@ -145,7 +161,7 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 ## Yard Crows stay near their yard; street Crows go anywhere.
 func _leash_center() -> Vector3:
 	if role == Role.YARD:
-		var t: Rect2 = turf(get_tree())
+		var t: Rect2 = turf(get_tree(), post)
 		return Vector3(t.get_center().x, 0, t.get_center().y)
 	return Vector3.INF
 
@@ -294,7 +310,7 @@ func _on_died(world: Node) -> void:
 	if world == null:
 		return
 	if world.has_method("rival_died"):
-		world.call("rival_died")
+		world.call("rival_died", post)
 	if not world.has_method("spawn_loot_bag"):
 		return
 	var items: Array = []

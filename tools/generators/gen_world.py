@@ -854,6 +854,14 @@ put("buildings/prison.tscn", PRISON_POS, 0, parent=".", name="Prison")
 sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, -4.4), -90)})
 debug_label("Markers/BusStop", "BUS STOP")
 sc.node("GasStation", "Marker3D", "Markers", props={"transform": xform((44.0, 0.2, -52.6), 180)})
+# Point 47c: the Crows' pier at the west end of the quay (Rival post "harbour"): turf rect + where they come from.
+sc.node("HarbourCrows", "Marker3D", "Markers", props={"transform": xform((-168.0, 0.2, 97.0), 90)})
+debug_label("Markers/HarbourCrows", "HARBOUR CROWS")
+sc.node("HarbourTurf", "Node3D", NAV, props={"transform": xform((-177.0, 0.15, 96.5)), "metadata/size": "Vector2(26, 15)"})
+fence_line(-164, 90, -164, 104, y=0.15, gaps=(96, 98))
+sc.node("HarbourTurfSign", "Label3D", NAV, props={"transform": xform((-163.8, 2.6, 93.0), 90),
+        "text": q("PRIVATE PIER\nKEEP OUT"), "font_size": "56", "pixel_size": "0.008",
+        "modulate": col(0.95, 0.3, 0.2), "outline_size": "10", "double_sided": "false"})
 sc.node("BusStopPole", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/proc_box.gd"), "transform": xform((-62.4, 0.15, -5.5)),
     "size": "Vector3(0.1, 2.7, 0.1)", "material_key": q("metal_dark")})

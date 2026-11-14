@@ -253,7 +253,10 @@ Godot console exe:
   Backdrop), properties lab_warehouse / harbor_storage, traffic route 2 via the quay, junction (-114, 0).
   PhoneMap.BOUNDS/SEA. Shots 80-86 (`80_west_top`). Scenario west_side. 47b: section "the countryside" (`frng`):
   Country Lane x -150 (T at (-150, 0)), Hollow Farm (Barn = property `barn`, Farmhouse, Silo), Field0/1; shots 87-89,
-  scenario countryside.
+  scenario countryside. 47c: Crows' pier: `Rival.post` (&"yard"/&"harbour"), `Rival.TURF_NODES` (TurfYard /
+  HarbourTurf = Node3D with meta size), `turf(tree, post)`, `yard_point(from, post)`, World `rival_harbour` (3),
+  `add_rival(at, ak, post)`, `_alive_rivals(post)`, `rival_died(post)`, Markers/HarbourCrows; scenario harbour_crows,
+  self-test check harbour.
 - Fuel (point 48 rest): `PlayerCar.fuel` (0-1, synced, saved; `FUEL_RANGE` 3 km, `TANK_LITRES`, `FUEL_PRICE`,
   `host_use_fuel(m)`, `host_refuel()`, `litres_missing()`; empty = no throttle). `FuelPump` (`scripts/vehicles/fuel_pump.gd`,
   group `fuel_pumps`, `car_here()`, `_host_fill(peer)`), gas station QuickFuel in gen_world (FuelPump1/2, Markers/GasStation).

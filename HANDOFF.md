@@ -49,6 +49,9 @@
 - 2026-11-14: feature-b merged up to d2d7b72 (bb9810c: dealer turf, bulk deals, roadside jerrycan). Full self-test on
   the merge: 618 PASS, ALL PASSED; netcheck OK. B's 9bf3ea2 (product quality) is NOT merged yet (not released in B.md).
 
+- 2026-11-14: point 47c (Crows' private pier at the harbour). Checks harbour + rivals pass; scenario OK.
+  Next: 53 (chapter 1 story missions).
+
 ## Next steps (in order, user 2026-11-13)
 1. Full self-test + netcheck on main; fix failures.
 2. Merge feature-b as soon as B.md says "KLAAR OM TE MERGEN" (check after every point).
@@ -74,6 +77,8 @@
   Warehouse and the Harbour Storage (both for sale); try to fall into the sea (you can't); phone map shows the area.
 - countryside: Hollow Farm: enter the red barn (for sale), walk down Country Lane between the fields.
 - bulk_deal (B): 30 bags of meth on you, the Dutchman (yellow name) next to you: E = everything sold at once.
+- harbour_crows: on Quay Road by the PRIVATE PIER fence: the Crows leave you alone on the road, shoot on the pier.
+- west_side / countryside: see above.
 - gas_station: QuickFuel on North Road, your Comet Sedan almost empty next to pump 1: sit in it (F) -> fuel 6%,
   get out, E on the red pump -> full, €86 gone. The Mule Van at pump 2 is empty: W does nothing.
 - turf_take: phone (Tab) > Turf, then E on the customer > Confirm deal -> "Old Town is yours now", Turf turns green.

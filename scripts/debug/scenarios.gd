@@ -51,6 +51,7 @@ const LIST: Array = [
 	["late_join", "A friend joins an ongoing game: the short prison intro", "You wake up in a cell with the door already open; the guard tells you to go. Marco's text is on your phone. Walk across the yard to the RELEASE desk by the gate (E), then E on the bus: it leaves at once (black screen) and drops you at the bus stop on Main Road with Marco's package. In a real co-op game the others get a text that you are coming."],
 	["west_side", "Point 47: the new west side - Industrial Road, the metalworks, the container yard, the harbour with the ship, your car ready", "Drive (F, WASD) or walk: Main Road goes on west past the tree belt; Industrial Road turns south to the harbour (Quay Road). Check: the Lab Warehouse (FOR SALE, Industrial Road) and the Harbour Storage on the quay can be entered; you can't fall into the sea; the phone map (Tab > Map) shows the new roads, the sea and the labels Metalworks/Harbour; traffic drives down to the quay and back."],
 	["countryside", "Point 47b: Hollow Farm at the top of Country Lane - the barn (for sale), farmhouse, silo, fields", "You stand in the farmyard in front of the red barn (FOR SALE, Hollow Farm Barn €30,000): go in (E on the door). Walk down Country Lane between the fields to Main Road. Phone map (Tab > Map) shows the lane and the farm."],
+	["harbour_crows", "Point 47c: the Crows' private pier at the west end of the quay - 3 armed Crows, you with a pistol", "You stand on Quay Road by the PRIVATE PIER sign. The Crows stroll between the containers and leave you alone on the road; step through the gap in the fence onto the pier and they open fire (with F11 god mode you can watch). Kill one: a new one comes after 1-2 minutes."],
 	["gas_station", "QuickFuel on North Road: your Comet Sedan almost empty next to pump 1, €500", "The car panel (bottom right) shows fuel 6% when you sit in it (F). Get out, E on the red pump: 'Fill up: 43 L for €86' -> full, money gone (clean money first). Drive around town: the % drops (a full tank is about 3 km). Second car (Mule Van) at pump 2 is completely empty: get in, W = nothing, it only rolls. Below 15% you get a 'Low fuel' message."],
 	["turf_take", "15:00 in front of the Starter Room: this district is at 96% influence, a customer waits (green €)", "Phone (Tab) > Turf: every district with its meter (red = Crow turf). E on the customer > Confirm deal: the sale pushes the meter past 100% -> a text 'X is yours now', Turf shows it green. Walk into another district: a toast with its name and owner. Your turf: customers pay 15% more, no Crows roam there at night."],
 	["turf_danger", "13:00 in front of the Starter Room: Crow turf (30%), they already warned you, a customer waits", "E on the customer > Confirm deal: a text 'Told you. Look behind you.' and a Crow (black clothes) runs at you from 25-40 m, by day. Fight back (1 = pistol): a dead Crow pushes the district's meter up (+6%), dying to it pushes it down (-8%). Check phone > Turf before and after."],
@@ -387,6 +388,12 @@ static func run(world: Node, id: String) -> bool:
 		"countryside":
 			_kit(me, 500, [])
 			_place(me, Vector3(-147, 0.3, -80), Vector3(-150, 2.0, -92), dn, 15.0)
+		"harbour_crows":
+			_kit(me, 200, [["pistol", 1], ["ammo_9mm", 48]])
+			world.rival_harbour = 3
+			for k: int in 3 - (world.call("_alive_rivals", &"harbour") as Array).size():
+				world.add_rival(Rival.yard_point(world, &"harbour"), -1, &"harbour")
+			_place(me, Vector3(-163, 0.3, 86.5), Vector3(-176, 1.2, 96), dn, 14.0)
 		"gas_station":
 			_kit(me, 500, [])
 			var veh: Vehicles = Vehicles.current

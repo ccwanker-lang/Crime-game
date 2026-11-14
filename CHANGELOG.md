@@ -61,3 +61,4 @@ One line per finished part.
 - Point 47b: the countryside: Country Lane runs north from Main Road between two fields to Hollow Farm (the barn for sale, a farmhouse, a silo, hay bales); scenario countryside.
 - Joining a host that is still loading the (bigger) map no longer times out: the menu waits for the host and slow-loading clients are not dropped. Self-test fixes: the selling check never picks an officer as customer, the traffic brake test finds its Main Road spot by position.
 - Merge feature-b (session B): dealers' sales push the district turf meter; bulk deals from rank 4 (the Dutchman buys 20-40 bags at once, scenario bulk_deal); the roadside team brings a jerrycan to a car that ran out of fuel.
+- Point 47c: the Black Crows guard a private pier at the west end of the harbour (3 armed Crows, a fence and a KEEP OUT sign): step onto it and they shoot; scenario harbour_crows, self-test check harbour.
