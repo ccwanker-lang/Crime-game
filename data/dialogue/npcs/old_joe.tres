@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="TalkNPCData" format=3]
+
+[ext_resource type="Script" path="res://scripts/dialogue/talk_npc_data.gd" id="1_t"]
+[ext_resource type="Resource" path="res://data/dialogue/old_joe.tres" id="2_d"]
+
+[resource]
+script = ExtResource("1_t")
+npc_id = &"old_joe"
+npc_name = "Old Joe"
+marker = "FireBarrel1"
+offset = Vector3(0, 0, 3.4)
+variant = 9
+dialogue = ExtResource("2_d")

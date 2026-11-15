@@ -33,6 +33,7 @@ extends Resource
 	&"bakery": 2, &"family_house": 2, &"barn": 2,
 	&"barber": 3, &"laundromat": 3, &"lab_warehouse": 3,
 	&"south_warehouse": 4, &"harbor_storage": 4,
+	&"bunker": 5,
 }
 
 @export_group("XP")

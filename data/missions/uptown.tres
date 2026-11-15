@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="MissionData" format=3]
+
+[ext_resource type="Script" path="res://scripts/missions/mission_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/missions/mission_objective.gd" id="2_obj"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_data.gd" id="3_dd"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_node.gd" id="4_dn"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_choice.gd" id="5_dc"]
+
+[sub_resource type="Resource" id="Resource_go"]
+script = ExtResource("2_obj")
+text = "Go to the city: the apartment block on the first avenue"
+marker = "ApartmentBlock1"
+offset = Vector3(3, 0, -23.5)
+radius = 12.0
+
+[sub_resource type="Resource" id="Choice_price"]
+script = ExtResource("5_dc")
+text = "City prices. You know the deal."
+next = &"price"
+action = 2
+
+[sub_resource type="Resource" id="Choice_friend"]
+script = ExtResource("5_dc")
+text = "Marco says you're good for it."
+next = &"friend"
+action = 2
+
+[sub_resource type="Resource" id="Node_meet"]
+script = ExtResource("4_dn")
+id = &"meet"
+text = "You're Marco's runner? Walk with me - not here, the doorman talks. My office has a party tonight and the stuff from the park is the only thing they trust."
+choices = Array[ExtResource("5_dc")]([SubResource("Choice_price"), SubResource("Choice_friend")])
+
+[sub_resource type="Resource" id="Node_price"]
+script = ExtResource("4_dn")
+id = &"price"
+text = "Fine, fine. Four bags. You'll get your money - this street pays better than your park, trust me."
+
+[sub_resource type="Resource" id="Node_friend"]
+script = ExtResource("4_dn")
+id = &"friend"
+text = "Marco says a lot of things. Four bags, and if they're good there'll be more of us."
+
+[sub_resource type="Resource" id="Dialogue_meet"]
+script = ExtResource("3_dd")
+speaker = "Nadia"
+nodes = Array[ExtResource("4_dn")]([SubResource("Node_meet"), SubResource("Node_price"), SubResource("Node_friend")])
+
+[sub_resource type="Resource" id="Resource_talk"]
+script = ExtResource("2_obj")
+kind = 1
+text = "Talk to {npc} at the door"
+marker = "ApartmentBlock1"
+offset = Vector3(3, 0, -23.5)
+radius = 3.0
+npc_id = &"nadia"
+npc_name = "Nadia"
+npc_variant = 6
+dialogue = SubResource("Dialogue_meet")
+
+[sub_resource type="Resource" id="Resource_deliver"]
+script = ExtResource("2_obj")
+kind = 2
+text = "Give {npc} {need} x {item}"
+marker = "ApartmentBlock1"
+offset = Vector3(3, 0, -23.5)
+radius = 3.0
+npc_id = &"nadia"
+npc_name = "Nadia"
+npc_variant = 6
+lines = PackedStringArray("Perfect. Nobody saw anything, right?", "I'll pass your number round the office. Expect texts.")
+item_id = "weed_bag"
+count = 4
+
+[resource]
+script = ExtResource("1_data")
+id = &"uptown"
+title = "Uptown"
+summary = "Marco has a buyer in the city: Nadia, an office manager with a party to supply. City people pay more - and ask fewer questions."
+giver = "Marco"
+requires = &"first_contact"
+objectives = Array[ExtResource("2_obj")]([SubResource("Resource_go"), SubResource("Resource_talk"), SubResource("Resource_deliver")])
+reward_cash = 1400
+reward_xp = 250
+done_text = "Nadia paid double what Dex did. Told you: the city is where the money sleeps."

@@ -1,0 +1,153 @@
+[gd_resource type="Resource" script_class="DialogueData" format=3]
+
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_node.gd" id="2_node"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_choice.gd" id="3_ch"]
+
+[sub_resource type="Resource" id="c1"]
+script = ExtResource("3_ch")
+text = "Got anything for me?"
+next = &"work1"
+show_if = 1
+show_mission = &"first_contact"
+
+[sub_resource type="Resource" id="c2"]
+script = ExtResource("3_ch")
+text = "Any bigger work?"
+next = &"work2"
+show_if = 1
+show_mission = &"pier_pressure"
+
+[sub_resource type="Resource" id="c3"]
+script = ExtResource("3_ch")
+text = "How's business?"
+next = &"biz"
+
+[sub_resource type="Resource" id="c4"]
+script = ExtResource("3_ch")
+text = "Later, Marco."
+
+[sub_resource type="Resource" id="c5"]
+script = ExtResource("3_ch")
+text = "I'm in."
+next = &"go1"
+action = 1
+mission = &"first_contact"
+
+[sub_resource type="Resource" id="c6"]
+script = ExtResource("3_ch")
+text = "What's in it for me?"
+next = &"pay1"
+
+[sub_resource type="Resource" id="c7"]
+script = ExtResource("3_ch")
+text = "Not now."
+
+[sub_resource type="Resource" id="c8"]
+script = ExtResource("3_ch")
+text = "Deal."
+next = &"go1"
+action = 1
+mission = &"first_contact"
+
+[sub_resource type="Resource" id="c9"]
+script = ExtResource("3_ch")
+text = "Too cheap. Forget it."
+
+[sub_resource type="Resource" id="c10"]
+script = ExtResource("3_ch")
+text = "Let's clear that pier."
+next = &"go2"
+action = 1
+mission = &"pier_pressure"
+
+[sub_resource type="Resource" id="c11"]
+script = ExtResource("3_ch")
+text = "Not tonight."
+
+[sub_resource type="Resource" id="c12"]
+script = ExtResource("3_ch")
+text = "Back to work."
+
+[sub_resource type="Resource" id="c13"]
+script = ExtResource("3_ch")
+text = "Know anyone with real money?"
+next = &"work3"
+show_if = 1
+show_mission = &"uptown"
+
+[sub_resource type="Resource" id="c14"]
+script = ExtResource("3_ch")
+text = "The city it is."
+next = &"go3"
+action = 1
+mission = &"uptown"
+
+[sub_resource type="Resource" id="c15"]
+script = ExtResource("3_ch")
+text = "Suits make me nervous."
+
+[sub_resource type="Resource" id="n9"]
+script = ExtResource("2_node")
+id = &"work3"
+text = "Nadia. Office manager in the city, lives in the big apartment block on the first avenue. Her office throws parties and pays city prices. She wants four bags."
+choices = Array[ExtResource("3_ch")]([SubResource("c14"), SubResource("c15")])
+
+[sub_resource type="Resource" id="n10"]
+script = ExtResource("2_node")
+id = &"go3"
+text = "Dress nice. Just kidding - but don't walk in there with a gun in your hand."
+
+[sub_resource type="Resource" id="n1"]
+script = ExtResource("2_node")
+id = &"busy"
+text = "Shouldn't you be busy? The job won't do itself."
+choices = Array[ExtResource("3_ch")]([SubResource("c12")])
+entry = true
+show_if = 4
+
+[sub_resource type="Resource" id="n2"]
+script = ExtResource("2_node")
+id = &"hello"
+text = "Hey, look who it is. What do you need?"
+choices = Array[ExtResource("3_ch")]([SubResource("c1"), SubResource("c13"), SubResource("c2"), SubResource("c3"), SubResource("c4")])
+entry = true
+
+[sub_resource type="Resource" id="n3"]
+script = ExtResource("2_node")
+id = &"work1"
+text = "A guy called Dex waits at the QuickFuel on North Road. He wants two bags of weed. Small job - but I want to see if you're reliable."
+choices = Array[ExtResource("3_ch")]([SubResource("c5"), SubResource("c6"), SubResource("c7")])
+
+[sub_resource type="Resource" id="n4"]
+script = ExtResource("2_node")
+id = &"pay1"
+text = "Six hundred, a box of baggies, and my phone number. That's more than it's worth."
+choices = Array[ExtResource("3_ch")]([SubResource("c8"), SubResource("c9")])
+
+[sub_resource type="Resource" id="n5"]
+script = ExtResource("2_node")
+id = &"go1"
+text = "Good. Don't keep him waiting, and don't get stopped on the way."
+
+[sub_resource type="Resource" id="n6"]
+script = ExtResource("2_node")
+id = &"work2"
+text = "The Black Crows sit on the harbour pier and tax every boat that comes in. I want them gone - for one night at least. Bring a real gun."
+choices = Array[ExtResource("3_ch")]([SubResource("c10"), SubResource("c11")])
+
+[sub_resource type="Resource" id="n7"]
+script = ExtResource("2_node")
+id = &"go2"
+text = "Watch the containers, they like to shoot from up there. Call me when it's done."
+
+[sub_resource type="Resource" id="n8"]
+script = ExtResource("2_node")
+id = &"biz"
+text = "Cops on every corner, Crows on the pier, and customers who want credit. Business is great."
+next = &"hello"
+
+[resource]
+script = ExtResource("1_data")
+speaker = "Marco"
+nodes = Array[ExtResource("2_node")]([SubResource("n1"), SubResource("n2"), SubResource("n3"), SubResource("n4"), SubResource("n5"), SubResource("n6"), SubResource("n7"), SubResource("n8"), SubResource("n9"), SubResource("n10")])

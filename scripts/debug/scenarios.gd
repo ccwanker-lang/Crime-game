@@ -101,6 +101,16 @@ const LIST: Array = [
 	["animals", "12:00 in the park: a pigeon flock in front of you, a cat 6 m to your right, birds on the roofs around", "Walk up to the pigeons: the flock flies up onto a roof and comes back down after a while (at night they stay up). Walk to the cat: it bolts. Fire a shot (1, LMB): every bird, pigeon and cat within ~45 m takes off. Look up: birds sit on ridges and gutters and now and then fly to another roof."],
 	["ducks", "12:00 on the quay, looking out over the harbour water", "Ducks swim and dabble on the sea and bob on the waves. Stay on the quay edge: the near ones swim away from you. Fire a shot (1, LMB): they fly off low over the water and land further on."],
 	["staff_assign", "Rank 4, Starter Room: weed corner, a Staff Locker with supplies (empty wage box), a grower working from it and a packager; you face the grower", "E on the grower: their locker, their stations (tick = on the route, max 6), Show = yellow arrow over it, the route at the bottom. Tick one pot: they walk to it and only work that one. E on the Staff Locker: the wage box - put in EUR 100. Hold F7 for a game day: the wage comes out of the box. Empty box at day end = the grower stops and texts you (Tab); money in = back to work."],
+	["army_gate", "Fort Halden at noon: you stand on the pass road 25 m before the gate, a pistol + ammo", "Walk to the boom: a guard warns you (toast). Walk through the gate: ALARM, guards and 4 heavy reinforcements from the barracks shoot at you. Shoot a soldier from outside: they come for you too. Run far away: after a while it calms down."],
+	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
+	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
+	["army_life", "Fort Halden at noon, outside the south fence (god mode on), a pistol", "The base is manned: guards at the gate and the flag, soldiers chatting at the hangars and the helipads, two patrols of two walking their rounds, a marksman with a sniper rifle on every watchtower. Walk through the gate: the alarm goes, they shoot (AKs + snipers, harder than the police) and heavy reinforcements come."],
+	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
+	["bunker_lab", "Rank 5 at the bunker's blast door with EUR 260,000 and a Cook Station; the bunker is for sale", "E on the door: locked. Buy the Mountain Bunker at the estate agent (it costs EUR 250,000) - here it is bought for you after 8 s (or start it with --owned): the door unlocks (E opens it). Inside: the lift / stairs down to the lab hall, place the Cook Station (B = build mode). The bunker is never raided."],
+	["mission_contact", "Marco by the park (2 Bags of Weed in your pockets): talk to him to get mission 1 'A Foot in the Door'", "E on Marco: a text box with choices (mouse or keys 1-4). 'Got anything for me?' -> 'I'm in.' starts the mission: gold waypoint + objective top right. Gas station -> E on Dex (2 bags) -> back to Marco, pick an answer -> reward. Tab > Missions = the log, Map = gold pin. With 2 instances: whoever joins after the start sees 'joined late' and gets no reward."],
+	["mission_uptown", "Mission 1 done, 4 Bags of Weed, next to Marco by the park", "E on Marco: the new answer 'Know anyone with real money?' -> 'The city it is.' starts Uptown. Follow the waypoint to the apartment block in the city, talk to Nadia (choices), then give her the 4 bags (E): EUR 1400 + XP."],
+	["mission_rosehill", "Missions 1 + 2 done, AK-47 + ammo, next to Old Joe by a fire barrel in Rosehill (the slums)", "E on Old Joe: 'You look worried, old man.' -> 'I'll deal with them.' starts Rosehill Shield. 3 Crows at the shack at the end of the row, then 3 with AKs for 40 s, then back to Old Joe (E): EUR 2200 + rifle rounds."],
+	["mission_pier", "Mission 2 'Pier Pressure' just started (mission 1 done): pistol, AK-47 + ammo, 60 m from the Crows' pier", "Walk to the pier: 3 Crows appear - kill them (counter in the HUD). Then backup comes: stay on the pier 45 s. Dying = mission failed (Tab > Missions: start it again)."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -791,6 +801,101 @@ static func run(world: Node, id: String) -> bool:
 				var face: Vector3 = sl.global_basis.z
 				_place(me, gp + face * 2.2 + Vector3.UP * 0.1, gp + Vector3.UP * 1.5, dn, 12.0)
 			Staff._broadcast()
+		"army_gate":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
+			_place(me, Zones.ARMY_GATE + Vector3(-25.0, 0.3, 0.0), Zones.ARMY_GATE + Vector3(0, 1.5, 0), dn, 12.0)
+			me.combat.host_set_mags([8])
+		"city_life":
+			_kit(me, 200, [])
+			var corner := Vector3(CityLife.CX[1] + CityLife.SIDE, 0.3, CityLife.CZ[1] + CityLife.SIDE)
+			_place(me, corner, corner + Vector3(30, 1.0, 0), dn, 12.0)  # (looking along the sidewalk)
+		"army_life":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
+			me.admin_god = true
+			# Outside the south fence (chain-link: you see the parade ground, the hangars and the towers).
+			_place(me, Vector3(-78.0, 0.3, -345.0), Vector3(-70, 1.0, -385), dn, 12.0)
+			me.combat.host_set_mags([8])
+		"slum_life", "city_customers":
+			var slum: bool = id == "slum_life"
+			_kit(me, 500, [["weed_bag", 6 if slum else 8]])
+			if slum:
+				var fb: Node3D = world.find_child("FireBarrel1", true, false) as Node3D
+				var at: Vector3 = fb.global_position + Vector3(0, 0.3, 5.0) if fb else Vector3(-40, 0.3, -90)
+				_place(me, at, (fb.global_position if fb else at) + Vector3.UP, dn, 19.5)
+			else:
+				var spots: Array = Zones.city_spots()
+				var cs: Vector3 = spots[0]["pos"] if not spots.is_empty() else Vector3(20, 0.1, 200)
+				var yaw: float = spots[0]["yaw"] if not spots.is_empty() else 0.0
+				var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
+				_place(me, cs + fwd * 6.0 + Vector3.UP * 0.3, cs + Vector3.UP * 1.5, dn, 12.0)
+			var zone: StringName = &"slums" if slum else &"city"
+			Zones._next_customer[zone] = Zones._now() + 8.0  # the first text comes soon
+		"bunker_lab":
+			Progression.force_gates = true
+			Progression.debug_set_rank(5)
+			Zones.bunker_lock_forced = true
+			_kit(me, 260000, [["cook_station", 1], ["lab_chemicals", 4], ["activator", 4]])
+			for i: int in 3:
+				await world.get_tree().process_frame
+			var bp: BunkerProperty = Zones.bunker
+			if bp:
+				var bt: Transform3D = (bp.get_parent() as Node3D).global_transform
+				_place(me, bt * Vector3(0, 0.3, -8), bt * Vector3(0, 2, 0), dn, 12.0)
+				if "--owned" in OS.get_cmdline_user_args():
+					bp.host_set_owned(me.player_name)
+				else:
+					get_tree_timer(world, 8.0).timeout.connect(func() -> void:
+						if is_instance_valid(bp) and not bp.is_crew_owned():
+							bp.host_set_owned(me.player_name)
+							me.show_message("Your crew bought the Mountain Bunker - the blast door unlocks."))
+		"mission_uptown", "mission_rosehill":
+			GameState.world.erase("missions")
+			(Missions.state()["done"] as Array).append("first_contact")
+			var npc_id: StringName = &"marco" if id == "mission_uptown" else &"old_joe"
+			if id == "mission_uptown":
+				_kit(me, 200, [["weed_bag", 4]])
+			else:
+				(Missions.state()["done"] as Array).append("pier_pressure")
+				_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48], ["ak47", 1], ["ammo_762", 90]])
+				me.combat.host_set_mags([8])
+			Missions._sync_all()
+			var tn: TalkNPCData = Missions.talkers.get(npc_id)
+			var at: Vector3 = Missions._talker_spot(tn) if tn else Vector3(-8.5, 0, 31)
+			_place(me, at + Vector3(1.8, 0.3, 0.6), at + Vector3.UP * 1.6, dn, 14.0)
+			if "--talk" in OS.get_cmdline_user_args():  # screenshot flag: the dialogue open
+				for i: int in 30:
+					await world.get_tree().create_timer(0.1).timeout
+					if Missions.mission_npc(npc_id):
+						break
+				await world.get_tree().create_timer(0.3).timeout
+				Missions.host_talk(me, npc_id)
+		"mission_contact", "mission_pier":
+			GameState.world.erase("missions")
+			if id == "mission_contact":
+				_kit(me, 200, [["weed_bag", 2]])
+				var ps: Node3D = world.find_child("ParkSmokeSpot", true, false) as Node3D
+				var at: Vector3 = ps.global_position if ps else Vector3(-11.5, 0, 31)
+				_place(me, at + Vector3(10, 0.3, 0), at + Vector3(3, 1.5, 0), dn, 13.0)
+			else:
+				_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48], ["ak47", 1], ["ammo_762", 90]])
+				(Missions.state()["done"] as Array).append("first_contact")
+				var hc: Node3D = world.find_child("HarbourCrows", true, false) as Node3D
+				var pier: Vector3 = hc.global_position if hc else Vector3(-168, 0.2, 97)
+				_place(me, pier + Vector3(60, 0.3, -6), pier + Vector3(0, 1.5, 0), dn, 15.0)
+				me.combat.host_set_mags([8])
+			await world.get_tree().physics_frame
+			if id == "mission_pier":
+				Missions.host_start(&"pier_pressure", me)
+			elif "--talk" in OS.get_cmdline_user_args():  # screenshot flag: Marco's dialogue open
+				for i: int in 20:
+					await world.get_tree().create_timer(0.1).timeout
+					if Missions.mission_npc(&"marco"):
+						break
+				var mc: Pedestrian = Missions.mission_npc(&"marco")
+				if mc:
+					_place(me, mc.global_position + Vector3(1.6, 0.3, 0), mc.global_position + Vector3.UP * 1.6, dn, 13.0)
+					await world.get_tree().create_timer(0.3).timeout
+					Missions.host_talk(me, &"marco")
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)
@@ -848,7 +953,7 @@ static func run(world: Node, id: String) -> bool:
 	me.show_message("SCENARIO '%s': %s" % [id, check_text(id)])
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash", "agora"] else 4.0).timeout
+		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "army_life"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):
@@ -1042,3 +1147,7 @@ static func _progress_near(route: TrafficRoute, p: Vector3) -> float:
 			best_d = d
 			best = i * 0.5
 	return best
+
+
+static func get_tree_timer(world: Node, seconds: float) -> SceneTreeTimer:
+	return world.get_tree().create_timer(seconds)

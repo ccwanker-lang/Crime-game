@@ -109,7 +109,8 @@ func _find_spots() -> void:
 		if b == null or not b.is_visible_in_tree():
 			continue
 		for s: Dictionary in _roof_spots_of(b):
-			if _clear_above(space, s["pos"]):
+			# (low sheds / kiosks: a bird there sits at head height - only real roofs)
+			if (s["pos"] as Vector3).y - b.global_position.y >= 3.2 and _clear_above(space, s["pos"]):
 				roof_spots.append(s)
 		for k: int in 2:
 			var local := Vector3(_rng.randf_range(-b.width / 2.0 + 0.6, b.width / 2.0 - 0.6), 0, 1.5 if k == 0 else -b.depth - 1.5)

@@ -4,11 +4,11 @@ Session B notes. To be folded into DESIGN.md (Roadmap status + Decisions) / CHAN
 session A when merging (B may not edit those files).
 
 ## MERGED parts 1 + 2 (A, main c95e70c), parts 3-7 + the anchor fix (A, merge of 0b00291), and the dealer-turf fix,
-part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all already in DESIGN/CHANGELOG/CLAUDE.md.
-New parts go below a new "Open for the next merge" line.
+part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
+2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
-(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker).
+## Open for the next merge: Part 18 (zone systems: army base, slums, city, bunker), Part 19 (missions), Part 20
+(dialogue), Part 21 (city life + army base life), Part 22 (missions 3 + 4). Each part below has "How it works", "Decisions", "For CLAUDE.md".
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -743,3 +743,236 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - Staff assignment (part 12): worker rec "locker"/"stations" (empty = automatic), `Staff._work_stations/_work_lockers`,
   `assign_kinds`, `StaffConfig.max_stations`, `route_text`, requests assign/locker/wages; `StaffLocker` (wage box
   state "wages", item staff_locker), CrewWindow modes worker/locker. Scenario staff_assign, check staff_assign.
+
+
+# Part 18: zone systems - Fort Halden, the slums, the city, the bunker lab (user 2026-11-15)
+
+## How it works
+- `Zones` autoload (autoload/zones.gd, after Ambience). Static `zone_at(pos)` -> &"army" / &"slums" / &"city" /
+  &"bunker" / &"" from fixed rects that match A's map zones (ARMY_RECT x -104..-36 z -430..-350, SLUM_RECT, CITY_RECT)
+  + `BunkerLab.inside`; `zone_name(pos)`. `army_on` / `npcs_on` are off under --selftest / --netcheck (checks turn
+  them on). Host ticks every 0.5 s.
+- **Fort Halden** (`Soldier`, scripts/npc/soldier.gd, prefabs/npc/soldier.tscn, PoliceOfficer subclass like Rival,
+  group "soldiers", AK-47, 150 HP, camo + helmet; the scene is added to World/NPCSpawner at runtime). 8 guard posts
+  (`Zones.guard_posts()`): 2 outside the gate, one on top of every Watchtower (ray down onto the platform), 2 on the
+  parade ground; a dead guard comes back after 180 s. Within 16 m of the gate (`ARMY_GATE`) a player gets a toast
+  "HALT! ... we open fire" (every 15 s) and the gate guards aim. Inside the fence (`in_army_base`) or shooting a
+  soldier = `army_hostile(p)` (90 s): the soldiers who see you shoot (no arrests, no police stars: the army handles
+  it itself), guards within 40 m come for you, and the ALARM (60 s, extended while you stay near) sends 4 heavy
+  reinforcements (220 HP) out of the barracks; after the alarm they walk back and vanish (`dismiss`). Soldiers
+  don't follow you further than 30 m from the base. Dead soldiers drop 7.62 ammo (15% an AK).
+  `Zones.allow_army(p, seconds)` = a pass for missions.
+- **Slums** (Rosehill Park): 2-3 poor residents per FireBarrel (`slum_spots()`), **city**: 3 office workers in front of
+  every 3rd Tower (`city_spots()`, only 07:00-20:00). Non-wandering networked pedestrians (`add_resident`), spawned
+  when a player is within 150 m of the zone, removed past 220 m (a waiting customer stays). They stand by their
+  spot, chat (TALK), flee from gunfire like everyone and walk back. Every 40-90 s one of them in a zone near a
+  player becomes a customer (`make_zone_customer`, one at a time per zone): slums 1-2 bags at 60% of the price,
+  city 2-4 bags at 150% (`Zones.PRICE`, `customer_price(npc, price)`), product via `Products.pick_customer_product`.
+  The cheap starter property is A's slum_shack (€4,000, rank 0: not in RankConfig).
+- **Bunker** (A's `BunkerComplex` at Mountain/Bunker, point 74, with its `BunkerProperty` "bunker"): `Zones._setup_bunker`
+  (every peer) makes it buyable: "Mountain Bunker", €250,000 (`Zones.BUNKER_PRICE`), rank 5 (RankConfig), listed by
+  the estate agent. Host `_bunker_door_tick`: the blast door (`BunkerDoor.host_set_locked`) is locked while the crew
+  doesn't own it, unlocked once they do (and locked again when it's sold). The lock is off in the self-test /
+  netcheck / test scenarios (A's bunker checks walk in) unless GameState.world["bunker_lock"]
+  (`Zones.bunker_lock_forced`, my check + scenario). Lab: stations go anywhere inside (BunkerProperty.contains,
+  A's LabSpot1-6); `Raids.RAID_FREE` = [&"bunker"]: never raided. `Zones.zone_at` = &"bunker" inside.
+- Soldiers chase in straight lines only (`Soldier._chase_to`: one side step round an obstacle, else hold and watch;
+  a navmesh path from the base ran off to the town); tower guards stay up; gate guard 2 stands inside the gate.
+
+## Decisions (what + why)
+- Soldiers on PoliceOfficer's brain (like the Crows): aiming, bursts, sight, leash all exist already.
+- No navmesh at the base (A's ArmyBase is not under NavRegion): guards stand at posts and walk straight lines; a
+  blocked line puts them back on the post. Good enough for guards; ask A for a navmesh if they should patrol.
+- Army = its own reaction, no Wanted stars: the user asked for "eigen zware reactie"; the police don't come up.
+- Gate guards face outward; the alarm also alerts guards within 40 m (the fence blocks their view of the yard).
+- Zone residents are our own pedestrians (not A's wandering ones) so the price can depend on the zone without
+  touching world.gd; A's random customers keep normal prices (optional hook asked in B.md).
+- First version had my own hall under the portal (teleport keypads); A then built the real complex (point 74) and
+  left buying/lock/lab to me, so mine was dropped and only the sale + lock + no-raids logic stayed.
+
+## Existing files changed (part 18)
+- project.godot (autoload Zones), autoload/raids.gd (RAID_FREE); A's bunker: only property fields + door lock at runtime, scripts/progression/rank_config.gd (bunker: 5),
+  self_test.gd (check zones), scenarios.gd (army_gate, slum_life, city_customers, bunker_lab + flag `--bunker-in`).
+
+## Te testen door Curry
+- `army_gate` (F9): loop naar de slagboom (waarschuwing), loop erdoor (alarm, schieten, 4 versterkingen).
+- `slum_life`: bewoners rond de vuurtonnen; na ~10 s sms't er een (goedkoop, 60%).
+- `city_customers`: kantoormensen voor de torens; na ~10 s een rijke klant (150%).
+- `bunker_lab`: E op de staaldeur: op slot. Na 8 s koopt de crew de bunker: de deur gaat van het slot. Lift/trap
+  naar beneden, B = bouwmodus, zet de Cook Station in de labhal.
+
+## For CLAUDE.md (suggested lines)
+- Zones (part 18): `Zones` autoload (`zone_at`, army_on/npcs_on), `Soldier` (PoliceOfficer subclass, group soldiers,
+  `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
+  `make_zone_customer`, `PRICE`), bunker sale + door lock (`Zones.bunker`, `bunker_door()`, `BUNKER_PRICE`,
+  `bunker_lock_forced`), `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.
+
+
+# Part 19: the mission system (base for the story, user 2026-11-15)
+
+## How it works
+- Missions are DATA: every `MissionData` .tres in data/missions/ (scripts/missions/mission_data.gd: id, title,
+  summary, giver, min_rank, requires, repeatable, objectives, reward_cash/xp/items, done_text). Steps are
+  `MissionObjective` sub-resources (kind GO_TO / TALK_TO / DELIVER / KILL / SURVIVE, text with {count} {need} {time}
+  {npc} {item}, marker + offset or position, radius, npc_id/npc_name/npc_variant/npc_yaw/lines, item_id/count,
+  kill_group, spawn_enemies/enemy_post/enemy_ak, seconds). New mission in Godot: data/missions > right click > New >
+  Resource > MissionData; Objectives > Add Element > New MissionObjective.
+- `Missions` autoload (after Zones), HOST AUTHORITATIVE. One mission at a time for the whole crew; state in
+  GameState.world["missions"] (saved): active, step, count, time, members (in the game at the start), late, done,
+  enemies, rewarded. `host_start(id, by)` / `request_start`, `why_not(id)`, `available()`, `host_end(won, why)` /
+  `request_abandon`. Host tick 0.25 s: go to = anyone of the crew within radius; talk to / deliver = E on the
+  mission NPC (`host_talk`, deliver takes the items); kill = spawned enemies all dead (or `kill_group` kills via
+  the kill_hooks group when none are spawned); survive = time runs while someone is within radius; whole crew
+  dead = failed. Mission NPCs = networked non-wandering pedestrians "MissionNPC_<npc_id>" (back to their spot
+  after a scare); enemies = Black Crows via World.add_rival (post harbour/yard).
+- Rewards: cash + items to every MEMBER present (full pockets = loot bag), XP once for the crew; players who joined
+  during the mission ("late") get the progress and the HUD but no reward ("joined late, no reward").
+- Every peer gets a small `view` (`_sync`, also to late joiners via `request_view`): `MissionHUD` (objective top right
+  under the money box with step n/m + distance, a gold screen waypoint clamped to the edges with an arrow, banners
+  NEW MISSION / OBJECTIVE COMPLETE / MISSION COMPLETE / FAILED), `MissionTalkBox` on mission NPCs (layer 2, E,
+  name tag with "!" when they are the current step), `MissionMapPin` on every PhoneMap, and the phone app
+  "Missions" (`MissionLog`: running mission with ticked steps + Give up, available ones with Start, done ones).
+- Two test missions: `first_contact` "A Foot in the Door" (talk to Marco by the park -> QuickFuel -> give Dex 2 bags;
+  €600, 150 XP, 10 baggies) and `pier_pressure` "Pier Pressure" (after the first: the Crows' pier -> kill 3 Crows ->
+  hold the pier 45 s against 3 AK Crows; €2,000, 300 XP, 36 9mm rounds).
+
+## Decisions (what + why)
+- Phone app + map pin hooked in from outside (node_added: the home screen's Crew button / every PhoneMap) instead
+  of editing phone.gd (A's file). A proper hook later: see B.md.
+- Own HUD CanvasLayer (MissionHUD) instead of hud.gd (A's file).
+- "Late" = not in the game when the mission started: simple and fair (a rejoining member keeps the reward).
+- Kill steps with spawned enemies count deaths of THOSE enemies whoever killed them (police, a car): the goal is
+  "they are gone".
+
+## Existing files changed (part 19)
+- project.godot (autoload Missions), self_test.gd (check missions), scenarios.gd (mission_contact, mission_pier).
+
+## Te testen door Curry
+- `mission_contact` (F9): goud ruitje + doel rechtsboven. E op Marco -> naar de QuickFuel -> E op Dex (2 zakjes) ->
+  beloning. Tab > Missions = het logboek; Map = goud pinnetje. Met 2 instanties: wie later joint ziet "joined late".
+- `mission_pier`: loop naar de pier, schiet de 3 Crows neer, houd 45 s stand.
+
+## For CLAUDE.md (suggested lines)
+- Missions (part 19): `MissionData` / `MissionObjective` .tres in data/missions/, `Missions` autoload (host state
+  GameState.world["missions"], `host_start`/`request_start`, `host_talk`, `host_end`, `view` + `changed`),
+  `MissionHUD`, `MissionTalkBox` (NPC "MissionNPC_<id>"), `MissionMapPin`, `MissionLog` (phone app). Check missions,
+  scenarios mission_contact / mission_pier.
+
+
+# Part 20: dialogue system for NPCs (text box with choices that can start missions, user 2026-11-15)
+
+## How it works
+- Data: `DialogueData` (speaker + pages), `DialogueNode` (id, speaker, text, choices, next, `entry` + `show_if`),
+  `DialogueChoice` (text, next page, action NONE / START_MISSION (mission) / FINISH_STEP, `show_if`). Conditions
+  (`DialogueNode.Show`): ALWAYS, MISSION_AVAILABLE, MISSION_DONE, MISSION_NOT_DONE, MISSION_RUNNING,
+  NO_MISSION_RUNNING (checked on every peer from `Missions.view`). A talk starts on the first `entry` page whose
+  condition holds; answers whose condition fails are hidden. Example: data/dialogue/marco.tres.
+- Talkers: `TalkNPCData` .tres in data/dialogue/npcs/ (npc_id, name, marker + offset or position, yaw, variant,
+  dialogue). `Missions` spawns them on the host as "MissionNPC_<npc_id>" (same node a mission step can point at by
+  npc_id, never despawned by missions; `talkers_on` off in self-test/netcheck). Marco stands by the park
+  (ParkSmokeSpot + 3 m) and gives both test missions through his dialogue.
+- E on an NPC -> `Missions.host_talk`: the running mission's step with this NPC first (TALK_TO with a dialogue opens
+  it; its FINISH_STEP answer - or, when it has none, the end of the talk - finishes the step via
+  `request_step_done` -> `host_step_done` (host checks the step + distance); TALK_TO with plain `lines` and DELIVER
+  show the lines as pages), else the talker's own dialogue, else "Not now.". The host only sends WHICH dialogue
+  (npc, mission, step, lines) to the owner (`_show_talk_rpc`); the owner shows `DialogueBox`.
+- `DialogueBox` (scripts/dialogue/dialogue_box.gd, in the player's HUD layer): name, typed-out text (Space = all),
+  answer buttons (mouse or keys 1-4), Continue/Bye on pages without answers; Esc, death or walking > 7 m away
+  closes it. START_MISSION -> `Missions.request_start` (host checks `why_not`).
+- Mission 1 now: Marco's dialogue starts it ("Got anything for me?" -> "I'm in." / "What's in it for me?" ->
+  "Deal."), steps: QuickFuel -> give Dex 2 bags -> back to Marco (his report dialogue: answer = step done -> reward).
+  After it Marco offers "Any bigger work?" -> Pier Pressure.
+
+## Decisions (what + why)
+- Dialogue lives on the owner's peer (only the start / finish actions go to the host): no network traffic per page,
+  and the host still decides every effect.
+- Talkers share the mission NPC naming so a mission can simply say npc_id "marco".
+- Conditions are a fixed enum (not script expressions): easy to pick in the Inspector, safe, enough for missions.
+
+## Existing files changed (part 20)
+- autoload/missions.gd (talkers, host_talk with dialogues, step done), data/missions/first_contact.tres (new steps),
+  missions_test.gd (dialogue flow), scenarios.gd (mission_contact without auto start + flag `--talk`).
+
+## Te testen door Curry
+- `mission_contact` (F9): E op Marco: tekstvak met keuzes (muis of 1-4). "Got anything for me?" -> "I'm in." start
+  missie 1. Na Dex terug naar Marco, kies een antwoord -> beloning. Praat daarna weer met Marco: nieuwe klus.
+
+## For CLAUDE.md (suggested lines)
+- Dialogue (part 20): `DialogueData`/`DialogueNode`/`DialogueChoice` (.tres, conditions `DialogueNode.Show`,
+  actions START_MISSION/FINISH_STEP), talkers `TalkNPCData` in data/dialogue/npcs/ (Missions.talkers, `talkers_on`),
+  `DialogueBox.open_for`, `Missions.host_talk` / `_show_talk` / `host_step_done`, `last_talk` (tests). Scenario
+  mission_contact (`--talk`), check missions.
+
+
+# Part 21: city life + army base life (user feedback 2026-11-15 "de stad en de militaire basis voelen leeg")
+
+## How it works
+- City (`CityLife`, scripts/world/city_life.gd, static helpers used by `Zones` on the host): the city has no navmesh,
+  so walkers follow a SIDEWALK GRAPH built from the road grid (CX/CZ junctions as in gen_world, 4 corner nodes per
+  junction 5.4 m off the road centre, edges along the block sides + across at the junctions). Spots
+  (`CityLife.spots(world)` = `Zones.city_spots()`), each with opening hours:
+  - office groups of 3 in front of every 3rd `Tower` (07-20), 2 neighbours at the door of every `ApartmentBlock*`
+    (A's point 76, 08-22:30), bus stop queues of 3 (A's `CityBusStop*` markers, else mid-block on the two middle
+    avenues, 06-23), sitters on `TerraceSeat*` markers or the CityBench seats (2 of every 3, 08-22),
+  - 26 walkers on the graph by day, 8 of them also at night (`WALKERS_DAY` / `WALKERS_NIGHT`).
+  City residents wear office / business clothes (`CityLife.OFFICE_VARIANTS`). Out of hours they go (unless they are a
+  customer right now). Once a player comes near the city, `Traffic.spawn_cars(CityLife.EXTRA_CARS (8), true)` adds
+  cars on the city routes.
+- Army base (`Zones.guard_posts()`): A's `ArmyPost*` markers when they exist (name with "Chat" = chatting), else my
+  own posts: 2 at the gate, 2 at the flag, 4 chatting in front of the hangars, 3 at the helipads, 2 by the vehicle
+  row; a marksman (`gun` sniper, `Soldier.MARKSMAN_PROFILE`) on top of every `Watchtower*`; 2 patrols of 2 walking a
+  closed round of straight legs (`Soldier.route`, `_walk_route`; A's `ArmyPatrolA*`/`B*` markers win). Profiles
+  data/npc/soldier.tres (AK, sight 60 m, accurate 5-round bursts, 14 dmg) and soldier_marksman.tres (sniper, sight
+  95 m, 40 dmg). The base is manned only while a player is within `ARMY_MAN_RANGE` (220 m) and emptied (idle soldiers)
+  past `ARMY_LEAVE_RANGE` (300 m): ~21 soldiers' AI only runs when someone can see them.
+
+## Decisions (what + why)
+- Sidewalk graph instead of asking A for a city navmesh: works now without touching the map; A's markers / a navmesh
+  later replace it without changes elsewhere.
+- Soldiers get their own profiles (the old one was the Crows' rival_ak with sight 26 m: they reacted too late), the
+  tower guards sniper rifles: "zwaarder dan de politie".
+- Manning by distance: 20+ soldiers + 50 city people would cost the host AI time everywhere on the map.
+
+## Existing files changed (part 21)
+- autoload/zones.gd (city spots, hours, walkers/sitters, extra traffic, army posts/patrols/marksmen/manning),
+  scripts/npc/soldier.gd (profiles, route, chatty), zones_test.gd (army + city life checks), scenarios.gd.
+
+## Te testen door Curry
+- `city_life` (F9): drukke stad op een hoek: lopers op de stoepen, groepjes bij torens, wachtenden bij bushaltes,
+  mensen op bankjes, meer auto's. F7: na 22:00 wordt het stil.
+- `army_life` (F9): bij de poort van de basis (god mode): wachters, patrouilles, scherpschutters op de torens.
+  Loop naar binnen: alarm.
+
+## For CLAUDE.md (suggested lines)
+- City life (part 21): `CityLife` (sidewalk graph, `spots`, `walk_step`, `sit`, WALKERS_DAY/NIGHT, EXTRA_CARS), markers
+  CityBusStop*/TerraceSeat* optional. Army: `Zones.guard_posts()` (ArmyPost*/ArmyPatrolA*/B* optional), `Soldier.route`
+  / `chatty` / MARKSMAN_PROFILE, ARMY_MAN_RANGE. Scenarios city_life, army_life; check zones.
+
+
+# Part 22: more missions + dialogue (user 2026-11-15 "daarna verder met het missie- en dialoogsysteem")
+
+## How it works
+- Mission 3 "Uptown" (data/missions/uptown.tres, after mission 1, giver Marco: his new answer "Know anyone with real
+  money?"): GO_TO the city (ApartmentBlock1's front door) -> TALK_TO Nadia (a dialogue with 2 answers, both finish the
+  step) -> DELIVER 4 Bags of Weed to her. EUR 1400 + 250 XP.
+- Mission 4 "Rosehill Shield" (data/missions/rosehill_shield.tres, after mission 2, giver Old Joe): KILL 3 Crows at the
+  SlumShack -> SURVIVE 40 s against 3 with AKs -> TALK_TO Old Joe. EUR 2200 + 350 XP + 60 rifle rounds.
+- Old Joe = a new talker (data/dialogue/npcs/old_joe.tres, FireBarrel1 + 3.4 m) with his own dialogue
+  (data/dialogue/old_joe.tres): hello / his job (with a "what's it worth" page) / a thank-you page once the mission is
+  done / "busy" while another mission runs. Nothing new in code: only .tres files (proof the data format works).
+
+## Decisions (what + why)
+- The new missions use the new zones (the city pays more, the slums need protection): the story ties the map together.
+- Rosehill Shield needs Pier Pressure (you have shown you can handle the Crows), Uptown only the first job.
+
+## Existing files changed (part 22)
+- data/dialogue/marco.tres (answer + 2 pages for Uptown), missions_test.gd (both missions), scenarios.gd.
+
+## Te testen door Curry
+- `mission_uptown` (F9): E op Marco -> "Know anyone with real money?" -> "The city it is." Volg de waypoint naar de
+  stad, praat met Nadia, geef haar 4 zakjes.
+- `mission_rosehill` (F9): E op Old Joe bij de vuurton -> "You look worried, old man." -> "I'll deal with them."
+
+## For CLAUDE.md (suggested lines)
+- Missions 3/4 (part 22): uptown (Nadia, city), rosehill_shield (talker Old Joe, slums). Scenarios mission_uptown,
+  mission_rosehill (`--talk`).

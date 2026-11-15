@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="MissionData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/missions/mission_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/missions/mission_objective.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Resource_go"]
+script = ExtResource("2_obj")
+text = "Get to the Black Crows' pier at the harbour"
+marker = "HarbourCrows"
+radius = 25.0
+
+[sub_resource type="Resource" id="Resource_kill"]
+script = ExtResource("2_obj")
+kind = 3
+text = "Take out the Crows on the pier ({count}/{need})"
+marker = "HarbourCrows"
+radius = 12.0
+spawn_enemies = 3
+enemy_post = &"harbour"
+
+[sub_resource type="Resource" id="Resource_survive"]
+script = ExtResource("2_obj")
+kind = 4
+text = "Their backup is coming: hold the pier ({time} left)"
+marker = "HarbourCrows"
+radius = 30.0
+spawn_enemies = 3
+enemy_post = &"harbour"
+enemy_ak = true
+seconds = 45.0
+
+[resource]
+script = ExtResource("1_data")
+id = &"pier_pressure"
+title = "Pier Pressure"
+summary = "The Black Crows sit on the harbour pier and tax every boat. Marco wants them gone - for a night at least."
+giver = "Marco"
+requires = &"first_contact"
+objectives = Array[ExtResource("2_obj")]([SubResource("Resource_go"), SubResource("Resource_kill"), SubResource("Resource_survive")])
+reward_cash = 2000
+reward_xp = 300
+reward_items = {
+"ammo_9mm": 36
+}
+done_text = "The pier is ours tonight. You did good - the Crows will remember your face, though."

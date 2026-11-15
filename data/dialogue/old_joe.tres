@@ -1,0 +1,106 @@
+[gd_resource type="Resource" script_class="DialogueData" format=3]
+
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_node.gd" id="2_node"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_choice.gd" id="3_ch"]
+
+[sub_resource type="Resource" id="c_trouble"]
+script = ExtResource("3_ch")
+text = "You look worried, old man."
+next = &"trouble"
+show_if = 1
+show_mission = &"rosehill_shield"
+
+[sub_resource type="Resource" id="c_life"]
+script = ExtResource("3_ch")
+text = "How's life in Rosehill?"
+next = &"life"
+
+[sub_resource type="Resource" id="c_bye"]
+script = ExtResource("3_ch")
+text = "Stay warm, Joe."
+
+[sub_resource type="Resource" id="c_yes"]
+script = ExtResource("3_ch")
+text = "I'll deal with them."
+next = &"go"
+action = 1
+mission = &"rosehill_shield"
+
+[sub_resource type="Resource" id="c_pay"]
+script = ExtResource("3_ch")
+text = "What's it worth to you?"
+next = &"pay"
+
+[sub_resource type="Resource" id="c_no"]
+script = ExtResource("3_ch")
+text = "Not my problem."
+next = &"no"
+
+[sub_resource type="Resource" id="c_yes2"]
+script = ExtResource("3_ch")
+text = "Fine. Where are they?"
+next = &"go"
+action = 1
+mission = &"rosehill_shield"
+
+[sub_resource type="Resource" id="c_ok"]
+script = ExtResource("3_ch")
+text = "Got it."
+
+[sub_resource type="Resource" id="n_busy"]
+script = ExtResource("2_node")
+id = &"busy"
+text = "You've got work to do, kid. The barrel will still be here."
+choices = Array[ExtResource("3_ch")]([SubResource("c_ok")])
+entry = true
+show_if = 4
+
+[sub_resource type="Resource" id="n_thanks"]
+script = ExtResource("2_node")
+id = &"thanks"
+text = "The Crows haven't shown their faces since. Sit, warm your hands. You're always welcome here."
+choices = Array[ExtResource("3_ch")]([SubResource("c_life"), SubResource("c_bye")])
+entry = true
+show_if = 2
+show_mission = &"rosehill_shield"
+
+[sub_resource type="Resource" id="n_hello"]
+script = ExtResource("2_node")
+id = &"hello"
+text = "Haven't seen you round the barrels before. You lost, or looking for something?"
+choices = Array[ExtResource("3_ch")]([SubResource("c_trouble"), SubResource("c_life"), SubResource("c_bye")])
+entry = true
+
+[sub_resource type="Resource" id="n_trouble"]
+script = ExtResource("2_node")
+id = &"trouble"
+text = "The Black Crows come round every week now. 'Protection', they call it. They take what little we have - and the ones who say no end up in the canal."
+choices = Array[ExtResource("3_ch")]([SubResource("c_yes"), SubResource("c_pay"), SubResource("c_no")])
+
+[sub_resource type="Resource" id="n_pay"]
+script = ExtResource("2_node")
+id = &"pay"
+text = "We've got a little saved. And a crate of rifle rounds my nephew 'found'. Plus a whole neighbourhood that'll buy from you and never talk."
+choices = Array[ExtResource("3_ch")]([SubResource("c_yes2"), SubResource("c_no")])
+
+[sub_resource type="Resource" id="n_go"]
+script = ExtResource("2_node")
+id = &"go"
+text = "They hang round the shack at the end of the row. They'll come back angry - be ready."
+
+[sub_resource type="Resource" id="n_no"]
+script = ExtResource("2_node")
+id = &"no"
+text = "Nobody's problem. That's how it always goes round here."
+
+[sub_resource type="Resource" id="n_life"]
+script = ExtResource("2_node")
+id = &"life"
+text = "Cold nights, cheap wine, and the city's lights over the hill reminding us what we don't have. But we look after our own."
+next = &"hello"
+
+[resource]
+script = ExtResource("1_data")
+speaker = "Old Joe"
+nodes = Array[ExtResource("2_node")]([SubResource("n_busy"), SubResource("n_thanks"), SubResource("n_hello"), SubResource("n_trouble"), SubResource("n_pay"), SubResource("n_go"), SubResource("n_no"), SubResource("n_life")])

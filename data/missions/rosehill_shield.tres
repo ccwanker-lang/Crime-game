@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="MissionData" format=3]
+
+[ext_resource type="Script" path="res://scripts/missions/mission_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/missions/mission_objective.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Resource_kill"]
+script = ExtResource("2_obj")
+kind = 3
+text = "Chase the Crows away from the shacks ({count}/{need})"
+marker = "SlumShack"
+radius = 14.0
+spawn_enemies = 3
+enemy_post = &"yard"
+
+[sub_resource type="Resource" id="Resource_survive"]
+script = ExtResource("2_obj")
+kind = 4
+text = "They're back with rifles: protect Rosehill ({time} left)"
+marker = "SlumShack"
+radius = 30.0
+spawn_enemies = 3
+enemy_post = &"yard"
+enemy_ak = true
+seconds = 40.0
+
+[sub_resource type="Resource" id="Resource_report"]
+script = ExtResource("2_obj")
+kind = 1
+text = "Tell {npc} it's over"
+radius = 3.0
+npc_id = &"old_joe"
+npc_name = "Old Joe"
+lines = PackedStringArray("You came back. Not many do.", "Rosehill doesn't forget a favour. Our people buy from you now - and nobody here talks to the cops.")
+
+[resource]
+script = ExtResource("1_data")
+id = &"rosehill_shield"
+title = "Rosehill Shield"
+summary = "The Black Crows squeeze the people of Rosehill for 'protection'. Old Joe by the fire barrels asks you to show them the door."
+giver = "Old Joe"
+requires = &"pier_pressure"
+objectives = Array[ExtResource("2_obj")]([SubResource("Resource_kill"), SubResource("Resource_survive"), SubResource("Resource_report")])
+reward_cash = 2200
+reward_xp = 350
+reward_items = {
+"ammo_762": 60
+}
+done_text = "Rosehill owes you one. The barrels burn for you tonight."
