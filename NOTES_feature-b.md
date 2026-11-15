@@ -4,12 +4,11 @@ Session B notes. To be folded into DESIGN.md (Roadmap status + Decisions) / CHAN
 session A when merging (B may not edit those files).
 
 ## MERGED parts 1 + 2 (A, main c95e70c), parts 3-7 + the anchor fix (A, merge of 0b00291), and the dealer-turf fix,
-part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all already in DESIGN/CHANGELOG/CLAUDE.md.
-New parts go below a new "Open for the next merge" line.
+part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
+2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
-(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker), Part 18 (zone systems:
-army base, slums, city, bunker), Part 19 (missions), Part 20 (dialogue).
+## Open for the next merge: Part 18 (zone systems: army base, slums, city, bunker), Part 19 (missions), Part 20
+(dialogue). Each part below has "How it works", "Decisions", "For CLAUDE.md".
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
