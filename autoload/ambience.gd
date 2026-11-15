@@ -4,14 +4,20 @@ extends Node
 ##   child (engine, tyres, brakes) - so A's car scripts need no changes for sound.
 ## - Dogs (67): every dog-walking ParkGoer gets a real `Dog` at World/Dogs/Dog_<owner name> on every peer (same path
 ##   everywhere, so the host's RPCs reach it); the host drives it.
+## - Animals (68): a local `Wildlife` node (World/Wildlife: birds, pigeons, cats, ducks) once the World is loaded.
+##   `--animals=0` leaves it out.
 
 const SCAN_EVERY: float = 0.5
 
 var _scan: float = 0.0
+var animals_on: bool = true
 
 
 func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
+	for a: String in OS.get_cmdline_user_args():
+		if a == "--animals=0":
+			animals_on = false
 
 
 func _on_node_added(n: Node) -> void:
@@ -53,6 +59,10 @@ func _process(delta: float) -> void:
 	var scene: Node = get_tree().current_scene
 	if scene == null or scene.get_node_or_null("Players") == null:
 		return
+	if animals_on and scene.get_node_or_null("Wildlife") == null:
+		var w := Wildlife.new()
+		w.name = "Wildlife"
+		scene.add_child(w)
 	for g: StringName in [&"cars", &"player_cars"]:
 		for n: Node in get_tree().get_nodes_in_group(g):
 			if (n is Car or n is PlayerCar) and n.get_node_or_null("VehicleSound") == null:

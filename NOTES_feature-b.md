@@ -8,7 +8,7 @@ part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all a
 New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
-(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs).
+(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks).
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -643,3 +643,49 @@ Done: self-test check `dogs` (+ A's park check adapted), scenario `dogs`.
 - Dogs (Roadmap 67): `Dog` (scripts/npc/dog.gd, layer 3, World/Dogs/Dog_<owner>, made by `Ambience` on every peer,
   host drives + `_net` RPC), `Dog.of(npc)`, `host_fetch`, `Dog.auto_fetch`, states FOLLOW/FETCH/MOURN/FLEE/DEAD,
   ProcDog `driven`. Scenario dogs, self-test check dogs.
+
+
+# Part 17: Roadmap 68 - birds, pigeons, cats, ducks (taken over from A, user 2026-11-14)
+
+## Status
+Done: self-test check `animals`, scenarios `animals` (park) and `ducks` (quay). No map files touched.
+
+## How it works
+- `Wildlife` (scripts/ambient/wildlife.gd, node World/Wildlife): made by the `Ambience` autoload on EVERY peer once
+  the World is loaded (`--animals=0` = none). Purely local and cosmetic: no networking, no collision, no saves.
+  `Wildlife.current`, `census()`, `scare(pos, radius)` / static `scare_at(pos)`.
+- Spots without markers: roof spots are worked out from every `Building` (gable/hip ridge, front gutter, flat-roof
+  parapet; dropped when anything is above); cat spots = free flat ground (not a RoadTile) 1.5 m in front of and behind
+  buildings; pigeon flocks on the park path (World.park_path) + shop fronts; ducks in a box of sea by the quay
+  (only if the map has a `Sea`), bobbing on the same waves as water.gdshader.
+- `AmbientBird` kinds BIRD (24, on roofs, flies to another roof every 25-90 s, arc + flapping + glides), PIGEON
+  (flocks of 5-7: walk, peck, head bob; a player within 3.2 m / a car within 5 m -> the whole flock flies onto one roof,
+  back down after 12-28 s, not at night), DUCK (7: swim, dabble, swim away from people within 6 m, fly 16-28 m
+  low over the water from a gunshot). `AmbientCat` (6): sits (tail swish), strolls to another cat spot (forward ray =
+  walls, down ray = ground), bolts 9-15 m from a player within 4.5 m, a car within 3 m or a gunshot.
+- Gunshots: `WeaponFX.flash` calls `Wildlife.scare_at(muzzle)` (every peer sees every muzzle flash: players, police,
+  Crows): everything within 45 m takes off.
+- Cheap: meshes cached per look (`CritterMesh`), no shadows, animals > 110 m from the camera don't update.
+
+## Decisions (what + why)
+- Local per peer, not networked: the animals are decoration; syncing 40 animals costs bandwidth for nothing. Each
+  peer reacts to the same players, cars and shots, so they behave much alike.
+- Spots from Building data instead of markers: works for every house now and later without touching the map (A's).
+- No collision: animals never block players, cars or NPC paths, and bullets don't hit them (dogs remain the only
+  animals you can shoot).
+
+## Existing files changed (part 17)
+- scripts/weapons/weapon_fx.gd: `flash` first calls `Wildlife.scare_at` (1 line). autoload/ambience.gd: makes
+  World/Wildlife. self_test.gd: check "animals". scenarios.gd: animals, ducks.
+
+## Te testen door Curry
+- `animals` (F9): in het park staat een zwerm duiven voor je, een kat rechts. Loop naar de duiven: ze vliegen op een
+  dak en komen later terug. Loop naar de kat: hij rent weg. Schiet (1, linkermuis): alles in de buurt vliegt/rent weg.
+  Kijk omhoog: vogeltjes op nokken en dakgoten die soms naar een ander dak vliegen.
+- `ducks` (F9): eenden op het water bij de kade; ze dobberen op de golven en zwemmen van je weg; een schot = ze
+  vliegen laag over het water verder.
+
+## For CLAUDE.md (suggested lines)
+- Animals (Roadmap 68): `Wildlife` (scripts/ambient/, World/Wildlife, local per peer via `Ambience`, `--animals=0`),
+  `AmbientBird` BIRD/PIGEON/DUCK, `AmbientCat`, `CritterMesh`; roof spots from Building data, `Wildlife.scare_at`
+  from `WeaponFX.flash`; threats = players, cars, group `wildlife_threats` (tests). Scenarios animals/ducks, check animals.

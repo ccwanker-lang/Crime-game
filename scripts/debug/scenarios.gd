@@ -83,6 +83,8 @@ const LIST: Array = [
 	["run_over", "12:00 in your Comet Sedan on the car lot, 3 people standing behind it and one beside it", "S = reverse into the people behind you: they are hit (from the back too; fast = dead, ragdoll + police heat like a murder). The one beside the car isn't hit when you drive past slowly; a hard turn swings the rear into people too."],
 	["car_roof", "12:00 on foot next to your parked Comet Sedan and a Mule Van, traffic on Main Road", "Space next to the car: you jump onto the bonnet, jump again: you stand on the roof. The van's roof is higher (jump from its bonnet). Traffic cars have the same shape."],
 	["dogs", "13:00 in the park, a dog walker right in front of you (a game of fetch starts in 3 s)", "Watch: the owner throws the ball, the dog runs off the lead, brings it back and drops it at the owner's feet. Then try: shoot the owner (1) -> the dog stays a moment and runs off; shoot a dog -> it goes limp (a crime, not a murder). Cars hit dogs too."],
+	["animals", "12:00 in the park: a pigeon flock in front of you, a cat 6 m to your right, birds on the roofs around", "Walk up to the pigeons: the flock flies up onto a roof and comes back down after a while (at night they stay up). Walk to the cat: it bolts. Fire a shot (1, LMB): every bird, pigeon and cat within ~45 m takes off. Look up: birds sit on ridges and gutters and now and then fly to another roof."],
+	["ducks", "12:00 on the quay, looking out over the harbour water", "Ducks swim and dabble on the sea and bob on the waves. Stay on the quay edge: the near ones swim away from you. Fire a shot (1, LMB): they fly off low over the water and land further on."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -665,6 +667,20 @@ static func run(world: Node, id: String) -> bool:
 				var dog: Dog = Dog.of(walker)
 				if dog:
 					dog.host_fetch(3)
+		"animals", "ducks":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 24]])
+			for i: int in 60:
+				if Wildlife.current and Wildlife.current.ready_done:
+					break
+				await world.get_tree().create_timer(0.1).timeout
+			var wl: Wildlife = Wildlife.current
+			if id == "ducks":
+				_place(me, Vector3(-104.0, 0.4, 102.5), Vector3(-104.0, 0.0, 116.0), dn, 12.0)
+			elif wl and not wl.flock_homes.is_empty():
+				var fh: Vector3 = wl.flock_homes[0]
+				var from: Vector3 = fh + Vector3(0, 0, 8.0)
+				_place(me, from + Vector3.UP * 0.3, fh + Vector3.UP, dn, 12.0)
+				wl.add_cat(from + Vector3(6.0, 0, 1.0))
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)
