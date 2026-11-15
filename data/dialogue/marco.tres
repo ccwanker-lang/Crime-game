@@ -69,6 +69,35 @@ text = "Not tonight."
 script = ExtResource("3_ch")
 text = "Back to work."
 
+[sub_resource type="Resource" id="c13"]
+script = ExtResource("3_ch")
+text = "Know anyone with real money?"
+next = &"work3"
+show_if = 1
+show_mission = &"uptown"
+
+[sub_resource type="Resource" id="c14"]
+script = ExtResource("3_ch")
+text = "The city it is."
+next = &"go3"
+action = 1
+mission = &"uptown"
+
+[sub_resource type="Resource" id="c15"]
+script = ExtResource("3_ch")
+text = "Suits make me nervous."
+
+[sub_resource type="Resource" id="n9"]
+script = ExtResource("2_node")
+id = &"work3"
+text = "Nadia. Office manager in the city, lives in the big apartment block on the first avenue. Her office throws parties and pays city prices. She wants four bags."
+choices = Array[ExtResource("3_ch")]([SubResource("c14"), SubResource("c15")])
+
+[sub_resource type="Resource" id="n10"]
+script = ExtResource("2_node")
+id = &"go3"
+text = "Dress nice. Just kidding - but don't walk in there with a gun in your hand."
+
 [sub_resource type="Resource" id="n1"]
 script = ExtResource("2_node")
 id = &"busy"
@@ -81,7 +110,7 @@ show_if = 4
 script = ExtResource("2_node")
 id = &"hello"
 text = "Hey, look who it is. What do you need?"
-choices = Array[ExtResource("3_ch")]([SubResource("c1"), SubResource("c2"), SubResource("c3"), SubResource("c4")])
+choices = Array[ExtResource("3_ch")]([SubResource("c1"), SubResource("c13"), SubResource("c2"), SubResource("c3"), SubResource("c4")])
 entry = true
 
 [sub_resource type="Resource" id="n3"]
@@ -121,4 +150,4 @@ next = &"hello"
 [resource]
 script = ExtResource("1_data")
 speaker = "Marco"
-nodes = Array[ExtResource("2_node")]([SubResource("n1"), SubResource("n2"), SubResource("n3"), SubResource("n4"), SubResource("n5"), SubResource("n6"), SubResource("n7"), SubResource("n8")])
+nodes = Array[ExtResource("2_node")]([SubResource("n1"), SubResource("n2"), SubResource("n3"), SubResource("n4"), SubResource("n5"), SubResource("n6"), SubResource("n7"), SubResource("n8"), SubResource("n9"), SubResource("n10")])

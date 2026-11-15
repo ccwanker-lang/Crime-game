@@ -8,7 +8,7 @@ part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 18 (zone systems: army base, slums, city, bunker), Part 19 (missions), Part 20
-(dialogue), Part 21 (city life + army base life). Each part below has "How it works", "Decisions", "For CLAUDE.md".
+(dialogue), Part 21 (city life + army base life), Part 22 (missions 3 + 4). Each part below has "How it works", "Decisions", "For CLAUDE.md".
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -947,3 +947,32 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - City life (part 21): `CityLife` (sidewalk graph, `spots`, `walk_step`, `sit`, WALKERS_DAY/NIGHT, EXTRA_CARS), markers
   CityBusStop*/TerraceSeat* optional. Army: `Zones.guard_posts()` (ArmyPost*/ArmyPatrolA*/B* optional), `Soldier.route`
   / `chatty` / MARKSMAN_PROFILE, ARMY_MAN_RANGE. Scenarios city_life, army_life; check zones.
+
+
+# Part 22: more missions + dialogue (user 2026-11-15 "daarna verder met het missie- en dialoogsysteem")
+
+## How it works
+- Mission 3 "Uptown" (data/missions/uptown.tres, after mission 1, giver Marco: his new answer "Know anyone with real
+  money?"): GO_TO the city (ApartmentBlock1's front door) -> TALK_TO Nadia (a dialogue with 2 answers, both finish the
+  step) -> DELIVER 4 Bags of Weed to her. EUR 1400 + 250 XP.
+- Mission 4 "Rosehill Shield" (data/missions/rosehill_shield.tres, after mission 2, giver Old Joe): KILL 3 Crows at the
+  SlumShack -> SURVIVE 40 s against 3 with AKs -> TALK_TO Old Joe. EUR 2200 + 350 XP + 60 rifle rounds.
+- Old Joe = a new talker (data/dialogue/npcs/old_joe.tres, FireBarrel1 + 3.4 m) with his own dialogue
+  (data/dialogue/old_joe.tres): hello / his job (with a "what's it worth" page) / a thank-you page once the mission is
+  done / "busy" while another mission runs. Nothing new in code: only .tres files (proof the data format works).
+
+## Decisions (what + why)
+- The new missions use the new zones (the city pays more, the slums need protection): the story ties the map together.
+- Rosehill Shield needs Pier Pressure (you have shown you can handle the Crows), Uptown only the first job.
+
+## Existing files changed (part 22)
+- data/dialogue/marco.tres (answer + 2 pages for Uptown), missions_test.gd (both missions), scenarios.gd.
+
+## Te testen door Curry
+- `mission_uptown` (F9): E op Marco -> "Know anyone with real money?" -> "The city it is." Volg de waypoint naar de
+  stad, praat met Nadia, geef haar 4 zakjes.
+- `mission_rosehill` (F9): E op Old Joe bij de vuurton -> "You look worried, old man." -> "I'll deal with them."
+
+## For CLAUDE.md (suggested lines)
+- Missions 3/4 (part 22): uptown (Nadia, city), rosehill_shield (talker Old Joe, slums). Scenarios mission_uptown,
+  mission_rosehill (`--talk`).

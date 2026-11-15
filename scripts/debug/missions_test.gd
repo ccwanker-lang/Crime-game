@@ -126,7 +126,8 @@ static func run(t: Node, world: Node3D) -> void:
 	await tree.physics_frame
 
 	# --- Mission 2: go to, kill, survive ---
-	report.call(Missions.available() == [&"pier_pressure"], "the next mission opens: '%s'" % m2.title)
+	report.call(Missions.available().has(&"pier_pressure") and Missions.available().has(&"uptown"),
+			"the next missions open: '%s' + 'Uptown' (%s)" % [m2.title, Missions.available()])
 	var pier: Vector3 = world.find_child("HarbourCrows", true, false).global_position
 	boss.teleport(pier + Vector3(0, 0.3, -60))
 	Missions.host_start(&"pier_pressure", boss)
@@ -149,6 +150,77 @@ static func run(t: Node, world: Node3D) -> void:
 	for e: Node in Missions.enemies() + foes:
 		if is_instance_valid(e):
 			e.queue_free()
+
+	# --- Part 22: Uptown (the city: talk + deliver) and Rosehill Shield (Old Joe's dialogue, the slums) ---
+	var m3: MissionData = Missions.get_mission(&"uptown")
+	var m4: MissionData = Missions.get_mission(&"rosehill_shield")
+	report.call(m3 != null and m4 != null and m3.objectives.size() == 3 and m4.objectives.size() == 3 and Missions.talkers.has(&"old_joe"),
+			"more missions from data: Uptown + Rosehill Shield, Old Joe is a talker")
+	await tree.create_timer(0.6).timeout
+	var joe: Pedestrian = Missions.mission_npc(&"old_joe")
+	var barrel: Node3D = world.find_child("FireBarrel1", true, false) as Node3D
+	report.call(joe != null and barrel != null and joe.global_position.distance_to(barrel.global_position) < 5.0,
+			"Old Joe stands by the fire barrel in Rosehill")
+	if joe:
+		boss.teleport(joe.global_position + Vector3(1.5, 0.3, 0))
+		await tree.create_timer(0.3).timeout
+		Missions.host_talk(boss, &"old_joe")
+		var jd := Missions.last_talk.get("dialogue") as DialogueData
+		var jt: Array = jd.entry().visible_choices().map(func(c: DialogueChoice) -> String: return c.text) if jd else []
+		report.call(jd != null and jd.entry().id == &"hello" and jt.has("You look worried, old man."),
+				"Old Joe's dialogue offers his job (%s)" % [jt])
+		var jbox := DialogueBox.new()
+		jbox.player = boss
+		var jlayer := CanvasLayer.new()
+		world.add_child(jlayer)
+		jlayer.add_child(jbox)
+		jbox.start(&"old_joe", "Old Joe", jd, PackedStringArray(), false)
+		jbox.choose(0)  # You look worried
+		await tree.process_frame
+		jbox.choose(0)  # I'll deal with them -> START_MISSION
+		await tree.physics_frame
+		report.call(str(Missions.state()["active"]) == "rosehill_shield" and Missions.enemies().size() == 3,
+				"'I'll deal with them.' starts Rosehill Shield: 3 Crows at the shacks")
+		jlayer.queue_free()
+		boss.teleport(Missions._target(m4.objectives[0]) + Vector3(0, 0.3, 4))
+		for e: Node in Missions.enemies():
+			(e as Rival).host_damage(1000, boss, boss.global_position)
+		await tree.create_timer(0.8).timeout
+		Missions.state()["time"] = m4.objectives[1].seconds - 1.0
+		await tree.create_timer(1.6).timeout
+		report.call(int(Missions.state()["step"]) == 2 and (Missions.view.get("target") as Vector3).distance_to(joe.global_position) < 1.0,
+				"Crows gone, Rosehill held -> back to Old Joe ('%s')" % Missions.view.get("text"))
+		boss.teleport(joe.global_position + Vector3(1.5, 0.3, 0))
+		await tree.create_timer(0.3).timeout
+		var cash2: int = int(GameState.get_or_create_player_data("Boss")["cash"])
+		Missions.host_talk(boss, &"old_joe")
+		await tree.create_timer(0.5).timeout
+		report.call(Missions.is_done(&"rosehill_shield") and int(GameState.get_or_create_player_data("Boss")["cash"]) == cash2 + m4.reward_cash,
+				"tell Old Joe -> done, reward EUR %d" % m4.reward_cash)
+		for e: Node in Missions.enemies():
+			if is_instance_valid(e):
+				e.queue_free()
+	Missions.host_start(&"uptown", boss)
+	await tree.create_timer(0.4).timeout
+	var door: Vector3 = Missions._target(m3.objectives[0])
+	boss.teleport(door + Vector3(0, 0.3, -3))
+	await tree.create_timer(0.8).timeout
+	var nadia: Pedestrian = Missions.mission_npc(&"nadia")
+	report.call(int(Missions.state()["step"]) == 1 and nadia != null and Zones.zone_at(door) == &"city",
+			"Uptown: at the apartment block in the city, Nadia waits")
+	if nadia:
+		boss.teleport(nadia.global_position + Vector3(0, 0.3, -1.5))
+		await tree.create_timer(0.3).timeout
+		report.call(Missions.host_talk(boss, &"nadia") == "dialogue", "Nadia talks (a dialogue with choices)")
+		Missions.host_step_done(boss, &"nadia")
+		await tree.physics_frame
+		GameState.give("Boss", 0, [{"id": "weed_bag", "count": 4}])
+		var cash3: int = int(GameState.get_or_create_player_data("Boss")["cash"])
+		var r3: String = Missions.host_talk(boss, &"nadia")
+		await tree.create_timer(0.6).timeout
+		report.call(r3 == "delivered" and Missions.is_done(&"uptown")
+				and int(GameState.get_or_create_player_data("Boss")["cash"]) == cash3 + m3.reward_cash,
+				"4 bags to Nadia -> Uptown done, EUR %d" % m3.reward_cash)
 
 	# --- Giving up, the phone ---
 	(Missions.state()["done"] as Array).clear()

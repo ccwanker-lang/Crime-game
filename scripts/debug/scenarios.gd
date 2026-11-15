@@ -108,6 +108,8 @@ const LIST: Array = [
 	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
 	["bunker_lab", "Rank 5 at the bunker's blast door with EUR 260,000 and a Cook Station; the bunker is for sale", "E on the door: locked. Buy the Mountain Bunker at the estate agent (it costs EUR 250,000) - here it is bought for you after 8 s (or start it with --owned): the door unlocks (E opens it). Inside: the lift / stairs down to the lab hall, place the Cook Station (B = build mode). The bunker is never raided."],
 	["mission_contact", "Marco by the park (2 Bags of Weed in your pockets): talk to him to get mission 1 'A Foot in the Door'", "E on Marco: a text box with choices (mouse or keys 1-4). 'Got anything for me?' -> 'I'm in.' starts the mission: gold waypoint + objective top right. Gas station -> E on Dex (2 bags) -> back to Marco, pick an answer -> reward. Tab > Missions = the log, Map = gold pin. With 2 instances: whoever joins after the start sees 'joined late' and gets no reward."],
+	["mission_uptown", "Mission 1 done, 4 Bags of Weed, next to Marco by the park", "E on Marco: the new answer 'Know anyone with real money?' -> 'The city it is.' starts Uptown. Follow the waypoint to the apartment block in the city, talk to Nadia (choices), then give her the 4 bags (E): EUR 1400 + XP."],
+	["mission_rosehill", "Missions 1 + 2 done, AK-47 + ammo, next to Old Joe by a fire barrel in Rosehill (the slums)", "E on Old Joe: 'You look worried, old man.' -> 'I'll deal with them.' starts Rosehill Shield. 3 Crows at the shack at the end of the row, then 3 with AKs for 40 s, then back to Old Joe (E): EUR 2200 + rifle rounds."],
 	["mission_pier", "Mission 2 'Pier Pressure' just started (mission 1 done): pistol, AK-47 + ammo, 60 m from the Crows' pier", "Walk to the pier: 3 Crows appear - kill them (counter in the HUD). Then backup comes: stay on the pier 45 s. Dying = mission failed (Tab > Missions: start it again)."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
@@ -846,6 +848,27 @@ static func run(world: Node, id: String) -> bool:
 						if is_instance_valid(bp) and not bp.is_crew_owned():
 							bp.host_set_owned(me.player_name)
 							me.show_message("Your crew bought the Mountain Bunker - the blast door unlocks."))
+		"mission_uptown", "mission_rosehill":
+			GameState.world.erase("missions")
+			(Missions.state()["done"] as Array).append("first_contact")
+			var npc_id: StringName = &"marco" if id == "mission_uptown" else &"old_joe"
+			if id == "mission_uptown":
+				_kit(me, 200, [["weed_bag", 4]])
+			else:
+				(Missions.state()["done"] as Array).append("pier_pressure")
+				_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48], ["ak47", 1], ["ammo_762", 90]])
+				me.combat.host_set_mags([8])
+			Missions._sync_all()
+			var tn: TalkNPCData = Missions.talkers.get(npc_id)
+			var at: Vector3 = Missions._talker_spot(tn) if tn else Vector3(-8.5, 0, 31)
+			_place(me, at + Vector3(1.8, 0.3, 0.6), at + Vector3.UP * 1.6, dn, 14.0)
+			if "--talk" in OS.get_cmdline_user_args():  # screenshot flag: the dialogue open
+				for i: int in 30:
+					await world.get_tree().create_timer(0.1).timeout
+					if Missions.mission_npc(npc_id):
+						break
+				await world.get_tree().create_timer(0.3).timeout
+				Missions.host_talk(me, npc_id)
 		"mission_contact", "mission_pier":
 			GameState.world.erase("missions")
 			if id == "mission_contact":
