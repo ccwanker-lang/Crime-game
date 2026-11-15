@@ -7,6 +7,8 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: Part 23 (the army base border takes in A's airfield).
+
 Parts 18-22 MERGED (A, 2026-11-15): in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next
 merge" line.
 
@@ -976,3 +978,26 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 ## For CLAUDE.md (suggested lines)
 - Missions 3/4 (part 22): uptown (Nadia, city), rosehill_shield (talker Old Joe, slums). Scenarios mission_uptown,
   mission_rosehill (`--talk`).
+
+
+# Part 23: the airfield counts as the army base (A's point 85, user 2026-11-15)
+
+## How it works
+- `Zones.ARMY_RECT` = A's new fence: x -104..236, z -442..-350 (was x -104..-36, z -430..-350). Everything that uses it
+  follows: `zone_at` (&"army"), `in_army_base` (soldiers shoot intruders, the alarm), `near_army_base` (manning range,
+  soldier leash). Walking in anywhere on the airfield now sets off the alarm, not only through the gate.
+- The soldiers now stand at A's ArmyPost* markers (gate, flag, garages, helipads, vehicles, control tower, apron,
+  both runway ends) + a marksman on each of the 6 watchtowers + patrols A (inner yard) and B (along the airfield fence):
+  30 soldiers. No code change needed for that: `guard_posts()` already preferred the markers.
+
+## Decisions (what + why)
+- A rectangle stays enough: the fence is one rectangle again.
+
+## Existing files changed (part 23)
+- autoload/zones.gd (ARMY_RECT), zones_test.gd (runway / jet hangars / towers / fence inside), scenarios.gd.
+
+## Te testen door Curry
+- `army_airfield` (F9): buiten het zuidhek bij het platform (god mode). Loop of klim het vliegveld op: alarm, ze schieten.
+
+## For CLAUDE.md (suggested lines)
+- Army base rect (part 23): `Zones.ARMY_RECT` = the whole fence incl. the airfield; scenario army_airfield.

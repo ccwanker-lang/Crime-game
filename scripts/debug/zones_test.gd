@@ -15,6 +15,19 @@ static func run(t: Node, world: Node3D) -> void:
 	report.call(Zones.zone_at(Vector3(-70, 0, -390)) == &"army" and Zones.zone_at(Vector3(-40, 0, -80)) == &"slums"
 			and Zones.zone_at(Vector3(20, 0, 250)) == &"city" and Zones.zone_at(Vector3(0, 0, 0)) == &"",
 			"zones: base, slums, city, village")
+	# A's point 85: the airfield is part of the base (runway, jet hangars, every watchtower and fence post inside).
+	var army_base: Node = t.get_tree().current_scene.find_child("ArmyBase", true, false) if t.get_tree().current_scene else null
+	var outside: PackedStringArray = []
+	if army_base:
+		for n: Node in army_base.get_children():
+			var nm: String = str(n.name)
+			if n is Node3D and (nm.begins_with("Runway") or nm.begins_with("JetHangar") or nm.begins_with("Watchtower")
+					or nm.begins_with("BaseFence")) and not Zones.near_army_base((n as Node3D).global_position, 1.0):
+				outside.append(nm)
+	report.call(army_base != null and outside.is_empty() and Zones.in_army_base(Vector3(200, 0, -425))
+			and not Zones.in_army_base(Vector3(245, 0, -400)),
+			"the airfield counts as the base too (runway at x 200 inside, x 245 outside%s)"
+			% ("; outside: %s" % ", ".join(outside.slice(0, 6)) if not outside.is_empty() else ""))
 	var p: Player = (load("res://scenes/player/player.tscn") as PackedScene).instantiate()
 	p.auto_walk = true
 	p.name = "1"

@@ -105,6 +105,7 @@ const LIST: Array = [
 	["army_gate", "Fort Halden at noon: you stand on the pass road 25 m before the gate, a pistol + ammo", "Walk to the boom: a guard warns you (toast). Walk through the gate: ALARM, guards and 4 heavy reinforcements from the barracks shoot at you. Shoot a soldier from outside: they come for you too. Run far away: after a while it calms down."],
 	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
 	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
+	["army_airfield", "Fort Halden's airfield at noon, outside the south fence by the apron (god mode on), a pistol", "The airfield is part of the base now: soldiers chat on the apron, a patrol walks along the fence, marksmen on the towers. Climb or walk in anywhere on the airfield (not only at the gate): the alarm goes and they shoot."],
 	["army_life", "Fort Halden at noon, outside the south fence (god mode on), a pistol", "The base is manned: guards at the gate and the flag, soldiers chatting at the hangars and the helipads, two patrols of two walking their rounds, a marksman with a sniper rifle on every watchtower. Walk through the gate: the alarm goes, they shoot (AKs + snipers, harder than the police) and heavy reinforcements come."],
 	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
 	["bunker_lab", "Rank 5 at the bunker's blast door with EUR 260,000 and a Cook Station; the bunker is for sale", "E on the door: locked. Buy the Mountain Bunker at the estate agent (it costs EUR 250,000) - here it is bought for you after 8 s (or start it with --owned): the door unlocks (E opens it). Inside: the lift / stairs down to the lab hall, place the Cook Station (B = build mode). The bunker is never raided."],
@@ -817,6 +818,11 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 200, [])
 			var corner := Vector3(CityLife.CX[1] + CityLife.SIDE, 0.3, CityLife.CZ[1] + CityLife.SIDE)
 			_place(me, corner, corner + Vector3(30, 1.0, 0), dn, 12.0)  # (looking along the sidewalk)
+		"army_airfield":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
+			me.admin_god = true
+			_place(me, Vector3(100.0, 0.3, -347.0), Vector3(100, 1.0, -387), dn, 12.0)
+			me.combat.host_set_mags([8])
 		"army_life":
 			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
 			me.admin_god = true
