@@ -105,6 +105,8 @@ const LIST: Array = [
 	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
 	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
 	["bunker_lab", "Rank 5, your crew owns the Mountain Bunker; you stand at the portal with a Cook Station and supplies", "E on the green keypad left of the door: down into the hall. Place the Cook Station (B = build mode). The yellow keypad by the lift takes you back up. The bunker is never raided."],
+	["mission_contact", "Mission 1 'A Foot in the Door' just started: 2 Bags of Weed in your pockets, Marco waits by the park", "Gold waypoint on screen + objective top right. E on Marco (talk) -> go to the gas station -> E on Dex (gives him 2 bags) -> reward. Tab > Missions = the log; Map = gold pin. With 2 instances: whoever joins after the start sees 'joined late' and gets no reward."],
+	["mission_pier", "Mission 2 'Pier Pressure' just started (mission 1 done): pistol, AK-47 + ammo, 60 m from the Crows' pier", "Walk to the pier: 3 Crows appear - kill them (counter in the HUD). Then backup comes: stay on the pier 45 s. Dying = mission failed (Tab > Missions: start it again)."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -827,6 +829,22 @@ static func run(world: Node, id: String) -> bool:
 				_place(me, bl.spot * Vector3(-0.5, 0.15, -7.5), pad, dn, 12.0)
 				if "--bunker-in" in OS.get_cmdline_user_args():  # screenshot flag: inside the hall
 					_place(me, bl.entry_point() + Vector3.UP * 0.1, bl.hall * Vector3(0, 1.4, 6.0), dn, 12.0)
+		"mission_contact", "mission_pier":
+			GameState.world.erase("missions")
+			if id == "mission_contact":
+				_kit(me, 200, [["weed_bag", 2]])
+				var ps: Node3D = world.find_child("ParkSmokeSpot", true, false) as Node3D
+				var at: Vector3 = ps.global_position if ps else Vector3(-11.5, 0, 31)
+				_place(me, at + Vector3(10, 0.3, 0), at + Vector3(3, 1.5, 0), dn, 13.0)
+			else:
+				_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48], ["ak47", 1], ["ammo_762", 90]])
+				(Missions.state()["done"] as Array).append("first_contact")
+				var hc: Node3D = world.find_child("HarbourCrows", true, false) as Node3D
+				var pier: Vector3 = hc.global_position if hc else Vector3(-168, 0.2, 97)
+				_place(me, pier + Vector3(60, 0.3, -6), pier + Vector3(0, 1.5, 0), dn, 15.0)
+				me.combat.host_set_mags([8])
+			await world.get_tree().physics_frame
+			Missions.host_start(&"first_contact" if id == "mission_contact" else &"pier_pressure", me)
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)

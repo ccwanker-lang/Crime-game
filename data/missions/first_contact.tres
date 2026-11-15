@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="MissionData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/missions/mission_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://scripts/missions/mission_objective.gd" id="2_obj"]
+
+[sub_resource type="Resource" id="Resource_talk"]
+script = ExtResource("2_obj")
+kind = 1
+text = "Meet {npc} by the park"
+marker = "ParkSmokeSpot"
+offset = Vector3(3, 0, 0)
+radius = 3.0
+npc_id = &"marco"
+npc_name = "Marco"
+npc_variant = 2
+npc_yaw = 90.0
+lines = PackedStringArray("So you're the new face. Word is you can get stuff.", "A guy called Dex waits at the QuickFuel on North Road. He wants two bags of weed. Don't keep him waiting.")
+
+[sub_resource type="Resource" id="Resource_go"]
+script = ExtResource("2_obj")
+text = "Go to the QuickFuel gas station on North Road"
+marker = "GasStation"
+radius = 10.0
+
+[sub_resource type="Resource" id="Resource_deliver"]
+script = ExtResource("2_obj")
+kind = 2
+text = "Give {npc} {need} x {item}"
+marker = "GasStation"
+offset = Vector3(-6, 0, 1.5)
+radius = 3.0
+npc_id = &"dex"
+npc_name = "Dex"
+npc_variant = 5
+npc_yaw = 180.0
+lines = PackedStringArray("Marco sent you? Good. Smells right.", "Here, for your trouble. Tell Marco I'm happy.")
+item_id = "weed_bag"
+count = 2
+
+[resource]
+script = ExtResource("1_data")
+id = &"first_contact"
+title = "A Foot in the Door"
+summary = "Marco runs the corners round the park. Do him a small favour and you're in."
+giver = "Marco"
+objectives = Array[ExtResource("2_obj")]([SubResource("Resource_talk"), SubResource("Resource_go"), SubResource("Resource_deliver")])
+reward_cash = 600
+reward_xp = 150
+reward_items = {
+"baggie": 10
+}
+done_text = "Dex is happy, so I'm happy. Keep your phone on: I've got bigger work coming."

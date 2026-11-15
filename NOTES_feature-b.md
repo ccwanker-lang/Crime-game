@@ -9,7 +9,7 @@ New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
 (shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker), Part 18 (zone systems:
-army base, slums, city, bunker).
+army base, slums, city, bunker), Part 19 (missions).
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -804,3 +804,54 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
   `make_zone_customer`, `PRICE`), `BunkerLab` (World/BunkerLab, `BunkerProperty` id bunker, keypads, `host_use`),
   `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.
+
+
+# Part 19: the mission system (base for the story, user 2026-11-15)
+
+## How it works
+- Missions are DATA: every `MissionData` .tres in data/missions/ (scripts/missions/mission_data.gd: id, title,
+  summary, giver, min_rank, requires, repeatable, objectives, reward_cash/xp/items, done_text). Steps are
+  `MissionObjective` sub-resources (kind GO_TO / TALK_TO / DELIVER / KILL / SURVIVE, text with {count} {need} {time}
+  {npc} {item}, marker + offset or position, radius, npc_id/npc_name/npc_variant/npc_yaw/lines, item_id/count,
+  kill_group, spawn_enemies/enemy_post/enemy_ak, seconds). New mission in Godot: data/missions > right click > New >
+  Resource > MissionData; Objectives > Add Element > New MissionObjective.
+- `Missions` autoload (after Zones), HOST AUTHORITATIVE. One mission at a time for the whole crew; state in
+  GameState.world["missions"] (saved): active, step, count, time, members (in the game at the start), late, done,
+  enemies, rewarded. `host_start(id, by)` / `request_start`, `why_not(id)`, `available()`, `host_end(won, why)` /
+  `request_abandon`. Host tick 0.25 s: go to = anyone of the crew within radius; talk to / deliver = E on the
+  mission NPC (`host_talk`, deliver takes the items); kill = spawned enemies all dead (or `kill_group` kills via
+  the kill_hooks group when none are spawned); survive = time runs while someone is within radius; whole crew
+  dead = failed. Mission NPCs = networked non-wandering pedestrians "MissionNPC_<npc_id>" (back to their spot
+  after a scare); enemies = Black Crows via World.add_rival (post harbour/yard).
+- Rewards: cash + items to every MEMBER present (full pockets = loot bag), XP once for the crew; players who joined
+  during the mission ("late") get the progress and the HUD but no reward ("joined late, no reward").
+- Every peer gets a small `view` (`_sync`, also to late joiners via `request_view`): `MissionHUD` (objective top right
+  under the money box with step n/m + distance, a gold screen waypoint clamped to the edges with an arrow, banners
+  NEW MISSION / OBJECTIVE COMPLETE / MISSION COMPLETE / FAILED), `MissionTalkBox` on mission NPCs (layer 2, E,
+  name tag with "!" when they are the current step), `MissionMapPin` on every PhoneMap, and the phone app
+  "Missions" (`MissionLog`: running mission with ticked steps + Give up, available ones with Start, done ones).
+- Two test missions: `first_contact` "A Foot in the Door" (talk to Marco by the park -> QuickFuel -> give Dex 2 bags;
+  €600, 150 XP, 10 baggies) and `pier_pressure` "Pier Pressure" (after the first: the Crows' pier -> kill 3 Crows ->
+  hold the pier 45 s against 3 AK Crows; €2,000, 300 XP, 36 9mm rounds).
+
+## Decisions (what + why)
+- Phone app + map pin hooked in from outside (node_added: the home screen's Crew button / every PhoneMap) instead
+  of editing phone.gd (A's file). A proper hook later: see B.md.
+- Own HUD CanvasLayer (MissionHUD) instead of hud.gd (A's file).
+- "Late" = not in the game when the mission started: simple and fair (a rejoining member keeps the reward).
+- Kill steps with spawned enemies count deaths of THOSE enemies whoever killed them (police, a car): the goal is
+  "they are gone".
+
+## Existing files changed (part 19)
+- project.godot (autoload Missions), self_test.gd (check missions), scenarios.gd (mission_contact, mission_pier).
+
+## Te testen door Curry
+- `mission_contact` (F9): goud ruitje + doel rechtsboven. E op Marco -> naar de QuickFuel -> E op Dex (2 zakjes) ->
+  beloning. Tab > Missions = het logboek; Map = goud pinnetje. Met 2 instanties: wie later joint ziet "joined late".
+- `mission_pier`: loop naar de pier, schiet de 3 Crows neer, houd 45 s stand.
+
+## For CLAUDE.md (suggested lines)
+- Missions (part 19): `MissionData` / `MissionObjective` .tres in data/missions/, `Missions` autoload (host state
+  GameState.world["missions"], `host_start`/`request_start`, `host_talk`, `host_end`, `view` + `changed`),
+  `MissionHUD`, `MissionTalkBox` (NPC "MissionNPC_<id>"), `MissionMapPin`, `MissionLog` (phone app). Check missions,
+  scenarios mission_contact / mission_pier.
