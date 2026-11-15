@@ -85,6 +85,7 @@ const LIST: Array = [
 	["dogs", "13:00 in the park, a dog walker right in front of you (a game of fetch starts in 3 s)", "Watch: the owner throws the ball, the dog runs off the lead, brings it back and drops it at the owner's feet. Then try: shoot the owner (1) -> the dog stays a moment and runs off; shoot a dog -> it goes limp (a crime, not a murder). Cars hit dogs too."],
 	["animals", "12:00 in the park: a pigeon flock in front of you, a cat 6 m to your right, birds on the roofs around", "Walk up to the pigeons: the flock flies up onto a roof and comes back down after a while (at night they stay up). Walk to the cat: it bolts. Fire a shot (1, LMB): every bird, pigeon and cat within ~45 m takes off. Look up: birds sit on ridges and gutters and now and then fly to another roof."],
 	["ducks", "12:00 on the quay, looking out over the harbour water", "Ducks swim and dabble on the sea and bob on the waves. Stay on the quay edge: the near ones swim away from you. Fire a shot (1, LMB): they fly off low over the water and land further on."],
+	["staff_assign", "Rank 4, Starter Room: weed corner, a Staff Locker with supplies (empty wage box), a grower working from it and a packager; you face the grower", "E on the grower: their locker, their stations (tick = on the route, max 6), Show = yellow arrow over it, the route at the bottom. Tick one pot: they walk to it and only work that one. E on the Staff Locker: the wage box - put in EUR 100. Hold F7 for a game day: the wage comes out of the box. Empty box at day end = the grower stops and texts you (Tab); money in = back to work."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -681,6 +682,29 @@ static func run(world: Node, id: String) -> bool:
 				var from: Vector3 = fh + Vector3(0, 0, 8.0)
 				_place(me, from + Vector3.UP * 0.3, fh + Vector3.UP, dn, 12.0)
 				wl.add_cat(from + Vector3(6.0, 0, 1.0))
+		"staff_assign":
+			Progression.force_gates = true
+			Progression.debug_set_rank(4)
+			_kit(me, 2000, [])
+			if Staff._stations_in("starter_room", GrowPot).is_empty():
+				world.call("debug_weed_corner")
+			var lab: Array = await _lab(world, sr, [["staff_locker", Vector3(-0.2, 0.15, -8.3)]])
+			var sl := lab[0] as StaffLocker
+			sl.state["items"] = [{"id": "soil", "count": 6}, {"id": "weed_seed", "count": 6}, {"id": "baggie", "count": 20}]
+			sl.state["wages"] = 0
+			sl.changed()
+			Staff.debug_hire(me.player_name, "grower", "starter_room")
+			Staff.debug_hire(me.player_name, "packager", "starter_room")
+			var g: Dictionary = {}
+			for r: Dictionary in Staff._members().values():
+				if r["role"] == "grower":
+					g = r
+			if not g.is_empty():
+				Staff.host_set_locker(me.player_name, str(g["uid"]), sl.station_id)
+				var gp: Vector3 = g["pos"]
+				var face: Vector3 = sl.global_basis.z
+				_place(me, gp + face * 2.2 + Vector3.UP * 0.1, gp + Vector3.UP * 1.5, dn, 12.0)
+			Staff._broadcast()
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)
@@ -810,7 +834,19 @@ static func run(world: Node, id: String) -> bool:
 				if a.begins_with("--crew="):  # staff window: --crew=crew / hire / dealer
 					var tab: String = a.trim_prefix("--crew=")
 					var first: String = Staff.members.keys()[0] if not Staff.members.is_empty() else ""
-					CrewWindow.open_for(me, "dealer" if tab == "dealer" else "crew", first)
+					if tab == "worker":  # (part 12: the first worker / the staff locker)
+						for uid: String in Staff.members:
+							if Staff.members[uid]["role"] != "dealer":
+								first = uid
+								break
+						CrewWindow.open_for(me, "worker", first)
+					elif tab == "locker":
+						for n: Node in world.get_tree().get_nodes_in_group(&"stations"):
+							if n is StaffLocker:
+								CrewWindow.open_for(me, "locker", (n as Station).station_id)
+								break
+					else:
+						CrewWindow.open_for(me, "dealer" if tab == "dealer" else "crew", first)
 					var w := me.ui.get_node("CrewWindow") as CrewWindow
 					w._tab = tab
 					w._refresh()

@@ -8,7 +8,7 @@ part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all a
 New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
-(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks).
+(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker).
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -689,3 +689,57 @@ Done: self-test check `animals`, scenarios `animals` (park) and `ducks` (quay). 
 - Animals (Roadmap 68): `Wildlife` (scripts/ambient/, World/Wildlife, local per peer via `Ambience`, `--animals=0`),
   `AmbientBird` BIRD/PIGEON/DUCK, `AmbientCat`, `CritterMesh`; roof spots from Building data, `Wildlife.scare_at`
   from `WeaponFX.flash`; threats = players, cars, group `wildlife_threats` (tests). Scenarios animals/ducks, check animals.
+
+
+# Part 12: staff assignment (Schedule I style) + the staff locker (user 2026-11-14)
+
+## Status
+Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags `--crew=worker` / `--crew=locker`).
+
+## How it works
+- E on one of YOUR workers (StaffNPC) opens CrewWindow mode "worker": status + wage, "Their locker" (any locker
+  here / a storage locker / staff locker / bookshelf in their property), the stations they may work (tick boxes,
+  `Staff.assign_kinds(role)`: grower = grow pots, coca beds, drying racks; cook = cooking stations, cooling plates,
+  leaf press, refinery; packager = drying racks, packaging tables), "Stations n / max" (`StaffConfig.max_stations`:
+  grower 6, cook 4, packager 3), who else uses a station, "Show" = a yellow arrow over it for 6 s, and the route
+  ("Staff Locker -> Grow Pot 1 -> Drying Rack -> Staff Locker", `Staff.route_text`). Others' workers still just talk.
+- Host: worker records get "locker" (station id, "" = any) and "stations" (ids, empty = automatic = the old
+  behaviour: every fitting station in the property). The step functions use `_work_stations(rec, kind)` /
+  `_work_lockers(rec)`, so a worker takes supplies only from their locker, works only their stations and puts the
+  products back in their locker. Requests: Staff.request("assign", uid, station_id) (toggle), ("locker", uid, id).
+  `station_title` numbers stations per kind ("Grow Pot 2"); `station_by_id`, `assignable_stations/lockers`.
+- `StaffLocker` (scripts/stations/staff_locker.gd, StorageLocker subclass, item `staff_locker` €250, legal, sold by
+  every shop that sells the storage locker via Products at runtime; counts as a bed for staff): state "wages" = the
+  wage box. E = CrewWindow mode "locker": the box, wages per day, "enough for n days", Put in €100/500/1000, Take it
+  all out, its workers, "Open the storage". Request ("wages", station_id, +/-amount), host checks distance.
+- Wages: a worker whose locker is a staff locker takes the daily wage from the box; box short -> `unpaid`, status
+  "stopped: no wage money", one text to the boss, NO work, but they don't quit. Money in (or another locker) ->
+  `_try_back_to_work` takes the wage, texts "back at work". Workers without a staff locker: paid from your pocket
+  as before (and quit when you can't pay).
+- A worker who is moved to another station walks there (StaffNPC tween + WALK anim, local).
+
+## Decisions (what + why)
+- Station list with tick boxes instead of clicking stations in the world: no change to player.gd (A's), works the
+  same for host and clients, and the "Show" arrow still points at the real object.
+- Nothing ticked = automatic: old saves and existing crews keep working unchanged.
+- Unpaid staff-locker workers stop instead of quitting: that's the point of the wage box (a buffer you refill).
+- Several workers may share a station (Schedule I forbids it; here it only shows "also: name").
+
+## Existing files changed (part 12)
+- autoload/staff.gd (assignment, `_work_*`, wages from the box, requests), scripts/staff/staff_config.gd
+  (`max_stations`, staff_locker in `bed_items`), scripts/staff/staff_npc.gd (E opens the worker window, walk tween),
+  scripts/ui/crew_window.gd (modes worker + locker), scripts/placement/placement.gd (STATION_BOXES staff_locker),
+  autoload/products.gd (shops with storage_locker get staff_locker), tools/generators/gen_items.py (+ staff_locker),
+  self_test.gd (check staff_assign), scenarios.gd (staff_assign, `--crew=worker|locker`).
+- Also fixed in part 16/17: a dog now also picks up a ball that lies just off the navmesh; a scared duck picks a
+  landing spot inside the duck water far enough away.
+
+## Te testen door Curry
+- `staff_assign` (F9): E op de grower: kies hun kast, vink een pot aan (ze lopen erheen en werken alleen die),
+  "Show" toont een gele pijl, onderaan de route. E op de Staff Locker: stop er €100 in. Houd F7 een speldag
+  ingedrukt: het loon gaat uit de kas. Lege kas = de grower stopt en sms't je; geld erin = weer aan het werk.
+
+## For CLAUDE.md (suggested lines)
+- Staff assignment (part 12): worker rec "locker"/"stations" (empty = automatic), `Staff._work_stations/_work_lockers`,
+  `assign_kinds`, `StaffConfig.max_stations`, `route_text`, requests assign/locker/wages; `StaffLocker` (wage box
+  state "wages", item staff_locker), CrewWindow modes worker/locker. Scenario staff_assign, check staff_assign.

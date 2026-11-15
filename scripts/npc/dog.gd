@@ -131,7 +131,10 @@ func _physics_process(delta: float) -> void:
 			if _flight_t < 0.0:  # the ball lies there
 				target = _path_point(_flight_to)
 				want_speed = RUN_SPEED
-				if _flat(global_position, _flight_to) < 0.45:
+				var at_end: bool = not _path.is_empty() and _path_i >= _path.size() - 1 and _flat(global_position, _path[_path.size() - 1]) < 0.2
+				# (also when the ball lies just off the navmesh: the path ends a bit short of it)
+				if _flat(global_position, _flight_to) < 0.45 or (at_end and _flat(global_position, _flight_to) < 1.6) \
+						or (_now() - _state_since > 10.0 and _flat(global_position, _flight_to) < 2.5):
 					_pick_up()
 		State.FETCH_BACK:
 			var drop: Vector3 = owner_npc.global_position - owner_npc.global_basis.z * 0.8

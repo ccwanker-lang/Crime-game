@@ -3,7 +3,8 @@ extends Node
 ## - The sellable product units (bags) with their street price factor, used by dealers (Staff) and the
 ##   customer hook `pick_customer_product` (World/Pedestrian, session A).
 ## - Black-market supplies: Rook (the night-only Shopkeeper) gets the meth/cocaine supplies + stations
-##   added to his stock at runtime, so the garage prefab (session A's map) stays untouched.
+##   added to his stock at runtime, so the garage prefab (session A's map) stays untouched. Shops that sell the
+##   storage locker get the staff locker (NOTES part 12) the same way.
 
 ## Bag item id -> {name (short), price factor vs a bag of weed, rank needed for customers to ask for it}.
 const BAGS: Dictionary = {
@@ -28,6 +29,9 @@ func _ready() -> void:
 func _on_node_added(n: Node) -> void:
 	if n is Shopkeeper and (n as Shopkeeper).night_only:
 		add_black_market_stock(n as Shopkeeper)
+	elif n is Shopkeeper and &"storage_locker" in (n as Shopkeeper).stock and not &"staff_locker" in (n as Shopkeeper).stock:
+		# NOTES part 12: whoever sells storage lockers sells the staff locker too (no prefab change).
+		(n as Shopkeeper).stock.append(&"staff_locker")
 
 
 func add_black_market_stock(k: Shopkeeper) -> void:

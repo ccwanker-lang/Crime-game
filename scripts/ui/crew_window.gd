@@ -4,6 +4,8 @@ extends Control
 ##   mode "crew"   - from the phone app "Crew": your crew (fire) + Benny's candidates (hire, pick a
 ##                   property for workers or a district for dealers).
 ##   mode "dealer" - E on one of your dealers: give bags, collect the cash.
+##   mode "worker" - E on one of your workers (NOTES part 12): their locker, their stations (max per role), the route.
+##   mode "locker" - E on a staff locker (`dealer_uid` = its station id): the wage box + the workers on it.
 ## Frees the mouse while open; Esc / E / Tab close it. Requests go to the host via Staff.request().
 
 const ACCENT := Color(0.96, 0.77, 0.27)
@@ -150,6 +152,10 @@ func _refresh() -> void:
 	_tabs.visible = mode == "crew"
 	if mode == "dealer":
 		_fill_dealer()
+	elif mode == "worker":
+		_fill_worker()
+	elif mode == "locker":
+		_fill_locker()
 	elif _tab == "hire":
 		_fill_hire()
 	elif _tab == "legal":
@@ -314,3 +320,134 @@ func _fill_dealer() -> void:
 		_msg.text = "..."
 		Staff.request("collect", dealer_uid))
 	row.add_child(collect)
+
+
+## Part 12: one worker - their locker, their stations (tick = on the route), the route.
+func _fill_worker() -> void:
+	var rec: Dictionary = Staff.members.get(dealer_uid, {})
+	if rec.is_empty():
+		_title.text = "Worker"
+		_list.add_child(_label("They're gone.", 16, BAD))
+		return
+	var role: String = str(rec["role"])
+	_title.text = "%s - %s in the %s" % [rec["name"], Staff.role_name(role).to_lower(), Staff._property_name(str(rec["property"]))]
+	var unpaid: bool = rec.get("unpaid", false)
+	_list.add_child(_label("Now: %s      Wage: €%d a day%s" % [str(rec.get("status", "")), int(rec["wage"]),
+			"  (from the staff locker)" if Staff.wage_locker(rec) else "  (from your pocket)"], 16, BAD if unpaid else Color(0.93, 0.93, 0.95)))
+	# Locker.
+	var lockers: Array = Staff.assignable_lockers(rec)
+	var row := _row()
+	var ll := _label("Their locker (supplies in, products back):", 15)
+	ll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(ll)
+	var pick := OptionButton.new()
+	pick.focus_mode = Control.FOCUS_NONE
+	pick.custom_minimum_size = Vector2(240, 0)
+	pick.add_item("Any locker here")
+	var ids: Array = [""]
+	for l: Station in lockers:
+		pick.add_item(Staff.station_title(l) + ("  (€%d wages)" % (l as StaffLocker).wages() if l is StaffLocker else ""))
+		ids.append(l.station_id)
+	pick.selected = maxi(0, ids.find(str(rec.get("locker", ""))))
+	pick.item_selected.connect(func(i: int) -> void:
+		_msg.text = "..."
+		Staff.request("locker", dealer_uid, ids[i]))
+	row.add_child(pick)
+	# Stations.
+	var kinds: Array[Script] = Staff.assign_kinds(role)
+	if kinds.is_empty():
+		_list.add_child(_label("A %s has no stations to assign; the locker is where they work from." % Staff.role_name(role).to_lower(),
+				14, Color(0.7, 0.7, 0.75)))
+	else:
+		var mine: Array = rec.get("stations", [])
+		var maxn: int = Staff.max_stations(role)
+		_list.add_child(_label("Stations: %d / %d%s" % [mine.size(), maxn,
+				"   (none ticked = they work every fitting station here)" if mine.is_empty() else ""], 16, ACCENT))
+		var all: Array = Staff.assignable_stations(rec)
+		if all.is_empty():
+			_list.add_child(_label("No stations for a %s in this property yet." % Staff.role_name(role).to_lower(), 14, BAD))
+		for st: Station in all:
+			var srow := _row()
+			var cb := CheckBox.new()
+			cb.focus_mode = Control.FOCUS_NONE
+			cb.text = Staff.station_title(st)
+			cb.button_pressed = st.station_id in mine
+			cb.disabled = not cb.button_pressed and mine.size() >= maxn
+			cb.add_theme_font_size_override("font_size", 15)
+			cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var sid: String = st.station_id
+			cb.toggled.connect(func(_on: bool) -> void:
+				_msg.text = "..."
+				Staff.request("assign", dealer_uid, sid))
+			srow.add_child(cb)
+			var others: PackedStringArray = []
+			for r: Dictionary in Staff.members.values():
+				if r != rec and sid in (r.get("stations", []) as Array):
+					others.append(str(r["name"]))
+			if not others.is_empty():
+				srow.add_child(_label("also: " + ", ".join(others), 13, Color(0.7, 0.7, 0.75)))
+			var show := _button("Show")
+			show.pressed.connect(func() -> void: _point_at(st))
+			srow.add_child(show)
+	_list.add_child(_label("Route: " + Staff.route_text(rec), 15, GOOD))
+
+
+## A floating arrow over `st` for a few seconds (local).
+func _point_at(st: Station) -> void:
+	if not is_instance_valid(st):
+		return
+	var tag := Label3D.new()
+	tag.text = "▼ " + Staff.station_title(st)
+	tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	tag.no_depth_test = true
+	tag.font_size = 56
+	tag.pixel_size = 0.004
+	tag.outline_size = 12
+	tag.modulate = ACCENT
+	st.add_child(tag)
+	tag.position = Vector3(0, 2.3, 0)
+	get_tree().create_timer(6.0).timeout.connect(tag.queue_free)
+	_msg.text = "Look for the yellow arrow."
+	_msg.add_theme_color_override("font_color", GOOD)
+
+
+## Part 12: a staff locker - the wage box and the workers paid from it.
+func _fill_locker() -> void:
+	var l := Staff.station_by_id(dealer_uid) as StaffLocker
+	if l == null:
+		_title.text = "Staff locker"
+		_list.add_child(_label("It's gone.", 16, BAD))
+		return
+	_title.text = "Staff locker - wage box"
+	var on: Array = Staff.workers_on(dealer_uid)
+	var per_day: int = 0
+	for r: Dictionary in on:
+		per_day += int(r["wage"])
+	_list.add_child(_label("In the wage box: €%d      Wages: €%d a day%s" % [l.wages(), per_day,
+			"      Enough for %d day%s" % [l.wages() / per_day, "" if l.wages() / per_day == 1 else "s"] if per_day > 0 else ""], 18, ACCENT))
+	_list.add_child(_label("Workers who use this locker take their daily wage from the box. Empty = they stop and text you; put money in and they go back to work.", 14, Color(0.7, 0.7, 0.75)))
+	var row := _row()
+	for amount: int in [100, 500, 1000]:
+		var b := _button("Put in €%d" % amount)
+		b.pressed.connect(func() -> void:
+			_msg.text = "..."
+			Staff.request("wages", dealer_uid, amount))
+		row.add_child(b)
+	var out := _button("Take it all out")
+	out.disabled = l.wages() <= 0
+	out.pressed.connect(func() -> void:
+		_msg.text = "..."
+		Staff.request("wages", dealer_uid, -l.wages()))
+	row.add_child(out)
+	if on.is_empty():
+		_list.add_child(_label("Nobody uses this locker yet: E on a worker > Their locker.", 15, Color(0.7, 0.7, 0.75)))
+	for r: Dictionary in on:
+		var stopped: bool = r.get("unpaid", false)
+		_list.add_child(_label("%s (%s) - €%d a day - %s" % [r["name"], Staff.role_name(str(r["role"])), int(r["wage"]),
+				"STOPPED: no wage money" if stopped else str(r.get("status", ""))], 15, BAD if stopped else Color(0.93, 0.93, 0.95)))
+	var open_storage := _button("Open the storage (%d/%d)" % [l.used_slots(), StorageLocker.SLOTS])
+	open_storage.pressed.connect(func() -> void:
+		close_window()
+		if player:
+			player.open_locker(l))
+	_list.add_child(open_storage)

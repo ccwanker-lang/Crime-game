@@ -234,6 +234,21 @@ func _pay_wages() -> void:
 		if wage <= 0:
 			continue
 		var boss: String = str(rec["employer"])
+		var box: StaffLocker = wage_locker(rec)
+		if box:
+			# Part 12: paid from the staff locker's wage box; empty -> they stop and text you (they don't quit).
+			if rec.get("unpaid", false):
+				continue
+			if box.wages() >= wage:
+				box.state["wages"] = box.wages() - wage
+				box.changed()
+				print("[Staff] %s (%s) took €%d from the staff locker" % [rec["name"], rec["role"], wage])
+			else:
+				rec["unpaid"] = true
+				_set_status(rec, "stopped: no wage money in the staff locker")
+				_text(boss, "%s stopped working: the staff locker in the %s has no money for the €%d wage. Put some in the wage box." % [
+						rec["name"], _property_name(str(rec["property"])), wage], str(rec["name"]))
+			continue
 		if GameState.add_cash(boss, -wage):
 			_send_wallet(boss)
 			paid[boss] = int(paid.get(boss, 0)) + wage
@@ -250,6 +265,10 @@ func _pay_wages() -> void:
 # --- Host: workers -------------------------------------------------------------------------
 
 func _worker_tick(rec: Dictionary, hours: float) -> void:
+	if rec.get("unpaid", false):
+		_try_back_to_work(rec)
+		if rec.get("unpaid", false):
+			return
 	if rec["role"] == "guard":
 		_set_status(rec, "on guard (raids: %s)" % ("coming!" if _raid_pending(str(rec["property"])) else "quiet"))
 		return
@@ -296,6 +315,245 @@ func _stations_in(prop_id: String, kind: Script) -> Array:
 	return out
 
 
+# --- Part 12: assignment (E on a worker: their locker, their stations, the route) -------------------------------
+
+## Station kinds a role can be assigned to, in route order.
+func assign_kinds(role: String) -> Array[Script]:
+	match role:
+		"grower": return [GrowPot, CocaBed, DryingRack] as Array[Script]
+		"cook": return [CookStation, CoolingPlate, LeafPress, Refinery] as Array[Script]
+		"packager": return [DryingRack, PackagingTable] as Array[Script]
+	return [] as Array[Script]
+
+
+func max_stations(role: String) -> int:
+	return int(config.max_stations.get(role, 0))
+
+
+## True when the worker has their own stations (else they use every fitting station in the property).
+func _assigned(rec: Dictionary) -> bool:
+	return not (rec.get("stations", []) as Array).is_empty()
+
+
+## Host: the worker's stations of `kind`: the assigned ones, or every one in the property when none are assigned.
+func _work_stations(rec: Dictionary, kind: Script) -> Array:
+	var all: Array = _stations_in(str(rec["property"]), kind)
+	if not _assigned(rec):
+		return all
+	var mine: Array = rec["stations"]
+	return all.filter(func(st: Station) -> bool: return st.station_id in mine)
+
+
+## Host: the worker's locker ([it]), or every storage / staff locker in the property when none is set.
+func _work_lockers(rec: Dictionary) -> Array:
+	var prop: String = str(rec["property"])
+	var sid: String = str(rec.get("locker", ""))
+	if sid != "":
+		var l := station_by_id(sid) as StorageLocker
+		var p: Property = property_node(prop)
+		if l and p and p.contains(l.global_position):
+			return [l]
+	return _stations_in(prop, StorageLocker) + _stations_in(prop, StaffLocker)
+
+
+func station_by_id(sid: String) -> Station:
+	if sid == "":
+		return null
+	for n: Node in get_tree().get_nodes_in_group(&"stations"):
+		if (n as Station).station_id == sid:
+			return n as Station
+	return null
+
+
+## Every peer: the stations in a worker's property they could be assigned to, in route order (kind, then id).
+func assignable_stations(rec: Dictionary) -> Array:
+	var out: Array = []
+	for k: Script in assign_kinds(str(rec.get("role", ""))):
+		var list: Array = _stations_in(str(rec.get("property", "")), k)
+		list.sort_custom(func(x: Station, y: Station) -> bool: return x.station_id < y.station_id)
+		out.append_array(list)
+	return out
+
+
+## Every peer: the lockers a worker could use (storage lockers, staff lockers, bookshelves).
+func assignable_lockers(rec: Dictionary) -> Array:
+	var prop: Property = property_node(str(rec.get("property", "")))
+	var out: Array = []
+	if prop == null:
+		return out
+	for n: Node in get_tree().get_nodes_in_group(&"stations"):
+		if n is StorageLocker and prop.contains((n as Node3D).global_position):
+			out.append(n)
+	out.sort_custom(func(x: Station, y: Station) -> bool: return x.station_id < y.station_id)
+	return out
+
+
+## "Grow Pot 2": the kind + its number among the same kind nearby (stable: by station id).
+func station_title(st: Station) -> String:
+	if st == null:
+		return "?"
+	var kind_name: String = "Station"
+	if st is StorageLocker:
+		kind_name = (st as StorageLocker).storage_name()
+	elif st is ProcessStation:
+		kind_name = (st as ProcessStation).label
+	elif st is GrowPot:
+		kind_name = "Grow Pot"
+	elif st is DryingRack:
+		kind_name = "Drying Rack"
+	elif st is PackagingTable:
+		kind_name = "Packaging Table"
+	var same: Array = []
+	for n: Node in get_tree().get_nodes_in_group(&"stations"):
+		if n.get_script() == st.get_script() and (n as Node3D).global_position.distance_to(st.global_position) < 40.0:
+			same.append((n as Station).station_id)
+	same.sort()
+	return "%s %d" % [kind_name, same.find(st.station_id) + 1] if same.size() > 1 else kind_name
+
+
+## Every peer: "Staff Locker -> Grow Pot 1 -> Drying Rack -> Staff Locker" (or the automatic route).
+func route_text(rec: Dictionary) -> String:
+	var l: Station = station_by_id(str(rec.get("locker", "")))
+	var start: String = station_title(l) if l else "any locker"
+	var steps: PackedStringArray = [start]
+	if _assigned(rec):
+		for st: Station in assignable_stations(rec):
+			if st.station_id in (rec["stations"] as Array):
+				steps.append(station_title(st))
+	elif not assign_kinds(str(rec["role"])).is_empty():
+		var kinds: PackedStringArray = []
+		for k: Script in assign_kinds(str(rec["role"])):
+			kinds.append(_kind_name(k))
+		steps.append("every %s here" % " / ".join(kinds))
+	steps.append(start)
+	return " -> ".join(steps)
+
+
+func _kind_name(k: Script) -> String:
+	match k:
+		GrowPot: return "grow pot"
+		CocaBed: return "coca bed"
+		DryingRack: return "drying rack"
+		PackagingTable: return "packaging table"
+		CookStation: return "cooking station"
+		CoolingPlate: return "cooling plate"
+		LeafPress: return "leaf press"
+		Refinery: return "refinery"
+	return "station"
+
+
+func _own_worker(who: String, uid: String) -> Dictionary:
+	var rec: Dictionary = _members().get(uid, {})
+	if rec.is_empty() or str(rec["employer"]) != who or rec["role"] == "dealer":
+		return {}
+	return rec
+
+
+## Host: put `sid` on the worker's route, or take it off (toggle).
+func host_assign(who: String, uid: String, sid: String) -> String:
+	var rec: Dictionary = _own_worker(who, uid)
+	if rec.is_empty():
+		return "!That worker isn't yours."
+	var st: Station = station_by_id(sid)
+	if st == null or not assignable_stations(rec).has(st):
+		return "!%s can't work that station (it must be in the %s)." % [rec["name"], _property_name(str(rec["property"]))]
+	var mine: Array = rec.get("stations", [])
+	rec["stations"] = mine
+	if sid in mine:
+		mine.erase(sid)
+		_mark()
+		return "%s won't use the %s any more%s." % [rec["name"], station_title(st),
+				"" if not mine.is_empty() else " (back to: every station here)"]
+	if mine.size() >= max_stations(str(rec["role"])):
+		return "!%s can handle at most %d stations." % [rec["name"], max_stations(str(rec["role"]))]
+	mine.append(sid)
+	_stand_at(rec, st)
+	_mark()
+	return "%s now works the %s (%d/%d)." % [rec["name"], station_title(st), mine.size(), max_stations(str(rec["role"]))]
+
+
+## Host: the worker's locker (`sid` "" = any locker in the property).
+func host_set_locker(who: String, uid: String, sid: String) -> String:
+	var rec: Dictionary = _own_worker(who, uid)
+	if rec.is_empty():
+		return "!That worker isn't yours."
+	if sid == "":
+		rec["locker"] = ""
+		_try_back_to_work(rec)
+		_mark()
+		return "%s uses any locker in the %s." % [rec["name"], _property_name(str(rec["property"]))]
+	var l: Station = station_by_id(sid)
+	if l == null or not assignable_lockers(rec).has(l):
+		return "!That locker isn't in the %s." % _property_name(str(rec["property"]))
+	rec["locker"] = sid
+	_stand_at(rec, l)
+	_mark()
+	_try_back_to_work(rec)
+	var wage_note: String = " Their wage comes out of its wage box." if l is StaffLocker else ""
+	return "%s takes supplies from the %s and puts the products back there.%s" % [rec["name"], station_title(l), wage_note]
+
+
+## The staff locker that pays this worker (null = the employer pays from their pocket).
+func wage_locker(rec: Dictionary) -> StaffLocker:
+	return station_by_id(str(rec.get("locker", ""))) as StaffLocker
+
+
+## Every peer: workers whose locker is `sid`.
+func workers_on(sid: String) -> Array:
+	return members.values().filter(func(r: Dictionary) -> bool: return str(r.get("locker", "")) == sid)
+
+
+## Host: put money in a staff locker's wage box (`amount` > 0) or take it out (< 0).
+func host_wages(player: Player, sid: String, amount: int) -> String:
+	var l := station_by_id(sid) as StaffLocker
+	if l == null:
+		return "!No staff locker."
+	if player.global_position.distance_to(l.global_position) > Player.INTERACT_DISTANCE + 2.0:
+		return "!Too far from the staff locker."
+	var who: String = player.player_name
+	if amount > 0:
+		if not GameState.add_cash(who, -amount):
+			return "!You don't have €%d." % amount
+		l.state["wages"] = l.wages() + amount
+	elif amount < 0:
+		var out: int = mini(-amount, l.wages())
+		if out <= 0:
+			return "!The wage box is empty."
+		l.state["wages"] = l.wages() - out
+		GameState.add_cash(who, out)
+		amount = -out
+	else:
+		return ""
+	l.changed()
+	_send_wallet(who)
+	for rec: Dictionary in _members().values():
+		if str(rec.get("locker", "")) == sid:
+			_try_back_to_work(rec)
+	_mark()
+	if amount > 0:
+		return "Put €%d in the wage box (now €%d)." % [amount, l.wages()]
+	return "Took €%d out of the wage box (€%d left)." % [-amount, l.wages()]
+
+
+## Host: an unpaid worker whose staff locker has money again takes the wage and goes back to work.
+func _try_back_to_work(rec: Dictionary) -> void:
+	if not rec.get("unpaid", false):
+		return
+	var l: StaffLocker = wage_locker(rec)
+	var wage: int = int(rec.get("wage", 0))
+	if l == null:
+		rec["unpaid"] = false  # (no staff locker any more: the boss pays from their pocket again)
+		_set_status(rec, "back at work")
+		return
+	if l.wages() < wage:
+		return
+	l.state["wages"] = l.wages() - wage
+	l.changed()
+	rec["unpaid"] = false
+	_set_status(rec, "back at work")
+	_text(str(rec["employer"]), "%s took the €%d wage from the staff locker and is back at work." % [rec["name"], wage], str(rec["name"]))
+
+
 func _set_status(rec: Dictionary, text: String) -> void:
 	if str(rec.get("status", "")) != text:
 		rec["status"] = text
@@ -315,14 +573,13 @@ func _stand_at(rec: Dictionary, st: Node3D) -> void:
 
 ## Host: one grower action. Returns what was done ("" = nothing possible).
 func _grower_step(rec: Dictionary) -> String:
-	var prop: String = str(rec["property"])
-	var pots: Array = _stations_in(prop, GrowPot)
+	var pots: Array = _work_stations(rec, GrowPot)
 	if pots.is_empty():
-		if _stations_in(prop, CocaBed).is_empty():
-			_set_status(rec, "no grow pots here")
+		if _work_stations(rec, CocaBed).is_empty():
+			_set_status(rec, "no grow pots here" if not _assigned(rec) else "no grow pots on my route")
 		return ""
-	var lockers: Array = _stations_in(prop, StorageLocker)
-	var racks: Array = _stations_in(prop, DryingRack)
+	var lockers: Array = _work_lockers(rec)
+	var racks: Array = _work_stations(rec, DryingRack)
 	var missing: String = ""
 	# Harvest first, then water, then plant, then fill with soil.
 	for stage: int in [GrowPot.Stage.READY, GrowPot.Stage.GROWING, GrowPot.Stage.SOIL, GrowPot.Stage.EMPTY]:
@@ -396,13 +653,12 @@ func _store_harvest(racks: Array, lockers: Array, amount: int, fresh: String = "
 
 ## Host: one packager action.
 func _packager_step(rec: Dictionary) -> String:
-	var prop: String = str(rec["property"])
-	var lockers: Array = _stations_in(prop, StorageLocker)
+	var lockers: Array = _work_lockers(rec)
 	if lockers.is_empty():
 		_set_status(rec, "needs a storage locker here")
 		return ""
 	# Dried weed off the racks into the locker.
-	for r: DryingRack in _stations_in(prop, DryingRack):
+	for r: DryingRack in _work_stations(rec, DryingRack):
 		var dry: int = int(r.state["dry"])
 		if dry <= 0:
 			continue
@@ -416,9 +672,9 @@ func _packager_step(rec: Dictionary) -> String:
 		_locker_put(lockers, bid, take)
 		r.state["dry"] = dry - take
 		return _did(rec, r, "took %d %s off a rack" % [take, Station.item_name(bid)])
-	var tables: Array = _stations_in(prop, PackagingTable)
+	var tables: Array = _work_stations(rec, PackagingTable)
 	if tables.is_empty():
-		_set_status(rec, "needs a packaging table here")
+		_set_status(rec, "needs a packaging table here" if not _assigned(rec) else "no packaging table on my route")
 		return ""
 	# Weed first, then meth, then cocaine (PackagingTable.PACKS: product -> bag).
 	var product: Array = []
@@ -461,15 +717,14 @@ func _cook_step(rec: Dictionary) -> String:
 ## can be the next one's input (Hot Trays -> cooling plate), so the locker is the hand-over point.
 ## `report` = set the status when there is nothing to do.
 func _machine_step(rec: Dictionary, kinds: Array[Script], report: bool) -> String:
-	var prop: String = str(rec["property"])
 	var machines: Array = []
 	for k: Script in kinds:
-		machines.append_array(_stations_in(prop, k))
+		machines.append_array(_work_stations(rec, k))
 	if machines.is_empty():
 		if report:
-			_set_status(rec, "no machines here")
+			_set_status(rec, "no machines here" if not _assigned(rec) else "no machines on my route")
 		return ""
-	var lockers: Array = _stations_in(prop, StorageLocker)
+	var lockers: Array = _work_lockers(rec)
 	if lockers.is_empty():
 		if report:
 			_set_status(rec, "needs a storage locker here")
@@ -505,7 +760,7 @@ func _machine_step(rec: Dictionary, kinds: Array[Script], report: bool) -> Strin
 ## first) and bring their cash to the employer, else buy one missing supply for the stations in the property.
 func _courier_step(rec: Dictionary) -> String:
 	var prop: String = str(rec["property"])
-	var lockers: Array = _stations_in(prop, StorageLocker)
+	var lockers: Array = _work_lockers(rec)
 	if lockers.is_empty():
 		_set_status(rec, "needs a storage locker here")
 		return ""
@@ -916,6 +1171,12 @@ func _run(peer: int, action: String, a: Variant, b: Variant) -> String:
 			msg = Legal.host_bribe(player)
 		"tow":
 			msg = Roadside.host_tow(player, str(a))
+		"assign":
+			msg = host_assign(player.player_name, str(a), str(b))
+		"locker":
+			msg = host_set_locker(player.player_name, str(a), str(b))
+		"wages":
+			msg = host_wages(player, str(a), int(b))
 		"sync":
 			pass
 	_broadcast()

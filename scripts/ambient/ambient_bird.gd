@@ -160,11 +160,21 @@ func scare(from: Vector3) -> void:
 		Kind.DUCK:
 			if state == State.FLY:
 				return
-			var away: Vector3 = (global_position - from) * Vector3(1, 0, 1)
-			if away.length() < 0.1:
-				away = Vector3(_rng.randf_range(-1, 1), 0, 1)
-			var target: Vector3 = wildlife.water_point_near(global_position + away.normalized() * _rng.randf_range(16.0, 28.0))
-			fly_to(target, 2.5, State.SWIM)
+			# Away from the shot, but inside the duck water: of a few headings the one that ends furthest from it.
+			var best: Vector3 = global_position
+			var best_d: float = -1.0
+			for i: int in 10:
+				var dir := Vector3(0, 0, 1).rotated(Vector3.UP, i * TAU / 10.0 + _rng.randf() * 0.3)
+				var p: Vector3 = wildlife.water_point_near(global_position + dir * _rng.randf_range(16.0, 28.0))
+				if p.distance_to(global_position) < 12.0:
+					continue
+				var d: float = p.distance_to(from)
+				if d > best_d:
+					best_d = d
+					best = p
+			if best_d < 0.0:
+				best = wildlife.water_point_near(global_position + (global_position - from) * Vector3(1, 0, 1))
+			fly_to(best, 2.5, State.SWIM)
 		_:
 			if state == State.FLY:
 				return
