@@ -351,9 +351,33 @@ Godot console exe:
   (Garden Row z 84, side road x 30 on to it, park, square + shops), Orchard Lane x 90 + allotments, east park strip +
   tree belt; traffic routes Southfield loop + north-east loop (appended to city.json, "cars" 8). Scenario
   neighbourhoods, shots H0-H3.
-- Army base (map zone 2): gen_world section "the army base" (`arng`, node ArmyBase at the root, AB rect x -104..-36,
-  z -430..-350, `ab_fence`, marker ArmyBase/ArmyBaseSpot), prefabs/army/ (`Watchtower`, `ArmyTruck`). Pass road end
-  (-106, -355.65). Scenario army_base, self-test check army, shots E0-E2.
+- Army base (map zone 2): gen_world section "the army base" (`arng`, node ArmyBase at the root, AB rect x -104..236,
+  z -442..-350 since point 85, `ab_fence`, marker ArmyBase/ArmyBaseSpot), prefabs/army/ (`Watchtower`, `ArmyTruck`).
+  Pass road end (-106, -355.65). Scenario army_base, self-test check army, shots E0-E2.
+- Airfield (point 85): east part of ArmyBase (gen_border LAND + `GroundAirfield`, x -30..240, z -445..-346; not under
+  NavRegion): Runway (x -20..230, z -425), Taxiway z -404, TaxiLink1/2 (x -8 / 215), Apron, `JetHangar1-3`
+  (scripts/procgen/jet_hangar.gd, door -Z, `jet_spot()`), control tower + OpsBuilding. `Airfield` (scripts/world/
+  airfield.gd, node ArmyBase/Airfield, `Airfield.current`): one `ProcJet` (scripts/procgen/proc_jet.gd, `gear_down`,
+  `burner`) per hangar, precomputed `tracks`, `sample(i, t)`, `phase(i)`, `set_phase(i, t)`, `event_time(i, name)`
+  (taxi_out/line_up/roll/lift_off/gone/appear/touchdown/exit/parked), static `clock_offset` / `terrain_at`. Local per
+  peer from the system clock. Sound assets/audio/vehicles/jet_loop.ogg (gen_jet_sound.py). ArmyPost*/ArmyPatrol*
+  markers for B's soldiers. Scenario airfield, check airfield, shots J0-J4.
+- Zones (B part 18): `Zones` autoload (`zone_at`, army_on/npcs_on), `Soldier` (PoliceOfficer subclass, group soldiers,
+  `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
+  `make_zone_customer`, `PRICE`), bunker sale + door lock (`Zones.bunker`, `bunker_door()`, `BUNKER_PRICE`,
+  `bunker_lock_forced`), `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.
+  Optional map markers B reads: ArmyBase `ArmyPost*` (name with "Chat" = chatting), `ArmyPatrolA*`/`B*` (straight
+  legs, closed loop), city `CityBusStop*` / `TerraceSeat*`.
+- Missions (B 19/22): `MissionData` / `MissionObjective` .tres in data/missions/, `Missions` autoload (host state
+  GameState.world["missions"], `host_start`/`request_start`, `host_talk`, `host_end`, `view` + `changed`),
+  `MissionHUD`, `MissionTalkBox` (NPC "MissionNPC_<id>"), `MissionMapPin`, `MissionLog` (phone app). Missions
+  first_contact, pier_pressure, uptown, rosehill_shield. Check missions; scenarios mission_contact / mission_pier /
+  mission_uptown / mission_rosehill (`--talk`).
+- Dialogue (B 20): `DialogueData`/`DialogueNode`/`DialogueChoice` (.tres, conditions `DialogueNode.Show`, actions
+  START_MISSION/FINISH_STEP), talkers `TalkNPCData` in data/dialogue/npcs/ (`talkers_on`), `DialogueBox.open_for`.
+- City/army life (B 21): `CityLife` (sidewalk graph, `spots`, WALKERS_DAY/NIGHT, EXTRA_CARS), `Soldier.route` / `chatty` /
+  MARKSMAN_PROFILE, `Zones.ARMY_MAN_RANGE` (220 m). Scenarios city_life, army_life.
+- `Territory.spot_near(who, near, far, detour=1.35)`: only spots whose navmesh walk is short (sent Crows).
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

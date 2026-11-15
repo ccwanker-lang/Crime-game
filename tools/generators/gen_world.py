@@ -85,6 +85,10 @@ sc.node("GroundEast", "StaticBody3D", NAV, props={
 sc.node("GroundCity", "StaticBody3D", ".", props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((33.75, 0, 257)),
     "size": "Vector2(212.5, 286)", "material": ground_mat})
+# Point 85: the airfield east of the army base (x -30..240, z -445..-346; gen_border LAND) - not baked (no navmesh).
+sc.node("GroundAirfield", "StaticBody3D", ".", props={
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((105, 0, -395.5)),
+    "size": "Vector2(270, 99)", "material": ground_mat})
 # Point 49b: the mountain pass to the prison (terrain, road, rails, pines from data/mountain - gen_mountain.py).
 sc.node("Mountain", "StaticBody3D", ".", props={"script": sc.script("res://scripts/procgen/mountain.gd")})
 
@@ -595,8 +599,8 @@ wrng = random.Random(47)
 CONC = "res://scripts/procgen/paved_area.gd"
 
 
-def paved(name, cx, cz, sx, sz, surface="concrete", h=0.05):
-    sc.node(name, "StaticBody3D", NAV, props={"script": sc.script(CONC), "transform": xform((cx, 0, cz)),
+def paved(name, cx, cz, sx, sz, surface="concrete", h=0.05, parent=NAV):
+    sc.node(name, "StaticBody3D", parent, props={"script": sc.script(CONC), "transform": xform((cx, 0, cz)),
             "size": f"Vector2({sx:g}, {sz:g})", "surface": q(surface), "height": f"{h:g}", "edge": "false"})
 
 
@@ -1136,7 +1140,7 @@ with open(_os.path.join(ROOT, "data", "city", "city.json"), "w", newline="\n") a
 # accessible (guards + missions come in the detail pass). Rough layout.
 arng = random.Random(2020)
 sc.node("ArmyBase", "Node3D", ".")
-AB = (-104.0, -430.0, -36.0, -350.0)
+AB = (-104.0, -442.0, 236.0, -350.0)  # point 85: was x -104..-36, z -430..-350; now with the airfield east of it
 OLIVE = col(0.36, 0.4, 0.27)
 SAND = col(0.78, 0.72, 0.58)
 
@@ -1180,7 +1184,8 @@ for name, pos, size in [("HelipadH1", (-47.5, 0.1, -393), (0.8, 0.02, 7)), ("Hel
                         ("HelipadH3", (-45, 0.1, -393), (5.8, 0.02, 0.8))]:
     pbox(name, pos, size, "road_marking", col(1, 1, 1), parent="ArmyBase", collision=False)
 # Watchtowers at the corners.
-for i, (x, z) in enumerate([(AB[0] + 3, AB[1] + 3), (AB[2] - 3, AB[1] + 3), (AB[2] - 3, AB[3] - 3), (AB[0] + 3, AB[3] - 14)]):
+for i, (x, z) in enumerate([(AB[0] + 3, AB[1] + 3), (AB[2] - 3, AB[1] + 3), (AB[2] - 3, AB[3] - 3), (AB[0] + 3, AB[3] - 14),
+                            (80.0, AB[1] + 3), (-34.0, AB[3] - 3)]):
     put("army/watchtower.tscn", (x, 0.0, z), 0, parent="ArmyBase", name=f"Watchtower{i + 1}")
 # Barracks along the north fence, two hangars facing the parade ground.
 for i, x in enumerate([-90, -70, -50]):
@@ -1188,7 +1193,7 @@ for i, x in enumerate([-90, -70, -50]):
         "width": "16", "depth": "8", "floor_height": "3.4", "bays": "4", "door_bay": "1", "variation_seed": str(2030 + i),
         "wall_material": q("plaster"), "wall_tint": SAND, "roof_material": q("roof_dark"), "roof_type": q("gable"),
         "roof_pitch": "22", "lit_windows": "0.3"})
-for i, x in enumerate([-90, -64]):
+for i, x in enumerate([-92, -69]):  # (point 85: moved west from -90 / -64 to make room for the airfield)
     put("buildings/warehouse.tscn", (x, 0.04, -391), 0, parent="ArmyBase", name=f"Hangar{i + 1}", props={
         "width": "20", "depth": "14", "floor_height": "8", "bays": "2", "door_bay": "0", "variation_seed": str(2040 + i),
         "wall_material": q("corrugated"), "wall_tint": OLIVE, "roof_material": q("roof_dark"), "roof_type": q("gable"),
@@ -1204,6 +1209,86 @@ pbox("Flag", (-70, 7.6, -363.1), (0.04, 1.3, 2.0), "item_matte", col(0.2, 0.3, 0
 for i in range(8):
     put("props/crate_long.tscn", (arng.uniform(-100, -82), 0.04, arng.uniform(-428, -420)), arng.choice([0, 90]),
         parent="ArmyBase", name=uname("ArmyCrate"))
+
+# ---- Point 85: the airfield (east part of the base): runway along x at z -425, taxiway z -404, apron + three jet
+# hangars opening north, a control tower + ops building, a windsock. Airfield (scripts/world/airfield.gd) flies one
+# jet per JetHangar (local per peer, shared clock). Not under NavRegion: no navmesh bake for 9000 m2 of concrete.
+RW_X0, RW_X1, RW_Z, RW_W = -20.0, 230.0, -425.0, 22.0
+TX_Z, TX_W = -404.0, 12.0
+LINK_X0, LINK_X1 = -8.0, 215.0
+YELLOW = col(0.95, 0.75, 0.15)
+paved("Runway", (RW_X0 + RW_X1) / 2, RW_Z, RW_X1 - RW_X0, RW_W, "asphalt", 0.04, parent="ArmyBase")
+paved("Taxiway", (LINK_X0 - 6 + LINK_X1 + 6) / 2, TX_Z, LINK_X1 - LINK_X0 + 12, TX_W, "asphalt", 0.035, parent="ArmyBase")
+for i, lx in enumerate((LINK_X0, LINK_X1)):
+    paved(f"TaxiLink{i + 1}", lx, (TX_Z + RW_Z) / 2, TX_W, TX_Z - RW_Z - 1, "asphalt", 0.035, parent="ArmyBase")
+paved("Apron", 100.0, -391.0, 124.0, 14.0, "concrete", 0.04, parent="ArmyBase")
+# Markings: centre dashes, edge lines, threshold stripes, the runway numbers; a yellow taxiway line.
+for x in range(int(RW_X0) + 30, int(RW_X1) - 25, 15):
+    pbox(uname("RunwayDash"), (x, 0.05, RW_Z), (7.0, 0.02, 0.5), "road_marking", col(1, 1, 1), parent="ArmyBase", collision=False)
+for side in (-1, 1):
+    pbox(uname("RunwayEdge"), ((RW_X0 + RW_X1) / 2, 0.05, RW_Z + side * (RW_W / 2 - 0.8)), (RW_X1 - RW_X0 - 2, 0.02, 0.35),
+         "road_marking", col(1, 1, 1), parent="ArmyBase", collision=False)
+for end, x in (("W", RW_X0 + 8.0), ("E", RW_X1 - 8.0)):
+    for k in range(8):
+        z = RW_Z - RW_W / 2 + 2.2 + k * 2.45 + (1.2 if k >= 4 else 0)
+        pbox(f"Threshold{end}{k}", (x, 0.05, z), (10.0, 0.02, 1.2), "road_marking", col(1, 1, 1), parent="ArmyBase", collision=False)
+# Runway numbers painted flat (Euler YXZ: lie face up, then turn so the top of the text points the way a pilot lands).
+for name, x, yaw, text in (("RunwayNumW", RW_X0 + 22.0, -1.5708, "09"), ("RunwayNumE", RW_X1 - 22.0, 1.5708, "27")):
+    sc.node(name, "Label3D", "ArmyBase", props={"position": f"Vector3({x:g}, 0.07, {RW_Z:g})",
+            "rotation": f"Vector3(-1.5708, {yaw}, 0)", "text": q(text), "font_size": "640", "pixel_size": "0.01",
+            "modulate": col(1, 1, 1), "outline_size": "0", "double_sided": "false"})
+for x in range(int(LINK_X0), int(LINK_X1), 6):
+    pbox(uname("TaxiLine"), (x + 1.5, 0.045, TX_Z), (3.0, 0.02, 0.25), "road_marking", YELLOW, parent="ArmyBase", collision=False)
+# Edge lights along the runway (glowing studs, no light nodes).
+for x in range(int(RW_X0), int(RW_X1) + 1, 25):
+    for side in (-1, 1):
+        pbox(uname("RunwayLight"), (x, 0.0, RW_Z + side * (RW_W / 2 + 0.8)), (0.3, 0.35, 0.3), "lamp_glow",
+             col(1, 0.95, 0.7), parent="ArmyBase", collision=False)
+# Three jet hangars south of the apron, doors to the north (they run back along +Z from the door).
+for i, x in enumerate((60.0, 100.0, 140.0)):
+    sc.node(f"JetHangar{i + 1}", "StaticBody3D", "ArmyBase", props={
+        "script": sc.script("res://scripts/procgen/jet_hangar.gd"), "transform": xform((x, 0.0, -384.0)),
+        "number": q(str(i + 1)), "tint": OLIVE})
+sc.node("Airfield", "Node3D", "ArmyBase", props={
+    "script": sc.script("res://scripts/world/airfield.gd"), "runway_x0": f"{RW_X0:g}", "runway_x1": f"{RW_X1:g}",
+    "runway_z": f"{RW_Z:g}", "taxi_z": f"{TX_Z:g}", "link_x0": f"{LINK_X0:g}", "link_x1": f"{LINK_X1:g}"})
+# Control tower: a concrete shaft, a glass cab on top, roof + antenna; the ops building at its foot.
+TWR = (20.0, -380.0)
+pbox("TowerShaft", (TWR[0], 0.0, TWR[1]), (4.0, 15.0, 4.0), "concrete", col(0.8, 0.78, 0.72), parent="ArmyBase")
+pbox("TowerCabFloor", (TWR[0], 15.0, TWR[1]), (7.4, 0.5, 7.4), "concrete", col(0.75, 0.73, 0.68), parent="ArmyBase")
+pbox("TowerCab", (TWR[0], 15.5, TWR[1]), (7.0, 3.2, 7.0), "glass_shop", col(0.55, 0.7, 0.8), parent="ArmyBase")
+pbox("TowerRoof", (TWR[0], 18.7, TWR[1]), (8.0, 0.4, 8.0), "metal_dark", col(0.3, 0.3, 0.3), parent="ArmyBase")
+pbox("TowerAntenna", (TWR[0] + 2.5, 19.1, TWR[1] + 2.5), (0.12, 4.0, 0.12), "item_metal", col(0.8, 0.8, 0.8), parent="ArmyBase")
+pbox("TowerBeacon", (TWR[0] + 2.5, 23.1, TWR[1] + 2.5), (0.3, 0.3, 0.3), "lamp_glow", col(1, 0.2, 0.15), parent="ArmyBase",
+     collision=False)
+put("buildings/warehouse.tscn", (TWR[0], 0.04, -362.0), 0, parent="ArmyBase", name="OpsBuilding", props={
+    "width": "16", "depth": "8", "floor_height": "3.6", "bays": "4", "door_bay": "1", "variation_seed": "2085",
+    "wall_material": q("plaster"), "wall_tint": SAND, "roof_material": q("roof_dark"), "roof_type": q("flat"),
+    "lit_windows": "0.5"})
+sc.node("Label3D", "Label3D", "ArmyBase/TowerCab", props={
+    "transform": xform((0, 3.6, 3.56)), "text": q("FORT HALDEN AIRFIELD"), "font_size": "64", "pixel_size": "0.01",
+    "modulate": col(0.95, 0.9, 0.7), "outline_size": "6"})
+# Windsock by the west threshold.
+pbox("WindsockPole", (-14.0, 0.0, -440.0), (0.12, 6.0, 0.12), "item_metal", col(0.85, 0.85, 0.85), parent="ArmyBase")
+pbox("Windsock", (-12.6, 5.4, -440.0), (2.6, 0.7, 0.7), "item_matte", col(0.95, 0.45, 0.1), parent="ArmyBase", collision=False)
+# Guards (session B's soldiers stand at ArmyPost* markers, -Z = where they look; "Chat" = chatting pairs) and two
+# patrols (ArmyPatrolA*/B*, straight legs under 150 m (Soldier walks no longer legs), closed loops - no walls on them).
+for name, pos, rot in [("ArmyPostGate1", (-106.5, -350.4), 90), ("ArmyPostGate2", (-100.5, -361.5), 90),
+                       ("ArmyPostFlag1", (-72.5, -360.5), 180), ("ArmyPostFlag2", (-67.5, -360.5), 180),
+                       ("ArmyPostChatGarage1a", (-94.0, -382.5), -90), ("ArmyPostChatGarage1b", (-92.6, -382.5), 90),
+                       ("ArmyPostChatGarage2a", (-71.0, -382.5), -90), ("ArmyPostChatGarage2b", (-69.6, -382.5), 90),
+                       ("ArmyPostChatHeli1", (-49.5, -386.5), 135), ("ArmyPostChatHeli2", (-48.3, -387.4), -45),
+                       ("ArmyPostHeli3", (-40.5, -398.5), 180), ("ArmyPostVehicles1", (-89.0, -366.5), 0),
+                       ("ArmyPostVehicles2", (-69.5, -365.5), 0), ("ArmyPostTower", (14.5, -376.0), 0),
+                       ("ArmyPostChatApron1a", (80.0, -387.0), -90), ("ArmyPostChatApron1b", (81.4, -387.0), 90),
+                       ("ArmyPostChatApron2a", (120.0, -387.0), -90), ("ArmyPostChatApron2b", (121.4, -387.0), 90),
+                       ("ArmyPostRunwayW", (-16.0, -439.0), 180), ("ArmyPostRunwayE", (233.0, -412.0), 90)]:
+    sc.node(name, "Marker3D", "ArmyBase", props={"transform": xform((pos[0], 0.1, pos[1]), rot)})
+for route, pts in (("A", [(-98.0, -357.5), (-98.0, -377.0), (-57.0, -377.0), (-57.0, -357.5)]),
+                   ("B", [(-40.0, -356.0), (60.0, -356.0), (160.0, -356.0), (228.0, -356.0), (228.0, -392.0),
+                         (172.0, -392.0), (172.0, -359.0), (66.0, -359.0)])):
+    for k, (x, z) in enumerate(pts):
+        sc.node(f"ArmyPatrol{route}{k + 1}", "Marker3D", "ArmyBase", props={"transform": xform((x, 0.1, z))})
 sc.node("ArmyBaseSpot", "Marker3D", "ArmyBase", props={"transform": xform((-112.0, 0.1, -352.5), 90)})
 
 # --------------------------------------------------------------------------- new neighbourhoods (point 71)

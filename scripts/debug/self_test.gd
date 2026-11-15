@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3722,7 +3722,7 @@ func _check_army(world: Node3D) -> void:
 	var towers: int = base.find_children("Watchtower*", "Watchtower", false, false).size()
 	var trucks: int = base.find_children("ArmyTruck*", "ArmyTruck", false, false).size()
 	var hangars: int = base.find_children("Hangar*", "", false, false).size()
-	_report(towers == 4 and trucks >= 5 and hangars == 2, "%d watchtowers, %d army vehicles, %d hangars" % [towers, trucks, hangars])
+	_report(towers == 6 and trucks >= 5 and hangars == 2, "%d watchtowers, %d army vehicles, %d hangars" % [towers, trucks, hangars])
 	var road: PackedVector3Array = Mountain.road_points()
 	_report(road[road.size() - 1].distance_to(Vector3(-106, road[road.size() - 1].y, -355.65)) < 1.0,
 			"the pass road ends at the base gate (%s)" % road[road.size() - 1].snapped(Vector3.ONE))
@@ -3730,9 +3730,12 @@ func _check_army(world: Node3D) -> void:
 	# Closed: rays from outside to the middle hit the fence or the gate on every side.
 	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
 	var open: Array[String] = []
-	for from: Vector3 in [Vector3(-115, 1.2, -355.65), Vector3(-115, 1.2, -400), Vector3(-25, 1.2, -390), Vector3(-70, 1.2, -340),
-			Vector3(-70, 1.2, -438)]:
-		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, Vector3(-70, 1.2, -380), 1 | 2))
+	for pair: Array in [[Vector3(-115, 1.2, -355.65), Vector3(-70, 1.2, -380)], [Vector3(-115, 1.2, -400), Vector3(-70, 1.2, -380)],
+			[Vector3(-70, 1.2, -340), Vector3(-70, 1.2, -380)], [Vector3(-70, 1.2, -448), Vector3(-70, 1.2, -380)],
+			[Vector3(100, 1.2, -448), Vector3(100, 1.2, -415)], [Vector3(100, 1.2, -345), Vector3(180, 1.2, -380)],
+			[Vector3(245, 1.2, -400), Vector3(150, 1.2, -400)]]:
+		var from: Vector3 = pair[0]
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, pair[1], 1 | 2))
 		if hit.is_empty():
 			open.append(str(from))
 	_report(open.is_empty(), "the base is closed off on every side (open from: %s)" % ", ".join(open))
@@ -3749,6 +3752,92 @@ func _check_army(world: Node3D) -> void:
 	p.queue_free()
 	GameState.player_data.erase("Recruit")
 	await get_tree().physics_frame
+
+
+## Point 85: the airfield at Fort Halden - solid ground + runway, three hangars with a jet each, every jet's sortie
+## (taxi, take-off, climb clear of the mountains, landing on the runway, back into its hangar), no two jets too close,
+## a jet really rolls when its take-off starts, a parked jet is solid.
+func _check_airfield(world: Node3D) -> void:
+	var af: Airfield = Airfield.current
+	_report(af != null and af.jets.size() == 3, "the airfield with %d jets (one per hangar)" % (af.jets.size() if af else 0))
+	if af == null or af.jets.is_empty():
+		return
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var bad: Array[String] = []
+	for at: Vector3 in [Vector3(-10, 0, -425), Vector3(120, 0, -425), Vector3(225, 0, -425), Vector3(100, 0, -404),
+			Vector3(215, 0, -415), Vector3(100, 0, -391), Vector3(180, 0, -370), Vector3(-25, 0, -360), Vector3(230, 0, -440)]:
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 5.0, at + Vector3.DOWN * 5.0, 1))
+		if hit.is_empty() or absf((hit["position"] as Vector3).y) > 0.15:
+			bad.append("%s %s" % [at, "nothing" if hit.is_empty() else "%.2f" % (hit["position"] as Vector3).y])
+	_report(bad.is_empty(), "solid flat ground on the runway, taxiway, apron and the airfield grass (%s)" % ", ".join(bad))
+	var lines: Array[String] = []
+	var ok: bool = true
+	for i: int in af.jets.size():
+		var tr: Dictionary = af.tracks[i]
+		var pos: PackedVector3Array = tr["pos"]
+		var flags: PackedByteArray = tr["flags"]
+		var low: float = 1e9
+		var top: float = 0.0
+		var ground_off: int = 0
+		for k: int in pos.size():
+			var p: Vector3 = pos[k]
+			if flags[k] & 4 == 0:
+				continue
+			top = maxf(top, p.y)
+			var ter: float = Airfield.terrain_at(p.x, p.z)
+			if ter > 2.0:
+				low = minf(low, p.y - ter)
+			if p.y < 0.01 and not (Rect2(af.runway_x0, af.runway_z - 11.0, af.runway_x1 - af.runway_x0, 22.0).has_point(Vector2(p.x, p.z))
+					or absf(p.z - af.taxi_z) < 6.5 or Rect2(38.0, -398.0, 124.0, 30.0).has_point(Vector2(p.x, p.z))
+					or (absf(p.x - af.link_x0) < 6.5 or absf(p.x - af.link_x1) < 6.5) and p.z < af.taxi_z and p.z > af.runway_z):
+				ground_off += 1
+		var ev: Array[String] = ["taxi_out", "line_up", "roll", "lift_off", "gone", "appear", "touchdown", "exit", "parked"]
+		var order: bool = true
+		for e: int in range(1, ev.size()):
+			order = order and af.event_time(i, ev[e]) > af.event_time(i, ev[e - 1])
+		var lift: Vector3 = af.sample(i, af.event_time(i, "lift_off"))["pos"]
+		var td: Vector3 = af.sample(i, af.event_time(i, "touchdown"))["pos"]
+		var ex: Vector3 = af.sample(i, af.event_time(i, "exit"))["pos"]
+		var parked: Vector3 = af.sample(i, af.event_time(i, "parked") + 1.0)["pos"]
+		var hangar: JetHangar = world.find_child("ArmyBase", false, false).get_node("JetHangar%d" % (i + 1)) as JetHangar
+		var home: bool = hangar != null and parked.distance_to(hangar.jet_spot()) < 0.5
+		var good: bool = order and top > 100.0 and low > 18.0 and ground_off == 0 and lift.x < af.runway_x1 - 40.0 \
+				and td.x > af.runway_x0 and ex.x < af.runway_x1 - 5.0 and home and float(tr["length"]) <= af.cycle + 0.5
+		ok = ok and good
+		lines.append("jet %d: lift-off x %.0f, top %.0f m, %.0f m over the mountains, touchdown x %.0f, off the runway x %.0f, %s, %d ground steps off the concrete" % [
+				i + 1, lift.x, top, low, td.x, ex.x, "back in its hangar" if home else "NOT home", ground_off])
+	_report(ok, "every jet's sortie: %s" % "; ".join(lines))
+	# Spacing: at every second of the cycle no two visible jets within 15 m.
+	var closest: float = 1e9
+	for t: int in int(af.cycle):
+		var ps: Array[Vector3] = []
+		for i: int in af.jets.size():
+			var s: Dictionary = af.sample(i, fposmod(float(t) + float(i) * af.cycle / af.jets.size(), af.cycle))
+			if s["visible"] and (s["pos"] as Vector3).y < 200.0:
+				ps.append(s["pos"])
+		for a: int in ps.size():
+			for b: int in range(a + 1, ps.size()):
+				closest = minf(closest, ps[a].distance_to(ps[b]))
+	_report(closest > 15.0, "the jets never come closer than %.0f m to each other" % closest)
+	# Live: jet 1 a second before its take-off roll -> 4 s later it is rolling fast down the runway, burner on.
+	af.set_phase(0, af.event_time(0, "roll") - 1.0)
+	for k: int in 3:
+		await get_tree().process_frame
+	var x0: float = af.jets[0].global_position.x
+	await get_tree().create_timer(4.0).timeout
+	var j: ProcJet = af.jets[0]
+	_report(j.global_position.x > x0 + 25.0 and j.burner and j.visible, "a jet takes off: %.0f m down the runway in 4 s, afterburner %s" % [
+			j.global_position.x - x0, "on" if j.burner else "off"])
+	# A parked jet is solid (layer 2).
+	af.set_phase(1, af.event_time(1, "parked") + 5.0)
+	for k: int in 3:
+		await get_tree().process_frame
+		await get_tree().physics_frame
+	var jp: Vector3 = af.jets[1].global_position
+	var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(jp + Vector3(-8, 2.0, 0), jp + Vector3(0, 2.0, 0), 2))
+	_report(not hit.is_empty(), "a parked jet in its hangar is solid")
+	Airfield.clock_offset = 0.0
 
 
 ## Map zone 8: the hidden bunker - a side road east off the pass summit, solid all the way, a car drives up it, the

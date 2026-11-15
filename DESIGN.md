@@ -507,7 +507,22 @@ User feedback after testing (2026-11-15, second round):
       the terrain collision now has a hole under the hall; check bunker_rooms: rays across every room + a walker
       through all of them; scenario bunker_garage)
   85. Army base bigger with an airfield: runway, control tower, hangars with F-16-style jets that now and then take
-      off and land; move the garage further left to make room - todo
+      off and land; move the garage further left to make room - DONE (Fort Halden fenced x -104..236: runway 09/27
+      250 m at z -425, taxiway, apron, three arched JetHangars with a generic grey fighter each (ProcJet), control
+      tower + ops building, windsock, 6 watchtowers; the vehicle hangars moved west; `Airfield` flies every jet on a
+      330 s cycle (taxi, take-off east over the mountains, approach from the west, landing, back into the hangar),
+      jet sound; ArmyPost*/ArmyPatrol* markers for B's soldiers; scenario airfield, check airfield, shots J0-J4)
+Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
+  - Zones: Fort Halden soldiers (gate warning, shot on sight inside, alarm + reinforcements, no police stars), slum
+    residents (cheap customers), city office workers (rich customers), the bunker for sale (EUR 250,000, rank 5,
+    blast door locked until owned, never raided).
+  - Missions as data (MissionData/MissionObjective .tres; Missions autoload, MissionHUD, phone app Missions, map pin)
+    + dialogue (DialogueData/Node/Choice .tres, DialogueBox, talkers Marco + Old Joe); 4 missions (A Foot in the Door,
+    Pier Pressure, Uptown, Rosehill Shield).
+  - City life (sidewalk graph walkers, office groups, bus stop queues, sitters, +8 city cars) and army base life
+    (~21 soldiers, patrols, marksmen on the towers; manned within 220 m).
+  - Fix after the merge (A): the Crow that Territory sends after a seller spawns only where its walking path is short
+    (`Territory.spot_near` detour <= 1.35x), so it no longer starts a block away.
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
@@ -1154,6 +1169,41 @@ Choices made while working autonomously (what + why).
 - Nothing ticked = automatic: old saves and existing crews keep working unchanged.
 - Unpaid staff-locker workers stop instead of quitting: that's the point of the wage box (a buffer you refill).
 - Several workers may share a station (Schedule I forbids it; here it only shows "also: name").
+- Part 18 (session B): Soldiers on PoliceOfficer's brain (like the Crows): aiming, bursts, sight, leash all exist already. No navmesh at
+  the base: guards stand at posts and walk straight lines. The army reacts itself, no Wanted stars. Zone residents
+  are B's own pedestrians so the price can depend on the zone without touching world.gd. B's own bunker hall was
+  dropped for A's BunkerComplex; only sale + lock + no-raids stayed.
+- Part 19 (session B): Phone app + map pin hooked in from outside (node_added) instead of editing phone.gd; own MissionHUD layer.
+  "Late" = not in the game when the mission started (progress but no reward). Kill steps count deaths of the
+  spawned enemies whoever killed them.
+- Part 20 (session B): Dialogue lives on the owner's peer (only start/finish actions go to the host). Talkers share the mission NPC
+  naming. Conditions are a fixed enum (Inspector-friendly, safe).
+- Part 21 (session B): Sidewalk graph instead of a city navmesh (works without touching the map). Soldiers got their own profiles
+  (sight 60/95 m). Manning by distance: 20+ soldiers + 50 city people would cost host AI time everywhere.
+- Part 22 (session B): The new missions use the new zones (city pays more, slums need protection); only .tres data.
+- Point 85 (airfield): The base grows EAST (x -36 -> 236) into a new flat strip (gen_border LAND rect + GroundAirfield
+  slab, x -30..240, z -445..-346): the valley north of the pass ridge is the only flat ground long enough for a runway,
+  and west lies the prison. Runway east-west (250 m, short for a real F-16 but enough at game scale) so jets climb out
+  over the eastern mountains and come in from the west over the valley. "Move the garage left": the two olive vehicle
+  hangars of the old base moved west (x -90/-64 -> -92/-69); the old east fence is gone, so the parade ground opens
+  onto the airfield. Jets are generic grey single-engine fighters (ProcJet, built in code, no insignia): "F-16-style"
+  without copying a real aircraft's branding.
+- Point 85: the jets are local decoration on every peer, not networked: the timeline is a pure function of the system
+  clock (`Airfield.clock()`), so peers on the same LAN see the jets at nearly the same spot with zero traffic. Each
+  sortie is precomputed once into a keyframe track (0.2 s steps): taxi with rounded corners, take-off roll (13 m/s2,
+  lift-off at 62 m/s), climb/approach height profiles kept 30 m over Mountain/BorderRange heights with capped
+  climb/descent slopes, flare, braking, taxi back, turn, reverse into the hangar. Cycle 330 s, jets spread evenly ->
+  a take-off or landing about every minute ("now and then"). A jet on the ground is solid (AnimatableBody3D, layer 2,
+  sync_to_physics off because the jet teleports when the clock is shifted). Jet sound: own synth loop (gen_jet_sound.py).
+- Point 85: runway, taxiway and apron are NOT under NavRegion (9000 m2 of concrete would add bake time; B's soldiers
+  walk straight lines there). A sets ArmyPost*/ArmyPatrolA*/B* markers (B's Zones reads them): the old posts with the
+  moved vehicle hangars + posts at the tower, the apron and both runway ends; patrol B runs the lane behind the jet
+  hangars. B still has ARMY_RECT = the old base in zones.gd (asked in A.md to widen it).
+- Crow check fix (A, after the B merge): the "sent Crow comes for the seller" check failed ~half the runs (3-8 m
+  closer in 15 s). The Crow ran fine at 4 m/s; `spot_near` picked a spot 25-38 m away in a straight line that could
+  sit behind a block, so the walk was much longer (once it first ran away: 27 -> 35 m). Now the spot needs a navmesh
+  path <= 1.35x the straight distance (the first walkable spot stays as fallback). Why in spot_near and not a looser
+  check: in the game too, a Crow "sent after you" should show up, not take a minute round the block. 8/8 runs pass.
 - Point 71 (fill the open spaces): new gen_world section "new neighbourhoods" (own `nrng`). The new houses are the
   row-house prefabs but NOT enterable (enterable/upper_floors off, furnish none): dozens of extra interiors would cost
   draw calls + navmesh bake time and nobody needs to walk into decoration; they keep the village look. Garden Row (z

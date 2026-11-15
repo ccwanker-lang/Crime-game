@@ -65,6 +65,7 @@ const LIST: Array = [
 	["neighbourhoods", "New neighbourhoods (Southfield, Orchard Lane)", "You stand on Garden Row, the new street south of South Street, next to your car. Look round: row houses with back gardens, detached houses with driveways, a pocket park with a sandpit and swings, a cobbled square with small shops (deli, pharmacy, cafe, hair, books, flowers). Drive east to the highway and north to Main Road, then turn into Orchard Lane (x 90): more houses and allotments on the north corner. Between the village and the city a park strip and a tree belt stay green. The new houses are decoration (not enterable)."],
 	["bunker_lamps", "Bunker: lamps on the ceilings", "You stand at the top of the bunker's stairwell (the hall). Walk down the four flights: the lamps are on the shaft walls above each landing now (before they hung off the middle wall at hip height). Below, every room's lamps sit against its ceiling."],
 	["bunker_generator", "Bunker: the generator room", "You stand in the bunker corridor, facing its far end. It used to lead nowhere; now it ends in a generator room: two diesel generators with exhausts, fuel tanks, a switchboard, cable trays (marker GeneratorSpot for later)."],
+	["airfield", "Point 85: Fort Halden is bigger - an airfield with jets", "You stand on the apron by the control tower (the soldiers let you be: you have a pass). In front of you the taxiway and the runway (east-west, 250 m); behind you three arched hangars with a jet each. In a few seconds the first jet starts its take-off run from the west end (afterburner, gear up) and climbs out east over the mountains; a little later another one comes in from the west and lands, taxis back, turns and backs into its hangar. The vehicle hangars of the old base moved west. Every jet flies about every 5.5 minutes, so there is a take-off or a landing every minute or so. Walk into a hangar: the jet is solid."],
 	["bunker_garage", "Bunker: no invisible wall in the garage", "You stand in the underground garage, west side. There used to be an invisible slanted wall through the garage (the mountain's ground reached into it next to the lift). Walk across to the lift pit and into the corridor: nothing stops you. A test walker checks every room in the self-test (check bunker_rooms)."],
 	["bunker_inside", "The bunker complex: lift, stairs, lab, garage", "You stand in the bunker's entrance hall, the blast door open, your car on the vehicle lift. Drive onto / stay on the lift and press E on the platform (or the call panel left of it) to go 14 m down to the underground garage. Or walk down the stairwell (right of the lift, four flights). Below: the garage, a corridor, the big lab hall (yellow squares = machine spots), storage and the bunk room. Buying it and the lab come later (session B)."],
 	["army_base", "Map zone 2: Fort Halden, the army base behind the mountain", "You stand on the pass road at the gate of the army base (east of the prison, out of sight of the village), next to your car. The base is closed: fence all round, the gate shut, a boom, a guard booth. Look through the fence: barracks, two hangars, army trucks and jeeps, a helipad, four watchtowers (their searchlights sweep at night - F7 to speed up time). Guards and missions come later. Drive back over the pass to the farm."],
@@ -484,6 +485,13 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 4, Vector3(8, 0.2, 85.75), PI / 2.0, "", 1.0)
 			_place(me, Vector3(5, 0.3, 89), Vector3(-30, 4, 76), dn, 11.0)
+		"airfield":
+			_kit(me, 200, [])
+			Zones.allow_army(me, 3600.0)
+			var af: Airfield = Airfield.current
+			if af and not af.jets.is_empty():
+				af.set_phase(0, af.event_time(0, "line_up") - 4.0)  # jet 1 rolls in ~9 s
+			_place(me, Vector3(30, 0.3, -393), Vector3(-10, 2, -425), dn, 13.0)
 		"bunker_lamps", "bunker_generator", "bunker_garage":
 			_kit(me, 200, [])
 			var bt2: Transform3D = Mountain.bunker_spot()

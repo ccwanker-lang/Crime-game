@@ -114,3 +114,7 @@
 
 - 2026-11-15: points 71-74 done (71 = Southfield + Orchard Lane neighbourhoods, 72 lower city, 73 mountains one
   style, 74 bunker complex). New user feedback round = Roadmap 75-85 (DESIGN), worked in that order.
+- 2026-11-15: points 75-84 committed (c3838b9, 112fd4a). feature-b parts 18-22 MERGED (zones, missions, dialogue,
+  city/army life) + the flaky "sent Crow" check fixed in `Territory.spot_near` (short walking path). Point 85
+  (airfield) done. All of feedback round 75-85 is DONE. NEXT: wait for user feedback / B.md; B was asked (A.md) to
+  widen Zones.ARMY_RECT to the new base.

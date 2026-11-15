@@ -32,6 +32,7 @@ LAND = [
     (-72.0, 100.0, 140.0, 400.0),     # the city + the highway strip
     (83.0, -141.0, 140.0, 105.0),     # the highway strip east of the village
     (-262.0, -445.0, -30.0, -139.0),  # the mountain pass zone (Mountain heightmap): prison, army base, bunker
+    (-30.0, -445.0, 240.0, -346.0),   # point 85: the airfield east of the army base (= gen_world GroundAirfield)
     (-340.0, 100.0, -60.0, 440.0),    # the sea (the mountains rise out of the water at its far side)
 ]
 SEA = (-340.0, 104.0, -72.5, 440.0)

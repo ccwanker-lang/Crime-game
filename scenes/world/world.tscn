@@ -83,8 +83,10 @@
 [ext_resource type="PackedScene" path="res://prefabs/slums/caravan.tscn" id="81_r"]
 [ext_resource type="PackedScene" path="res://prefabs/army/watchtower.tscn" id="82_r"]
 [ext_resource type="PackedScene" path="res://prefabs/army/army_truck.tscn" id="83_r"]
-[ext_resource type="PackedScene" path="res://prefabs/buildings/prison.tscn" id="84_r"]
-[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="85_r"]
+[ext_resource type="Script" path="res://scripts/procgen/jet_hangar.gd" id="84_r"]
+[ext_resource type="Script" path="res://scripts/world/airfield.gd" id="85_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/prison.tscn" id="86_r"]
+[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="87_r"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
@@ -172,6 +174,12 @@ material = ExtResource("3_r")
 script = ExtResource("4_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 33.75, 0, 257)
 size = Vector2(212.5, 286)
+material = ExtResource("3_r")
+
+[node name="GroundAirfield" type="StaticBody3D" parent="."]
+script = ExtResource("4_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 105, 0, -395.5)
+size = Vector2(270, 99)
 material = ExtResource("3_r")
 
 [node name="Mountain" type="StaticBody3D" parent="."]
@@ -5311,462 +5319,1314 @@ double_sided = false
 [node name="ArmyBase" type="Node3D" parent="."]
 
 [node name="BaseFence1" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 0, -442)
 
 [node name="BaseFence2" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -102, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -102, 0, -442)
 
 [node name="BaseFence3" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -100, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -100, 0, -442)
 
 [node name="BaseFence4" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -98, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -98, 0, -442)
 
 [node name="BaseFence5" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -96, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -96, 0, -442)
 
 [node name="BaseFence6" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -94, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -94, 0, -442)
 
 [node name="BaseFence7" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -92, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -92, 0, -442)
 
 [node name="BaseFence8" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0, -442)
 
 [node name="BaseFence9" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -88, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -88, 0, -442)
 
 [node name="BaseFence10" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -86, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -86, 0, -442)
 
 [node name="BaseFence11" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -84, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -84, 0, -442)
 
 [node name="BaseFence12" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -82, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -82, 0, -442)
 
 [node name="BaseFence13" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -80, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -80, 0, -442)
 
 [node name="BaseFence14" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -78, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -78, 0, -442)
 
 [node name="BaseFence15" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -76, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -76, 0, -442)
 
 [node name="BaseFence16" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -74, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -74, 0, -442)
 
 [node name="BaseFence17" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0, -442)
 
 [node name="BaseFence18" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 0, -442)
 
 [node name="BaseFence19" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -68, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -68, 0, -442)
 
 [node name="BaseFence20" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -66, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -66, 0, -442)
 
 [node name="BaseFence21" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, -442)
 
 [node name="BaseFence22" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -62, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -62, 0, -442)
 
 [node name="BaseFence23" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -60, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -60, 0, -442)
 
 [node name="BaseFence24" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -58, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -58, 0, -442)
 
 [node name="BaseFence25" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56, 0, -442)
 
 [node name="BaseFence26" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -54, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -54, 0, -442)
 
 [node name="BaseFence27" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -52, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -52, 0, -442)
 
 [node name="BaseFence28" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50, 0, -442)
 
 [node name="BaseFence29" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0, -442)
 
 [node name="BaseFence30" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -46, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -46, 0, -442)
 
 [node name="BaseFence31" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44, 0, -442)
 
 [node name="BaseFence32" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -42, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -42, 0, -442)
 
 [node name="BaseFence33" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0, -442)
 
 [node name="BaseFence34" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -38, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -38, 0, -442)
 
 [node name="BaseFence35" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -36, 0, -442)
 
 [node name="BaseFence36" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -102, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34, 0, -442)
 
 [node name="BaseFence37" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -100, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -32, 0, -442)
 
 [node name="BaseFence38" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -98, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -30, 0, -442)
 
 [node name="BaseFence39" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -96, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -28, 0, -442)
 
 [node name="BaseFence40" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -94, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -26, 0, -442)
 
 [node name="BaseFence41" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -92, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 0, -442)
 
 [node name="BaseFence42" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 0, -442)
 
 [node name="BaseFence43" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -88, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -20, 0, -442)
 
 [node name="BaseFence44" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -86, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18, 0, -442)
 
 [node name="BaseFence45" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -84, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -16, 0, -442)
 
 [node name="BaseFence46" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -82, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0, -442)
 
 [node name="BaseFence47" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -80, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0, -442)
 
 [node name="BaseFence48" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -78, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0, -442)
 
 [node name="BaseFence49" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -76, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, -442)
 
 [node name="BaseFence50" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -74, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6, 0, -442)
 
 [node name="BaseFence51" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, -442)
 
 [node name="BaseFence52" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 0, -442)
 
 [node name="BaseFence53" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -68, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -442)
 
 [node name="BaseFence54" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -66, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 0, -442)
 
 [node name="BaseFence55" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4, 0, -442)
 
 [node name="BaseFence56" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -62, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, -442)
 
 [node name="BaseFence57" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -60, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8, 0, -442)
 
 [node name="BaseFence58" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -58, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -442)
 
 [node name="BaseFence59" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 12, 0, -442)
 
 [node name="BaseFence60" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -54, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14, 0, -442)
 
 [node name="BaseFence61" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -52, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0, -442)
 
 [node name="BaseFence62" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 18, 0, -442)
 
 [node name="BaseFence63" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0, -442)
 
 [node name="BaseFence64" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -46, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 0, -442)
 
 [node name="BaseFence65" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24, 0, -442)
 
 [node name="BaseFence66" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -42, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 26, 0, -442)
 
 [node name="BaseFence67" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 28, 0, -442)
 
 [node name="BaseFence68" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -38, 0, -350)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 30, 0, -442)
 
 [node name="BaseFence69" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 32, 0, -442)
 
 [node name="BaseFence70" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -428)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 34, 0, -442)
 
 [node name="BaseFence71" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -426)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 36, 0, -442)
 
 [node name="BaseFence72" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -424)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 38, 0, -442)
 
 [node name="BaseFence73" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -422)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0, -442)
 
 [node name="BaseFence74" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -420)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0, -442)
 
 [node name="BaseFence75" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -418)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 0, -442)
 
 [node name="BaseFence76" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -416)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 46, 0, -442)
 
 [node name="BaseFence77" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -414)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0, -442)
 
 [node name="BaseFence78" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -412)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0, -442)
 
 [node name="BaseFence79" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -410)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 52, 0, -442)
 
 [node name="BaseFence80" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -408)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0, -442)
 
 [node name="BaseFence81" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -406)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 0, -442)
 
 [node name="BaseFence82" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -404)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0, -442)
 
 [node name="BaseFence83" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -402)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0, -442)
 
 [node name="BaseFence84" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -400)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 62, 0, -442)
 
 [node name="BaseFence85" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -398)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 64, 0, -442)
 
 [node name="BaseFence86" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -396)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, -442)
 
 [node name="BaseFence87" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -394)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 68, 0, -442)
 
 [node name="BaseFence88" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -392)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 70, 0, -442)
 
 [node name="BaseFence89" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -390)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 72, 0, -442)
 
 [node name="BaseFence90" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -388)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 74, 0, -442)
 
 [node name="BaseFence91" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -386)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 76, 0, -442)
 
 [node name="BaseFence92" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -384)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 78, 0, -442)
 
 [node name="BaseFence93" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -382)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 80, 0, -442)
 
 [node name="BaseFence94" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -380)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 82, 0, -442)
 
 [node name="BaseFence95" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -378)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, -442)
 
 [node name="BaseFence96" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -376)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 86, 0, -442)
 
 [node name="BaseFence97" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -374)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 88, 0, -442)
 
 [node name="BaseFence98" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -372)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 90, 0, -442)
 
 [node name="BaseFence99" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -370)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 92, 0, -442)
 
 [node name="BaseFence100" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -368)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 94, 0, -442)
 
 [node name="BaseFence101" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -366)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 96, 0, -442)
 
 [node name="BaseFence102" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -364)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 98, 0, -442)
 
 [node name="BaseFence103" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -362)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 100, 0, -442)
 
 [node name="BaseFence104" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -360)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 102, 0, -442)
 
 [node name="BaseFence105" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -358)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 104, 0, -442)
 
 [node name="BaseFence106" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -356)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 106, 0, -442)
 
 [node name="BaseFence107" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -354)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 108, 0, -442)
 
 [node name="BaseFence108" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -36, 0, -352)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 110, 0, -442)
 
 [node name="BaseFence109" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -430)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 112, 0, -442)
 
 [node name="BaseFence110" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -428)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 114, 0, -442)
 
 [node name="BaseFence111" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -426)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 116, 0, -442)
 
 [node name="BaseFence112" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -424)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 118, 0, -442)
 
 [node name="BaseFence113" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -422)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 120, 0, -442)
 
 [node name="BaseFence114" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -420)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 122, 0, -442)
 
 [node name="BaseFence115" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -418)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, -442)
 
 [node name="BaseFence116" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -416)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 126, 0, -442)
 
 [node name="BaseFence117" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -414)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 128, 0, -442)
 
 [node name="BaseFence118" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -412)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 130, 0, -442)
 
 [node name="BaseFence119" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -410)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 132, 0, -442)
 
 [node name="BaseFence120" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -408)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 134, 0, -442)
 
 [node name="BaseFence121" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -406)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 136, 0, -442)
 
 [node name="BaseFence122" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -404)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 138, 0, -442)
 
 [node name="BaseFence123" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -402)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 140, 0, -442)
 
 [node name="BaseFence124" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -400)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 142, 0, -442)
 
 [node name="BaseFence125" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -398)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 144, 0, -442)
 
 [node name="BaseFence126" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -396)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 146, 0, -442)
 
 [node name="BaseFence127" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -394)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 148, 0, -442)
 
 [node name="BaseFence128" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -392)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 150, 0, -442)
 
 [node name="BaseFence129" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -390)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 152, 0, -442)
 
 [node name="BaseFence130" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -388)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 154, 0, -442)
 
 [node name="BaseFence131" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -386)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 156, 0, -442)
 
 [node name="BaseFence132" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -384)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 158, 0, -442)
 
 [node name="BaseFence133" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -382)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 160, 0, -442)
 
 [node name="BaseFence134" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -380)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 162, 0, -442)
 
 [node name="BaseFence135" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -378)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 164, 0, -442)
 
 [node name="BaseFence136" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -376)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 166, 0, -442)
 
 [node name="BaseFence137" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -374)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 168, 0, -442)
 
 [node name="BaseFence138" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -372)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 170, 0, -442)
 
 [node name="BaseFence139" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -370)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 172, 0, -442)
 
 [node name="BaseFence140" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -368)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 174, 0, -442)
 
 [node name="BaseFence141" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -366)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 176, 0, -442)
 
 [node name="BaseFence142" parent="ArmyBase" instance=ExtResource("56_r")]
-transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -364)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 178, 0, -442)
 
 [node name="BaseFence143" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 180, 0, -442)
+
+[node name="BaseFence144" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 182, 0, -442)
+
+[node name="BaseFence145" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 184, 0, -442)
+
+[node name="BaseFence146" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 186, 0, -442)
+
+[node name="BaseFence147" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 188, 0, -442)
+
+[node name="BaseFence148" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 190, 0, -442)
+
+[node name="BaseFence149" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 192, 0, -442)
+
+[node name="BaseFence150" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 194, 0, -442)
+
+[node name="BaseFence151" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 196, 0, -442)
+
+[node name="BaseFence152" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 198, 0, -442)
+
+[node name="BaseFence153" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 200, 0, -442)
+
+[node name="BaseFence154" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 202, 0, -442)
+
+[node name="BaseFence155" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 204, 0, -442)
+
+[node name="BaseFence156" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 206, 0, -442)
+
+[node name="BaseFence157" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 208, 0, -442)
+
+[node name="BaseFence158" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 210, 0, -442)
+
+[node name="BaseFence159" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 212, 0, -442)
+
+[node name="BaseFence160" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 214, 0, -442)
+
+[node name="BaseFence161" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 216, 0, -442)
+
+[node name="BaseFence162" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 218, 0, -442)
+
+[node name="BaseFence163" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 220, 0, -442)
+
+[node name="BaseFence164" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0, -442)
+
+[node name="BaseFence165" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 224, 0, -442)
+
+[node name="BaseFence166" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 226, 0, -442)
+
+[node name="BaseFence167" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 228, 0, -442)
+
+[node name="BaseFence168" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 230, 0, -442)
+
+[node name="BaseFence169" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 232, 0, -442)
+
+[node name="BaseFence170" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 234, 0, -442)
+
+[node name="BaseFence171" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 0, -350)
+
+[node name="BaseFence172" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -102, 0, -350)
+
+[node name="BaseFence173" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -100, 0, -350)
+
+[node name="BaseFence174" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -98, 0, -350)
+
+[node name="BaseFence175" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -96, 0, -350)
+
+[node name="BaseFence176" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -94, 0, -350)
+
+[node name="BaseFence177" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -92, 0, -350)
+
+[node name="BaseFence178" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0, -350)
+
+[node name="BaseFence179" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -88, 0, -350)
+
+[node name="BaseFence180" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -86, 0, -350)
+
+[node name="BaseFence181" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -84, 0, -350)
+
+[node name="BaseFence182" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -82, 0, -350)
+
+[node name="BaseFence183" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -80, 0, -350)
+
+[node name="BaseFence184" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -78, 0, -350)
+
+[node name="BaseFence185" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -76, 0, -350)
+
+[node name="BaseFence186" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -74, 0, -350)
+
+[node name="BaseFence187" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0, -350)
+
+[node name="BaseFence188" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 0, -350)
+
+[node name="BaseFence189" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -68, 0, -350)
+
+[node name="BaseFence190" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -66, 0, -350)
+
+[node name="BaseFence191" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0, -350)
+
+[node name="BaseFence192" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -62, 0, -350)
+
+[node name="BaseFence193" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -60, 0, -350)
+
+[node name="BaseFence194" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -58, 0, -350)
+
+[node name="BaseFence195" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -56, 0, -350)
+
+[node name="BaseFence196" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -54, 0, -350)
+
+[node name="BaseFence197" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -52, 0, -350)
+
+[node name="BaseFence198" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50, 0, -350)
+
+[node name="BaseFence199" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -48, 0, -350)
+
+[node name="BaseFence200" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -46, 0, -350)
+
+[node name="BaseFence201" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44, 0, -350)
+
+[node name="BaseFence202" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -42, 0, -350)
+
+[node name="BaseFence203" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0, -350)
+
+[node name="BaseFence204" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -38, 0, -350)
+
+[node name="BaseFence205" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -36, 0, -350)
+
+[node name="BaseFence206" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34, 0, -350)
+
+[node name="BaseFence207" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -32, 0, -350)
+
+[node name="BaseFence208" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -30, 0, -350)
+
+[node name="BaseFence209" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -28, 0, -350)
+
+[node name="BaseFence210" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -26, 0, -350)
+
+[node name="BaseFence211" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 0, -350)
+
+[node name="BaseFence212" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -22, 0, -350)
+
+[node name="BaseFence213" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -20, 0, -350)
+
+[node name="BaseFence214" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -18, 0, -350)
+
+[node name="BaseFence215" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -16, 0, -350)
+
+[node name="BaseFence216" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0, -350)
+
+[node name="BaseFence217" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0, -350)
+
+[node name="BaseFence218" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0, -350)
+
+[node name="BaseFence219" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, -350)
+
+[node name="BaseFence220" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6, 0, -350)
+
+[node name="BaseFence221" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -4, 0, -350)
+
+[node name="BaseFence222" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -2, 0, -350)
+
+[node name="BaseFence223" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -350)
+
+[node name="BaseFence224" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 2, 0, -350)
+
+[node name="BaseFence225" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4, 0, -350)
+
+[node name="BaseFence226" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, -350)
+
+[node name="BaseFence227" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8, 0, -350)
+
+[node name="BaseFence228" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -350)
+
+[node name="BaseFence229" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 12, 0, -350)
+
+[node name="BaseFence230" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14, 0, -350)
+
+[node name="BaseFence231" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 0, -350)
+
+[node name="BaseFence232" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 18, 0, -350)
+
+[node name="BaseFence233" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0, -350)
+
+[node name="BaseFence234" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22, 0, -350)
+
+[node name="BaseFence235" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24, 0, -350)
+
+[node name="BaseFence236" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 26, 0, -350)
+
+[node name="BaseFence237" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 28, 0, -350)
+
+[node name="BaseFence238" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 30, 0, -350)
+
+[node name="BaseFence239" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 32, 0, -350)
+
+[node name="BaseFence240" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 34, 0, -350)
+
+[node name="BaseFence241" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 36, 0, -350)
+
+[node name="BaseFence242" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 38, 0, -350)
+
+[node name="BaseFence243" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0, -350)
+
+[node name="BaseFence244" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 42, 0, -350)
+
+[node name="BaseFence245" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 44, 0, -350)
+
+[node name="BaseFence246" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 46, 0, -350)
+
+[node name="BaseFence247" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48, 0, -350)
+
+[node name="BaseFence248" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 50, 0, -350)
+
+[node name="BaseFence249" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 52, 0, -350)
+
+[node name="BaseFence250" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 54, 0, -350)
+
+[node name="BaseFence251" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 0, -350)
+
+[node name="BaseFence252" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 58, 0, -350)
+
+[node name="BaseFence253" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0, -350)
+
+[node name="BaseFence254" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 62, 0, -350)
+
+[node name="BaseFence255" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 64, 0, -350)
+
+[node name="BaseFence256" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0, -350)
+
+[node name="BaseFence257" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 68, 0, -350)
+
+[node name="BaseFence258" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 70, 0, -350)
+
+[node name="BaseFence259" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 72, 0, -350)
+
+[node name="BaseFence260" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 74, 0, -350)
+
+[node name="BaseFence261" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 76, 0, -350)
+
+[node name="BaseFence262" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 78, 0, -350)
+
+[node name="BaseFence263" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 80, 0, -350)
+
+[node name="BaseFence264" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 82, 0, -350)
+
+[node name="BaseFence265" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, -350)
+
+[node name="BaseFence266" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 86, 0, -350)
+
+[node name="BaseFence267" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 88, 0, -350)
+
+[node name="BaseFence268" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 90, 0, -350)
+
+[node name="BaseFence269" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 92, 0, -350)
+
+[node name="BaseFence270" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 94, 0, -350)
+
+[node name="BaseFence271" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 96, 0, -350)
+
+[node name="BaseFence272" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 98, 0, -350)
+
+[node name="BaseFence273" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 100, 0, -350)
+
+[node name="BaseFence274" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 102, 0, -350)
+
+[node name="BaseFence275" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 104, 0, -350)
+
+[node name="BaseFence276" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 106, 0, -350)
+
+[node name="BaseFence277" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 108, 0, -350)
+
+[node name="BaseFence278" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 110, 0, -350)
+
+[node name="BaseFence279" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 112, 0, -350)
+
+[node name="BaseFence280" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 114, 0, -350)
+
+[node name="BaseFence281" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 116, 0, -350)
+
+[node name="BaseFence282" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 118, 0, -350)
+
+[node name="BaseFence283" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 120, 0, -350)
+
+[node name="BaseFence284" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 122, 0, -350)
+
+[node name="BaseFence285" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, -350)
+
+[node name="BaseFence286" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 126, 0, -350)
+
+[node name="BaseFence287" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 128, 0, -350)
+
+[node name="BaseFence288" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 130, 0, -350)
+
+[node name="BaseFence289" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 132, 0, -350)
+
+[node name="BaseFence290" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 134, 0, -350)
+
+[node name="BaseFence291" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 136, 0, -350)
+
+[node name="BaseFence292" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 138, 0, -350)
+
+[node name="BaseFence293" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 140, 0, -350)
+
+[node name="BaseFence294" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 142, 0, -350)
+
+[node name="BaseFence295" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 144, 0, -350)
+
+[node name="BaseFence296" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 146, 0, -350)
+
+[node name="BaseFence297" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 148, 0, -350)
+
+[node name="BaseFence298" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 150, 0, -350)
+
+[node name="BaseFence299" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 152, 0, -350)
+
+[node name="BaseFence300" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 154, 0, -350)
+
+[node name="BaseFence301" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 156, 0, -350)
+
+[node name="BaseFence302" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 158, 0, -350)
+
+[node name="BaseFence303" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 160, 0, -350)
+
+[node name="BaseFence304" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 162, 0, -350)
+
+[node name="BaseFence305" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 164, 0, -350)
+
+[node name="BaseFence306" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 166, 0, -350)
+
+[node name="BaseFence307" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 168, 0, -350)
+
+[node name="BaseFence308" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 170, 0, -350)
+
+[node name="BaseFence309" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 172, 0, -350)
+
+[node name="BaseFence310" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 174, 0, -350)
+
+[node name="BaseFence311" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 176, 0, -350)
+
+[node name="BaseFence312" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 178, 0, -350)
+
+[node name="BaseFence313" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 180, 0, -350)
+
+[node name="BaseFence314" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 182, 0, -350)
+
+[node name="BaseFence315" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 184, 0, -350)
+
+[node name="BaseFence316" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 186, 0, -350)
+
+[node name="BaseFence317" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 188, 0, -350)
+
+[node name="BaseFence318" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 190, 0, -350)
+
+[node name="BaseFence319" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 192, 0, -350)
+
+[node name="BaseFence320" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 194, 0, -350)
+
+[node name="BaseFence321" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 196, 0, -350)
+
+[node name="BaseFence322" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 198, 0, -350)
+
+[node name="BaseFence323" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 200, 0, -350)
+
+[node name="BaseFence324" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 202, 0, -350)
+
+[node name="BaseFence325" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 204, 0, -350)
+
+[node name="BaseFence326" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 206, 0, -350)
+
+[node name="BaseFence327" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 208, 0, -350)
+
+[node name="BaseFence328" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 210, 0, -350)
+
+[node name="BaseFence329" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 212, 0, -350)
+
+[node name="BaseFence330" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 214, 0, -350)
+
+[node name="BaseFence331" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 216, 0, -350)
+
+[node name="BaseFence332" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 218, 0, -350)
+
+[node name="BaseFence333" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 220, 0, -350)
+
+[node name="BaseFence334" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0, -350)
+
+[node name="BaseFence335" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 224, 0, -350)
+
+[node name="BaseFence336" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 226, 0, -350)
+
+[node name="BaseFence337" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 228, 0, -350)
+
+[node name="BaseFence338" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 230, 0, -350)
+
+[node name="BaseFence339" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 232, 0, -350)
+
+[node name="BaseFence340" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 234, 0, -350)
+
+[node name="BaseFence341" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -442)
+
+[node name="BaseFence342" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -440)
+
+[node name="BaseFence343" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -438)
+
+[node name="BaseFence344" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -436)
+
+[node name="BaseFence345" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -434)
+
+[node name="BaseFence346" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -432)
+
+[node name="BaseFence347" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -430)
+
+[node name="BaseFence348" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -428)
+
+[node name="BaseFence349" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -426)
+
+[node name="BaseFence350" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -424)
+
+[node name="BaseFence351" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -422)
+
+[node name="BaseFence352" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -420)
+
+[node name="BaseFence353" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -418)
+
+[node name="BaseFence354" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -416)
+
+[node name="BaseFence355" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -414)
+
+[node name="BaseFence356" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -412)
+
+[node name="BaseFence357" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -410)
+
+[node name="BaseFence358" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -408)
+
+[node name="BaseFence359" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -406)
+
+[node name="BaseFence360" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -404)
+
+[node name="BaseFence361" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -402)
+
+[node name="BaseFence362" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -400)
+
+[node name="BaseFence363" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -398)
+
+[node name="BaseFence364" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -396)
+
+[node name="BaseFence365" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -394)
+
+[node name="BaseFence366" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -392)
+
+[node name="BaseFence367" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -390)
+
+[node name="BaseFence368" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -388)
+
+[node name="BaseFence369" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -386)
+
+[node name="BaseFence370" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -384)
+
+[node name="BaseFence371" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -382)
+
+[node name="BaseFence372" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -380)
+
+[node name="BaseFence373" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -378)
+
+[node name="BaseFence374" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -376)
+
+[node name="BaseFence375" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -374)
+
+[node name="BaseFence376" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -372)
+
+[node name="BaseFence377" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -370)
+
+[node name="BaseFence378" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -368)
+
+[node name="BaseFence379" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -366)
+
+[node name="BaseFence380" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -364)
+
+[node name="BaseFence381" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -362)
+
+[node name="BaseFence382" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -360)
+
+[node name="BaseFence383" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -358)
+
+[node name="BaseFence384" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -356)
+
+[node name="BaseFence385" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -354)
+
+[node name="BaseFence386" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 0, -352)
+
+[node name="BaseFence387" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -442)
+
+[node name="BaseFence388" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -440)
+
+[node name="BaseFence389" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -438)
+
+[node name="BaseFence390" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -436)
+
+[node name="BaseFence391" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -434)
+
+[node name="BaseFence392" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -432)
+
+[node name="BaseFence393" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -430)
+
+[node name="BaseFence394" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -428)
+
+[node name="BaseFence395" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -426)
+
+[node name="BaseFence396" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -424)
+
+[node name="BaseFence397" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -422)
+
+[node name="BaseFence398" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -420)
+
+[node name="BaseFence399" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -418)
+
+[node name="BaseFence400" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -416)
+
+[node name="BaseFence401" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -414)
+
+[node name="BaseFence402" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -412)
+
+[node name="BaseFence403" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -410)
+
+[node name="BaseFence404" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -408)
+
+[node name="BaseFence405" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -406)
+
+[node name="BaseFence406" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -404)
+
+[node name="BaseFence407" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -402)
+
+[node name="BaseFence408" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -400)
+
+[node name="BaseFence409" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -398)
+
+[node name="BaseFence410" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -396)
+
+[node name="BaseFence411" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -394)
+
+[node name="BaseFence412" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -392)
+
+[node name="BaseFence413" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -390)
+
+[node name="BaseFence414" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -388)
+
+[node name="BaseFence415" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -386)
+
+[node name="BaseFence416" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -384)
+
+[node name="BaseFence417" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -382)
+
+[node name="BaseFence418" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -380)
+
+[node name="BaseFence419" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -378)
+
+[node name="BaseFence420" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -376)
+
+[node name="BaseFence421" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -374)
+
+[node name="BaseFence422" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -372)
+
+[node name="BaseFence423" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -370)
+
+[node name="BaseFence424" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -368)
+
+[node name="BaseFence425" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -366)
+
+[node name="BaseFence426" parent="ArmyBase" instance=ExtResource("56_r")]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -364)
+
+[node name="BaseFence427" parent="ArmyBase" instance=ExtResource("56_r")]
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -362)
 
 [node name="BarbedWireN" type="StaticBody3D" parent="ArmyBase"]
 script = ExtResource("72_r")
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 2.5, -430)
-size = Vector3(68, 0.25, 0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 2.5, -442)
+size = Vector3(340, 0.25, 0.25)
 material_key = "metal_dark"
 tint = Color(0.25, 0.25, 0.25, 1)
 collision = false
 
 [node name="BarbedWireS" type="StaticBody3D" parent="ArmyBase"]
 script = ExtResource("72_r")
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 2.5, -350)
-size = Vector3(68, 0.25, 0.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 2.5, -350)
+size = Vector3(340, 0.25, 0.25)
 material_key = "metal_dark"
 tint = Color(0.25, 0.25, 0.25, 1)
 collision = false
 
 [node name="BarbedWireE" type="StaticBody3D" parent="ArmyBase"]
 script = ExtResource("72_r")
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -36, 2.5, -390)
-size = Vector3(0.25, 0.25, 80)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 236, 2.5, -396)
+size = Vector3(0.25, 0.25, 92)
 material_key = "metal_dark"
 tint = Color(0.25, 0.25, 0.25, 1)
 collision = false
 
 [node name="BarbedWireW" type="StaticBody3D" parent="ArmyBase"]
 script = ExtResource("72_r")
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 2.5, -395)
-size = Vector3(0.25, 0.25, 70)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 2.5, -401)
+size = Vector3(0.25, 0.25, 82)
 material_key = "metal_dark"
 tint = Color(0.25, 0.25, 0.25, 1)
 collision = false
@@ -5867,16 +6727,22 @@ tint = Color(1, 1, 1, 1)
 collision = false
 
 [node name="Watchtower1" parent="ArmyBase" instance=ExtResource("82_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -101, 0, -427)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -101, 0, -439)
 
 [node name="Watchtower2" parent="ArmyBase" instance=ExtResource("82_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -39, 0, -427)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 233, 0, -439)
 
 [node name="Watchtower3" parent="ArmyBase" instance=ExtResource("82_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -39, 0, -353)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 233, 0, -353)
 
 [node name="Watchtower4" parent="ArmyBase" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -101, 0, -364)
+
+[node name="Watchtower5" parent="ArmyBase" instance=ExtResource("82_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 80, 0, -439)
+
+[node name="Watchtower6" parent="ArmyBase" instance=ExtResource("82_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34, 0, -353)
 
 [node name="Barracks1" parent="ArmyBase" instance=ExtResource("52_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0.04, -412)
@@ -5924,7 +6790,7 @@ roof_pitch = 22
 lit_windows = 0.3
 
 [node name="Hangar1" parent="ArmyBase" instance=ExtResource("52_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0.04, -391)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -92, 0.04, -391)
 width = 20
 depth = 14
 floor_height = 8
@@ -5939,7 +6805,7 @@ roof_pitch = 20
 lit_windows = 0.0
 
 [node name="Hangar2" parent="ArmyBase" instance=ExtResource("52_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 0.04, -391)
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -69, 0.04, -391)
 width = 20
 depth = 14
 floor_height = 8
@@ -6015,6 +6881,997 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -83.3575, 0.04, -426.264)
 
 [node name="ArmyCrate8" parent="ArmyBase" instance=ExtResource("42_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -82.0559, 0.04, -423.096)
+
+[node name="Runway" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("30_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 105, 0, -425)
+size = Vector2(250, 22)
+surface = "asphalt"
+height = 0.04
+edge = false
+
+[node name="Taxiway" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("30_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 103.5, 0, -404)
+size = Vector2(235, 12)
+surface = "asphalt"
+height = 0.035
+edge = false
+
+[node name="TaxiLink1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("30_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, -414.5)
+size = Vector2(12, 20)
+surface = "asphalt"
+height = 0.035
+edge = false
+
+[node name="TaxiLink2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("30_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 215, 0, -414.5)
+size = Vector2(12, 20)
+surface = "asphalt"
+height = 0.035
+edge = false
+
+[node name="Apron" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("30_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 100, 0, -391)
+size = Vector2(124, 14)
+surface = "concrete"
+height = 0.04
+edge = false
+
+[node name="RunwayDash1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 25, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash3" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash4" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash5" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 70, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash6" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 85, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash7" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 100, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash8" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 115, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash9" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 130, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash10" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 145, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash11" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 160, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash12" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 175, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayDash13" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 190, 0.05, -425)
+size = Vector3(7, 0.02, 0.5)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayEdge1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 105, 0.05, -435.2)
+size = Vector3(248, 0.02, 0.35)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayEdge2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 105, 0.05, -414.8)
+size = Vector3(248, 0.02, 0.35)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW0" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -433.8)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -431.35)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -428.9)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW3" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -426.45)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW4" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -422.8)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW5" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -420.35)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW6" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -417.9)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdW7" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.05, -415.45)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE0" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -433.8)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -431.35)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -428.9)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE3" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -426.45)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE4" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -422.8)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE5" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -420.35)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE6" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -417.9)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="ThresholdE7" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 222, 0.05, -415.45)
+size = Vector3(10, 0.02, 1.2)
+material_key = "road_marking"
+tint = Color(1, 1, 1, 1)
+collision = false
+
+[node name="RunwayNumW" type="Label3D" parent="ArmyBase"]
+position = Vector3(2, 0.07, -425)
+rotation = Vector3(-1.5708, -1.5708, 0)
+text = "09"
+font_size = 640
+pixel_size = 0.01
+modulate = Color(1, 1, 1, 1)
+outline_size = 0
+double_sided = false
+
+[node name="RunwayNumE" type="Label3D" parent="ArmyBase"]
+position = Vector3(208, 0.07, -425)
+rotation = Vector3(-1.5708, 1.5708, 0)
+text = "27"
+font_size = 640
+pixel_size = 0.01
+modulate = Color(1, 1, 1, 1)
+outline_size = 0
+double_sided = false
+
+[node name="TaxiLine1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -6.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -0.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine3" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine4" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 11.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine5" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 17.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine6" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 23.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine7" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 29.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine8" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 35.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine9" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 41.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine10" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine11" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 53.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine12" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 59.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine13" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 65.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine14" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 71.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine15" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 77.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine16" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 83.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine17" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 89.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine18" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 95.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine19" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 101.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine20" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 107.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine21" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 113.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine22" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 119.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine23" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 125.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine24" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 131.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine25" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 137.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine26" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 143.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine27" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 149.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine28" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 155.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine29" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 161.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine30" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 167.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine31" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 173.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine32" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 179.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine33" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 185.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine34" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 191.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine35" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 197.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine36" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 203.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine37" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 209.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="TaxiLine38" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 215.5, 0.045, -404)
+size = Vector3(3, 0.02, 0.25)
+material_key = "road_marking"
+tint = Color(0.95, 0.75, 0.15, 1)
+collision = false
+
+[node name="RunwayLight1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -20, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -20, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight3" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight4" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight5" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 30, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight6" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 30, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight7" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight8" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 55, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight9" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 80, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight10" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 80, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight11" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 105, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight12" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 105, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight13" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 130, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight14" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 130, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight15" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 155, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight16" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 155, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight17" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 180, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight18" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 180, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight19" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 205, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight20" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 205, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight21" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 230, 0, -436.8)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="RunwayLight22" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 230, 0, -413.2)
+size = Vector3(0.3, 0.35, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.95, 0.7, 1)
+collision = false
+
+[node name="JetHangar1" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("84_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0, -384)
+number = "1"
+tint = Color(0.36, 0.4, 0.27, 1)
+
+[node name="JetHangar2" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("84_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 100, 0, -384)
+number = "2"
+tint = Color(0.36, 0.4, 0.27, 1)
+
+[node name="JetHangar3" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("84_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 140, 0, -384)
+number = "3"
+tint = Color(0.36, 0.4, 0.27, 1)
+
+[node name="Airfield" type="Node3D" parent="ArmyBase"]
+script = ExtResource("85_r")
+runway_x0 = -20
+runway_x1 = 230
+runway_z = -425
+taxi_z = -404
+link_x0 = -8
+link_x1 = 215
+
+[node name="TowerShaft" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0, -380)
+size = Vector3(4, 15, 4)
+material_key = "concrete"
+tint = Color(0.8, 0.78, 0.72, 1)
+
+[node name="TowerCabFloor" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 15, -380)
+size = Vector3(7.4, 0.5, 7.4)
+material_key = "concrete"
+tint = Color(0.75, 0.73, 0.68, 1)
+
+[node name="TowerCab" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 15.5, -380)
+size = Vector3(7, 3.2, 7)
+material_key = "glass_shop"
+tint = Color(0.55, 0.7, 0.8, 1)
+
+[node name="TowerRoof" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 18.7, -380)
+size = Vector3(8, 0.4, 8)
+material_key = "metal_dark"
+tint = Color(0.3, 0.3, 0.3, 1)
+
+[node name="TowerAntenna" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22.5, 19.1, -377.5)
+size = Vector3(0.12, 4, 0.12)
+material_key = "item_metal"
+tint = Color(0.8, 0.8, 0.8, 1)
+
+[node name="TowerBeacon" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 22.5, 23.1, -377.5)
+size = Vector3(0.3, 0.3, 0.3)
+material_key = "lamp_glow"
+tint = Color(1, 0.2, 0.15, 1)
+collision = false
+
+[node name="OpsBuilding" parent="ArmyBase" instance=ExtResource("52_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 20, 0.04, -362)
+width = 16
+depth = 8
+floor_height = 3.6
+bays = 4
+door_bay = 1
+variation_seed = 2085
+wall_material = "plaster"
+wall_tint = Color(0.78, 0.72, 0.58, 1)
+roof_material = "roof_dark"
+roof_type = "flat"
+lit_windows = 0.5
+
+[node name="Label3D" type="Label3D" parent="ArmyBase/TowerCab"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 3.6, 3.56)
+text = "FORT HALDEN AIRFIELD"
+font_size = 64
+pixel_size = 0.01
+modulate = Color(0.95, 0.9, 0.7, 1)
+outline_size = 6
+
+[node name="WindsockPole" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14, 0, -440)
+size = Vector3(0.12, 6, 0.12)
+material_key = "item_metal"
+tint = Color(0.85, 0.85, 0.85, 1)
+
+[node name="Windsock" type="StaticBody3D" parent="ArmyBase"]
+script = ExtResource("72_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.6, 5.4, -440)
+size = Vector3(2.6, 0.7, 0.7)
+material_key = "item_matte"
+tint = Color(0.95, 0.45, 0.1, 1)
+collision = false
+
+[node name="ArmyPostGate1" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -106.5, 0.1, -350.4)
+
+[node name="ArmyPostGate2" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -100.5, 0.1, -361.5)
+
+[node name="ArmyPostFlag1" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -72.5, 0.1, -360.5)
+
+[node name="ArmyPostFlag2" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -67.5, 0.1, -360.5)
+
+[node name="ArmyPostChatGarage1a" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -94, 0.1, -382.5)
+
+[node name="ArmyPostChatGarage1b" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -92.6, 0.1, -382.5)
+
+[node name="ArmyPostChatGarage2a" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -71, 0.1, -382.5)
+
+[node name="ArmyPostChatGarage2b" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -69.6, 0.1, -382.5)
+
+[node name="ArmyPostChatHeli1" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(-0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, -0.707107, -49.5, 0.1, -386.5)
+
+[node name="ArmyPostChatHeli2" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(0.707107, 0, -0.707107, 0, 1, 0, 0.707107, 0, 0.707107, -48.3, 0.1, -387.4)
+
+[node name="ArmyPostHeli3" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -40.5, 0.1, -398.5)
+
+[node name="ArmyPostVehicles1" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -89, 0.1, -366.5)
+
+[node name="ArmyPostVehicles2" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -69.5, 0.1, -365.5)
+
+[node name="ArmyPostTower" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 14.5, 0.1, -376)
+
+[node name="ArmyPostChatApron1a" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 80, 0.1, -387)
+
+[node name="ArmyPostChatApron1b" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 81.4, 0.1, -387)
+
+[node name="ArmyPostChatApron2a" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 120, 0.1, -387)
+
+[node name="ArmyPostChatApron2b" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 121.4, 0.1, -387)
+
+[node name="ArmyPostRunwayW" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -16, 0.1, -439)
+
+[node name="ArmyPostRunwayE" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 233, 0.1, -412)
+
+[node name="ArmyPatrolA1" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -98, 0.1, -357.5)
+
+[node name="ArmyPatrolA2" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -98, 0.1, -377)
+
+[node name="ArmyPatrolA3" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -57, 0.1, -377)
+
+[node name="ArmyPatrolA4" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -57, 0.1, -357.5)
+
+[node name="ArmyPatrolB1" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0.1, -356)
+
+[node name="ArmyPatrolB2" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0.1, -356)
+
+[node name="ArmyPatrolB3" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 160, 0.1, -356)
+
+[node name="ArmyPatrolB4" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 228, 0.1, -356)
+
+[node name="ArmyPatrolB5" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 228, 0.1, -392)
+
+[node name="ArmyPatrolB6" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 172, 0.1, -392)
+
+[node name="ArmyPatrolB7" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 172, 0.1, -359)
+
+[node name="ArmyPatrolB8" type="Marker3D" parent="ArmyBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 66, 0.1, -359)
 
 [node name="ArmyBaseSpot" type="Marker3D" parent="ArmyBase"]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -112, 0.1, -352.5)
@@ -8560,7 +10417,7 @@ outline_size = 12
 modulate = Color(1, 0.95, 0.75, 1)
 no_depth_test = true
 
-[node name="Prison" parent="." instance=ExtResource("84_r")]
+[node name="Prison" parent="." instance=ExtResource("86_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -150, 0, -385)
 
 [node name="BusStop" type="Marker3D" parent="Markers"]
@@ -8645,7 +10502,7 @@ _spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res:
 spawn_path = NodePath("../NPCs")
 
 [node name="Traffic" type="Node3D" parent="."]
-script = ExtResource("85_r")
+script = ExtResource("87_r")
 
 [node name="CarSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://prefabs/vehicles/car.tscn")
