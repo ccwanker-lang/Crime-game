@@ -75,7 +75,25 @@ height += np.where(d > 8, noise * 3.0 * smooth01((d - 8.0) / 20.0), 0.0)
 # The sea: deep under the water, mountains straight out of it.
 in_sea = (X >= SEA[0]) & (X <= SEA[2]) & (Z >= SEA[1]) & (Z <= SEA[3])
 height = np.where(in_sea, -6.0, height)
-height = gaussian_filter(height, 0.6)
+# The pass mountain (data/mountain, from gen_mountain.py) runs on into the range: outside the land, every cell is at
+# least the mountain heightmap's nearest edge value (its ridge extruded outwards), so the two meet without a step.
+M_DIR = os.path.join(ROOT, "data", "mountain")
+with open(os.path.join(M_DIR, "mountain.json")) as _f:
+    _mg = json.load(_f)["grid"]
+mh = np.fromfile(os.path.join(M_DIR, "height.bin"), dtype=np.float32).reshape(_mg["nz"], _mg["nx"])
+mix = np.clip(np.round((X - _mg["x0"]) / _mg["cell"]).astype(int), 0, _mg["nx"] - 1)
+miz = np.clip(np.round((Z - _mg["z0"]) / _mg["cell"]).astype(int), 0, _mg["nz"] - 1)
+ext = mh[miz, mix] + noise * 3.0 * smooth01(d / 30.0)
+height = np.where(d > 0, np.maximum(height, ext), height)
+height = gaussian_filter(height, 1.2)  # (also softens the crease where the pass mountain's edge is extruded)
+# ...but right at the pass mountain's edge it must match that heightmap exactly (no step at the seam), blending
+# back to the smoothed range over 10 m.
+mdx = np.maximum(np.maximum(_mg["x0"] - X, X - (_mg["x0"] + (_mg["nx"] - 1) * _mg["cell"])), 0)
+mdz = np.maximum(np.maximum(_mg["z0"] - Z, Z - (_mg["z0"] + (_mg["nz"] - 1) * _mg["cell"])), 0)
+mdist = np.hypot(mdx, mdz)
+seam = (d > 0) & (mdist < 10.0)
+wseam = 1.0 - smooth01(mdist / 10.0)
+height = np.where(seam, height * (1 - wseam) + mh[miz, mix] * wseam, height)
 height = np.where(inside, np.minimum(height, -0.05 - sink), height)
 edge = (~inside) & (d <= CELL * 1.01)
 height = np.where(edge, np.maximum(height, -0.05), height)

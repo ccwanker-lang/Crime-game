@@ -55,7 +55,9 @@ const LIST: Array = [
 	["no_kneel", "Point 58: no kneeling on E - a poof at the object instead", "Weed corner at home + a sofa and a pot in slot 1/2. V = third person. E on the pots / rack / table: your body stays standing, a short effect plays at the object. B = build mode: place the sofa (LMB) -> poof; hold E on it -> poof, back in your inventory."],
 	["open_border", "Points 56/57: walk anywhere up to the mountains at the edge; the fall safety net", "You stand north of the centre (where the invisible wall used to be) next to your car. Walk or drive north-west across the grass to the farm and on to the mountains at the edge: no invisible walls before them. Safety net: F10 (fly), Ctrl to sink deep under the ground, F10 off -> you fall and land back where you last stood, alive."],
 	["grass", "Point 61: grass on every green plane", "You stand in the open field north of the centre. Look and walk around: grass tufts everywhere the ground is green (fields, verges, along the border hedge, round the farm), none on roads, pavements, the soil fields or in buildings. It grows in about 50 m round you and fades out further away. Drive a car around: the grass keeps up."],
-	["bunker", "Map zone 8: the hidden bunker in the mountain", "You stand next to your car at the top of the mountain pass, where a narrow side road turns off east into the rock. Drive or walk up it: it climbs through a cutting to a concrete apron and the shut blast door of a hidden bunker (AUTHORISED PERSONNEL ONLY). It can't be opened yet - later you can buy it as a secret lab or use it in missions."],
+	["bunker", "Map zone 8: the hidden bunker in the mountain", "You stand next to your car at the top of the mountain pass, where a narrow side road turns off east into the rock. Drive or walk up it: it climbs through a cutting to a concrete apron and the blast door of a hidden bunker (AUTHORISED PERSONNEL ONLY). E opens the door."],
+	["mountains", "The mountains in one style", "You stand at the top of the mountain pass (31 m up). Look round: the pass mountain, the bunker's ridge and the snowy border range are one mountain landscape now - the same grass, rock and snow, the same pines, the ridges run on into the border peaks. F10 (admin noclip) to fly round."],
+	["bunker_inside", "The bunker complex: lift, stairs, lab, garage", "You stand in the bunker's entrance hall, the blast door open, your car on the vehicle lift. Drive onto / stay on the lift and press E on the platform (or the call panel left of it) to go 14 m down to the underground garage. Or walk down the stairwell (right of the lift, four flights). Below: the garage, a corridor, the big lab hall (yellow squares = machine spots), storage and the bunk room. Buying it and the lab come later (session B)."],
 	["army_base", "Map zone 2: Fort Halden, the army base behind the mountain", "You stand on the pass road at the gate of the army base (east of the prison, out of sight of the village), next to your car. The base is closed: fence all round, the gate shut, a boom, a guard booth. Look through the fence: barracks, two hangars, army trucks and jeeps, a helipad, four watchtowers (their searchlights sweep at night - F7 to speed up time). Guards and missions come later. Drive back over the pass to the farm."],
 	["slums", "Map zone 3: the slums north of the centre (Rosehill Park)", "Evening (19:00) in the yard in the middle of the shanty town: shacks of tin and planks, rubbish, fire barrels burning. North: the caravan park; east: the junkyard and container homes; west by the road: the Rosehill Shack, FOR SALE for €4,000 (the cheapest property; E on the door, buy it at the estate agent). A car drives round the loop road. Turn north from North Road at the barber's corner to get here."],
 	["city", "Map zone 7: the city + the highway", "You stand on the plaza between the village and the city next to your car. Drive into the city: a grid of avenues with office towers and skyscrapers, traffic lights at the 4 inner crossings, city traffic. Drive up a multi-storey car park (blue P; the ramp lane is at the right-hand side, entrance from the avenue). Back to the village over the highway: from the city's north-east corner north along the east side to Main Road. Phone map (Tab > Map) shows the city too. Rough layout: no shops or people in the city yet."],
@@ -433,6 +435,21 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 3, Vector3(-148.25, 30.9, -250), 0.0, "", 1.0)
 			_place(me, Vector3(-145.5, 31.0, -251.5), Vector3(-100, 33, -254), dn, 15.0)
+		"mountains":
+			_kit(me, 200, [])
+			_place(me, Vector3(-145.5, 31.0, -251.5), Vector3(-260, 60, -250), dn, 12.0)
+		"bunker_inside":
+			_kit(me, 200, [])
+			var bt: Transform3D = Mountain.bunker_spot()
+			var bunker: Node = world.find_child("Mountain", false, false).get_node_or_null("Bunker")
+			if bunker:
+				var door: BunkerDoor = bunker.get_node("Door") as BunkerDoor
+				if not door.is_open:
+					door.interact()
+			var veh: Vehicles = Vehicles.current
+			if veh:
+				veh.host_spawn("sedan", 3, bt * Vector3(-2, 0.4, 6.5), bt.basis.get_euler().y + PI, "", 1.0)
+			_place(me, bt * Vector3(-6, 0.3, 1.0), bt * Vector3(-2, 0.5, 8), dn, 15.0)
 		"army_base":
 			_kit(me, 200, [])
 			var veh: Vehicles = Vehicles.current

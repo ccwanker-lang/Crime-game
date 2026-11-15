@@ -464,9 +464,14 @@ User feedback on the rough layout (2026-11-15, docs/feedback_*.png):
       - DONE (towers 6-12 floors, the middle block 16-22, the skyline 11-19; style per building, podium + crown
       shapes, 3-4 buildings per block, more tints; shots G0/G2 vs docs/feedback_city_too_tall.png)
   73. Mountains in one style: the border range and the pass/bunker mountain the same shape, material, snow and trees,
-      flowing into each other - todo
+      flowing into each other - DONE (one snow line 48 m + one colouring `BorderRange.terrain_color`, same pines;
+      the pass ridge no longer fades at its grid edges, gen_border extrudes it into the range and matches the seam;
+      shot G1 vs docs/feedback_mountains.png; scenario mountains)
   74. The bunker enterable: the blast door opens onto an underground complex (corridors, lift/stairs, lab hall,
-      storage, sleeping quarters, underground garage); B builds the buying + lab logic - todo
+      storage, sleeping quarters, underground garage); B builds the buying + lab logic - DONE (A's part: `BunkerComplex`
+      with BunkerDoor, vehicle lift BunkerLift + call panels, stairwell, garage, corridor, lab hall, storage, bunk room,
+      Property "bunker" (BunkerProperty, not for sale yet), markers for B; scenario bunker_inside, check bunker_inside,
+      shots F3-F6. B: price/rank/selling, lab logic, locking the door)
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
@@ -1120,6 +1125,20 @@ Choices made while working autonomously (what + why).
   the navmesh: pedestrians walked on the highway at x 76) and GroundCity is no longer baked (no pedestrians in the
   city until it gets its own navmesh - the towers aren't baked as obstacles). Pedestrian `stats["walk"]` counts a
   walk when it sets off (the bigger map made walks too long for the self-test's 90 s window).
+- Point 73 (mountains in one style): the pass mountain took over the border range's look (snow line 27 -> 48 m,
+  `BorderRange.terrain_color` shared, pine sizes 0.9-1.6 and snowy above 42 m, pines up to 63 m). Its ridge used to
+  fade to 0 over 30 m at the grid's x edges (a lonely white hill); now it runs to the edges and gen_border.py reads
+  data/mountain and extrudes the edge heights outwards (max with the range's own profile), smooths, then pins a 10 m
+  seam strip to the mountain's edge values: the ridges run into the border peaks. Run gen_border after gen_mountain.
+  Also fixed (prison gate lamp / guard 8 cm sunk since zone 2): the road carving blends the ground towards 0.1 m
+  under the road, so on flat ground next to the road the ground stays at y 0.
+- Point 74 (bunker inside): one procedural `BunkerComplex` (scripts/world/bunker_complex.gd) instead of a scene:
+  deterministic on every peer, so the door and the lift are plain NetDoor subclasses that sync by path. A vehicle
+  lift (car-sized platform, 7 s, a boom closes the shaft while it's away) instead of a ramp: 14 m down would need a
+  ~120 m ramp. The lower level is a 1 m cell grid of rooms; walls, headers and doorways come from the grid. The
+  terrain is flattened under the hall and dug out of the two shafts (gen_mountain). Not for sale yet (for_sale false,
+  price 0): B sets price / rank / where it's sold, the lab logic and `BunkerDoor.host_set_locked`. The door is open to
+  everyone for now so the user can walk in. Furniture inside = prefabs/interiors (adopted when owned).
 - Zone 8 (bunker, rough): part of the Mountain (gen_mountain.py writes "side_road" + "bunker"; the heightmap is
   carved along the side road and flattened on a pad), so no new node/generator. The side road leaves the flat summit
   (one height, no junction slope) eastwards into the ridge, the east guardrail has a gap there; dead end, no traffic

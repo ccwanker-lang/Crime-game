@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "bunker", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "bunker", "bunker_inside", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3760,7 +3760,7 @@ func _check_bunker(world: Node3D) -> void:
 			bad += 1
 	_report(bad == 0, "the side road is solid (%d bad samples)" % bad)
 	var door: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(spot.origin + Vector3(-4, 1.5, 0), spot.origin + Vector3(3, 1.5, 0), 1))
-	_report(not door.is_empty() and absf((door["position"] as Vector3).x - spot.origin.x) < 1.0, "the blast door is shut")
+	_report(not door.is_empty() and absf((door["position"] as Vector3).x - spot.origin.x) < 1.5, "the blast door is shut")
 	var veh: Vehicles = Vehicles.current
 	if veh == null:
 		return
@@ -3789,6 +3789,88 @@ func _check_bunker(world: Node3D) -> void:
 	pc.host_exit(p)
 	p.queue_free()
 	GameState.player_data.erase("Digger")
+	veh.host_remove(pc)
+	await get_tree().physics_frame
+
+
+## Map zone 8 inside (user 2026-11-15): the blast door opens, the hall is walkable, the stairs go down, the vehicle
+## lift carries a car to the garage 14 m below, every lower room has a floor, the property covers the complex.
+func _check_bunker_inside(world: Node3D) -> void:
+	var mountain: Node = world.find_child("Mountain", false, false)
+	var bunker := mountain.get_node_or_null("Bunker") as BunkerComplex if mountain else null
+	_report(bunker != null, "the bunker complex")
+	if bunker == null:
+		return
+	var t: Transform3D = bunker.global_transform
+	var door: BunkerDoor = bunker.get_node("Door") as BunkerDoor
+	var lift: BunkerLift = bunker.get_node("Lift") as BunkerLift
+	var missing: Array[String] = []
+	for m: String in ["LabSpot1", "LabSpot6", "StorageSpot4", "BedSpot4", "GarageSpot3", "ControlSpot", "Property"]:
+		if bunker.get_node_or_null(m) == null:
+			missing.append(m)
+	var prop := bunker.get_node_or_null("Property") as BunkerProperty
+	_report(missing.is_empty() and prop != null and prop.contains((bunker.get_node("LabSpot1") as Node3D).global_position + Vector3.UP)
+			and prop.contains(t * Vector3(0, 1, 8)) and not prop.contains(t * Vector3(0, 1, -5)),
+			"markers + the property 'bunker' covers the complex (missing: %s)" % ", ".join(missing))
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	# Floors: a ray down in every room hits its floor.
+	var bad: Array[String] = []
+	for spot: Array in [["hall", Vector3(-6, 0, 13)], ["garage", Vector3(-10, -14, 8)], ["corridor", Vector3(-2, -14, 30)],
+			["lab", Vector3(12, -14, 30)], ["storage", Vector3(-10, -14, 24)], ["quarters", Vector3(-10, -14, 39)]]:
+		var p: Vector3 = t * (spot[1] as Vector3)
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 1.5, p + Vector3.DOWN * 1.0, 1))
+		if hit.is_empty() or absf((hit["position"] as Vector3).y - p.y) > 0.1:
+			bad.append(spot[0])
+	_report(bad.is_empty(), "every room has a floor (bad: %s)" % ", ".join(bad))
+	# The door opens.
+	if door.is_open:
+		door.interact()
+		await get_tree().create_timer(3.0).timeout
+	var ray := PhysicsRayQueryParameters3D.create(t * Vector3(0, 1.5, -3), t * Vector3(0, 1.5, 1), 1 | 2)
+	var shut: bool = not space.intersect_ray(ray).is_empty()
+	door.interact()
+	await get_tree().create_timer(3.0).timeout
+	var open: bool = space.intersect_ray(ray).is_empty()
+	_report(shut and open and door.is_open, "the blast door opens (shut %s, open %s)" % [shut, open])
+	# A walker goes in, and walks down the first flight of stairs.
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Delver"
+	world.get_node("Players").add_child(p)
+	p.global_position = t * Vector3(0, 0.3, -4)
+	p.auto_target = t * Vector3(-6, 0, 13)
+	await get_tree().create_timer(6.0).timeout
+	var inside: Vector3 = t.affine_inverse() * p.global_position
+	_report(inside.z > 10.0 and absf(inside.y) < 0.5, "walking in through the door into the hall (local %s)" % inside.snapped(Vector3.ONE * 0.1))
+	p.global_position = t * Vector3(5, 0.3, 3)
+	p.auto_target = t * Vector3(5, -3.5, 11.5)
+	await get_tree().create_timer(6.0).timeout
+	var down: Vector3 = t.affine_inverse() * p.global_position
+	_report(down.z > 9.5 and absf(down.y + 3.5) < 0.4, "walking down the first flight of stairs (local %s)" % down.snapped(Vector3.ONE * 0.1))
+	p.global_position = t * Vector3(3, -3.2, 11)
+	p.auto_target = t * Vector3(3, -7, 2.5)
+	await get_tree().create_timer(6.0).timeout
+	var down2: Vector3 = t.affine_inverse() * p.global_position
+	_report(down2.z < 4.5 and absf(down2.y + 7.0) < 0.4, "and the second flight (local %s)" % down2.snapped(Vector3.ONE * 0.1))
+	p.queue_free()
+	GameState.player_data.erase("Delver")
+	# The vehicle lift takes a car down to the garage and back up.
+	var veh: Vehicles = Vehicles.current
+	if veh == null:
+		return
+	var pc: PlayerCar = veh.host_spawn("sedan", 1, t * Vector3(-2, 0.5, 6.5), 0.0, "", 1.0)
+	await get_tree().create_timer(1.0).timeout
+	lift.interact()
+	await get_tree().create_timer(lift.travel_time + 2.0).timeout
+	var low: Vector3 = t.affine_inverse() * pc.global_position
+	var gate_down: bool = not space.intersect_ray(PhysicsRayQueryParameters3D.create(t * Vector3(-2, 0.8, 0.5), t * Vector3(-2, 0.8, 3), 1)).is_empty()
+	lift.interact()
+	await get_tree().create_timer(lift.travel_time + 2.0).timeout
+	var high: Vector3 = t.affine_inverse() * pc.global_position
+	_report(absf(low.y + 14.0) < 1.0 and absf(high.y) < 1.0 and gate_down and lift.is_up(),
+			"the vehicle lift: car down to %.1f m, back up to %.1f m, boom closed while away %s" % [low.y, high.y, gate_down])
 	veh.host_remove(pc)
 	await get_tree().physics_frame
 

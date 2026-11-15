@@ -313,9 +313,15 @@ Godot console exe:
 - Staff assignment (part 12): worker rec "locker"/"stations" (empty = automatic), `Staff._work_stations/_work_lockers`,
   `assign_kinds`, `StaffConfig.max_stations`, `route_text`, requests assign/locker/wages; `StaffLocker` (wage box
   state "wages", item staff_locker), CrewWindow modes worker/locker. Scenario staff_assign, check staff_assign.
-- Bunker (map zone 8): part of `Mountain` - gen_mountain.py writes "side_road" (east off the summit at z -254) +
-  "bunker" (x, y, z, yaw); `Mountain._ribbon(pts, name)` builds both roads, `_build_bunker()` the portal (node
-  Mountain/Bunker, shut door), `Mountain.bunker_spot()`. Scenario bunker, self-test check bunker, shots F0-F2.
+- Bunker (map zone 8 + point 74): gen_mountain.py writes "side_road" (east off the summit at z -254) + "bunker"
+  (x, y, z, yaw), flattens the pad under the hall and digs the shafts out; `Mountain._ribbon(pts, name)` builds both
+  roads, `_build_bunker()` adds `BunkerComplex` (scripts/world/bunker_complex.gd, node Mountain/Bunker, local frame:
+  -Z out, +X north; consts HALL/LIFT/STAIRS/ROOMS/OPENINGS, DEPTH 14) with `BunkerDoor` (Door, `locked`,
+  `host_set_locked`), `BunkerLift` (Lift, open = down, `is_up`/`is_down`) + `BunkerLiftButton`s, `BunkerProperty`
+  (Property "bunker", `rooms` AABBs, Furniture node), markers LabSpot1-6/StorageSpot1-4/BedSpot1-4/GarageSpot1-3/
+  ControlSpot. `Mountain.bunker_spot()`. Scenarios bunker, bunker_inside; checks bunker, bunker_inside; shots F0-F6.
+- Mountains one style (point 73): `BorderRange.terrain_color` (both terrains), snow line 48; gen_border.py reads
+  data/mountain (run it AFTER gen_mountain.py) and extrudes/pins the pass mountain's edges into the range.
 - Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from
   `data/border/` (`tools/generators/gen_border.py .`, LAND rects = playable land + sea; add a rect for a new zone and
   keep it in step with gen_world's Ground slabs). `BorderRange.height_at(x, z)`, `land_rects()`. Ground slabs: Ground,

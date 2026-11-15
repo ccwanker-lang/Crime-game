@@ -175,7 +175,9 @@ def ridge(z):
     return np.where(z > -250.0, up, down)
 
 
-across = smooth01((X - GRID_X0) / 30.0) * smooth01((GRID_X1 - X) / 30.0)
+# No fade at the grid's x edges any more (user 2026-11-15): the ridge runs on into the border range, which
+# gen_border.py extends from this heightmap's edges (run gen_border after this).
+across = np.ones_like(X)
 peak = 66.0 - 30.0 * np.exp(-((X + 150.0) / 40.0) ** 2)
 rng = np.random.default_rng(49)
 noise = np.zeros_like(X)
@@ -203,7 +205,8 @@ sx = np.arange(SIDE_X0, PAD_X1 - 8.0 + 0.001, 0.5)  # flat on the pad up to the 
 side_road = np.stack([sx, np.full_like(sx, SIDE_Z)], axis=1)
 side_rh = side_h0 + (pad_h - side_h0) * smooth01((sx - SIDE_X0) / (SIDE_X1 - SIDE_X0))
 # Pad samples (1 m grid) 0.12 above the pad so the clamp under the road leaves the ground exactly at pad height.
-gx, gz = np.meshgrid(np.arange(SIDE_X1, PAD_X1 + 0.001, 1.0), np.arange(SIDE_Z - 8.0, SIDE_Z + 8.001, 1.0))
+# (the pad runs on 17 m behind the door: the bunker's entrance hall stands there, under its own roof)
+gx, gz = np.meshgrid(np.arange(SIDE_X1, PAD_X1 + 17.001, 1.0), np.arange(SIDE_Z - 9.0, SIDE_Z + 9.001, 1.0))
 pad = np.stack([gx.ravel(), gz.ravel()], axis=1)
 print(f"side road {sx[-1] - SIDE_X0:.0f} m from {side_h0:.2f} to {pad_h:.2f} m")
 
@@ -219,7 +222,9 @@ for row in range(X.shape[0]):
     w = smooth01((18.0 - d) / 12.0)  # 1 within 6 m, 0 beyond 18 m
     wsum = w.sum(axis=1)
     has = wsum > 1e-6
-    hroad = np.where(has, (w * rh[None, :]).sum(axis=1) / np.maximum(wsum, 1e-6), 0.0)
+    # Blend towards just under the road (the shoulders slope 0.12 down): on flat ground that is the ground itself
+    # (BASE 0.08 - 0.1 -> 0), so lamps / NPCs next to the road at the prison gate stand on y 0.
+    hroad = np.where(has, (w * np.maximum(rh[None, :] - 0.1, 0.0)).sum(axis=1) / np.maximum(wsum, 1e-6), 0.0)
     wmax = w.max(axis=1)
     hrow = natural[row] * (1 - wmax) + hroad * wmax
     dmin = d.min(axis=1)
@@ -228,6 +233,10 @@ for row in range(X.shape[0]):
     hrow = np.where(under, np.minimum(hrow, rh[near] - 0.12), hrow)
     height[row] = hrow
 height = np.maximum(height, -0.05)
+# The bunker's lift shaft + stairwell (BunkerComplex LIFT/STAIRS: local x -5..6, z 2..12 -> world z -249..-260,
+# x -96..-86) go 14 m down: no terrain in them (the slopes at the edge cells lie under the hall's floor).
+shaft = (X >= PAD_X1 + 2.0) & (X <= PAD_X1 + 12.0) & (Z >= SIDE_Z - 6.0) & (Z <= SIDE_Z + 5.0)
+height = np.where(shaft, pad_h - 17.0, height)
 
 # ------------------------------------------------------------------ props
 def h_at(x, z):
@@ -254,11 +263,11 @@ for _ in range(20000):
         break
     x, z = prng.uniform(GRID_X0 + 4, GRID_X1 - 4), prng.uniform(GRID_Z0 + 4, -146.0)
     y = h_at(x, z)
-    if y < 1.5 or y > 46 or slope_at(x, z) > 42 or road_dist(x, z) < 9.0:
+    if y < 1.5 or y > 63 or slope_at(x, z) > 50 or road_dist(x, z) < 9.0:
         continue
     if px0 - 8 < x < px1 + 8 and pz0 - 8 < z < pz1 + 8:
         continue
-    pines.append([round(x, 2), round(y - 0.1, 2), round(z, 2), round(prng.uniform(0.75, 1.35), 2), 1 if y > 27 else 0])
+    pines.append([round(x, 2), round(y - 0.1, 2), round(z, 2), round(prng.uniform(0.9, 1.6), 2), 1 if y > 42 else 0])
 for _ in range(6000):
     if len(rocks) >= 160:
         break

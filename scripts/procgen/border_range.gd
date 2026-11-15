@@ -39,6 +39,19 @@ static func height_at(x: float, z: float) -> float:
 
 
 ## The playable land + sea rectangles (x0, z0, x1, z1) the border runs round.
+## The one mountain look (user 2026-11-15: border range + pass mountain in one style): grass foot getting lighter
+## with height, rock on steep faces, snow above the snow line (wobbly edge, thinner on cliffs). Mountain uses it too.
+static func terrain_color(a: Vector3, n: Vector3, h: float, snow_line: float) -> Color:
+	var grass: Color = Palette.color(&"grass_dark")
+	var wobble: float = sin(a.x * 0.13 + a.z * 0.07) * 4.0 + sin(a.x * 0.05 - a.z * 0.11) * 3.0
+	var colr: Color = grass.lerp(Color(0.42, 0.55, 0.32), clampf(h / 30.0, 0.0, 1.0))
+	if n.y < 0.75:
+		colr = colr.lerp(Color(0.5, 0.49, 0.47), clampf((0.75 - n.y) / 0.2, 0.0, 1.0))
+	if h + wobble > snow_line:
+		colr = colr.lerp(Color(0.94, 0.96, 0.98), clampf((h + wobble - snow_line) / 6.0, 0.0, 1.0) * (0.7 if n.y < 0.5 else 1.0))
+	return colr
+
+
 static func land_rects() -> Array[Rect2]:
 	var out: Array[Rect2] = []
 	for r: Array in data().get("land", []):
@@ -85,10 +98,6 @@ func _build_terrain() -> void:
 	body.add_child(cs)
 	# Mesh: flat-shaded, coloured by height + slope (grass foot, rock faces, snow on top).
 	var snow_line: float = float(data().get("snow_line", 48.0))
-	var grass: Color = Palette.color(&"grass_dark")
-	var grass_hi := Color(0.42, 0.55, 0.32)
-	var rock := Color(0.5, 0.49, 0.47)
-	var snow := Color(0.94, 0.96, 0.98)
 	var verts := PackedVector3Array()
 	var norms := PackedVector3Array()
 	var cols := PackedColorArray()
@@ -109,12 +118,7 @@ func _build_terrain() -> void:
 				if n.y < 0.0:
 					n = -n
 				var h: float = (a.y + b.y + c.y) / 3.0
-				var wobble: float = sin(a.x * 0.13 + a.z * 0.07) * 4.0 + sin(a.x * 0.05 - a.z * 0.11) * 3.0
-				var colr: Color = grass.lerp(grass_hi, clampf(h / 30.0, 0.0, 1.0))
-				if n.y < 0.75:
-					colr = colr.lerp(rock, clampf((0.75 - n.y) / 0.2, 0.0, 1.0))
-				if h + wobble > snow_line:
-					colr = colr.lerp(snow, clampf((h + wobble - snow_line) / 6.0, 0.0, 1.0) * (0.7 if n.y < 0.5 else 1.0))
+				var colr: Color = terrain_color(a, n, h, snow_line)
 				for v: Vector3 in [a, b, c]:
 					verts.append(v)
 					norms.append(n)
