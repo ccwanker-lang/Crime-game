@@ -201,7 +201,11 @@ func _request_use(going_in: bool) -> void:
 ## Host: teleport player `peer` in (crew owns the bunker) or out. Returns "" or why not.
 func host_use(peer: int, going_in: bool) -> String:
 	var world: Node = get_tree().current_scene
-	var p := world.get_node_or_null("Players/%d" % peer) as Player if world else null
+	return host_use_player(world.get_node_or_null("Players/%d" % peer) as Player if world else null, going_in)
+
+
+## Host: teleport `p` in / out (the keypad's checks). Returns "" or why not.
+func host_use_player(p: Player, going_in: bool) -> String:
 	if p == null or p.dead:
 		return "no player"
 	var pad: Node3D = outside_pad if going_in else inside_pad

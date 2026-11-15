@@ -108,7 +108,8 @@ static func near_army_base(pos: Vector3, margin: float) -> bool:
 
 ## Customer price in a zone (A's World.make_customer may call this for any customer: request in B.md).
 func customer_price(npc: Node3D, price: int) -> int:
-	return roundi(price * float(PRICE.get(zone_at(npc.global_position), 1.0)))
+	var zone: StringName = npc.get_meta(&"zone", zone_at(npc.global_position))  # (own residents: their zone)
+	return roundi(price * float(PRICE.get(zone, 1.0)))
 
 
 # --- Main loop -----------------------------------------------------------------------------------

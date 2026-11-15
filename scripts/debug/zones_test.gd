@@ -96,7 +96,7 @@ static func run(t: Node, world: Node3D) -> void:
 	var city: Array = Zones.residents(&"city")
 	var ccust: Pedestrian = _customer(&"city")
 	report.call(city.size() >= 6 and ccust != null and Zones.customer_price(ccust, 100) == 150,
-			"the city: %d office workers by day, customers pay 150%%" % city.size())
+			"the city: %d office workers by day, customers pay 150%% (%s)" % [city.size(), ccust.name if ccust else "no customer"])
 	if dn:
 		dn.set_hours(22.0)
 		await tree.create_timer(1.0).timeout
@@ -124,12 +124,12 @@ static func run(t: Node, world: Node3D) -> void:
 		props.erase(BunkerLab.PROPERTY_ID)
 		p.teleport(lab.outside_pad.global_position + lab.spot.basis * Vector3(0, -1.2, -1.5))
 		await tree.create_timer(0.3).timeout
-		var why: String = lab.host_use(1, true)
+		var why: String = lab.host_use_player(p, true)
 		report.call(listed and why.begins_with("Access denied") and not lab.inside(p.global_position),
 				"bunker for sale (€%s, rank %d), the keypad stays shut ('%s')" % [Property.money(prop.price),
 				Progression.config.property_rank.get(&"bunker", 0), why])
 		prop.host_set_owned("Recruit")
-		why = lab.host_use(1, true)
+		why = lab.host_use_player(p, true)
 		await tree.create_timer(0.4).timeout
 		var floor_ok: bool = absf(p.global_position.y - lab.hall.origin.y) < 0.6
 		report.call(why == "" and lab.inside(p.global_position) and floor_ok and Zones.zone_at(p.global_position) == &"bunker",
@@ -144,7 +144,7 @@ static func run(t: Node, world: Node3D) -> void:
 		report.call(not Raids.lab_properties().has(prop) and Raids._production_in(prop) > 0, "a lab in the bunker is never raided")
 		if st:
 			world.call("host_remove_placed", (st as Station).station_id.trim_prefix("placed/"))
-		why = lab.host_use(1, false)
+		why = lab.host_use_player(p, false)
 		await tree.create_timer(0.4).timeout
 		report.call(why == "" and not lab.inside(p.global_position) and p.global_position.distance_to(lab.spot.origin) < 6.0,
 				"the lift keypad takes you back up to the portal")
