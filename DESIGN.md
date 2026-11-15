@@ -431,12 +431,12 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
       other, overtake / drive round when something blocks the road - DONE (5 cars instead of 8, lights at the 3
       busy Main Road junctions, cars overtake a car that stands still when the other lane is clear)
       (Split, user 2026-11-14: 64-68 go to session B (feature-b); A does 59-63 + 49b. Point 58 was already done by A.)
-  64. Running people over from any angle (ragdoll, damage, a wanted star when it is murder) (extends 45) - todo
-  65. Jumping onto cars and standing on them (roof + bonnet with collision) - todo
-  66. Engine sound for every car (idle, accelerating, revs), traffic too, plus tyres and brakes - todo
+  64. Running people over from any angle (ragdoll, damage, a wanted star when it is murder) (extends 45) - DONE (session B)
+  65. Jumping onto cars and standing on them (roof + bonnet with collision) - DONE (session B)
+  66. Engine sound for every car (idle, accelerating, revs), traffic too, plus tyres and brakes - DONE (session B)
   67. Dogs are real NPCs: the owner killed -> the dog runs off; dogs can be killed (ragdoll); owners play fetch
-      (throw a ball, the dog brings it back and drops it) (extends 46) - todo
-  68. Atmosphere: birds flying and sitting on roofs, other animals (cats, pigeons, ducks at the water) - todo
+      (throw a ball, the dog brings it back and drops it) (extends 46) - DONE (session B)
+  68. Atmosphere: birds flying and sitting on roofs, other animals (cats, pigeons, ducks at the water) - DONE (session B)
   53. Story missions per act (chapter 1, acts 1-5; the traitor = an old friend of the players) - todo
   54. The city + the highway link (chapter 2 map: skyscrapers, downtown, hillside) - todo
   55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
@@ -1062,6 +1062,47 @@ Choices made while working autonomously (what + why).
   flat north part (the ridge is 0 there), so no new terrain. The pass road (gen_mountain CORNERS) now runs on 19 m to
   the gate (-106, -355.65): traffic route 5 turns round there, the bus path is unchanged. New procedural props
   `Watchtower` (searchlight on at night via the day_night group, sweeping) and `ArmyTruck` (truck/jeep, parked).
+- Part 9 (session B): Quality as separate item ids, not a field on stacks: inventory, lockers, loot bags, dealers, police confiscation
+  and A's sale code are all id based, so nothing else had to change (and mixed stacks can't happen).
+- 3 tiers, +1 per source, max Premium: one "better ingredient" + one "better machine" per product, so every product
+  has the same two choices (seed/lamp, reagent/hood, solvent/hood). Mixes = the reagent/solvent (consumed per run).
+- Quality lives in the chain items up to the bag (fresh weed, buds, trays, shards, cocaine), not in coca leaves or
+  paste: the refinery is the cocaine quality step, so the earlier steps don't need tiers.
+- A rack holds one quality: drying mixed batches would need an average and lose the premium.
+- Price x1.4 (Good) / x1.9 (Premium): Premium weed (€114) is still below standard meth (€132), Premium meth is above
+  standard cocaine; supplies cost €45/€160/€220 per run, the hood €1,800 once.
+- Customers ask for what the crew has made (world["quality"]); 50% the best, so a crew with only Premium still
+  gets half its customers, and Standard keeps selling.
+- The growing self-test check (A's) counts every quality now (`_count_q`): its pot stands under the lamp = Good weed.
+- Part 11 (session B): Built in code at a fallback spot instead of in the map: the map is A's (world.tscn / gen_world.py). A can add a
+  Marker3D `ShootingRangeSpot` (position + yaw = shooters face its -Z) wherever it fits; the range moves there.
+- Skill bonus = only less spread, max 20%: small, visible with every gun, and no change to damage balance. Diminishing
+  gain so ~25-30 good drills get you most of it; it costs money (fee) and time, never free XP grinding (max 10 XP).
+- Loaner guns ignore the rank gate on purpose ("test weapons" before you can buy them), but they never leave the
+  range. A loaner that dies with you stays in your loot bag (rare at the range; not worth a special case).
+- The range is legal: no police, panic or traffic reaction to shots there; it is far west so nobody else is near.
+- Parts 13-15 (session B): Engine sound from the movement, not from the car scripts' throttle: one component for traffic, own cars, the host
+  and clients, and A's car code stays as it is. Two loops with pitch instead of a generator per car: cheap with 10+
+  cars; the gearbox model gives the "revs up, shifts, revs up" sound everyone expects.
+- Hits by impact speed towards the person instead of a bigger box at the nose: "from any angle" without making
+  people die from simply standing next to a passing car.
+- Two boxes rather than a convex hull: cheap, exact enough to stand on, keeps the old outline.
+- Traffic cars still never run people over on purpose (A's traffic stops for people).
+- Part 16 (session B): One body + local visual per peer at a fixed path instead of a networked spawn: no spawner or World change needed
+  (World is A's), and the dog only exists while its owner does, which every peer sees the same.
+- Kinematic movement on navmesh paths: dogs must cross kerbs and park paths; a physics box got stuck on them.
+- Simple "ragdoll" = one rigid body with the dog on it: dogs have no skeleton; it falls, rolls and lies still.
+- Killing a dog is assault, not murder: stars, but not the murder response.
+- Part 17 (session B): Local per peer, not networked: the animals are decoration; syncing 40 animals costs bandwidth for nothing. Each
+  peer reacts to the same players, cars and shots, so they behave much alike.
+- Spots from Building data instead of markers: works for every house now and later without touching the map (A's).
+- No collision: animals never block players, cars or NPC paths, and bullets don't hit them (dogs remain the only
+  animals you can shoot).
+- Part 12 (session B): Station list with tick boxes instead of clicking stations in the world: no change to player.gd (A's), works the
+  same for host and clients, and the "Show" arrow still points at the real object.
+- Nothing ticked = automatic: old saves and existing crews keep working unchanged.
+- Unpaid staff-locker workers stop instead of quitting: that's the point of the wage box (a buffer you refill).
+- Several workers may share a station (Schedule I forbids it; here it only shows "also: name").
 - Zone 8 (bunker, rough): part of the Mountain (gen_mountain.py writes "side_road" + "bunker"; the heightmap is
   carved along the side road and flattened on a pad), so no new node/generator. The side road leaves the flat summit
   (one height, no junction slope) eastwards into the ridge, the east guardrail has a gap there; dead end, no traffic

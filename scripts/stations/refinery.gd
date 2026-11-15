@@ -18,6 +18,8 @@ var _bricks: MeshInstance3D
 func _init() -> void:
 	inputs = {"coca_paste": 1}
 	output_id = "cocaine"
+	quality_step = true
+	mix_id = "pure_solvent"
 	output_count = OUT
 	missed_count = 5
 	hours = REFINE_HOURS

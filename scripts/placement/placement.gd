@@ -55,6 +55,7 @@ const STATION_BOXES: Dictionary = {
 	"drying_rack": [[Vector3(0, 0.8, 0), Vector3(1.14, 1.6, 0.46)]],
 	"packaging_table": [[Vector3(0, 0.41, 0), Vector3(1.0, 0.82, 0.55)]],
 	"storage_locker": [[Vector3(0, 0.95, 0), Vector3(0.9, 1.9, 0.5)]],
+	"staff_locker": [[Vector3(0, 0.95, 0), Vector3(0.9, 1.9, 0.5)]],
 	"trash_bin": [[Vector3(0, 0.525, 0), Vector3(0.6, 1.05, 0.7)]],
 }
 

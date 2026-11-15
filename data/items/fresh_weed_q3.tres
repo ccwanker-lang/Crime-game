@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+[ext_resource type="PackedScene" path="res://prefabs/items/fresh_weed.tscn" id="2_model"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"fresh_weed_q3"
+display_name = "Premium Fresh Weed"
+max_stack = 20
+is_legal = false
+base_price = 15
+description = "Just harvested and still wet. Hang it on a drying rack. Quality: Premium (3 of 3)."
+model_scene = ExtResource("2_model")

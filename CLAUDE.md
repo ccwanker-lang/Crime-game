@@ -293,6 +293,26 @@ Godot console exe:
   `height_at(x, z)`, SNOW_LINE. Prison at gen_world PRISON_POS (-150, 0, -385); north hedge gap PASS_GAP; CAR_COUNT 6.
   Intro bus ride: `Intro._start_ride`/`_set_bus`/`bus_progress`/`ride_speed_scale` (tests), `Player.enter_bus`/
   `leave_bus`/`bus_ride`. Scenario mountain_pass, self-test check pass, shots 98/99/A0-A3.
+- Product quality (milestone 3): `Quality` (scripts/products/quality.gd, tiers 1-3 = item ids `<id>_q2/_q3`,
+  gen_quality_items.py), sources: GrowPot premium_seed + lamp, ProcessStation `quality_step` (`mix_id` pure_reagent /
+  pure_solvent, `FumeHood`), `Products.pick_quality`, `Staff.dealer_goods()`. Scenario quality, self-test check quality.
+- Shooting range (milestone 3): `RangeClub` autoload (GameState.world["range"] skill/best, drills, loaner guns
+  `player_data.range_loan`, `covers(pos)` = legal gunfire, `spread_factor(name)` in PlayerCombat._spread), local build
+  `ShootingRange` (marker `ShootingRangeSpot` or FALLBACK_POS) + `RangeTarget` + `RangeDesk` (Walt) + `RangeWindow`.
+  Scenario shooting_range, self-test check range.
+- Car sound (Roadmap 66): `Ambience` autoload attaches `VehicleSound` (engine loops by simulated rpm `rpm_for`, tyre
+  screech, brake squeal; sounds from gen_engine_sounds.py) to every Car / PlayerCar. Check engine_sound, scenario
+  car_sounds. Run over (64): `PlayerCar.impact_speed` (any side), check run_over. Standing on cars (65):
+  `CarShapes.add` (body + cabin boxes), check car_roof.
+- Dogs (Roadmap 67): `Dog` (scripts/npc/dog.gd, layer 3, World/Dogs/Dog_<owner>, made by `Ambience` on every peer,
+  host drives + `_net` RPC), `Dog.of(npc)`, `host_fetch`, `Dog.auto_fetch`, states FOLLOW/FETCH/MOURN/FLEE/DEAD,
+  ProcDog `driven`. Scenario dogs, self-test check dogs.
+- Animals (Roadmap 68): `Wildlife` (scripts/ambient/, World/Wildlife, local per peer via `Ambience`, `--animals=0`),
+  `AmbientBird` BIRD/PIGEON/DUCK, `AmbientCat`, `CritterMesh`; roof spots from Building data, `Wildlife.scare_at`
+  from `WeaponFX.flash`; threats = players, cars, group `wildlife_threats` (tests). Scenarios animals/ducks, check animals.
+- Staff assignment (part 12): worker rec "locker"/"stations" (empty = automatic), `Staff._work_stations/_work_lockers`,
+  `assign_kinds`, `StaffConfig.max_stations`, `route_text`, requests assign/locker/wages; `StaffLocker` (wage box
+  state "wages", item staff_locker), CrewWindow modes worker/locker. Scenario staff_assign, check staff_assign.
 - Bunker (map zone 8): part of `Mountain` - gen_mountain.py writes "side_road" (east off the summit at z -254) +
   "bunker" (x, y, z, yaw); `Mountain._ribbon(pts, name)` builds both roads, `_build_bunker()` the portal (node
   Mountain/Bunker, shut door), `Mountain.bunker_spot()`. Scenario bunker, self-test check bunker, shots F0-F2.

@@ -38,9 +38,7 @@ func _ready() -> void:
 	super._ready()
 	add_to_group(&"park_goers")
 	if role == Role.DOG:
-		var dog := ProcDog.new()
-		dog.setup(self, color_seed)
-		add_child(dog)
+		pass  # Roadmap 67 (session B): the dog is a real NPC now (Dog, made by the Ambience autoload on every peer)
 	elif role == Role.SMOKER:
 		_build_smoke()
 	if _is_host():
@@ -102,7 +100,11 @@ func _dog_step() -> void:
 			return
 		await walk_to(path[i])
 		if randf() < 0.35:
-			await idle(randf_range(3.0, 8.0))
+			var dog: Dog = Dog.of(self)
+			if dog and Dog.auto_fetch and randf() < 0.5:
+				await dog.host_fetch()  # Roadmap 67: a game of fetch instead of a sniff stop
+			else:
+				await idle(randf_range(3.0, 8.0))
 	laps_left -= 1
 	if laps_left <= 0:
 		leaving = true

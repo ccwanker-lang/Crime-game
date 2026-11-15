@@ -125,6 +125,8 @@ static func _flash_material(side: bool, depth: float) -> ShaderMaterial:
 
 ## Shows the flash of `muzzle` (made by make_flash) for a few frames.
 static func flash(muzzle: Node3D) -> void:
+	if muzzle.is_inside_tree():
+		Wildlife.scare_at(muzzle.global_position)  # (Roadmap 68: birds, cats, ducks get a fright on every peer)
 	var root := muzzle.get_node_or_null("Flash") as Node3D
 	var light := muzzle.get_node_or_null("Light") as OmniLight3D
 	if root == null:

@@ -17,7 +17,47 @@ var _buds: Array[MeshInstance3D] = []
 
 
 func default_state() -> Dictionary:
-	return {"wet": 0, "dry": 0, "progress": 0.0}
+	return {"wet": 0, "dry": 0, "progress": 0.0, "tier": 1}
+
+
+## Product quality (Quality): a rack holds one quality at a time ("tier"); it dries into Dried Weed of that quality.
+func rack_tier() -> int:
+	return int(state.get("tier", 1))
+
+
+func fresh_id() -> String:
+	return Quality.with_tier("fresh_weed", rack_tier())
+
+
+func bud_id() -> String:
+	return Quality.with_tier("weed_bud", rack_tier())
+
+
+## Can Fresh Weed of quality `fresh` go on the rack now (empty, or the same quality)?
+func can_hang(fresh: String) -> bool:
+	return int(state["wet"]) + int(state["dry"]) == 0 or Quality.tier(fresh) == rack_tier()
+
+
+## Host + staff: hang `n` of `fresh` (call can_hang first). Returns how many were hung.
+func hang(fresh: String, n: int) -> int:
+	var wet: int = int(state["wet"])
+	n = mini(n, CAPACITY - wet - int(state["dry"]))
+	if n <= 0:
+		return 0
+	if wet + int(state["dry"]) == 0:
+		state["tier"] = Quality.tier(fresh)
+	# New buds join the batch: weighted progress.
+	state["progress"] = float(state["progress"]) * wet / float(wet + n)
+	state["wet"] = wet + n
+	return n
+
+
+## The Fresh Weed id a player can hang here (best quality that fits the rack), "" if none.
+func _hangable(count: Callable) -> String:
+	for v: String in Quality.variants("fresh_weed"):
+		if int(count.call(v)) > 0 and can_hang(v):
+			return v
+	return ""
 
 
 func pick_up_blocker() -> String:
@@ -121,19 +161,26 @@ func status_text() -> String:
 		parts.append("%d drying %d%%" % [int(state["wet"]), int(float(state["progress"]) * 100.0)])
 	if int(state["dry"]) > 0:
 		parts.append("%d dry" % int(state["dry"]))
-	return "Drying rack" + (": " + ", ".join(parts) if not parts.is_empty() else " (empty)")
+	var q: String = (" (%s)" % Quality.NAMES[rack_tier()]) if rack_tier() > 1 and not parts.is_empty() else ""
+	return "Drying rack" + q + (": " + ", ".join(parts) if not parts.is_empty() else " (empty)")
 
 
 func prompt_for(player: Player) -> String:
 	var status: String = status_text()
 	if int(state["dry"]) > 0:
-		return "Take %d Dried Weed   [%s]" % [int(state["dry"]), status]
+		return "Take %d %s   [%s]" % [int(state["dry"]), item_name(bud_id()), status]
 	var free: int = CAPACITY - int(state["wet"]) - int(state["dry"])
-	var fresh: int = carried(player, "fresh_weed")
+	var fid: String = _hangable(func(id: String) -> int: return carried(player, id))
+	var fresh: int = carried(player, fid) if fid != "" else 0
 	if fresh > 0 and free > 0:
-		return "Hang %d Fresh Weed to dry   [%s]" % [mini(fresh, free), status]
+		return "Hang %d %s to dry   [%s]" % [mini(fresh, free), item_name(fid), status]
 	if fresh > 0:
 		return "Rack is full   [%s]" % status
+	var any: int = 0
+	for v: String in Quality.variants("fresh_weed"):
+		any += carried(player, v)
+	if any > 0:
+		return "This rack dries %s Weed - use another rack   [%s]" % [Quality.NAMES[rack_tier()], status]
 	return status if int(state["wet"]) > 0 else "Drying rack - bring Fresh Weed from a plant"
 
 
@@ -141,22 +188,23 @@ func do_action(player: Player) -> String:
 	var who: String = player.player_name
 	var dry: int = int(state["dry"])
 	if dry > 0:
-		var take: int = mini(dry, GameState.space_for(who, "weed_bud"))
+		var bid: String = bud_id()
+		var take: int = mini(dry, GameState.space_for(who, bid))
 		if take <= 0:
 			return "Your pockets are full."
-		GameState.give(who, 0, [{"id": "weed_bud", "count": take}])
+		GameState.give(who, 0, [{"id": bid, "count": take}])
 		state["dry"] = dry - take
 		changed()
 		work = "take"
-		return "Took %d Dried Weed." % take
+		return "Took %d %s." % [take, item_name(bid)]
 	var wet: int = int(state["wet"])
-	var hang: int = mini(GameState.count_item(who, "fresh_weed"), CAPACITY - wet)
-	if hang <= 0:
-		return "Nothing to hang." if wet < CAPACITY else "The rack is full."
-	GameState.remove_item(who, "fresh_weed", hang)
-	# New buds join the batch: weighted progress.
-	state["progress"] = float(state["progress"]) * wet / float(wet + hang)
-	state["wet"] = wet + hang
+	var fid: String = _hangable(func(id: String) -> int: return GameState.count_item(who, id))
+	if fid == "":
+		return "Nothing to hang (one quality per rack)." if wet < CAPACITY else "The rack is full."
+	var n: int = hang(fid, GameState.count_item(who, fid))
+	if n <= 0:
+		return "The rack is full."
+	GameState.remove_item(who, fid, n)
 	changed()
 	work = "hang"
-	return "Hung %d Fresh Weed. Dry in about %d hours." % [hang, ceili(DRY_HOURS * (1.0 - float(state["progress"])))]
+	return "Hung %d %s. Dry in about %d hours." % [n, item_name(fid), ceili(DRY_HOURS * (1.0 - float(state["progress"])))]

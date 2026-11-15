@@ -81,6 +81,15 @@ const LIST: Array = [
 	["raid_live", "Rank 2, night, AK + ammo in front of your meth lab: the Crows are coming", "The Crows texted: they raid your Starter Room in a moment (3 of them at the door). Kill them all within 2.5 minutes = raid won (+XP); if they're still standing they get in: half the product in the locker + a machine gone. Inside your property you're safe."],
 	["raid_guards", "Rank 4, 2 guards in your Starter Room, you far away, raid in a moment", "Nobody home: the guards fight. Hold F7: the Crows come; each guard takes one down, then they hold the lab (or not: 35% per guard). Read the texts (Tab). Tab > Crew: the guards' status."],
 	["roadside", "Rank 5, your Comet Sedan far away on Carlo's lot, you in front of the Starter Room", "Tab > Crew > Services: Roadside Service, 'Bring it here' (€350). A text; about 30 seconds later the car stands on the pavement of the nearest road (second text with the distance). F = get in. Not near a road / car already close = refused."],
+	["quality", "Rank 3: weed corner + cooking station next to a Fume Hood, premium supplies in your pockets, a customer for Premium Meth outside", "Weed: E on the pot under the lamp (soil, then the Premium Weed Seed is planted first, water) - the prompt says Good/Premium Weed plant; F7: harvest = Premium Fresh Weed, only a rack with the same quality takes it. Meth: E on the cooking station (uses the Pure Reagent: +1, the Fume Hood next to it: +1 = Premium), stir, cooling plate, packaging table = Bags of Premium Meth (gold stars in the hotbar). Outside: the customer pays Premium prices for 2 Bags of Premium Meth (E, Confirm). Tab > Crew > dealers sell the best bags first."],
+	["shooting_range", "Rank 2, at Walt's counter at the Hollow Creek Gun Club (north of Hollow Farm) with a pistol, ammo and €500", "E on Walt: the range window. Start a drill (€40): go to your lane (board under the roof), targets pop up one at a time, bullseye = 2 points; after 45 s you get the score + skill (less spread). Try a gun (€25, e.g. the sniper): it's yours while you stay on the range, walk away and Walt has it back. Free practice: shoot the standing targets - no police, nobody panics."],
+	["car_sounds", "12:00 behind the wheel of your Comet Sedan on the car lot, traffic on Main Road", "Listen: the engine idles, W = it revs up through the gears (pitch drops at each shift), let go = it coasts. Steer hard at speed or brake hard = tyres screech. Traffic cars have their own engine sound; stopping cars sometimes squeal their brakes. F = get out: the engine stops."],
+	["run_over", "12:00 in your Comet Sedan on the car lot, 3 people standing behind it and one beside it", "S = reverse into the people behind you: they are hit (from the back too; fast = dead, ragdoll + police heat like a murder). The one beside the car isn't hit when you drive past slowly; a hard turn swings the rear into people too."],
+	["car_roof", "12:00 on foot next to your parked Comet Sedan and a Mule Van, traffic on Main Road", "Space next to the car: you jump onto the bonnet, jump again: you stand on the roof. The van's roof is higher (jump from its bonnet). Traffic cars have the same shape."],
+	["dogs", "13:00 in the park, a dog walker right in front of you (a game of fetch starts in 3 s)", "Watch: the owner throws the ball, the dog runs off the lead, brings it back and drops it at the owner's feet. Then try: shoot the owner (1) -> the dog stays a moment and runs off; shoot a dog -> it goes limp (a crime, not a murder). Cars hit dogs too."],
+	["animals", "12:00 in the park: a pigeon flock in front of you, a cat 6 m to your right, birds on the roofs around", "Walk up to the pigeons: the flock flies up onto a roof and comes back down after a while (at night they stay up). Walk to the cat: it bolts. Fire a shot (1, LMB): every bird, pigeon and cat within ~45 m takes off. Look up: birds sit on ridges and gutters and now and then fly to another roof."],
+	["ducks", "12:00 on the quay, looking out over the harbour water", "Ducks swim and dabble on the sea and bob on the waves. Stay on the quay edge: the near ones swim away from you. Fire a shot (1, LMB): they fly off low over the water and land further on."],
+	["staff_assign", "Rank 4, Starter Room: weed corner, a Staff Locker with supplies (empty wage box), a grower working from it and a packager; you face the grower", "E on the grower: their locker, their stations (tick = on the route, max 6), Show = yellow arrow over it, the route at the bottom. Tick one pot: they walk to it and only work that one. E on the Staff Locker: the wage box - put in EUR 100. Hold F7 for a game day: the wage comes out of the box. Empty box at day end = the grower stops and texts you (Tab); money in = back to work."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -608,6 +617,119 @@ static func run(world: Node, id: String) -> bool:
 			buyer.accept_deal()
 			buyer.face(me.global_position)
 			Pedestrian.force_outcome = "fair"
+		"quality":
+			Progression.force_gates = true
+			Progression.debug_set_rank(3)
+			await _lab(world, sr, [["cook_station", Vector3(1.5, 0.15, -8.2)], ["cooling_plate", Vector3(1.6, 0.15, -6.9)],
+					["fume_hood", Vector3(-0.2, 0.15, -8.3)]])
+			world.call("debug_weed_corner")
+			await world.get_tree().physics_frame
+			for pot: GrowPot in Staff._stations_in("starter_room", GrowPot):
+				if pot.growth_rate() > 1.0:  # the pot under the lamp: empty, ready for a premium seed
+					pot.state = pot.default_state()
+					pot.changed()
+					break
+			_kit(me, 2000, [["premium_seed", 2], ["soil", 1], ["watering_can", 1], ["lab_chemicals", 2], ["activator", 1],
+					["pure_reagent", 1], ["baggie", 20], ["meth_bag_q3", 3]])
+			GameState.world["quality"] = {"meth_bag": 3}
+			var buyer: Pedestrian = world.call("_add_pedestrian", home_front + sr.building().global_basis.z * 3.0, 1)
+			buyer.become_customer(2, Products.price("meth_bag_q3", 60) * 2, 900.0, "meth_bag_q3")
+			buyer.accept_deal()
+			Pedestrian.force_outcome = "fair"
+			var qspot: Vector3 = sr.building().to_global(Vector3(0.6, 0.2, -6.6))
+			_place(me, qspot, sr.building().to_global(Vector3(1.5, 1.0, -8.2)), dn, 10.0)
+		"shooting_range":
+			Progression.force_gates = true
+			Progression.debug_set_rank(2)
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
+			for i: int in 3:
+				await world.get_tree().process_frame
+			var rg: ShootingRange = ShootingRange.current
+			if rg:
+				var at: Vector3 = rg.desk.global_position + rg.desk.global_basis.z * 1.4 + Vector3.UP * 0.2
+				_place(me, at, rg.desk.global_position + Vector3.UP * 1.5, dn, 14.0)
+				if "--range-view" in OS.get_cmdline_user_args():  # screenshot flag: down lane 2
+					var lane: Vector3 = rg.firing_spot(1)
+					_place(me, lane + Vector3.UP * 0.1, rg.target(1, 2).center(), dn, 14.0)
+			me.combat.host_set_mags([8])  # a loaded pistol
+		"car_sounds":
+			_kit(me, 500, [])
+			var cv: Vehicles = Vehicles.current
+			var c2: Node3D = world.find_child("CarDelivery2", true, false) as Node3D
+			if cv and c2:
+				var car: PlayerCar = cv.host_spawn("sedan", 2, c2.global_position, c2.global_rotation.y)
+				_place(me, car.global_transform * Vector3(-1.6, 0.1, 0.0), car.global_position + Vector3.UP * 0.8, dn, 12.0)
+				await world.get_tree().physics_frame
+				car.host_enter(me)
+		"run_over", "car_roof":
+			_kit(me, 500, [])
+			var rv: Vehicles = Vehicles.current
+			var r2: Node3D = world.find_child("CarDelivery2", true, false) as Node3D
+			var r3: Node3D = world.find_child("CarDelivery3", true, false) as Node3D
+			if rv and r2 and r3:
+				var sedan: PlayerCar = rv.host_spawn("sedan", 5, r2.global_position, r2.global_rotation.y)
+				if id == "car_roof":
+					rv.host_spawn("van", 0, r3.global_position, r3.global_rotation.y)
+					_place(me, sedan.global_transform * Vector3(-1.5, 0.1, -1.6), sedan.global_transform * Vector3(0, 1.0, -1.6), dn, 12.0)
+				else:
+					_place(me, sedan.global_transform * Vector3(-1.6, 0.1, 0.0), sedan.global_position + Vector3.UP * 0.8, dn, 12.0)
+					var back: Vector3 = sedan.global_basis.z
+					for i: int in 3:
+						var npc: Pedestrian = world.call("_add_pedestrian", sedan.global_position + back * (4.0 + i * 1.2)
+								+ sedan.global_basis.x * (i - 1) * 0.8, i + 3)
+						npc.hold_for_talk(sedan, 600.0)
+					var beside: Pedestrian = world.call("_add_pedestrian", sedan.global_transform * Vector3(1.6, 0.1, 0.0), 7)
+					beside.hold_for_talk(sedan, 600.0)
+					await world.get_tree().physics_frame
+					sedan.host_enter(me)
+		"dogs":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 24]])
+			var ppath: Array[Vector3] = world.call("park_path")
+			if ppath.size() >= 2:
+				var walker: ParkGoer = world.call("add_park_goer", ppath[0], ParkGoer.Role.DOG)
+				walker.laps_left = 100000
+				_place(me, ppath[0] + (ppath[1] - ppath[0]).normalized() * -5.0 + Vector3.UP * 0.2, ppath[0] + Vector3.UP, dn, 13.0)
+				await world.get_tree().create_timer(3.0).timeout
+				var dog: Dog = Dog.of(walker)
+				if dog:
+					dog.host_fetch(3)
+		"animals", "ducks":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 24]])
+			for i: int in 60:
+				if Wildlife.current and Wildlife.current.ready_done:
+					break
+				await world.get_tree().create_timer(0.1).timeout
+			var wl: Wildlife = Wildlife.current
+			if id == "ducks":
+				_place(me, Vector3(-104.0, 0.4, 102.5), Vector3(-104.0, 0.0, 116.0), dn, 12.0)
+			elif wl and not wl.flock_homes.is_empty():
+				var fh: Vector3 = wl.flock_homes[0]
+				var from: Vector3 = fh + Vector3(0, 0, 8.0)
+				_place(me, from + Vector3.UP * 0.3, fh + Vector3.UP, dn, 12.0)
+				wl.add_cat(from + Vector3(6.0, 0, 1.0))
+		"staff_assign":
+			Progression.force_gates = true
+			Progression.debug_set_rank(4)
+			_kit(me, 2000, [])
+			if Staff._stations_in("starter_room", GrowPot).is_empty():
+				world.call("debug_weed_corner")
+			var lab: Array = await _lab(world, sr, [["staff_locker", Vector3(-0.2, 0.15, -8.3)]])
+			var sl := lab[0] as StaffLocker
+			sl.state["items"] = [{"id": "soil", "count": 6}, {"id": "weed_seed", "count": 6}, {"id": "baggie", "count": 20}]
+			sl.state["wages"] = 0
+			sl.changed()
+			Staff.debug_hire(me.player_name, "grower", "starter_room")
+			Staff.debug_hire(me.player_name, "packager", "starter_room")
+			var g: Dictionary = {}
+			for r: Dictionary in Staff._members().values():
+				if r["role"] == "grower":
+					g = r
+			if not g.is_empty():
+				Staff.host_set_locker(me.player_name, str(g["uid"]), sl.station_id)
+				var gp: Vector3 = g["pos"]
+				var face: Vector3 = sl.global_basis.z
+				_place(me, gp + face * 2.2 + Vector3.UP * 0.1, gp + Vector3.UP * 1.5, dn, 12.0)
+			Staff._broadcast()
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)
@@ -737,7 +859,19 @@ static func run(world: Node, id: String) -> bool:
 				if a.begins_with("--crew="):  # staff window: --crew=crew / hire / dealer
 					var tab: String = a.trim_prefix("--crew=")
 					var first: String = Staff.members.keys()[0] if not Staff.members.is_empty() else ""
-					CrewWindow.open_for(me, "dealer" if tab == "dealer" else "crew", first)
+					if tab == "worker":  # (part 12: the first worker / the staff locker)
+						for uid: String in Staff.members:
+							if Staff.members[uid]["role"] != "dealer":
+								first = uid
+								break
+						CrewWindow.open_for(me, "worker", first)
+					elif tab == "locker":
+						for n: Node in world.get_tree().get_nodes_in_group(&"stations"):
+							if n is StaffLocker:
+								CrewWindow.open_for(me, "locker", (n as Station).station_id)
+								break
+					else:
+						CrewWindow.open_for(me, "dealer" if tab == "dealer" else "crew", first)
 					var w := me.ui.get_node("CrewWindow") as CrewWindow
 					w._tab = tab
 					w._refresh()

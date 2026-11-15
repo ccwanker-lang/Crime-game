@@ -60,6 +60,10 @@ STATIONS = {
     "coca_bed": ("Coca Bed", 300, 2, "A raised planter: 2 Coca Seedlings + 1 Soil grow into Coca Leaves. Water it halfway."),
     "leaf_press": ("Leaf Press", 1500, 1, "Presses 12 Coca Leaves + 1 Process Fluid into Coca Paste."),
     "refinery": ("Refinery", 2500, 1, "Refines Coca Paste into Cocaine. Vent the pressure halfway for a full batch."),
+    # Milestone 3 (session B): product quality.
+    "fume_hood": ("Fume Hood", 1800, 1, "Place it next to a Cooking Station or Refinery (within 2.5 m): every run comes out one quality step better."),
+    # Session B, NOTES part 12: staff assignment.
+    "staff_locker": ("Staff Locker", 250, 2, "A locker for your workers with a wage box: they take supplies from it, put the products back and take their daily wage from the box."),
 }
 
 
@@ -94,5 +98,5 @@ for i, (n, p, s, d) in FURNITURE.items():
 # The storage locker is just a cabinet, the trash bin a bin: legal (store + webshop).
 for i, (n, p, s, d) in STATIONS.items():
     assert os.path.exists(os.path.join(ROOT, "prefabs", "stations", i + ".tscn")), i
-    write(i, n, p, s, d, f"res://prefabs/stations/{i}.tscn", "station", legal=(i in ("storage_locker", "trash_bin")))
+    write(i, n, p, s, d, f"res://prefabs/stations/{i}.tscn", "station", legal=(i in ("storage_locker", "trash_bin", "staff_locker")))
 print(f"wrote {len(FURNITURE) + len(STATIONS)} items")

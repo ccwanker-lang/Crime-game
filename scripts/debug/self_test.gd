@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "bunker", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "bunker", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -61,6 +61,54 @@ func _check_staff(world: Node3D) -> void:
 ## Milestone 3 Crow raids on labs + guards (scripts/debug/raid_test.gd).
 func _check_raids(world: Node3D) -> void:
 	await RaidTest.run(self, world)
+
+
+## Session B (product quality): how many of `id` a player carries, every quality (Quality.variants).
+func _count_q(who: String, id: String) -> int:
+	var n: int = 0
+	for v: String in Quality.variants(id):
+		n += GameState.count_item(who, v)
+	return n
+
+
+## Milestone 3 product quality (scripts/debug/quality_test.gd).
+func _check_quality(world: Node3D) -> void:
+	await QualityTest.run(self, world)
+
+
+## NOTES part 12 staff assignment + staff locker wages (scripts/debug/staff_assign_test.gd).
+func _check_staff_assign(world: Node3D) -> void:
+	await StaffAssignTest.run(self, world)
+
+
+## Roadmap 68 birds, pigeons, cats, ducks (scripts/debug/animals_test.gd).
+func _check_animals(world: Node3D) -> void:
+	await AnimalsTest.run(self, world)
+
+
+## Roadmap 67 dogs as real NPCs (scripts/debug/dogs_test.gd).
+func _check_dogs(world: Node3D) -> void:
+	await DogsTest.run(self, world)
+
+
+## Roadmap 65 standing on cars (scripts/debug/car_roof_test.gd).
+func _check_car_roof(world: Node3D) -> void:
+	await CarRoofTest.run(self, world)
+
+
+## Roadmap 64 running people over from any side (scripts/debug/run_over_test.gd).
+func _check_run_over(world: Node3D) -> void:
+	await RunOverTest.run(self, world)
+
+
+## Roadmap 66 engine / tyre / brake sound (scripts/debug/engine_sound_test.gd).
+func _check_engine_sound(world: Node3D) -> void:
+	await EngineSoundTest.run(self, world)
+
+
+## Milestone 3 shooting range (scripts/debug/range_test.gd).
+func _check_range(world: Node3D) -> void:
+	await RangeTest.run(self, world)
 
 
 ## Milestone 3 bulk deals (scripts/debug/bulk_test.gd).
@@ -1456,19 +1504,20 @@ func _check_growing(world: Node3D) -> void:
 		pot.tick(1.0)
 	_report(int(pot.state["stage"]) == GrowPot.Stage.READY, "plant becomes ready to harvest")
 	pot._server_action(1)
-	_report(int(pot.state["stage"]) == GrowPot.Stage.EMPTY and GameState.count_item("Grower", "fresh_weed") == GrowPot.YIELD,
-			"harvest gives %d Fresh Weed and empties the pot" % GameState.count_item("Grower", "fresh_weed"))
+	# (Session B, product quality: grown under the lamp = Good Fresh Weed; count every quality.)
+	_report(int(pot.state["stage"]) == GrowPot.Stage.EMPTY and _count_q("Grower", "fresh_weed") == GrowPot.YIELD,
+			"harvest gives %d Fresh Weed and empties the pot" % _count_q("Grower", "fresh_weed"))
 
 	p.teleport(rack.global_position + rack.global_basis.z * 0.9 + Vector3.UP * 0.1)
 	await get_tree().physics_frame
 	_report(rack.prompt_for(p).begins_with("Hang"), "rack prompt: '%s'" % rack.prompt_for(p))
 	rack._server_action(1)
-	_report(int(rack.state["wet"]) == GrowPot.YIELD and GameState.count_item("Grower", "fresh_weed") == 0, "fresh weed hangs on the rack")
+	_report(int(rack.state["wet"]) == GrowPot.YIELD and _count_q("Grower", "fresh_weed") == 0, "fresh weed hangs on the rack")
 	rack.tick(DryingRack.DRY_HOURS + 0.1)
 	_report(int(rack.state["dry"]) == GrowPot.YIELD and int(rack.state["wet"]) == 0, "it dries after %d hours" % int(DryingRack.DRY_HOURS))
 	rack._server_action(1)
-	_report(GameState.count_item("Grower", "weed_bud") == GrowPot.YIELD and int(rack.state["dry"]) == 0,
-			"take %d Dried Weed off the rack" % GameState.count_item("Grower", "weed_bud"))
+	_report(_count_q("Grower", "weed_bud") == GrowPot.YIELD and int(rack.state["dry"]) == 0,
+			"take %d Dried Weed off the rack" % _count_q("Grower", "weed_bud"))
 	var visible_buds: int = 0
 	for c: Node in rack.get_children():
 		if c is MeshInstance3D and (c as MeshInstance3D).visible and (c as MeshInstance3D).mesh in [rack._bud_mesh_wet, rack._bud_mesh_dry]:
@@ -1944,7 +1993,7 @@ func _check_park(world: Node3D) -> void:
 		smokers.append(y)
 	var from: Vector3 = walker.global_position
 	await get_tree().create_timer(9.0).timeout
-	var dog: ProcDog = walker.get_node_or_null("Dog") as ProcDog
+	var dog: Dog = Dog.of(walker)  # (Roadmap 67, session B: the dog is a real NPC in World/Dogs now)
 	_report(dog != null and dog.global_position.distance_to(walker.global_position) < 2.0
 			and walker.global_position.distance_to(from) > 3.0, "a dog walker walks the park loop with its dog next to it (%.1f m)" % walker.global_position.distance_to(from))
 	var gathered: int = 0

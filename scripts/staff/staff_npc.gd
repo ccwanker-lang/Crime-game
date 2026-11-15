@@ -3,7 +3,8 @@ extends Node3D
 ## A crew member in the world (local visual on every peer, see StaffViews): a stationary
 ## Pedestrian model + a layer-2 body for the interact ray. Workers stand at the station they
 ## worked on last; dealers stand on the pavement in their district.
-## E: a worker tells what they are doing (toast); a dealer opens the dealer window (CrewWindow).
+## E: a dealer opens the dealer window, a worker the worker window (CrewWindow: their locker, stations, route).
+## A worker who moves to another station walks there (local tween).
 
 const PEDESTRIAN: PackedScene = preload("res://prefabs/npc/pedestrian.tscn")
 
@@ -11,6 +12,8 @@ var uid: String = ""
 var rec: Dictionary = {}
 var _npc: Pedestrian
 var _label: Label3D
+var _walk: Tween
+var _placed: bool = false
 
 
 func setup(r: Dictionary) -> void:
@@ -48,7 +51,26 @@ func setup(r: Dictionary) -> void:
 func update(r: Dictionary) -> void:
 	rec = r
 	if r.has("pos"):
-		position = r["pos"]  # (StaffViews sits at the world origin)
+		var to: Vector3 = r["pos"]  # (StaffViews sits at the world origin)
+		var far: float = position.distance_to(to)
+		if _walk:
+			_walk.kill()
+			_walk = null
+		var walk: bool = _placed and far > 0.4 and far < 25.0 and is_inside_tree() and _npc != null
+		_placed = true
+		if walk:
+			var d: Vector3 = to - position
+			rotation.y = atan2(-d.x, -d.z)
+			_npc.anim_state = Pedestrian.Anim.WALK
+			_walk = create_tween()
+			_walk.tween_property(self, "position", to, far / 1.3)
+			var yaw: float = float(r.get("yaw", 0.0))
+			_walk.tween_callback(func() -> void:
+				rotation.y = yaw
+				_npc.anim_state = Pedestrian.Anim.TALK)
+			_label.text = "%s (%s)" % [r["name"], Staff.role_name(str(r["role"]))]
+			return
+		position = to
 	rotation.y = float(r.get("yaw", 0.0))
 	_label.text = "%s (%s)" % [r["name"], Staff.role_name(str(r["role"]))]
 	if _npc:
@@ -67,6 +89,8 @@ func interact() -> void:
 		return
 	if rec.get("role") == "dealer":
 		CrewWindow.open_for(me, "dealer", uid)
+	elif str(rec.get("employer", "")) == me.player_name:
+		CrewWindow.open_for(me, "worker", uid)
 	else:
 		var status: String = str(rec.get("status", "working"))
 		me.ui.toast("%s: \"%s.\"" % [rec["name"], status.left(1).to_upper() + status.substr(1)])

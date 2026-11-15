@@ -7,6 +7,31 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all already in DESIGN/CHANGELOG/CLAUDE.md.
 New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
+(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker).
+
+## Planned (in this order, from Curry 2026-11-14)
+1. Part 9: product quality - done (below).
+2. Part 11: shooting range (rank 2): practice on targets, try every gun, a small skill bonus (less spread).
+3. Parts 13-17: taken over from A's list (user 2026-11-14; A doesn't do them; "E makes you crouch" is already fixed
+   by A), after the range and BEFORE part 12:
+   13. Engine sound for every car (idle, accelerating, revs) + tyres and brakes.
+   14. Running people over from any angle (ragdoll, damage, a wanted star for murder).
+   15. Jumping onto cars and standing on them (collision on the roof and bonnet).
+   16. Dogs as real NPCs: flee when their owner dies, can be killed, play fetch with their owner.
+   17. Birds (fly, sit on roofs), cats, pigeons, ducks by the water.
+   Animals spawn from code or markers (no world.tscn / gen_world.py). A's car scripts touched -> listed in B.md.
+4. Part 12 (last): staff assignment (Schedule I style):
+   - E on any worker opens a menu: their locker, their stations, and the route between them.
+   - A route per production chain, picked per station: meth = locker -> cooking station(s) -> cooling plate(s) ->
+     packaging table; weed = locker -> pots -> drying rack -> packaging table; coke = locker -> coca bed(s) ->
+     leaf press -> refinery -> packaging table. The worker takes supplies from their locker, carries them along the
+     route and puts the end product back in that locker.
+   - A max number of stations per worker (e.g. a cook: 2 cooking stations + 2 cooling plates), shown in the menu.
+   - Staff locker: a special locker with a wage slot. Put money in; every game day each worker assigned to it takes
+     their daily wage. Empty -> they stop working and text you.
+   No map files.
+
 ## Status
 Done: ranks 0-6 + crew XP, XP from sales / phone deals / fights, rank gates in shops + estate agent,
 HUD rank panel, saved with the world, host authoritative + synced, F9 scenario `ranks`, self-test check `ranks`.
@@ -398,3 +423,323 @@ Done: self-test check `bulk` PASS, scenario `bulk_deal` OK.
   by; the team brings a jerrycan: fuel up to 15% (~450 m, enough for the gas station), text says so. CrewWindow shows
   each car's fuel %. Why: A's "Out of fuel" text points to the tow team; without fuel the car can't move at all.
   Roadside self-test checks it.
+
+
+# Part 9: product quality (DESIGN Products "quality (better seeds/machines -> better customers)"; user 2026-11-14:
+# "better seeds, machines and mixes give higher quality, better customers and higher prices; weed, meth and coke")
+
+## Status
+Done: self-test check `quality` PASS (+ growing/meth/staff/raids/bulk still PASS), scenario `quality`.
+
+## How it works
+- 3 tiers: Standard (the existing item), Good (`<id>_q2`), Premium (`<id>_q3`) = separate items for fresh_weed,
+  weed_bud, weed_bag, meth_tray, meth_shard, meth_bag, cocaine, coke_bag (tools/generators/gen_quality_items.py:
+  same model via model_scene, price x1.4 / x1.9, icon = base icon + 1/2 gold stars). Helper `Quality`
+  (scripts/products/quality.gd): base/tier/with_tier/variants/best_with/word, `host_made` -> GameState.world["quality"].
+- Where quality is made:
+  - Weed: GrowPot: Premium Weed Seed (`premium_seed`, black market, rank 1, planted before normal seeds) +1, at least
+    half of the growth under a grow lamp (`state.lit`) +1. DryingRack holds one quality at a time (`state.tier`).
+  - Meth: CookStation (`ProcessStation.quality_step`): Pure Reagent (`pure_reagent`, rank 2, the `mix_id`, used up
+    when it is in your pockets / the cook's locker) +1, a Fume Hood (`fume_hood` station, rank 3, `FumeHood.RANGE`
+    2.5 m) +1. CoolingPlate passes the tray's quality on (tiered inputs: best quality first).
+  - Cocaine: Refinery = quality step (Pure Solvent `pure_solvent`, rank 4, + Fume Hood).
+  - PackagingTable.PACKS = every quality (`static var`), same quality in -> out.
+- Selling: `Products.price` x the tier factor (A's customer price + dealers + bulk). `Products.pick_customer_product`
+  -> `pick_quality`: once the crew made Good/Premium of a product, 50% of its customers ask for the best quality,
+  the rest for a lower one (so standard bags still sell). Customers want that exact item (A's _server_sell unchanged).
+- Dealers: `Staff.dealer_goods()` (was the const DEALER_GOODS) = every bag but standard weed, dearest first (old keys
+  "meth"/"coke" for the standard bags, item id for the others). Raids steal every quality. Staff grower plants
+  premium seeds first, hangs by quality; packager takes each rack's quality.
+
+## Decisions (what + why)
+- Quality as separate item ids, not a field on stacks: inventory, lockers, loot bags, dealers, police confiscation
+  and A's sale code are all id based, so nothing else had to change (and mixed stacks can't happen).
+- 3 tiers, +1 per source, max Premium: one "better ingredient" + one "better machine" per product, so every product
+  has the same two choices (seed/lamp, reagent/hood, solvent/hood). Mixes = the reagent/solvent (consumed per run).
+- Quality lives in the chain items up to the bag (fresh weed, buds, trays, shards, cocaine), not in coca leaves or
+  paste: the refinery is the cocaine quality step, so the earlier steps don't need tiers.
+- A rack holds one quality: drying mixed batches would need an average and lose the premium.
+- Price x1.4 (Good) / x1.9 (Premium): Premium weed (€114) is still below standard meth (€132), Premium meth is above
+  standard cocaine; supplies cost €45/€160/€220 per run, the hood €1,800 once.
+- Customers ask for what the crew has made (world["quality"]); 50% the best, so a crew with only Premium still
+  gets half its customers, and Standard keeps selling.
+- The growing self-test check (A's) counts every quality now (`_count_q`): its pot stands under the lamp = Good weed.
+
+## Existing files changed (part 9)
+- process_station.gd (`_plan`, `_quality_for`, `out_id`, `hood_near`, tier in state), cook_station.gd + refinery.gd
+  (quality_step + mix_id), grow_pot.gd (`plant`, `harvest_tier/harvest_id`, lit), drying_rack.gd (tier, `can_hang`,
+  `hang`, `bud_id`), packaging_table.gd (PACKS), products.gd (price/short_name/bag_ids/pick_quality + black market
+  stock), staff.gd (`dealer_goods()`, grower/packager), bulk_deals.gd (quality pick), raids.gd (loot), rank_config.gd
+  (gates + texts), gen_items.py (fume_hood). New: quality.gd, fume_hood.gd + prefab, gen_quality_items.py, 19 items
+  + icons, quality_test.gd. self_test.gd: "quality" at the end + `_count_q` in A's growing check. meth_test.gd:
+  compares product bases. scenarios.gd: quality.
+
+## Te testen door Curry
+- `quality` (F9): plant de Premium Weed Seed onder de lamp (prompt toont Good/Premium), kook meth naast de Fume Hood
+  met Pure Reagent = Premium (gouden sterren), en verkoop 2 Bags of Premium Meth aan de klant buiten.
+
+## For CLAUDE.md (suggested lines)
+- Product quality (milestone 3): `Quality` (scripts/products/quality.gd, tiers 1-3 = item ids `<id>_q2/_q3`,
+  gen_quality_items.py), sources: GrowPot premium_seed + lamp, ProcessStation `quality_step` (`mix_id` pure_reagent /
+  pure_solvent, `FumeHood`), `Products.pick_quality`, `Staff.dealer_goods()`. Scenario quality, self-test check quality.
+
+
+# Part 10: A's requests after 47a/47b (districts + property ranks)
+- StaffConfig.districts: "docks" (The Docks, anchor (-110.4, 0, 40) on Industrial Road's kerb, 0.8 sales/h, €75) and
+  "countryside" (Countryside, anchor (-146, 0, -60) on Country Lane's pavement, 0.5 sales/h, €80). Why: quiet areas
+  (A keeps few pedestrians in the west) sell slower but pay more; Territory picks them up by itself.
+- RankConfig.property_rank: barn 2, lab_warehouse 3, harbor_storage 4 (as A asked, = DESIGN Progression table);
+  rank texts name them.
+
+
+# Part 11: the shooting range (DESIGN Progression rank 2 "shooting range"; user 2026-11-14: "practice, try weapons,
+# maybe a small skill bonus")
+
+## Status
+Done: self-test check `range`, scenario `shooting_range`.
+
+## How it works
+- `ShootingRange` (scripts/range/shooting_range.gd): "Hollow Creek Gun Club", built in code on every peer (local, like
+  StaffViews) by the `RangeClub` autoload at the marker `ShootingRangeSpot` if the map has one, else at
+  (-100, 0, -124) facing west (the free strip north of Hollow Farm, between the tree row z -112 and the NW wall).
+  3 lanes, `RangeTarget` pop-up targets at 10/20/32 m (layer 2, `host_damage`/`is_head_hit` like a person; bullseye
+  9 cm), an earth berm, a covered firing line with a scoreboard per lane, the club hut with Walt (`RangeDesk`).
+- `RangeClub` (autoload/range_club.gd, HOST AUTHORITATIVE): E on Walt -> `RangeWindow` (scripts/ui/range_window.gd)
+  -> `request("drill"|"try"|"return", arg)` -> `host_request`. Rank 2 gate (Progression.gates_on()).
+  - Drill (€40, clean money first = a legal club): 45 s on a free lane, one target up at a time (1.7 s + 0.04 s/m),
+    hit 1 point, bullseye 2. Leaving the range or dying ends it. Result -> skill + best score + XP (score/2, max 10).
+  - Try a gun (€25): any LOADOUT gun (also above your rank) + 2 magazines; goes back (gun, its loaded rounds, unused
+    lent rounds) when you walk 45 m from the range, after 10 minutes or with "Hand it back". One at a time; not a gun
+    you already carry. player_data["range_loan"].
+  - Skill 0..1 per player name in GameState.world["range"]["skill"] (+ "best"), synced to every peer: gain per drill =
+    min(0.06, points x 0.004) x (1 - skill/2). `RangeClub.spread_factor(name)` = 1 - 0.2 x skill.
+- PlayerCombat (2 lines): `_spread` multiplies by `RangeClub.spread_factor`; `_host_fire` skips the hear_gunshot /
+  report_crime / cars calls when `RangeClub.covers(origin)` (legal gunfire). Hits/kills of people still count.
+- Free practice: lanes without a drill keep all targets up; hits give the normal hit marker.
+- Staff._broadcast also calls `RangeClub.sync()` (late join); clients ask for targets + skill when their range spawns.
+
+## Decisions (what + why)
+- Built in code at a fallback spot instead of in the map: the map is A's (world.tscn / gen_world.py). A can add a
+  Marker3D `ShootingRangeSpot` (position + yaw = shooters face its -Z) wherever it fits; the range moves there.
+- Skill bonus = only less spread, max 20%: small, visible with every gun, and no change to damage balance. Diminishing
+  gain so ~25-30 good drills get you most of it; it costs money (fee) and time, never free XP grinding (max 10 XP).
+- Loaner guns ignore the rank gate on purpose ("test weapons" before you can buy them), but they never leave the
+  range. A loaner that dies with you stays in your loot bag (rare at the range; not worth a special case).
+- The range is legal: no police, panic or traffic reaction to shots there; it is far west so nobody else is near.
+
+## Existing files changed (part 10 + 11)
+- player_combat.gd (2 hooks, see above), staff.gd (`RangeClub.sync()` in `_broadcast`), staff_config.gd (2
+  districts), rank_config.gd (property ranks + texts), project.godot (autoload RangeClub after BulkDeals). New:
+  range_club.gd, shooting_range.gd, range_target.gd, range_desk.gd, range_window.gd, range_test.gd. self_test.gd:
+  "range" at the end of CHECKS. scenarios.gd: shooting_range (before bulk_deal).
+
+## Te testen door Curry
+- `shooting_range` (F9): je staat bij Walt (rang 2). E = venster: start een drill (€40) en schiet de opduikende
+  doelen op je baan; probeer een geweer (€25, bv. de sniper) en loop weg: Walt heeft hem terug. Geen politie.
+
+## For CLAUDE.md (suggested lines)
+- Shooting range (milestone 3): `RangeClub` autoload (GameState.world["range"] skill/best, drills, loaner guns
+  `player_data.range_loan`, `covers(pos)` = legal gunfire, `spread_factor(name)` in PlayerCombat._spread), local build
+  `ShootingRange` (marker `ShootingRangeSpot` or FALLBACK_POS) + `RangeTarget` + `RangeDesk` (Walt) + `RangeWindow`.
+  Scenario shooting_range, self-test check range.
+
+
+# Parts 13-15: Roadmap 66 (engine sound), 64 (running people over from any side), 65 (standing on cars)
+# (taken over from A, user 2026-11-14)
+
+## Status
+Done: self-test checks `engine_sound`, `run_over`, `car_roof`; scenarios `car_sounds`, `run_over`, `car_roof`.
+
+## How it works
+- 66: `Ambience` (new autoload, autoload/ambience.gd, LOCAL on every peer) gives every Car (group "cars") and
+  PlayerCar (group "player_cars") a `VehicleSound` child (scripts/vehicles/vehicle_sound.gd) - no change in the car
+  scripts for sound. VehicleSound reads only the vehicle's movement (same on host and clients): speed -> simulated
+  6-gear box (`rpm_for`, rpm drops at each shift) -> pitch of two seamless engine loops (engine_on under load,
+  engine_off coasting/idle; crossfaded by acceleration); tyre screech loop on hard cornering (sideways accel > 7 m/s²)
+  or hard braking (> 8 m/s²); a brake squeal now and then (30%) when a car stops. Engine off: wrecks, abandoned
+  standing traffic cars, a PlayerCar without driver or fuel. Garbage truck lower + louder, own cars louder than
+  traffic. Only within 70 m of the camera. Sounds: tools/generators/gen_engine_sounds.py (numpy + ffmpeg) ->
+  assets/audio/vehicles/engine_on/engine_off/tyre_screech/brake_squeal.ogg.
+- 64: `PlayerCar._host_hits` checks the whole car + 35 cm all round (was a box at the nose) and per person the
+  `impact_speed`: the velocity of the car's point nearest to them, towards them (linear speed + the yaw rate's swing).
+  So: front, reversing, the swinging rear in a slide - all hit; someone standing beside a car that drives past isn't.
+  Same damage table as A's (HIT_SPEED 3, KILL_SPEED 10), kill = police report + Wanted kill + XP as before, plus
+  the `kill_hooks` group call (territory) like a shot. Victims ragdoll away from the car (Pedestrian._die).
+- 65: `CarShapes.add(body, kind, bottom)` (scripts/vehicles/car_shapes.gd) replaces the single collision box of Car
+  and PlayerCar by a body box (bonnet/boot height, full length) + a cabin box (roof height between cab_f and cab_b
+  of ProcCar.SPECS). A jump (1.18 m) reaches the bonnet (0.82 m sedan) and from there the roof (1.42 m). The outline
+  equals the old box, so traffic sensing / kerbs / hits / ProcCar.collision_size users are unchanged.
+
+## Decisions (what + why)
+- Engine sound from the movement, not from the car scripts' throttle: one component for traffic, own cars, the host
+  and clients, and A's car code stays as it is. Two loops with pitch instead of a generator per car: cheap with 10+
+  cars; the gearbox model gives the "revs up, shifts, revs up" sound everyone expects.
+- Hits by impact speed towards the person instead of a bigger box at the nose: "from any angle" without making
+  people die from simply standing next to a passing car.
+- Two boxes rather than a convex hull: cheap, exact enough to stand on, keeps the old outline.
+- Traffic cars still never run people over on purpose (A's traffic stops for people).
+
+## Existing files changed (parts 13-15)
+- scripts/vehicles/player_car.gd: `_host_hits` rewritten (+ `impact_speed`, `_hit_yaw*` vars, kill_hooks call),
+  `CarShapes.add` instead of the box in `_ready`. scripts/traffic/car.gd: `CarShapes.add` instead of the box
+  (one line). project.godot: autoload Ambience after RangeClub. self_test.gd: checks engine_sound, run_over, car_roof
+  at the end. scenarios.gd: car_sounds, run_over, car_roof (before bulk_deal).
+
+## Te testen door Curry
+- `car_sounds` (F9): je zit achter het stuur: stationair, W = optrekken door de versnellingen, hard sturen of remmen =
+  piepende banden. Verkeer heeft ook motorgeluid.
+- `run_over` (F9): S = achteruit de 3 mensen achter je in; degene naast de auto blijft ongedeerd als je langzaam
+  langsrijdt.
+- `car_roof` (F9): spring op de motorkap en daarna op het dak (ook van het busje).
+
+## For CLAUDE.md (suggested lines)
+- Car sound (Roadmap 66): `Ambience` autoload attaches `VehicleSound` (engine loops by simulated rpm `rpm_for`, tyre
+  screech, brake squeal; sounds from gen_engine_sounds.py) to every Car / PlayerCar. Check engine_sound, scenario
+  car_sounds. Run over (64): `PlayerCar.impact_speed` (any side), check run_over. Standing on cars (65):
+  `CarShapes.add` (body + cabin boxes), check car_roof.
+
+
+# Part 16: Roadmap 67 - dogs are real NPCs (taken over from A, user 2026-11-14)
+
+## Status
+Done: self-test check `dogs` (+ A's park check adapted), scenario `dogs`.
+
+## How it works
+- `Dog` (scripts/npc/dog.gd, CharacterBody3D on layer 3 = npcs, group "dogs"): `Ambience` makes one for every DOG
+  ParkGoer on EVERY peer at World/Dogs/Dog_<owner name> (same path everywhere -> the host's RPCs reach it; an old
+  dog with the same name goes). HOST AUTHORITATIVE: the host moves it (kinematic along navmesh paths: kerbs would stop
+  a small physics body) and sends `_net(pos, yaw, state)` 10x a second; clients smooth. `Dog.of(npc)` finds it.
+  Looks = ProcDog in its new `driven` mode (animation, lead while FOLLOW, ball in the mouth while `carrying`).
+- States: FOLLOW (on the lead beside the owner), FETCH_OUT / FETCH_BACK, MOURN, FLEE, DEAD.
+- Fetch: at a sniff stop ParkGoer._dog_step now plays fetch half the time (`Dog.auto_fetch`, off in tests):
+  `host_fetch(rounds)` - the owner faces a spot 7-13 m ahead (navmesh), throws (`_throw` RPC: a parabola on every peer),
+  the dog runs off the lead, picks the ball up, brings it back and drops it at the owner's feet; 2-3 rounds.
+- Owner killed -> the dog stays by the body 2.5 s, then runs 35 m away (navmesh path), wanders, gone after 45 s
+  (`_free_rpc`). Owner gone home -> the dog goes too.
+- Killing a dog (HEALTH 30, bullets and cars): `host_damage` returns false (no person kill / murder), the attacking
+  player is reported for assault; `_die(impulse)` on every peer: the visual rides a RigidBody3D "Carcass" (world layer
+  only) pushed away from the hit, legs loose; removed after 60 s.
+
+## Decisions (what + why)
+- One body + local visual per peer at a fixed path instead of a networked spawn: no spawner or World change needed
+  (World is A's), and the dog only exists while its owner does, which every peer sees the same.
+- Kinematic movement on navmesh paths: dogs must cross kerbs and park paths; a physics box got stuck on them.
+- Simple "ragdoll" = one rigid body with the dog on it: dogs have no skeleton; it falls, rolls and lies still.
+- Killing a dog is assault, not murder: stars, but not the murder response.
+
+## Existing files changed (part 16)
+- scripts/npc/park_goer.gd: no ProcDog in `_ready` (the Dog brings its own), `_dog_step` sniff stop -> fetch half the
+  time. scripts/npc/proc_dog.gd: `driven`, `lead_on`, `carrying` (+ ball mesh), `_animate` split out of `_process`
+  (the old behaviour is unchanged when not driven). autoload/ambience.gd: makes the dogs. self_test.gd: A's park check
+  uses `Dog.of(walker)`; new check "dogs". scenarios.gd: dogs.
+- REQUEST for A (world.gd is yours): the netcheck line `n.has_node("Dog")` (World ~line 258) -> `Dog.of(n) != null`
+  (now it prints 0 dogs; nothing fails).
+
+## Te testen door Curry
+- `dogs` (F9): in het park speelt een baasje apport met zijn hond (bal gooien, terugbrengen). Schiet het baasje neer:
+  de hond blijft even en rent weg. Een hond kan ook geraakt worden (valt slap neer).
+
+## For CLAUDE.md (suggested lines)
+- Dogs (Roadmap 67): `Dog` (scripts/npc/dog.gd, layer 3, World/Dogs/Dog_<owner>, made by `Ambience` on every peer,
+  host drives + `_net` RPC), `Dog.of(npc)`, `host_fetch`, `Dog.auto_fetch`, states FOLLOW/FETCH/MOURN/FLEE/DEAD,
+  ProcDog `driven`. Scenario dogs, self-test check dogs.
+
+
+# Part 17: Roadmap 68 - birds, pigeons, cats, ducks (taken over from A, user 2026-11-14)
+
+## Status
+Done: self-test check `animals`, scenarios `animals` (park) and `ducks` (quay). No map files touched.
+
+## How it works
+- `Wildlife` (scripts/ambient/wildlife.gd, node World/Wildlife): made by the `Ambience` autoload on EVERY peer once
+  the World is loaded (`--animals=0` = none). Purely local and cosmetic: no networking, no collision, no saves.
+  `Wildlife.current`, `census()`, `scare(pos, radius)` / static `scare_at(pos)`.
+- Spots without markers: roof spots are worked out from every `Building` (gable/hip ridge, front gutter, flat-roof
+  parapet; dropped when anything is above); cat spots = free flat ground (not a RoadTile) 1.5 m in front of and behind
+  buildings; pigeon flocks on the park path (World.park_path) + shop fronts; ducks in a box of sea by the quay
+  (only if the map has a `Sea`), bobbing on the same waves as water.gdshader.
+- `AmbientBird` kinds BIRD (24, on roofs, flies to another roof every 25-90 s, arc + flapping + glides), PIGEON
+  (flocks of 5-7: walk, peck, head bob; a player within 3.2 m / a car within 5 m -> the whole flock flies onto one roof,
+  back down after 12-28 s, not at night), DUCK (7: swim, dabble, swim away from people within 6 m, fly 16-28 m
+  low over the water from a gunshot). `AmbientCat` (6): sits (tail swish), strolls to another cat spot (forward ray =
+  walls, down ray = ground), bolts 9-15 m from a player within 4.5 m, a car within 3 m or a gunshot.
+- Gunshots: `WeaponFX.flash` calls `Wildlife.scare_at(muzzle)` (every peer sees every muzzle flash: players, police,
+  Crows): everything within 45 m takes off.
+- Cheap: meshes cached per look (`CritterMesh`), no shadows, animals > 110 m from the camera don't update.
+
+## Decisions (what + why)
+- Local per peer, not networked: the animals are decoration; syncing 40 animals costs bandwidth for nothing. Each
+  peer reacts to the same players, cars and shots, so they behave much alike.
+- Spots from Building data instead of markers: works for every house now and later without touching the map (A's).
+- No collision: animals never block players, cars or NPC paths, and bullets don't hit them (dogs remain the only
+  animals you can shoot).
+
+## Existing files changed (part 17)
+- scripts/weapons/weapon_fx.gd: `flash` first calls `Wildlife.scare_at` (1 line). autoload/ambience.gd: makes
+  World/Wildlife. self_test.gd: check "animals". scenarios.gd: animals, ducks.
+
+## Te testen door Curry
+- `animals` (F9): in het park staat een zwerm duiven voor je, een kat rechts. Loop naar de duiven: ze vliegen op een
+  dak en komen later terug. Loop naar de kat: hij rent weg. Schiet (1, linkermuis): alles in de buurt vliegt/rent weg.
+  Kijk omhoog: vogeltjes op nokken en dakgoten die soms naar een ander dak vliegen.
+- `ducks` (F9): eenden op het water bij de kade; ze dobberen op de golven en zwemmen van je weg; een schot = ze
+  vliegen laag over het water verder.
+
+## For CLAUDE.md (suggested lines)
+- Animals (Roadmap 68): `Wildlife` (scripts/ambient/, World/Wildlife, local per peer via `Ambience`, `--animals=0`),
+  `AmbientBird` BIRD/PIGEON/DUCK, `AmbientCat`, `CritterMesh`; roof spots from Building data, `Wildlife.scare_at`
+  from `WeaponFX.flash`; threats = players, cars, group `wildlife_threats` (tests). Scenarios animals/ducks, check animals.
+
+
+# Part 12: staff assignment (Schedule I style) + the staff locker (user 2026-11-14)
+
+## Status
+Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags `--crew=worker` / `--crew=locker`).
+
+## How it works
+- E on one of YOUR workers (StaffNPC) opens CrewWindow mode "worker": status + wage, "Their locker" (any locker
+  here / a storage locker / staff locker / bookshelf in their property), the stations they may work (tick boxes,
+  `Staff.assign_kinds(role)`: grower = grow pots, coca beds, drying racks; cook = cooking stations, cooling plates,
+  leaf press, refinery; packager = drying racks, packaging tables), "Stations n / max" (`StaffConfig.max_stations`:
+  grower 6, cook 4, packager 3), who else uses a station, "Show" = a yellow arrow over it for 6 s, and the route
+  ("Staff Locker -> Grow Pot 1 -> Drying Rack -> Staff Locker", `Staff.route_text`). Others' workers still just talk.
+- Host: worker records get "locker" (station id, "" = any) and "stations" (ids, empty = automatic = the old
+  behaviour: every fitting station in the property). The step functions use `_work_stations(rec, kind)` /
+  `_work_lockers(rec)`, so a worker takes supplies only from their locker, works only their stations and puts the
+  products back in their locker. Requests: Staff.request("assign", uid, station_id) (toggle), ("locker", uid, id).
+  `station_title` numbers stations per kind ("Grow Pot 2"); `station_by_id`, `assignable_stations/lockers`.
+- `StaffLocker` (scripts/stations/staff_locker.gd, StorageLocker subclass, item `staff_locker` €250, legal, sold by
+  every shop that sells the storage locker via Products at runtime; counts as a bed for staff): state "wages" = the
+  wage box. E = CrewWindow mode "locker": the box, wages per day, "enough for n days", Put in €100/500/1000, Take it
+  all out, its workers, "Open the storage". Request ("wages", station_id, +/-amount), host checks distance.
+- Wages: a worker whose locker is a staff locker takes the daily wage from the box; box short -> `unpaid`, status
+  "stopped: no wage money", one text to the boss, NO work, but they don't quit. Money in (or another locker) ->
+  `_try_back_to_work` takes the wage, texts "back at work". Workers without a staff locker: paid from your pocket
+  as before (and quit when you can't pay).
+- A worker who is moved to another station walks there (StaffNPC tween + WALK anim, local).
+
+## Decisions (what + why)
+- Station list with tick boxes instead of clicking stations in the world: no change to player.gd (A's), works the
+  same for host and clients, and the "Show" arrow still points at the real object.
+- Nothing ticked = automatic: old saves and existing crews keep working unchanged.
+- Unpaid staff-locker workers stop instead of quitting: that's the point of the wage box (a buffer you refill).
+- Several workers may share a station (Schedule I forbids it; here it only shows "also: name").
+
+## Existing files changed (part 12)
+- autoload/staff.gd (assignment, `_work_*`, wages from the box, requests), scripts/staff/staff_config.gd
+  (`max_stations`, staff_locker in `bed_items`), scripts/staff/staff_npc.gd (E opens the worker window, walk tween),
+  scripts/ui/crew_window.gd (modes worker + locker), scripts/placement/placement.gd (STATION_BOXES staff_locker),
+  autoload/products.gd (shops with storage_locker get staff_locker), tools/generators/gen_items.py (+ staff_locker),
+  self_test.gd (check staff_assign), scenarios.gd (staff_assign, `--crew=worker|locker`).
+- Also fixed in part 16/17: a dog now also picks up a ball that lies just off the navmesh; a scared duck picks a
+  landing spot inside the duck water far enough away.
+
+## Te testen door Curry
+- `staff_assign` (F9): E op de grower: kies hun kast, vink een pot aan (ze lopen erheen en werken alleen die),
+  "Show" toont een gele pijl, onderaan de route. E op de Staff Locker: stop er €100 in. Houd F7 een speldag
+  ingedrukt: het loon gaat uit de kas. Lege kas = de grower stopt en sms't je; geld erin = weer aan het werk.
+
+## For CLAUDE.md (suggested lines)
+- Staff assignment (part 12): worker rec "locker"/"stations" (empty = automatic), `Staff._work_stations/_work_lockers`,
+  `assign_kinds`, `StaffConfig.max_stations`, `route_text`, requests assign/locker/wages; `StaffLocker` (wage box
+  state "wages", item staff_locker), CrewWindow modes worker/locker. Scenario staff_assign, check staff_assign.

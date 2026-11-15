@@ -41,8 +41,18 @@ func _build() -> void:
 	add_child(cs)
 
 
-## Product -> packaged unit (milestone 3: meth; cocaine later). 1 product + 1 baggie -> 1 bag.
-const PACKS: Array = [["weed_bud", "weed_bag"], ["meth_shard", "meth_bag"], ["cocaine", "coke_bag"]]
+## Product -> packaged unit (milestone 3: weed, meth, cocaine). 1 product + 1 baggie -> 1 bag, the same quality
+## (Quality: weed_bud_q3 -> weed_bag_q3). Best quality first per product.
+const BASE_PACKS: Array = [["weed_bud", "weed_bag"], ["meth_shard", "meth_bag"], ["cocaine", "coke_bag"]]
+static var PACKS: Array = _all_packs()
+
+
+static func _all_packs() -> Array:
+	var out: Array = []
+	for pk: Array in BASE_PACKS:
+		for t: int in [3, 2, 1]:
+			out.append([Quality.with_tier(pk[0], t), Quality.with_tier(pk[1], t)])
+	return out
 
 
 func prompt_for(player: Player) -> String:

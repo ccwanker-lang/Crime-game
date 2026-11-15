@@ -169,12 +169,7 @@ func _ready() -> void:
 		_wheel_sign.append(1.0 if w.rotation.y == 0.0 else -1.0)  # left wheels are turned around
 	for c: Node in find_children("Steer*", "", true, false):
 		_steer_pivots.append(c as Node3D)
-	var shape := CollisionShape3D.new()
-	var box := BoxShape3D.new()
-	box.size = ProcCar.collision_size(kind)
-	shape.shape = box
-	shape.position.y = 0.3 + box.size.y / 2.0
-	add_child(shape)
+	CarShapes.add(self, kind, 0.3)  # body + cabin: people can stand on the bonnet and the roof (Roadmap 65, B)
 	_horn = AudioStreamPlayer3D.new()
 	_horn.unit_size = 5.0
 	_horn.volume_db = -12.0

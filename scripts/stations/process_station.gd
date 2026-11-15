@@ -29,10 +29,15 @@ var attend_verb: String = "Attend"
 var attend_flag: String = "!"
 var attend_done: String = "Done."
 var work_attend: String = "water"
+## Product quality (Quality): a tiered input carries its tier to the output (cooling plate: Good tray -> Good
+## shards). A `quality_step` machine (cooking station, refinery) is where quality is made: +1 when a `mix_id`
+## item is at hand at the start (consumed), +1 with a Fume Hood within FumeHood.RANGE.
+var quality_step: bool = false
+var mix_id: String = ""
 
 
 func default_state() -> Dictionary:
-	return {"stage": Stage.IDLE, "progress": 0.0, "out": 0, "attend": 0}  # attend: 0 not yet, 1 needed now, 2 done
+	return {"stage": Stage.IDLE, "progress": 0.0, "out": 0, "attend": 0, "tier": 1}  # attend: 0 not yet, 1 needed now, 2 done
 
 
 func pick_up_blocker() -> String:
@@ -62,6 +67,46 @@ func needs_attention() -> bool:
 	return int(state["stage"]) == Stage.RUNNING and int(state["attend"]) == 1
 
 
+## The output item of the current run at its quality ("meth_tray_q2").
+func out_id() -> String:
+	return Quality.with_tier(output_id, int(state.get("tier", 1)))
+
+
+## Fume Hood (FumeHood) within range: +1 quality on a quality_step machine.
+func hood_near() -> bool:
+	for h: Node in get_tree().get_nodes_in_group(&"fume_hoods"):
+		if (h as Node3D).global_position.distance_to(global_position) <= FumeHood.RANGE:
+			return true
+	return false
+
+
+## Picks the inputs (best quality first) with `count(id) -> int`; {} if something is missing, else
+## {"take": {id: n}, "tier": run quality before the quality_step bonus}.
+func _plan(count: Callable) -> Dictionary:
+	var take: Dictionary = {}
+	var tier: int = 0
+	for id: String in inputs:
+		var v: String = Quality.best_with(id, int(inputs[id]), count)
+		if v == "":
+			return {}
+		take[v] = int(inputs[id])
+		if Quality.is_tiered(id):
+			tier = Quality.tier(v) if tier == 0 else mini(tier, Quality.tier(v))
+	return {"take": take, "tier": maxi(tier, 1)}
+
+
+## Run quality after the quality_step bonus; takes one `mix_id` with `take(id, n)` when `count` has it.
+func _quality_for(tier: int, count: Callable, take: Callable) -> int:
+	if not quality_step:
+		return tier
+	if mix_id != "" and int(count.call(mix_id)) > 0:
+		take.call(mix_id, 1)
+		tier += 1
+	if hood_near():
+		tier += 1
+	return clampi(tier, 1, Quality.MAX)
+
+
 ## Output count of a finished run.
 func _yield() -> int:
 	if attend_at < 0.0:
@@ -83,16 +128,13 @@ func status_text() -> String:
 		Stage.RUNNING:
 			return "%s: %d%%" % [label, int(float(state["progress"]) * 100.0)]
 		Stage.DONE:
-			return "%s: %d %s ready" % [label, int(state["out"]), item_name(output_id)]
+			return "%s: %d %s ready" % [label, int(state["out"]), item_name(out_id())]
 	return "%s (empty)" % label
 
 
 ## Owner side: can the carried items start a run?
 func _has_inputs_carried(player: Player) -> bool:
-	for id: String in inputs:
-		if carried(player, id) < int(inputs[id]):
-			return false
-	return true
+	return not _plan(func(id: String) -> int: return carried(player, id)).is_empty()
 
 
 func prompt_for(player: Player) -> String:
@@ -102,9 +144,12 @@ func prompt_for(player: Player) -> String:
 		Stage.RUNNING:
 			return status_text()
 		Stage.DONE:
-			return "Take %d %s   [%s]" % [int(state["out"]), item_name(output_id), label]
+			return "Take %d %s   [%s]" % [int(state["out"]), item_name(out_id()), label]
 	if _has_inputs_carried(player):
-		return "%s  (uses %s)" % [start_verb, inputs_text()]
+		var extra: String = ""
+		if quality_step and mix_id != "" and carried(player, mix_id) > 0:
+			extra = " + 1 %s: +1 quality" % item_name(mix_id)
+		return "%s  (uses %s%s)" % [start_verb, inputs_text(), extra]
 	return "%s - bring %s" % [label, inputs_text()]
 
 
@@ -119,28 +164,36 @@ func do_action(player: Player) -> String:
 				return attend_done
 			return "%s: %d%%." % [label, int(float(state["progress"]) * 100.0)]
 		Stage.DONE:
-			var n: int = mini(int(state["out"]), GameState.space_for(who, output_id))
+			var oid: String = out_id()
+			var n: int = mini(int(state["out"]), GameState.space_for(who, oid))
 			if n <= 0:
 				return "Your pockets are full."
-			GameState.give(who, 0, [{"id": output_id, "count": n}])
+			GameState.give(who, 0, [{"id": oid, "count": n}])
 			_took(n)
 			work = work_take
-			return "Took %d %s." % [n, item_name(output_id)]
-	for id: String in inputs:
-		if GameState.count_item(who, id) < int(inputs[id]):
-			return "You need %s." % inputs_text()
-	for id: String in inputs:
-		GameState.remove_item(who, id, int(inputs[id]))
-	_start()
+			return "Took %d %s." % [n, item_name(oid)]
+	var count := func(id: String) -> int: return GameState.count_item(who, id)
+	var remove := func(id: String, n: int) -> void: GameState.remove_item(who, id, n)
+	var plan: Dictionary = _plan(count)
+	if plan.is_empty():
+		return "You need %s." % inputs_text()
+	for id: String in plan["take"]:
+		remove.call(id, int(plan["take"][id]))
+	_start(_quality_for(int(plan["tier"]), count, remove))
 	work = work_start
-	return "%s: done in about %d hours." % [label, ceili(hours)]
+	var q: String = Quality.NAMES[int(state["tier"])]
+	return "%s: done in about %d hours.%s" % [label, ceili(hours),
+			(" Quality: %s." % q) if Quality.is_tiered(output_id) else ""]
 
 
-func _start() -> void:
+func _start(tier: int = 1) -> void:
 	state["stage"] = Stage.RUNNING
 	state["progress"] = 0.0
 	state["out"] = 0
 	state["attend"] = 0
+	state["tier"] = tier
+	if _is_host():
+		Quality.host_made(Quality.with_tier(output_id, tier))
 	changed()
 
 
@@ -159,12 +212,12 @@ func _took(n: int) -> void:
 func staff_load(have: Callable, take: Callable) -> bool:
 	if int(state["stage"]) != Stage.IDLE:
 		return false
-	for id: String in inputs:
-		if int(have.call(id)) < int(inputs[id]):
-			return false
-	for id: String in inputs:
-		take.call(id, int(inputs[id]))
-	_start()
+	var plan: Dictionary = _plan(have)
+	if plan.is_empty():
+		return false
+	for id: String in plan["take"]:
+		take.call(id, int(plan["take"][id]))
+	_start(_quality_for(int(plan["tier"]), have, take))
 	return true
 
 
@@ -173,7 +226,7 @@ func staff_take(put: Callable) -> int:
 	if int(state["stage"]) != Stage.DONE:
 		return 0
 	var n: int = int(state["out"])
-	var left: int = int(put.call(output_id, n))
+	var left: int = int(put.call(out_id(), n))
 	if n - left > 0:
 		_took(n - left)
 	return n - left
