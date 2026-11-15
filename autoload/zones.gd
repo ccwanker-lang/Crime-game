@@ -14,7 +14,7 @@ extends Node
 const SOLDIER_SCENE: String = "res://prefabs/npc/soldier.tscn"
 const PEDESTRIAN_SCENE: String = "res://prefabs/npc/pedestrian.tscn"
 ## World rectangles (x0, z0, w, d) from DESIGN "Map layout".
-const ARMY_RECT: Rect2 = Rect2(-104.0, -430.0, 68.0, 80.0)
+const ARMY_RECT: Rect2 = Rect2(-104.0, -442.0, 340.0, 92.0)  # (A's point 85: the fence now takes in the airfield east of the old base)
 const SLUM_RECT: Rect2 = Rect2(-108.0, -132.0, 183.0, 68.0)
 const CITY_RECT: Rect2 = Rect2(-65.0, 130.0, 180.0, 240.0)
 ## The boom gate on the west fence (the pass road ends here).
