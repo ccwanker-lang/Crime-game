@@ -45,9 +45,17 @@ func _run() -> void:
 	for a: String in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):
 			only = a.trim_prefix("--only=").split(",")
+	# A SCRIPT ERROR inside a check aborts that check function; it must count as a FAIL, not pass unnoticed.
+	var errors := ScriptErrorCounter.new()
+	OS.add_logger(errors)
 	for check: String in CHECKS:
 		if only.is_empty() or check in only:
+			var before: int = errors.count()
 			await call("_check_" + check, world)
+			var n: int = errors.count() - before
+			if n > 0:
+				_report(false, "check '%s': %d SCRIPT ERROR(s), last: %s" % [check, n, errors.last()])
+	OS.remove_logger(errors)
 	print("[SelfTest] Done: %s" % ("ALL PASSED" if _fails == 0 else "%d FAILED" % _fails))
 	Net.leave_game()
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -1066,13 +1074,20 @@ func _free_floor(world: Node3D, item: ItemData, prop: Property, p: Player) -> Ve
 
 # --- Real estate (point 8) -----------------------------------------------------------
 
+## A property's building, or the property node itself when it has none (the bunker: BunkerProperty sits in
+## Mountain/Bunker, no Building parent).
+func _prop_anchor(prop: Property) -> Node3D:
+	var b: Building = prop.building()
+	return b if b != null else prop
+
+
 func _check_real_estate(world: Node3D) -> void:
 	# Point 35: every property has a map spot inside its own building (owned icon / for-sale pin).
 	var bad: PackedStringArray = []
 	for n: Node in get_tree().get_nodes_in_group(&"properties"):
 		var prop := n as Property
 		var spot: Vector2 = PhoneMap.property_spot(prop)
-		if not prop.contains(Vector3(spot.x, prop.building().global_position.y + 0.5, spot.y)):
+		if not prop.contains(Vector3(spot.x, _prop_anchor(prop).global_position.y + 0.5, spot.y)):
 			bad.append(prop.display_name)
 	_report(bad.is_empty(), "map: every property's icon sits on its own building%s" % (" (wrong: %s)" % ", ".join(bad) if not bad.is_empty() else ""))
 	var agent: EstateAgent = world.find_child("Agent", true, false) as EstateAgent
@@ -1134,10 +1149,10 @@ func _check_real_estate(world: Node3D) -> void:
 	var to_police: float = 1000.0
 	var homes: Array = agent.listings().filter(func(q: Property) -> bool: return q.property_id != &"south_warehouse")
 	for i: int in homes.size():
-		var bi: Node3D = (homes[i] as Property).building()
+		var bi: Node3D = _prop_anchor(homes[i] as Property)
 		to_police = minf(to_police, bi.global_position.distance_to(station.global_position))
 		for j: int in range(i + 1, homes.size()):
-			closest = minf(closest, bi.global_position.distance_to((homes[j] as Property).building().global_position))
+			closest = minf(closest, bi.global_position.distance_to(_prop_anchor(homes[j] as Property).global_position))
 	_report(homes.size() >= 5 and closest > 25.0 and to_police > 40.0,
 			"%d properties spread out: at least %.0f m apart, %.0f m or more from the police station" % [homes.size(), closest, to_police])
 	# An old save (all on South Street) carries what stood inside along to the new spot.

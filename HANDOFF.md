@@ -120,3 +120,5 @@
   widen Zones.ARMY_RECT to the new base.
   Full self-test on the merge + Crow fix: 815 PASS, ALL PASSED; after point 85: checks army, airfield, ground, zones,
   pass, bunker, grass, lamps PASS; netcheck 7794 both exit 0.
+- 2026-11-15: self-test counts SCRIPT ERRORs per check as FAIL (ScriptErrorCounter); real_estate copes with the bunker
+  (no Building). Full self-test on main with point 85: 836 PASS, ALL PASSED, no script errors; netcheck 7794 both exit 0.

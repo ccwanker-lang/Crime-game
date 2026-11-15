@@ -1199,6 +1199,12 @@ Choices made while working autonomously (what + why).
   walk straight lines there). A sets ArmyPost*/ArmyPatrolA*/B* markers (B's Zones reads them): the old posts with the
   moved vehicle hangars + posts at the tower, the apron and both runway ends; patrol B runs the lane behind the jet
   hangars. B still has ARMY_RECT = the old base in zones.gd (asked in A.md to widen it).
+- Self-test (after point 85): a SCRIPT ERROR inside a check used to abort that check function silently (the run went on
+  and could still say ALL PASSED - B saw it in `_check_real_estate`, where the bunker's Property has no Building).
+  Now `ScriptErrorCounter` (an engine Logger, OS.add_logger) counts script errors from any script while a check runs
+  and the self-test reports a FAIL for that check with the last error. Why a logger: GDScript has no try/catch, the
+  logger also catches errors in game code the check triggers. `_check_real_estate` uses `_prop_anchor(prop)` (the
+  building, else the property node itself) so properties without a Building (the bunker) are checked too.
 - Crow check fix (A, after the B merge): the "sent Crow comes for the seller" check failed ~half the runs (3-8 m
   closer in 15 s). The Crow ran fine at 4 m/s; `spot_near` picked a spot 25-38 m away in a straight line that could
   sit behind a block, so the walk was much longer (once it first ran away: 27 -> 35 m). Now the spot needs a navmesh

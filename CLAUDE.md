@@ -63,7 +63,8 @@ Godot console exe:
   road (except zebras) and keep moving, player jump/speed/crouch, combat (ammo, reload, damage, death,
   loot bag, respawn), stairs (walker up/down every flight + NPC navmesh to every top floor). Run it after
   map/door/NPC/player/combat changes; it prints PASS/FAIL. `--only=stairs,traffic` runs just those checks
-  (names = `CHECKS` in self_test.gd). The door/player checks use `player.tscn` with `auto_walk`.
+  (names = `CHECKS` in self_test.gd). The door/player checks use `player.tscn` with `auto_walk`. A SCRIPT ERROR during a
+  check counts as a FAIL ("check 'x': n SCRIPT ERROR(s)", `ScriptErrorCounter` = a Logger via `OS.add_logger`).
 - Network check: `python tools/netcheck.py [port]` runs both sides and kills both process trees afterwards
   (a shell `timeout` only kills the console wrapper: the real Godot keeps the port). Manual form (headless):
   `-- --host --port=7792 --netcheck --name=Host`, then 4 s later
