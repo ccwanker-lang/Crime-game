@@ -8,7 +8,7 @@ part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 18 (zone systems: army base, slums, city, bunker), Part 19 (missions), Part 20
-(dialogue). Each part below has "How it works", "Decisions", "For CLAUDE.md".
+(dialogue), Part 21 (city life + army base life). Each part below has "How it works", "Decisions", "For CLAUDE.md".
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -902,3 +902,48 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   actions START_MISSION/FINISH_STEP), talkers `TalkNPCData` in data/dialogue/npcs/ (Missions.talkers, `talkers_on`),
   `DialogueBox.open_for`, `Missions.host_talk` / `_show_talk` / `host_step_done`, `last_talk` (tests). Scenario
   mission_contact (`--talk`), check missions.
+
+
+# Part 21: city life + army base life (user feedback 2026-11-15 "de stad en de militaire basis voelen leeg")
+
+## How it works
+- City (`CityLife`, scripts/world/city_life.gd, static helpers used by `Zones` on the host): the city has no navmesh,
+  so walkers follow a SIDEWALK GRAPH built from the road grid (CX/CZ junctions as in gen_world, 4 corner nodes per
+  junction 5.4 m off the road centre, edges along the block sides + across at the junctions). Spots
+  (`CityLife.spots(world)` = `Zones.city_spots()`), each with opening hours:
+  - office groups of 3 in front of every 3rd `Tower` (07-20), 2 neighbours at the door of every `ApartmentBlock*`
+    (A's point 76, 08-22:30), bus stop queues of 3 (A's `CityBusStop*` markers, else mid-block on the two middle
+    avenues, 06-23), sitters on `TerraceSeat*` markers or the CityBench seats (2 of every 3, 08-22),
+  - 26 walkers on the graph by day, 8 of them also at night (`WALKERS_DAY` / `WALKERS_NIGHT`).
+  City residents wear office / business clothes (`CityLife.OFFICE_VARIANTS`). Out of hours they go (unless they are a
+  customer right now). Once a player comes near the city, `Traffic.spawn_cars(CityLife.EXTRA_CARS (8), true)` adds
+  cars on the city routes.
+- Army base (`Zones.guard_posts()`): A's `ArmyPost*` markers when they exist (name with "Chat" = chatting), else my
+  own posts: 2 at the gate, 2 at the flag, 4 chatting in front of the hangars, 3 at the helipads, 2 by the vehicle
+  row; a marksman (`gun` sniper, `Soldier.MARKSMAN_PROFILE`) on top of every `Watchtower*`; 2 patrols of 2 walking a
+  closed round of straight legs (`Soldier.route`, `_walk_route`; A's `ArmyPatrolA*`/`B*` markers win). Profiles
+  data/npc/soldier.tres (AK, sight 60 m, accurate 5-round bursts, 14 dmg) and soldier_marksman.tres (sniper, sight
+  95 m, 40 dmg). The base is manned only while a player is within `ARMY_MAN_RANGE` (220 m) and emptied (idle soldiers)
+  past `ARMY_LEAVE_RANGE` (300 m): ~21 soldiers' AI only runs when someone can see them.
+
+## Decisions (what + why)
+- Sidewalk graph instead of asking A for a city navmesh: works now without touching the map; A's markers / a navmesh
+  later replace it without changes elsewhere.
+- Soldiers get their own profiles (the old one was the Crows' rival_ak with sight 26 m: they reacted too late), the
+  tower guards sniper rifles: "zwaarder dan de politie".
+- Manning by distance: 20+ soldiers + 50 city people would cost the host AI time everywhere on the map.
+
+## Existing files changed (part 21)
+- autoload/zones.gd (city spots, hours, walkers/sitters, extra traffic, army posts/patrols/marksmen/manning),
+  scripts/npc/soldier.gd (profiles, route, chatty), zones_test.gd (army + city life checks), scenarios.gd.
+
+## Te testen door Curry
+- `city_life` (F9): drukke stad op een hoek: lopers op de stoepen, groepjes bij torens, wachtenden bij bushaltes,
+  mensen op bankjes, meer auto's. F7: na 22:00 wordt het stil.
+- `army_life` (F9): bij de poort van de basis (god mode): wachters, patrouilles, scherpschutters op de torens.
+  Loop naar binnen: alarm.
+
+## For CLAUDE.md (suggested lines)
+- City life (part 21): `CityLife` (sidewalk graph, `spots`, `walk_step`, `sit`, WALKERS_DAY/NIGHT, EXTRA_CARS), markers
+  CityBusStop*/TerraceSeat* optional. Army: `Zones.guard_posts()` (ArmyPost*/ArmyPatrolA*/B* optional), `Soldier.route`
+  / `chatty` / MARKSMAN_PROFILE, ARMY_MAN_RANGE. Scenarios city_life, army_life; check zones.

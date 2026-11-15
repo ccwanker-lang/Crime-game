@@ -15,7 +15,10 @@ const CAMO: Dictionary = {
 	"LightBrown": Color(0.42, 0.4, 0.3),    # trousers: khaki
 	"LightBlue": Color(0.08, 0.08, 0.08),   # boots: black
 }
-const SOLDIER_PROFILE: NpcCombatProfile = preload("res://data/npc/rival_ak.tres")
+## Part 21: their own profiles (better than the Crows' and the police: sight 60 m, accurate bursts); the tower
+## guards are marksmen with a sniper rifle (sight 95 m, one heavy shot).
+const SOLDIER_PROFILE: NpcCombatProfile = preload("res://data/npc/soldier.tres")
+const MARKSMAN_PROFILE: NpcCombatProfile = preload("res://data/npc/soldier_marksman.tres")
 const HEALTH: int = 150
 const REINFORCEMENT_HEALTH: int = 220
 ## How far from their post (and from the base) soldiers follow someone.
@@ -26,13 +29,20 @@ const WATCH_RANGE: float = 60.0
 ## Spawn-synced: the guard post's look direction.
 var post_yaw: float = 0.0
 var reinforcement: bool = false
+## Host (part 21): a patrol walks these points in a loop (straight lines); empty = a post.
+var route: Array[Vector3] = []
+var _route_i: int = 0
+## Host: a post where two soldiers chat (TALK now and then).
+var chatty: bool = false
 
 
 func _ready() -> void:
-	gun = &"ak47"
-	profile = SOLDIER_PROFILE
+	if gun == &"":
+		gun = &"ak47"
+	var prof: NpcCombatProfile = MARKSMAN_PROFILE if gun == &"sniper" else SOLDIER_PROFILE
+	profile = prof
 	super._ready()
-	profile = SOLDIER_PROFILE
+	profile = prof
 	health = REINFORCEMENT_HEALTH if reinforcement else HEALTH
 	add_to_group(&"soldiers")
 
@@ -112,6 +122,9 @@ func _patrol() -> void:
 		anim_state = Anim.IDLE
 	if _moving:
 		return
+	if not route.is_empty() and not (reinforcement and not Zones.alarm_on()):
+		_walk_route()
+		return
 	if global_position.distance_to(home) > 1.2:
 		if straight_way_clear(home, 120.0):
 			_go_direct(home, Anim.WALK)
@@ -122,9 +135,24 @@ func _patrol() -> void:
 	if reinforcement and not Zones.alarm_on():
 		Zones.dismiss(self)
 		return
-	if absf(angle_difference(rotation.y, post_yaw)) > 0.05:
+	if absf(angle_difference(rotation.y, post_yaw)) > 0.05 and anim_state != Anim.TALK:
 		rotation.y = post_yaw
 		net_yaw = post_yaw
+	if chatty and randf() < 0.06:
+		anim_state = Anim.TALK if anim_state != Anim.TALK else Anim.IDLE
+
+
+## Host: on to the next patrol point (a short look round at each one).
+func _walk_route() -> void:
+	var to: Vector3 = route[_route_i % route.size()]
+	if Vector2(global_position.x - to.x, global_position.z - to.z).length() < 1.2:
+		_route_i += 1
+		anim_state = Anim.IDLE
+		return
+	if straight_way_clear(to, 150.0):
+		_go_direct(to, Anim.WALK)
+	else:
+		_route_i += 1  # (blocked leg - a truck parked in the way: skip that point)
 
 
 ## Host: head for `at` (the alarm), shooting what they see on the way.

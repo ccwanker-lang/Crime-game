@@ -25,6 +25,9 @@ const HOSTILE_TIME: float = 90.0
 const ALARM_TIME: float = 60.0
 const REINFORCEMENTS: int = 4
 const GUARD_RESPAWN: float = 180.0
+## Part 21: the base is manned while a player is this close (m from the fence), emptied past ARMY_LEAVE_RANGE.
+const ARMY_MAN_RANGE: float = 220.0
+const ARMY_LEAVE_RANGE: float = 300.0
 ## Customer price factor per zone (the rest of the map = 1.0).
 const PRICE: Dictionary = {&"slums": 0.6, &"city": 1.5}
 const ZONE_NAMES: Dictionary = {&"army": "Fort Halden", &"slums": "Rosehill Park", &"city": "the city",
@@ -157,6 +160,7 @@ func _on_world() -> void:
 	_reinforcements.clear()
 	_residents.clear()
 	_spot_cache.clear()
+	_city_traffic = false
 	_alarm_until = -1.0
 	_posts = []
 	bunker = null
@@ -220,10 +224,37 @@ func _message(p: Player, text: String) -> void:
 func guard_posts() -> Array:
 	if not _posts.is_empty() or _world == null:
 		return _posts
-	var face_west: float = PI / 2.0
-	_posts.append({"pos": Vector3(-106.5, 0.1, -350.4), "yaw": face_west, "gate": true})
-	_posts.append({"pos": Vector3(-100.5, 0.1, -361.5), "yaw": face_west, "gate": true})  # inside, watching the gate
 	var base: Node = _world.get_node_or_null("ArmyBase")
+	# A's markers win (ask in B.md): ArmyPost* (Marker3D: a guard looking along -Z), ArmyPatrolA1.. / B1.. (points).
+	var face_west: float = PI / 2.0
+	var at := func(x: float, z: float) -> Vector3: return Vector3(x, 0.1, z)
+	var add := func(pos: Vector3, yaw: float, extra: Dictionary) -> void:
+		var d: Dictionary = {"pos": pos, "yaw": yaw}
+		d.merge(extra)
+		_posts.append(d)
+	var markers: Array[Node] = _world.find_children("ArmyPost*", "Node3D", true, false) if base else []
+	if not markers.is_empty():
+		for m: Node in markers:
+			var m3 := m as Node3D
+			add.call(m3.global_position, m3.global_rotation.y, {"chatty": str(m.name).contains("Chat")})
+	else:
+		# The gate: one outside by the boom, one inside watching the yard side of the gate.
+		add.call(at.call(-106.5, -350.4), face_west, {"gate": true})
+		add.call(at.call(-100.5, -361.5), face_west, {"gate": true})
+		# The flag: an honour guard of two.
+		add.call(at.call(-72.5, -360.5), PI, {})
+		add.call(at.call(-67.5, -360.5), PI, {})
+		# The hangars: mechanics / guards chatting in front of the doors.
+		for hx: float in [-90.0, -64.0]:
+			add.call(at.call(hx - 2.0, -382.5), -PI / 2.0, {"chatty": true})
+			add.call(at.call(hx - 0.6, -382.5), PI / 2.0, {"chatty": true})
+		# The helipads and the vehicle row.
+		add.call(at.call(-49.5, -386.5), PI * 0.75, {"chatty": true})
+		add.call(at.call(-48.3, -387.4), -PI * 0.25, {"chatty": true})
+		add.call(at.call(-40.5, -398.5), PI, {})
+		add.call(at.call(-89.0, -366.5), 0.0, {})
+		add.call(at.call(-69.5, -365.5), 0.0, {})
+	# Marksmen on top of every watchtower (sniper rifle).
 	var space: PhysicsDirectSpaceState3D = _world.get_world_3d().direct_space_state
 	if base:
 		var centre := Vector3(ARMY_RECT.get_center().x, 0, ARMY_RECT.get_center().y)
@@ -234,25 +265,64 @@ func guard_posts() -> Array:
 			var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3.DOWN * 3.0, 1))
 			var top: Vector3 = (hit["position"] as Vector3) + Vector3.UP * 0.05 if not hit.is_empty() else tw.global_position + Vector3.UP * h
 			var out: Vector3 = tw.global_position - centre
-			_posts.append({"pos": top, "yaw": atan2(-out.x, -out.z), "tower": true})
-	_posts.append({"pos": Vector3(-74.0, 0.1, -366.0), "yaw": face_west})
-	_posts.append({"pos": Vector3(-74.0, 0.1, -372.0), "yaw": face_west})
+			add.call(top, atan2(-out.x, -out.z), {"tower": true, "gun": &"sniper"})
+	# Two patrols of two (A: round the inner yard, B: round the hangars - the front, the helipads, the lane between
+	# the hangars (back wall z -405) and the barracks (front z -412)).
+	for route_name: String in ["A", "B"]:
+		var pts: Array[Vector3] = []
+		for m: Node in _world.find_children("ArmyPatrol%s*" % route_name, "Node3D", true, false):
+			pts.append((m as Node3D).global_position)
+		if pts.is_empty():
+			if route_name == "A":
+				pts = [at.call(-98.0, -357.5), at.call(-98.0, -377.0), at.call(-57.0, -377.0), at.call(-57.0, -357.5)]
+			else:
+				pts = [at.call(-41.0, -384.0), at.call(-41.0, -408.5), at.call(-101.0, -408.5), at.call(-101.0, -384.0)]
+		for k: int in 2:
+			var start: int = k * (pts.size() / 2)
+			var route: Array[Vector3] = []
+			for i: int in pts.size():
+				route.append(pts[(start + i) % pts.size()] + Vector3(0.9 * k, 0, 0.9 * k))
+			add.call(route[0], 0.0, {"route": route})
 	return _posts
+
+
+## Is a player near enough for the base to be manned (or the alarm still on)?
+func _army_wanted(dist: float) -> bool:
+	if alarm_on():
+		return true
+	for p: Player in _players():
+		if near_army_base(p.global_position, dist):
+			return true
+	return false
 
 
 func _army_tick() -> void:
 	if _world == null or _world.get_node_or_null("ArmyBase") == null:
 		return
 	var t: float = _now()
-	# Guards at every post (a dead one is replaced after GUARD_RESPAWN).
+	# Part 21: manned only while someone is near (saves the host the AI of 20 soldiers); a dead guard is replaced
+	# after GUARD_RESPAWN.
 	var posts: Array = guard_posts()
+	if not _army_wanted(ARMY_MAN_RANGE):
+		if not _army_wanted(ARMY_LEAVE_RANGE):
+			for i: int in _guards.keys():
+				var g0: Variant = _guards[i]
+				if g0 is Soldier and is_instance_valid(g0) and (g0 as Soldier).target == null:
+					(g0 as Soldier).queue_free()
+					_guards.erase(i)
+		return
 	for i: int in posts.size():
 		var g: Variant = _guards.get(i)
 		if g is Soldier and is_instance_valid(g):
 			continue
 		if g is float and t < float(g):
 			continue
-		_guards[i] = spawn_soldier(posts[i]["pos"], posts[i]["yaw"], false)
+		var post: Dictionary = posts[i]
+		var s: Soldier = spawn_soldier(post["pos"], post["yaw"], false, post.get("gun", &"ak47"))
+		if s:
+			s.chatty = post.get("chatty", false)
+			s.route.assign(post.get("route", []))
+		_guards[i] = s
 	for p: Player in _players():
 		if _passes.get(p, 0.0) > t:
 			continue
@@ -275,7 +345,7 @@ func _army_tick() -> void:
 
 
 ## Host: one soldier at `pos` (post look direction `yaw`).
-func spawn_soldier(pos: Vector3, yaw: float, reinforce: bool) -> Soldier:
+func spawn_soldier(pos: Vector3, yaw: float, reinforce: bool, gun: StringName = &"ak47") -> Soldier:
 	var npcs: Node = _npcs()
 	if npcs == null:
 		return null
@@ -284,6 +354,7 @@ func spawn_soldier(pos: Vector3, yaw: float, reinforce: bool) -> Soldier:
 	s.color_seed = randi()
 	s.heavy = reinforce
 	s.reinforcement = reinforce
+	s.gun = gun
 	s.position = pos
 	s.rotation.y = yaw
 	s.post_yaw = yaw
@@ -392,26 +463,12 @@ func slum_spots() -> Array:
 	return out
 
 
-## Spots for the city office workers: a group of 3 in front of the lobby of every 3rd tower.
+## Spots for the city (part 21, `CityLife.spots`): office groups, apartment doors, bus stops, benches, walkers.
 func city_spots() -> Array:
 	if _spot_cache.has(&"city"):
 		return _spot_cache[&"city"]
-	var out: Array = []
-	if _world == null:
-		return out
+	var out: Array = CityLife.spots(_world) if _world else []
 	_spot_cache[&"city"] = out
-	var towers: Array[Node] = _world.find_children("Tower*", "Tower", true, false)
-	towers.sort_custom(func(a: Node, b: Node) -> bool: return str(a.name) < str(b.name))
-	for k: int in towers.size():
-		if k % 3 != 0:
-			continue
-		var tw := towers[k] as Tower
-		var front: Vector3 = tw.global_transform * Vector3(0, 0.1, -tw.depth * 0.5 - 3.0)
-		for i: int in 3:
-			var a: float = TAU * i / 3.0
-			var pos: Vector3 = front + Vector3(cos(a), 0, sin(a)) * 0.9
-			var d: Vector3 = front - pos
-			out.append({"key": "%s_%d" % [tw.name, i], "pos": pos, "yaw": atan2(-d.x, -d.z), "zone": &"city"})
 	return out
 
 
@@ -432,19 +489,27 @@ func _residents_tick() -> void:
 	var players: Array[Player] = _players()
 	var want: Dictionary = {
 		&"slums": _zone_near(SLUM_RECT, players, SPAWN_RANGE),
-		&"city": _zone_near(CITY_RECT, players, SPAWN_RANGE) and _office_hours(),
+		&"city": _zone_near(CITY_RECT, players, SPAWN_RANGE),
 	}
 	var keep: Dictionary = {
 		&"slums": _zone_near(SLUM_RECT, players, DESPAWN_RANGE),
-		&"city": _zone_near(CITY_RECT, players, DESPAWN_RANGE) and _office_hours(),
+		&"city": _zone_near(CITY_RECT, players, DESPAWN_RANGE),
 	}
+	var h: float = _hours()
+	if want[&"city"] and not _city_traffic:
+		_more_city_traffic()
 	for zone: StringName in [&"slums", &"city"]:
 		if want[zone]:
-			for s: Dictionary in (slum_spots() if zone == &"slums" else city_spots()):
-				var r: Dictionary = _residents.get(s["key"], {})
+			for sp: Dictionary in (slum_spots() if zone == &"slums" else city_spots()):
+				if not CityLife.in_hours(sp.get("hours", Vector2(0, 24)), h):
+					continue
+				var r: Dictionary = _residents.get(sp["key"], {})
 				var npc: Pedestrian = r.get("npc") as Pedestrian if r.has("npc") and is_instance_valid(r["npc"]) else null
 				if npc == null and _now() >= float(r.get("back", 0.0)):
-					_residents[s["key"]] = {"npc": add_resident(s["pos"], s["yaw"], zone), "pos": s["pos"], "yaw": s["yaw"], "zone": zone}
+					var nr: Dictionary = sp.duplicate()
+					var variant: int = CityLife.office_variant(hash(sp["key"])) if zone == &"city" else -1
+					nr["npc"] = add_resident(sp["pos"], sp["yaw"], zone, variant)
+					_residents[sp["key"]] = nr
 	for key: String in _residents.keys():
 		var r: Dictionary = _residents[key]
 		var npc := r.get("npc") as Pedestrian if is_instance_valid(r.get("npc")) else null
@@ -453,7 +518,8 @@ func _residents_tick() -> void:
 		if npc.dead:
 			_residents[key] = {"back": _now() + 120.0}
 			continue
-		if not keep[r["zone"]] and npc.wants <= 0:
+		var gone: bool = not keep[r["zone"]] or not CityLife.in_hours(r.get("hours", Vector2(0, 24)), h)
+		if gone and npc.wants <= 0:
 			npc.queue_free()
 			_residents.erase(key)
 			continue
@@ -464,13 +530,30 @@ func _residents_tick() -> void:
 			make_zone_customer(zone)
 
 
+func _hours() -> float:
+	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
+	return dn.hours if dn else 12.0
+
+
+## Host (part 21): busier city streets - extra cars on the city routes, once a player comes near.
+var _city_traffic: bool = false
+
+
+func _more_city_traffic() -> void:
+	_city_traffic = true
+	var traffic: Node = _world.get_node_or_null("Traffic") if _world else null
+	if traffic and traffic.has_method("spawn_cars") and Traffic.city_first_route >= 0:
+		traffic.call("spawn_cars", CityLife.EXTRA_CARS, true)
+		print("[Zones] +%d cars in the city" % CityLife.EXTRA_CARS)
+
+
 ## Host: one resident / office worker (a non-wandering, networked pedestrian).
-func add_resident(pos: Vector3, yaw: float, zone: StringName) -> Pedestrian:
+func add_resident(pos: Vector3, yaw: float, zone: StringName, variant: int = -1) -> Pedestrian:
 	var npcs: Node = _npcs()
 	if npcs == null:
 		return null
 	var npc: Pedestrian = (load(PEDESTRIAN_SCENE) as PackedScene).instantiate()
-	npc.variant = randi() % Pedestrian.VARIANTS.size()
+	npc.variant = variant if variant >= 0 else randi() % Pedestrian.VARIANTS.size()
 	npc.color_seed = randi()
 	npc.ambient = false
 	npc.position = pos
@@ -480,21 +563,42 @@ func add_resident(pos: Vector3, yaw: float, zone: StringName) -> Pedestrian:
 	return npc
 
 
-## Host: back to the spot after a scare, now and then a word with the neighbours.
+## Host: walkers walk the sidewalk graph, sitters sit, the others stand at their spot (back after a scare) and
+## now and then have a word with the neighbours.
 func _resident_step(npc: Pedestrian, r: Dictionary) -> void:
-	if npc.is_fleeing() or npc.wants > 0 or npc._moving:
+	var kind: String = str(r.get("kind", "stand"))
+	if kind == "walk":
+		CityLife.walk_step(npc, r)
+		return
+	if npc.is_fleeing() or npc.wants > 0 or npc._moving or npc._sitting:
 		return
 	var spot: Vector3 = r["pos"]
+	if kind == "sit":
+		var seat := get_node_or_null(r.get("seat", NodePath())) as Node3D
+		if seat == null:
+			return
+		var front: Vector3 = seat.global_position + seat.global_basis.z * 0.8
+		if npc.global_position.distance_to(front) > 1.2 and npc.global_position.distance_to(seat.global_position) > 1.2:
+			if npc.straight_way_clear(front, 40.0):
+				npc._go_direct(front, Pedestrian.Anim.WALK)
+			else:
+				CityLife.sit(npc, seat)
+			return
+		CityLife.sit(npc, seat)
+		return
 	if npc.global_position.distance_to(spot) > 1.5:
 		if npc.straight_way_clear(spot, 40.0):
 			npc._go_direct(spot, Pedestrian.Anim.WALK)
-		else:
+		elif r["zone"] == &"slums":
 			npc._go(spot, Pedestrian.Anim.WALK)
+		else:
+			npc.global_position = spot  # (no navmesh in the city)
+			npc.net_pos = spot
 		return
 	if absf(angle_difference(npc.rotation.y, float(r["yaw"]))) > 0.1:
 		npc.rotation.y = float(r["yaw"])
 		npc.net_yaw = npc.rotation.y
-	if randf() < 0.08:
+	if r.get("talk", true) and randf() < 0.08:
 		npc.anim_state = Pedestrian.Anim.TALK if npc.anim_state != Pedestrian.Anim.TALK else Pedestrian.Anim.IDLE
 
 

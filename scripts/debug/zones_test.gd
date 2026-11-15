@@ -31,9 +31,31 @@ static func run(t: Node, world: Node3D) -> void:
 		Zones.army_on = true
 		await tree.create_timer(2.0).timeout
 		var guards: Array = Zones.guards()
-		var towers: int = guards.filter(func(s: Soldier) -> bool: return s.global_position.y > 5.0).size()
-		report.call(guards.size() == Zones.guard_posts().size() and guards.size() >= 6 and towers >= 2,
-				"Fort Halden: %d guards at their posts (%d up on the watchtowers)" % [guards.size(), towers])
+		var towers: Array = guards.filter(func(s: Soldier) -> bool: return s.global_position.y > 5.0)
+		var snipers: int = towers.filter(func(s: Soldier) -> bool: return s.gun == &"sniper" and s.profile == Soldier.MARKSMAN_PROFILE).size()
+		var patrols: Array = guards.filter(func(s: Soldier) -> bool: return not s.route.is_empty())
+		var chatty: int = guards.filter(func(s: Soldier) -> bool: return s.chatty).size()
+		report.call(guards.size() == Zones.guard_posts().size() and guards.size() >= 18 and towers.size() >= 4 and snipers == towers.size()
+				and patrols.size() == 4 and chatty >= 4,
+				"Fort Halden: %d soldiers (%d marksmen with sniper rifles on the towers, %d on patrol, %d at the hangars/helipads)"
+				% [guards.size(), snipers, patrols.size(), chatty])
+		var start: Array = patrols.map(func(s: Soldier) -> Vector3: return s.global_position)
+		await tree.create_timer(4.0).timeout
+		var moved: int = 0
+		for i: int in patrols.size():
+			if (patrols[i] as Soldier).global_position.distance_to(start[i]) > 3.0:
+				moved += 1
+		var blocked: Array = []
+		for post: Dictionary in Zones.guard_posts():
+			var rt: Array = post.get("route", [])
+			for i: int in rt.size():
+				var a: Vector3 = rt[i]
+				var b: Vector3 = rt[(i + 1) % rt.size()]
+				var q := PhysicsRayQueryParameters3D.create(a + Vector3.UP * 0.6, b + Vector3.UP * 0.6, 1 | 2)
+				if not world.get_world_3d().direct_space_state.intersect_ray(q).is_empty():
+					blocked.append("%s->%s" % [a, b])
+		report.call(moved == patrols.size() and blocked.is_empty(), "the patrols walk their rounds (%d/%d moving, blocked legs: %s)"
+				% [moved, patrols.size(), blocked])
 		p.teleport(Zones.ARMY_GATE + Vector3(-9, 0.3, 0))
 		await tree.create_timer(1.2).timeout
 		report.call(Zones._warned.has(p) and not Zones.is_army_hostile(p) and p.health == 100,
@@ -91,17 +113,40 @@ static func run(t: Node, world: Node3D) -> void:
 	var cust: Pedestrian = _customer(&"slums")
 	report.call(cust != null and cust.wants > 0 and Zones.customer_price(cust, 100) == 60 and cust.is_in_group(&"customer"),
 			"a slum resident becomes a customer at 60%% prices (%s, €%d)" % [cust.name if cust else "none", cust.offer if cust else 0])
+	var cars0: int = world.get_node("Traffic").get_children().filter(func(n: Node) -> bool: return n is Car).size()
 	p.teleport(Vector3(20, 0.3, 200))
 	await tree.create_timer(1.5).timeout
 	var city: Array = Zones.residents(&"city")
+	var kinds: Dictionary = {}
+	for r: Dictionary in Zones._residents.values():
+		if r.get("zone") == &"city" and is_instance_valid(r.get("npc")):
+			kinds[r.get("kind", "stand")] = int(kinds.get(r.get("kind", "stand"), 0)) + 1
+	var walkers: Array = Zones._residents.values().filter(func(r: Dictionary) -> bool: return r.get("kind") == "walk" and is_instance_valid(r.get("npc")))
+	var w0: Array = walkers.map(func(r: Dictionary) -> Vector3: return (r["npc"] as Node3D).global_position)
+	await tree.create_timer(4.0).timeout
+	var walking: int = 0
+	for i: int in walkers.size():
+		if is_instance_valid(walkers[i]["npc"]) and (walkers[i]["npc"] as Node3D).global_position.distance_to(w0[i]) > 2.0:
+			walking += 1
+	var sitting: int = Zones.residents(&"city").filter(func(n: Pedestrian) -> bool: return n._sitting).size()
+	var cars1: int = world.get_node("Traffic").get_children().filter(func(n: Node) -> bool: return n is Car).size()
+	report.call(int(kinds.get("walk", 0)) == CityLife.WALKERS_DAY and walking >= walkers.size() * 0.7 and sitting >= 4
+			and int(kinds.get("stand", 0)) >= 20 and cars1 >= cars0 + CityLife.EXTRA_CARS,
+			"city life: %s, %d of %d walkers on their way, %d sitting, +%d cars" % [kinds, walking, walkers.size(), sitting, cars1 - cars0])
 	var ccust: Pedestrian = _customer(&"city")
 	report.call(city.size() >= 6 and ccust != null and Zones.customer_price(ccust, 100) == 150,
 			"the city: %d office workers by day, customers pay 150%% (%s)" % [city.size(), ccust.name if ccust else "no customer"])
 	if dn:
 		dn.set_hours(22.0)
 		await tree.create_timer(1.0).timeout
-		report.call(Zones.residents(&"city").filter(func(n: Pedestrian) -> bool: return n.wants <= 0).is_empty(),
-				"at night the office workers go home")
+		var night_kinds: Dictionary = {}
+		for r: Dictionary in Zones._residents.values():
+			if r.get("zone") == &"city" and is_instance_valid(r.get("npc")) and not (r["npc"] as Node).is_queued_for_deletion() \
+					and (r["npc"] as Pedestrian).wants <= 0:
+				var kind: String = "office" if str(r.get("key", "")).begins_with("Tower") else str(r.get("kind", "stand"))
+				night_kinds[kind] = int(night_kinds.get(kind, 0)) + 1
+		report.call(not night_kinds.has("office") and int(night_kinds.get("walk", 0)) == CityLife.WALKERS_NIGHT and not night_kinds.has("sit"),
+				"at night the offices + benches empty, %d walkers stay (%s)" % [CityLife.WALKERS_NIGHT, night_kinds])
 		dn.set_hours(12.0)
 	p.teleport(Vector3(20, 0.3, 330))
 	await tree.create_timer(1.0).timeout
