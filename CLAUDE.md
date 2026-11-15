@@ -306,6 +306,9 @@ Godot console exe:
 - Slums (map zone 3): gen_world section "the slums" (`srng`, loop SLUM_LOOP, road tiles without centre line),
   prefabs/slums/ (`Shack`, `Caravan`, `FireBarrel`), property slum_shack (SlumShack), traffic route 9 (appended to
   data/city/city.json). Scenario slums, self-test check slums, shots D0-D2. ShootingRangeSpot now (-145, -118).
+- Army base (map zone 2): gen_world section "the army base" (`arng`, node ArmyBase at the root, AB rect x -104..-36,
+  z -430..-350, `ab_fence`, marker ArmyBase/ArmyBaseSpot), prefabs/army/ (`Watchtower`, `ArmyTruck`). Pass road end
+  (-106, -355.65). Scenario army_base, self-test check army, shots E0-E2.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

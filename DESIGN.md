@@ -450,6 +450,9 @@ Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part
         Detail later: a real 4-lane highway, shops/NPCs/pedestrian navmesh in the city, the syndicate tower
       - zone 3 rough DONE: Rosehill Park slums (loop road off North Road, 16 shacks round a yard, 24 caravans,
         junkyard + container homes, 7 fire barrels, Rosehill Shack for sale €4,000, traffic route 9); scenario slums
+      - zone 2 rough DONE: Fort Halden army base east of the prison (fence + closed gate with boom + booth, 4 watchtowers
+        with night searchlights, 3 barracks, 2 hangars, 6 army vehicles, helipad, flag); the pass road now ends at its
+        gate; scenario army_base. Detail later: guards, missions, a way in
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
@@ -1051,6 +1054,11 @@ Choices made while working autonomously (what + why).
   is a small tin warehouse - "cheap pand" from the blueprint. B's ShootingRangeSpot moved out of the slums to
   (-145, -118) north of the farm, still shooting west (into the border mountains). The grass check now samples the
   open strip east of the village. Traffic route 9 = the slum loop (in data/city/city.json, 6 city+slum cars).
+- Zone 2 (army base, rough): fully closed for now (chain-link fence + a solid sliding gate) - "niet vrij toegankelijk"
+  without guard AI yet; guards and a way in belong to the missions (detail pass). It sits on the mountain heightmap's
+  flat north part (the ridge is 0 there), so no new terrain. The pass road (gen_mountain CORNERS) now runs on 19 m to
+  the gate (-106, -355.65): traffic route 5 turns round there, the bus path is unchanged. New procedural props
+  `Watchtower` (searchlight on at night via the day_night group, sweeping) and `ArmyTruck` (truck/jeep, parked).
 - Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
   the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
   of the fence) instead of the fence. Shots 96/97.

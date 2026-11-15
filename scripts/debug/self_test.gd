@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3651,6 +3651,45 @@ const SEA_X: float = -72.5
 
 
 ## Point 61: grass on the open green land, none on roads, soil fields or in buildings.
+## Map zone 2: the army base east of the prison - closed (fence + gate), towers, barracks, hangars, vehicles, the
+## pass road ends at its gate.
+func _check_army(world: Node3D) -> void:
+	var base: Node3D = world.find_child("ArmyBase", false, false) as Node3D
+	_report(base != null, "the army base (Fort Halden)")
+	if base == null:
+		return
+	var towers: int = base.find_children("Watchtower*", "Watchtower", false, false).size()
+	var trucks: int = base.find_children("ArmyTruck*", "ArmyTruck", false, false).size()
+	var hangars: int = base.find_children("Hangar*", "", false, false).size()
+	_report(towers == 4 and trucks >= 5 and hangars == 2, "%d watchtowers, %d army vehicles, %d hangars" % [towers, trucks, hangars])
+	var road: PackedVector3Array = Mountain.road_points()
+	_report(road[road.size() - 1].distance_to(Vector3(-106, road[road.size() - 1].y, -355.65)) < 1.0,
+			"the pass road ends at the base gate (%s)" % road[road.size() - 1].snapped(Vector3.ONE))
+	await get_tree().physics_frame
+	# Closed: rays from outside to the middle hit the fence or the gate on every side.
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var open: Array[String] = []
+	for from: Vector3 in [Vector3(-115, 1.2, -355.65), Vector3(-115, 1.2, -400), Vector3(-25, 1.2, -390), Vector3(-70, 1.2, -340),
+			Vector3(-70, 1.2, -438)]:
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, Vector3(-70, 1.2, -380), 1 | 2))
+		if hit.is_empty():
+			open.append(str(from))
+	_report(open.is_empty(), "the base is closed off on every side (open from: %s)" % ", ".join(open))
+	# A walker at the gate can't get in.
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Recruit"
+	world.get_node("Players").add_child(p)
+	p.global_position = Vector3(-112, 0.3, -355.65)
+	p.auto_target = Vector3(-80, 0, -355.65)
+	await get_tree().create_timer(5.0).timeout
+	_report(p.global_position.x < -103.0, "walking at the gate: stopped outside (x %.1f)" % p.global_position.x)
+	p.queue_free()
+	GameState.player_data.erase("Recruit")
+	await get_tree().physics_frame
+
+
 ## Map zone 3: the slums north of the centre - shacks, caravans, fire barrels, the cheap shack for sale, the loop
 ## road with its own traffic route.
 func _check_slums(world: Node3D) -> void:

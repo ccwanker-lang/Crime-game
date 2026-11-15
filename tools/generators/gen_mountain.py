@@ -52,7 +52,7 @@ CORNERS = [
     ((-108.0, -318.0), 9.0),
     ((-182.0, -324.0), 9.0),    # north to the prison
     ((-182.0, -355.65), 7.0),   # east onto the bus road in front of the gate
-    ((-125.0, -355.65), 0.0),   # end (route U-turn)
+    ((-106.0, -355.65), 0.0),   # end (route U-turn) - map zone 2: at the army base gate
 ]
 
 

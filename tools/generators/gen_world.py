@@ -1100,6 +1100,83 @@ city_junctions += [[-6, -48], [-6, -60]]
 with open(_os.path.join(ROOT, "data", "city", "city.json"), "w", newline="\n") as _f:
     _json.dump({"routes": city_routes, "junctions": city_junctions, "lights": city_lights, "cars": 6}, _f, indent=1)
 
+# --------------------------------------------------------------------------- the army base (map blueprint zone 2)
+# East of the prison, behind the ridge (out of sight of the village): Fort Halden. A fenced rectangle (x -104..-36,
+# z -430..-350) with the gate (boom + guard booth + closed gate) where the pass road ends (-106, -355.65), four
+# watchtowers, barracks, two hangars, a parade ground with trucks and jeeps, a helipad, a flag. Closed: not freely
+# accessible (guards + missions come in the detail pass). Rough layout.
+arng = random.Random(2020)
+sc.node("ArmyBase", "Node3D", ".")
+AB = (-104.0, -430.0, -36.0, -350.0)
+OLIVE = col(0.36, 0.4, 0.27)
+SAND = col(0.78, 0.72, 0.58)
+
+
+def ab_fence(x0, z0, x1, z1, gaps=()):
+    if z0 == z1:
+        for x in range(int(min(x0, x1)), int(max(x0, x1)), 2):
+            if x not in gaps:
+                put("props/chainlink_fence.tscn", (x, 0.0, z0), 0, parent="ArmyBase", name=uname("BaseFence"))
+    else:
+        for z in range(int(min(z0, z1)), int(max(z0, z1)), 2):
+            if z not in gaps:
+                put("props/chainlink_fence.tscn", (x0, 0.0, z), -90, parent="ArmyBase", name=uname("BaseFence"))
+
+
+ab_fence(AB[0], AB[1], AB[2], AB[1])
+ab_fence(AB[0], AB[3], AB[2], AB[3])
+ab_fence(AB[2], AB[1], AB[2], AB[3])
+ab_fence(AB[0], AB[1], AB[0], AB[3], gaps=range(-360, -350))
+# Barbed wire on top: a thin dark strip along each side (visual only).
+for name, pos, size in [("WireN", ((AB[0] + AB[2]) / 2, 2.5, AB[1]), (AB[2] - AB[0], 0.25, 0.25)),
+                        ("WireS", ((AB[0] + AB[2]) / 2, 2.5, AB[3]), (AB[2] - AB[0], 0.25, 0.25)),
+                        ("WireE", (AB[2], 2.5, (AB[1] + AB[3]) / 2), (0.25, 0.25, AB[3] - AB[1])),
+                        ("WireW", (AB[0], 2.5, (AB[1] - 360) / 2), (0.25, 0.25, -360 - AB[1]))]:
+    pbox("Barbed" + name, pos, size, "metal_dark", col(0.25, 0.25, 0.25), parent="ArmyBase", collision=False)
+# The gate: a closed sliding gate (solid, 3 m high), a red-and-white boom in front, the guard booth.
+pbox("BaseGate", (AB[0] + 0.3, 0.0, -355.0), (0.3, 3.0, 10.0), "metal_dark", col(0.3, 0.32, 0.3), parent="ArmyBase")
+pbox("BaseBoom", (AB[0] - 2.5, 1.0, -355.65), (0.2, 0.2, 7.0), "trim_paint", col(0.85, 0.12, 0.1), parent="ArmyBase")
+pbox("BaseBoomPost", (AB[0] - 2.5, 0.0, -359.6), (0.5, 1.2, 0.5), "concrete", col(0.85, 0.85, 0.82), parent="ArmyBase")
+pbox("GuardBooth", (AB[0] - 4.0, 0.0, -362.5), (3.0, 2.8, 3.0), "concrete", SAND, parent="ArmyBase")
+pbox("GuardBoothRoof", (AB[0] - 4.0, 2.8, -362.5), (3.6, 0.2, 3.6), "metal_dark", OLIVE, parent="ArmyBase")
+sign = put("props/sign_post.tscn", (AB[0] - 6.5, 0.0, -350.6), 270, parent="ArmyBase", name="BaseSign")
+sc.node("Label3D", "Label3D", f"ArmyBase/{sign}", props={
+    "transform": xform((0, 2.6, 0.06)), "text": q("FORT HALDEN\nMILITARY AREA - NO ENTRY"), "font_size": "40",
+    "pixel_size": "0.006", "modulate": col(1, 0.85, 0.3), "outline_size": "6"})
+# Inside: a concrete road from the gate, the parade ground, a helipad.
+paved("BaseRoad", -70, -355.65, 66, 8, "concrete", 0.04)
+paved("ParadeGround", -70, -375, 60, 30, "concrete", 0.04)
+paved("Helipad", -45, -393, 16, 16, "concrete", 0.05)
+for name, pos, size in [("HelipadH1", (-47.5, 0.1, -393), (0.8, 0.02, 7)), ("HelipadH2", (-42.5, 0.1, -393), (0.8, 0.02, 7)),
+                        ("HelipadH3", (-45, 0.1, -393), (5.8, 0.02, 0.8))]:
+    pbox(name, pos, size, "road_marking", col(1, 1, 1), parent="ArmyBase", collision=False)
+# Watchtowers at the corners.
+for i, (x, z) in enumerate([(AB[0] + 3, AB[1] + 3), (AB[2] - 3, AB[1] + 3), (AB[2] - 3, AB[3] - 3), (AB[0] + 3, AB[3] - 14)]):
+    put("army/watchtower.tscn", (x, 0.0, z), 0, parent="ArmyBase", name=f"Watchtower{i + 1}")
+# Barracks along the north fence, two hangars facing the parade ground.
+for i, x in enumerate([-90, -70, -50]):
+    put("buildings/warehouse.tscn", (x, 0.04, -412), 0, parent="ArmyBase", name=f"Barracks{i + 1}", props={
+        "width": "16", "depth": "8", "floor_height": "3.4", "bays": "4", "door_bay": "1", "variation_seed": str(2030 + i),
+        "wall_material": q("plaster"), "wall_tint": SAND, "roof_material": q("roof_dark"), "roof_type": q("gable"),
+        "roof_pitch": "22", "lit_windows": "0.3"})
+for i, x in enumerate([-90, -64]):
+    put("buildings/warehouse.tscn", (x, 0.04, -391), 0, parent="ArmyBase", name=f"Hangar{i + 1}", props={
+        "width": "20", "depth": "14", "floor_height": "8", "bays": "2", "door_bay": "0", "variation_seed": str(2040 + i),
+        "wall_material": q("corrugated"), "wall_tint": OLIVE, "roof_material": q("roof_dark"), "roof_type": q("gable"),
+        "roof_pitch": "20", "lit_windows": "0.0"})
+# Vehicles on the parade ground.
+for i, (x, z, kind, rot) in enumerate([(-92, -370, "truck", 0), (-86, -370, "truck", 0), (-80, -370, "truck", 0),
+                                       (-72, -368, "jeep", 0), (-67, -368, "jeep", 0), (-52, -380, "truck", 90)]):
+    put("army/army_truck.tscn", (x, 0.04, z), rot + arng.uniform(-3, 3), parent="ArmyBase", name=f"ArmyTruck{i + 1}",
+        props={"kind": q(kind)})
+# Flagpole + crates.
+pbox("FlagPole", (-70, 0.0, -362), (0.15, 9.0, 0.15), "item_metal", col(0.8, 0.8, 0.8), parent="ArmyBase")
+pbox("Flag", (-70, 7.6, -363.1), (0.04, 1.3, 2.0), "item_matte", col(0.2, 0.3, 0.55), parent="ArmyBase", collision=False)
+for i in range(8):
+    put("props/crate_long.tscn", (arng.uniform(-100, -82), 0.04, arng.uniform(-428, -420)), arng.choice([0, 90]),
+        parent="ArmyBase", name=uname("ArmyCrate"))
+sc.node("ArmyBaseSpot", "Marker3D", "ArmyBase", props={"transform": xform((-112.0, 0.1, -352.5), 90)})
+
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")
 sc.node("SpawnPoints", "Node3D", "Markers")
