@@ -14,9 +14,11 @@ var _points := PackedVector3Array()
 var _dist := PackedFloat32Array()  # distance along the line at each point
 
 
-## corners: Vector2 (x, z) in driving order; radii: one per corner.
+## corners: Vector2 (x, z) in driving order; radii: one per corner. (Empty = fill it with from_points.)
 func _init(corners: Array[Vector2], radii: Array[float]) -> void:
 	var n: int = corners.size()
+	if n == 0:
+		return
 	for i: int in n:
 		var prev: Vector2 = corners[(i - 1 + n) % n]
 		var c: Vector2 = corners[i]
@@ -45,8 +47,24 @@ func _init(corners: Array[Vector2], radii: Array[float]) -> void:
 	length = curve.get_baked_length()
 
 
+## Point 49b: a closed route from dense 3D points (the mountain pass: with heights).
+static func from_points(pts: PackedVector3Array) -> TrafficRoute:
+	var r := TrafficRoute.new([], [])
+	for p: Vector3 in pts:
+		r._add3(p)
+	r._add3(pts[0])
+	r.curve.bake_interval = 0.1
+	for p: Vector3 in r._points:
+		r.curve.add_point(p)
+	r.length = r.curve.get_baked_length()
+	return r
+
+
 func _add(p: Vector2) -> void:
-	var v := Vector3(p.x, 0.0, p.y)
+	_add3(Vector3(p.x, 0.0, p.y))
+
+
+func _add3(v: Vector3) -> void:
 	if _points.size() > 0:
 		var seg: float = _points[_points.size() - 1].distance_to(v)
 		if seg < 0.001:

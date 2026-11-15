@@ -282,12 +282,18 @@ func _physics_process(delta: float) -> void:
 		else:
 			global_position = global_position.lerp(net_pos, minf(1.0, 10.0 * delta))
 		var yaw0: float = rotation.y
+		var pos0: Vector3 = global_position
 		rotation.y = lerp_angle(rotation.y, net_yaw, minf(1.0, 10.0 * delta))
 		# Steering from the turn rate: angle = atan(wheelbase * yaw rate / speed).
 		var rate: float = angle_difference(yaw0, rotation.y) / maxf(delta, 0.001)
 		var base: float = float(ProcCar.SPECS[kind]["base"])
 		var want: float = atan(base * rate / net_speed) if net_speed > 0.5 else _steer
 		_steer = lerpf(_steer, clampf(want, -0.6, 0.6), minf(1.0, 8.0 * delta))
+		# Point 49b: pitch from the climb (the host doesn't send it).
+		var moved: Vector3 = global_position - pos0
+		var flat: float = Vector2(moved.x, moved.z).length()
+		if flat > 0.02:
+			rotation.x = lerp_angle(rotation.x, atan2(moved.y, flat) * signf(moved.dot(-global_basis.z)), minf(1.0, 6.0 * delta))
 		_spin_wheels(net_speed, delta)
 		return
 	var route: TrafficRoute = _route()
@@ -580,6 +586,7 @@ func _place_on(route: TrafficRoute) -> void:
 	global_position = (front + rear) * 0.5
 	var dir: Vector3 = front - rear
 	rotation.y = atan2(-dir.x, -dir.z)
+	rotation.x = atan2(dir.y, Vector2(dir.x, dir.z).length())  # point 49b: nose up/down on the pass
 	_steer = atan(2.0 * half_base * route.curvature(progress + half_base * 0.5))
 	if lane_offset != 0.0:
 		global_position += global_basis.x * lane_offset  # point 63: overtaking

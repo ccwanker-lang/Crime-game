@@ -832,7 +832,7 @@ def prison():
         counter(sc, f"TowerRoof{i}", (x, 8.7, -17), (3.6, 0.25, 3.6), "roof_dark")
     shopkeeper(sc, "GateGuard", (3.6, 0, 18.6), "Guard", "gate", "", [], 5, 91,
                {"script": sc.script(S["intro_npc"]), "role": q("guard")})
-    for i, (x, z) in enumerate([(-20, 15), (20, 15), (-20, -6), (20, -6), (0, 32)]):
+    for i, (x, z) in enumerate([(-20, 15), (20, 15), (-20, -6), (20, -6), (8, 35.5)]):  # (49b: last one off the road)
         inst(sc, f"Flood{i}", P + "floodlight_pole.tscn", (x, 0, z), 0)
     # Outside the gate: the road stub and the bus (door on its gate side).
     counter(sc, "BusRoad", (0, 0, 28), (60, 0.03, 7), "asphalt")

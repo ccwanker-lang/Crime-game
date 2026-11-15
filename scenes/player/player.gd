@@ -466,6 +466,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if vehicle != null:
 		_car_input(event, captured)
 		return
+	if bus_ride != null:
+		return  # point 49b: a passenger on the intro bus (F2 skips, handled by Intro)
 	if event.is_action_pressed("vehicle") and captured and not dead:
 		_try_enter_car()
 		get_viewport().set_input_as_handled()
@@ -618,6 +620,8 @@ func _physics_process(delta: float) -> void:
 		_host_fall_net(delta)
 	if vehicle != null:
 		_ride(delta)
+	elif bus_ride != null:
+		_ride_bus(delta)
 	elif is_local():
 		if admin_noclip:
 			_admin_fly(delta)
@@ -999,6 +1003,66 @@ func leave_vehicle() -> void:
 			ui.set_car(null, false)
 	else:
 		nametag.visible = true
+
+
+## Point 49b: a passenger on the intro bus (Intro drives it over the pass). Every peer.
+var bus_ride: Node3D = null
+var bus_seat: int = 0
+
+
+func enter_bus(bus: Node3D, i: int) -> void:
+	bus_ride = bus
+	bus_seat = i
+	velocity = Vector3.ZERO
+	collision.disabled = true
+	_model.visible = false
+	nametag.visible = false
+	if is_local():
+		_third_before_car = third_person
+		_set_third_person(true)
+		spring.spring_length = 11.0
+		spring.position = Vector3(0, 1.6, 0)
+		if bus is CollisionObject3D:
+			spring.add_excluded_object((bus as CollisionObject3D).get_rid())
+		head.rotation = Vector3(-0.2, 0, 0)
+
+
+func leave_bus() -> void:
+	var bus: Node3D = bus_ride
+	bus_ride = null
+	collision.disabled = false
+	_model.visible = true
+	_check_pos = Vector3.INF
+	if is_local():
+		if is_instance_valid(bus) and bus is CollisionObject3D:
+			spring.remove_excluded_object((bus as CollisionObject3D).get_rid())
+		head.rotation = Vector3.ZERO
+		_set_third_person(_third_before_car)
+	else:
+		nametag.visible = true
+
+
+func _ride_bus(delta: float) -> void:
+	if not is_instance_valid(bus_ride):
+		leave_bus()
+		return
+	velocity = Vector3.ZERO
+	global_position = bus_ride.global_transform * Vector3(-0.6 if bus_seat % 2 == 0 else 0.6, 0.9, -2.5 + 1.3 * (bus_seat / 2))
+	rotation.y = bus_ride.rotation.y
+	if is_local():
+		_orbit_idle += delta
+		if _orbit_idle > 1.5:
+			head.rotation.y = lerp_angle(head.rotation.y, 0.0, minf(1.0, 1.5 * delta))
+		net_pos = global_position
+		net_yaw = rotation.y
+		net_pitch = 0.0
+		net_move = Vector2.ZERO
+		net_sprint = false
+		net_air = false
+		if prompt_label:
+			prompt_label.text = "[F2] Skip the ride"
+	elif multiplayer.is_server():
+		_check_pos = Vector3.INF
 
 
 ## Every peer, while seated: the body rides along on its seat.
@@ -1705,7 +1769,7 @@ var _safe_check: float = 0.0
 
 
 func _host_fall_net(delta: float) -> void:
-	if dead or vehicle != null:
+	if dead or vehicle != null or bus_ride != null:
 		return
 	if global_position.y < FALL_Y:
 		var back: Vector3 = safe_pos

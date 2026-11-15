@@ -398,7 +398,9 @@ Story + world (user, 2026-11-13; see "Rivals & story"; documented only, built af
       out of sight of the farm and the village. A mountain road from the farm (top of Country Lane) winds up with
       hairpin bends; at the top snow, rocks, pines and guardrails; on the far side it goes down to the remote prison.
       The mountain blocks the view between the village and the prison. The tutorial bus drives over this pass to the
-      village. Cars can drive up and down it; traffic and the navmesh work on it - todo (order: 60, 61, 63, 49b, 62)
+      village. Cars can drive up and down it; traffic and the navmesh work on it - DONE (Mountain: 909 m pass road from
+      the farm, 6 hairpins, top 30.5 m with snow, pines, rocks, guardrails; the prison 385 m north behind the ridge;
+      the intro bus really drives it with the riders on board (F2 skips); traffic route 5 crosses it)
   50. Late-join intro: a later joiner starts in the prison (short intro), is picked up and gets the host's
       story progress (missed missions done, no loot/money from them, own cash/items from zero) - DONE (short intro: cell open, desk, bus
       leaves at once; the crew gets a text)
@@ -990,6 +992,26 @@ Choices made while working autonomously (what + why).
   split and stays on main; B builds on it.
 - Point 49b / round-5 order (set by the user, replaces my earlier "49b after 62"): 60 -> 61 -> 63 -> 49b -> 62.
   The pass starts at the farm (Country Lane top), which 62 doesn't move, so 62 can fit the villas round it later.
+- Point 49b (mountain pass): the mountain is ONE generated piece (tools/generators/gen_mountain.py -> data/mountain/
+  mountain.json + height.bin, built at runtime by `Mountain`): a 1 m heightmap (ridge at z -250, saddle at x -150),
+  the road carved in, props placed along it. Why a data file and not nodes in world.tscn: 520 pines + 160 rocks +
+  700 guardrail posts as MultiMeshes are cheap, and the road, the traffic route and the bus path all come from the
+  same centre line, so they can never drift apart. Grades: up 8.5 %, down 11 % (short and steep on the prison side,
+  long and gentle from the farm) so the arcade car and the traffic cars handle it.
+- Point 49b: Jolt can't hold a heightmap + a trimesh + hundreds of boxes in one compound ("hierarchy too deep"), so
+  terrain, road, rails, pines and rocks are separate StaticBody3Ds under the Mountain node.
+- Point 49b: the road has its own ribbon mesh (asphalt, shoulders, markings) with trimesh collision on top of the
+  carved heightmap: the heightmap alone gives a stepped surface at 1 m cells. Pedestrians don't walk the pass (the
+  navmesh stays in the valley); only cars use it, and the self-test's off-road check accepts `Mountain.on_road`.
+- Point 49b: traffic route 5 is a 3D route (`TrafficRoute.from_points`) over the pass and back; traffic cars pitch
+  with the slope. CAR_COUNT 6 = the 5 village cars + 1 on the pass, so the user meets someone on the mountain.
+- Point 49b: the intro bus is moved by the Intro node on every peer (host sends the distance 10x a second, clients
+  smooth it); riders sit on fixed seats (`Player.enter_bus`), body off, chase camera. Why not a PlayerCar: the bus
+  must follow the road exactly and never get stuck with new players on board. It slows for bends and waits behind a
+  car. The bus stop moved to Main Road's south side (the bus arrives eastbound, right-hand traffic). After the ride
+  the bus goes back to the prison (out of sight) for a late joiner.
+- Point 49b: the north border hedge has a gap at the pass (x -129..-119); walls round the mountain zone (MountainW/E/N)
+  keep players inside. PRISON_POS (-150, 0, -385). For session B: Markers/ShootingRangeSpot (-50, -122) facing west.
 - Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
   the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
   of the fence) instead of the fence. Shots 96/97.

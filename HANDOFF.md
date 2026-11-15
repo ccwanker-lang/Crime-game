@@ -102,3 +102,8 @@
   + pushed main themselves. From now on A runs `git push origin main` after every commit; B pushes feature-b.
 - Netcheck: after the respawn the client's 5 m crouch walk bumps into the host (both stand at the hospital spawn);
   harmless, it has always been like that.
+
+- 2026-11-15: point 49b (mountain pass + prison behind it, real bus ride) done: checks intro, pass, traffic, ground,
+  lights, vehicles, fuel, kerb PASS; netcheck 7794 both exit 0; scenarios mountain_pass + prison_intro OK.
+- NEXT: the user's new map blueprint (9 zones, DESIGN "Map layout"). The blueprint IMAGE did not come through
+  (only the text) - asked the user to save it in the repo (e.g. docs/map_blueprint.png). Point 62 is folded into it.

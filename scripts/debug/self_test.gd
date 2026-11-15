@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -2693,6 +2693,8 @@ func _check_traffic(world: Node3D) -> void:
 				if (r as RoadTile).is_on_asphalt(p):
 					on_road = true
 					break
+			if not on_road and p.z < -70.0 and Mountain.on_road(p):
+				on_road = true  # point 49b: the pass road
 			if not on_road:
 				off_road += 1
 				if off_road <= 3:
@@ -3486,8 +3488,23 @@ func _check_intro(world: Node3D) -> void:
 	_report(int(data["intro_step"]) == Intro.Step.BUS and int(data["cash"]) == GameState.STARTING_CASH
 			and GameState.count_item("Inmate", "pistol") == 0, "the desk gives the wallet back (€%d), no pistol" % int(data["cash"]))
 	p.auto_target = stop.global_position  # (the walker would head back to its old target after the ride)
+	# Point 49b: the bus really drives over the pass with the rider on board (8x faster in the test).
+	Intro.ride_speed_scale = 8.0
+	var home: Vector3 = bus.global_position
 	intro._host_board(1)
-	await get_tree().create_timer(3.0).timeout
+	await get_tree().create_timer(1.5).timeout
+	_report(intro.bus_progress > 0.0 and p.bus_ride == bus and p.global_position.distance_to(bus.global_position) < 4.0,
+			"on the bus: it drives off with the rider on board (%.0f m along, rider %.1f m from the bus)" % [
+			intro.bus_progress, p.global_position.distance_to(bus.global_position)])
+	var top: float = 0.0
+	for i: int in 160:
+		top = maxf(top, bus.global_position.y)
+		if intro.bus_progress < 0.0:
+			break
+		await get_tree().create_timer(0.25).timeout
+	_report(top > 25.0 and bus.global_position.distance_to(home) < 1.0,
+			"the bus crossed the pass (highest %.1f m) and went back to the prison afterwards" % top)
+	Intro.ride_speed_scale = 1.0
 	_report(not data.has("intro_step") and p.global_position.distance_to(stop.global_position) < 3.0
 			and GameState.count_item("Inmate", "pistol") == 1 and GameState.count_item("Inmate", "ammo_9mm") > 0
 			and not intro.is_running(), "on the bus: dropped at the village bus stop (%.1f m) with Marco's package, intro done" % p.global_position.distance_to(stop.global_position))
@@ -3515,8 +3532,14 @@ func _check_intro(world: Node3D) -> void:
 	_report(int(data.get("intro_step", -1)) == Intro.Step.DESK, "a returning player is not reset")
 	intro._host_talk(1, "desk")
 	p.auto_target = stop.global_position
+	Intro.ride_speed_scale = 10.0
 	intro._host_board(1)
-	await get_tree().create_timer(3.0).timeout
+	for i: int in 160:
+		await get_tree().create_timer(0.25).timeout
+		if intro.bus_progress < 0.0:
+			break
+	Intro.ride_speed_scale = 1.0
+	await get_tree().create_timer(0.5).timeout
 	_report(not data.has("intro_step") and p.global_position.distance_to(stop.global_position) < 3.0
 			and int(data["cash"]) == GameState.STARTING_CASH and GameState.count_item("Inmate", "pistol") == 1,
 			"late joiner: the bus leaves at once with just them, bus stop + wallet + package")
@@ -3626,6 +3649,97 @@ const SEA_X: float = -72.5
 
 
 ## Point 61: grass on the open green land, none on roads, soil fields or in buildings.
+## Point 49b: the mountain pass - terrain under the road, a traffic car climbs it, a player car drives up a
+## straight, the mountain hides the prison from the village and the farm.
+func _check_pass(world: Node3D) -> void:
+	var mt: Node3D = world.find_child("Mountain", false, false) as Node3D
+	var road: PackedVector3Array = Mountain.road_points()
+	_report(mt != null and road.size() > 500, "the Mountain node and its road (%d points)" % road.size())
+	if mt == null or road.size() < 500:
+		return
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var top: float = 0.0
+	var bad: int = 0
+	for i: int in range(0, road.size(), 20):
+		var q: Vector3 = road[i]
+		top = maxf(top, q.y)
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(q + Vector3.UP * 6.0, q + Vector3.DOWN * 3.0, 1))
+		if hit.is_empty() or absf((hit["position"] as Vector3).y - q.y) > 0.4:
+			bad += 1
+	_report(bad == 0 and top > 28.0, "the road surface is solid all the way (top %.1f m, %d bad spots)" % [top, bad])
+	var snow: float = Mountain.height_at(-200.0, -250.0)
+	_report(snow > Mountain.SNOW_LINE, "the ridge rises above the snow line (%.1f m at (-200, -250))" % snow)
+	var prison: Node3D = world.find_child("Prison", true, false) as Node3D
+	var blocked: int = 0
+	var froms: Array[Vector3] = [Vector3(-60, 2, -20), Vector3(-20, 2, -60), Vector3(-150, 2, -85), Vector3(-100, 2, 0)]
+	for f: Vector3 in froms:
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(f, prison.global_position + Vector3.UP * 4.0, 1))
+		if not hit.is_empty() and (hit["position"] as Vector3).z > -330.0:
+			blocked += 1
+	_report(prison != null and blocked == froms.size(), "the mountain hides the prison from the village and the farm (%d/%d views blocked)" % [blocked, froms.size()])
+	# A traffic car on route 5 climbs the pass.
+	var traffic: Traffic = world.get_node("Traffic") as Traffic
+	_report(traffic.routes.size() > 5, "traffic route 5 runs over the pass")
+	if traffic.routes.size() <= 5:
+		return
+	var route: TrafficRoute = traffic.routes[5]
+	var start: float = 0.0
+	while start < route.length and not ((route.sample(start)[0] as Vector3).z < -95.0):
+		start += 1.0
+	var car: Car = Traffic.CAR.instantiate()
+	car.route_id = 5
+	car.progress = start
+	car.kind = 1
+	traffic.add_child(car, true)
+	await get_tree().physics_frame
+	var y0: float = car.global_position.y
+	var off: int = 0
+	var hi: float = y0
+	for i: int in 60:
+		await get_tree().create_timer(0.25).timeout
+		hi = maxf(hi, car.global_position.y)
+		if not Mountain.on_road(car.global_position, 1.0):
+			off += 1
+	_report(car.progress > start + 60.0 and hi > y0 + 3.0 and off == 0,
+			"a traffic car climbs the pass (%.0f m along, %.1f -> %.1f m high, %d samples off the road)" % [car.progress - start, y0, hi, off])
+	car.queue_free()
+	# A player car drives up the first climbing leg (west, z -159..-162).
+	var veh: Vehicles = Vehicles.current
+	if veh == null:
+		return
+	var best: Vector3 = road[0]
+	for q: Vector3 in road:
+		if Vector2(q.x + 155.0, q.z + 158.7).length() < Vector2(best.x + 155.0, best.z + 158.7).length():
+			best = q
+	var pc: PlayerCar = veh.host_spawn("sedan", 1, best + Vector3.UP * 0.4, 1.484, "", 1.0)
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Climber"
+	world.get_node("Players").add_child(p)
+	p.global_position = pc.exit_spot(0)
+	p.auto_target = p.global_position
+	await get_tree().physics_frame
+	pc.host_enter(p)
+	for i: int in 3:
+		await get_tree().physics_frame
+	var py0: float = pc.global_position.y
+	pc.test_drive = true
+	pc.test_input = Vector3(0, 1, 0)
+	await get_tree().create_timer(3.0).timeout
+	var climbed: float = pc.global_position.y - py0
+	var dz: float = best.x - pc.global_position.x
+	_report(dz > 15.0 and climbed > 0.8 and Mountain.on_road(pc.global_position, 0.5) and pc.global_position.y > Mountain.height_at(pc.global_position.x, pc.global_position.z) - 0.5,
+			"a player car drives up the pass road (%.1f m west, %.1f m higher, on the road)" % [dz, climbed])
+	pc.test_input = Vector3(0, 0, 1)
+	await get_tree().create_timer(1.0).timeout
+	pc.test_drive = false
+	pc.host_exit(p)
+	p.queue_free()
+	veh.host_remove(pc)
+
+
 func _check_grass(world: Node3D) -> void:
 	await get_tree().physics_frame
 	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state

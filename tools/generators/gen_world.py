@@ -80,7 +80,9 @@ sc.node("Backdrop", "Node3D", ".", props={
     "script": sc.script("res://scripts/procgen/backdrop.gd"),
     "area": f"Rect2({PLAY[0]:g}, {PLAY[1]:g}, {PLAY[2] - PLAY[0]:g}, {PLAY[3] - PLAY[1]:g})",
     "tree_margin": "10.5", "hill_distance": "45.0", "ground_plane": "false",
-    "skip_rects": "Array[Rect2]([Rect2(-600, 100, 527, 700)])"})
+    "skip_rects": "Array[Rect2]([Rect2(-600, 100, 527, 700), Rect2(-262, -445, 232, 299), Rect2(-134, -152, 20, 14)])"})
+# Point 49b: the mountain pass to the prison (terrain, road, rails, pines from data/mountain - gen_mountain.py).
+sc.node("Mountain", "StaticBody3D", ".", props={"script": sc.script("res://scripts/procgen/mountain.gd")})
 
 # --------------------------------------------------------------------------- roads
 R = "roads/"
@@ -777,11 +779,11 @@ pbox("SiloRoof", (-133, 11.06, -96), (4.6, 0.6, 4.6), "roof_dark")
 HAY = col(0.86, 0.72, 0.38)
 for i in range(7):
     x = -140 + (i % 4) * 1.7 + frng.uniform(-0.2, 0.2)
-    pbox(f"HayBale{i}", (x, 0.06 + (i // 4) * 1.0, -82 + frng.uniform(-0.3, 0.3)), (1.5, 1.0, 1.0), "planks", HAY,
+    pbox(f"HayBale{i}", (x, 0.06 + (i // 4) * 1.0, -89 + frng.uniform(-0.3, 0.3)), (1.5, 1.0, 1.0), "planks", HAY,
          frng.uniform(-8, 8))
 put("props/covered_car.tscn", (-160, 0.06, -82), 80)
 for i in range(4):
-    put("props/barrel.tscn", (-131 + frng.uniform(-1, 1), 0.06, -86 + frng.uniform(-1, 1)), 0)
+    put("props/barrel.tscn", (-129 + frng.uniform(-1, 1), 0.06, -91 + frng.uniform(-1, 1)), 0)  # (49b: off the road)
 # Fields either side of the lane: soil with crop rows, a picket fence along the lane.
 CROP = [col(0.38, 0.58, 0.22), col(0.52, 0.66, 0.26), col(0.78, 0.7, 0.32)]
 for fi, (cx, cz, sx, sz) in enumerate([(-174, -42, 28, 56), (-120, -40, 48, 52)]):
@@ -811,23 +813,33 @@ for (x, z) in [(-160, -78.5), (-140, -78.5), (-128, -90), (-172, -80)]:
 # backdrop right behind it, and the invisible walls 7 m out, behind the hedge - never in the open.
 x0, z0, x1, z1 = PLAY
 HG = 6.0
-def hedge_run(ax, az, bx, bz, seed):
+def hedge_run(ax, az, bx, bz, seed, gap=None):
+    """`gap` = (x0, x1): leave out the segments that overlap it (point 49b: the pass road)."""
     length = abs(bx - ax) + abs(bz - az)
     n = max(1, int(round(length / 10.0)))
     for i in range(n):
         t0, t1 = i / n, (i + 1) / n
         cx, cz = ax + (bx - ax) * (t0 + t1) / 2, az + (bz - az) * (t0 + t1) / 2
+        if gap and az == bz and abs(cx - (gap[0] + gap[1]) / 2) < (length / n + gap[1] - gap[0]) / 2 - 0.5:
+            continue
         rot = 0 if az == bz else 90
         put("nature/hedge.tscn", (cx, 0, cz), rot, name=uname("BorderHedge"),
             props={"size": v3(length / n + 0.4, 1.6, 1.0), "hedge_seed": str(seed + i)})
-hedge_run(x0 - HG, z0 - HG, x1 + HG, z0 - HG, 5700)          # north
+PASS_GAP = (-129.0, -119.0)  # point 49b: the mountain road leaves the village here (x -127.5..-120.5)
+hedge_run(x0 - HG, z0 - HG, x1 + HG, z0 - HG, 5700, PASS_GAP)  # north
 hedge_run(x0 - HG, z0 - HG, x0 - HG, QUAY_Z, 5800)          # west (down to the quay)
 hedge_run(x1 + HG, z0 - HG, x1 + HG, z1 + HG, 5900)          # east
 hedge_run(SEA_X, z1 + HG, x1 + HG, z1 + HG, 6000)           # south (east of the sea)
+MT = (-262.0, -445.0, -30.0)  # point 49b: mountain area x0, z0 (north), x1 (gen_mountain GRID_*)
 sc.node("Bounds", "StaticBody3D", ".")
 W = 7.0
 for name, pos, size in [
-        ("N", ((x0 + x1) / 2, 5, z0 - W), (x1 - x0 + 2 * W, 10, 1)),
+        # North wall with the pass road gap; the mountain (point 49b) has its own walls round it.
+        ("N", ((PASS_GAP[1] + x1 + W) / 2, 5, z0 - W), (x1 + W - PASS_GAP[1], 10, 1)),
+        ("NW", ((MT[0] + PASS_GAP[0]) / 2, 5, z0 - W), (PASS_GAP[0] - MT[0], 10, 1)),
+        ("MountainW", (MT[0], 25, (MT[1] + z0 - W) / 2), (1, 80, z0 - W - MT[1])),
+        ("MountainE", (MT[2], 25, (MT[1] + z0 - W) / 2), (1, 80, z0 - W - MT[1])),
+        ("MountainN", ((MT[0] + MT[2]) / 2, 25, MT[1]), (MT[2] - MT[0], 80, 1)),
         ("W", (x0 - W, 5, (z0 - W + QUAY_Z) / 2), (1, 10, QUAY_Z - z0 + W)),
         ("E", (x1 + W, 5, (z0 + z1) / 2), (1, 10, z1 - z0 + 2 * W)),
         ("S", ((SEA_X + x1 + W) / 2, 5, z1 + W), (x1 + W - SEA_X, 10, 1)),
@@ -873,9 +885,12 @@ for i in range(4):
 
 # Point 49: the prison of the intro, far outside the village (own ground, outside NavRegion: no navmesh there),
 # and the bus stop on Main Road's west edge where the bus drops the released players (marker BusStop, facing east).
-PRISON_POS = (0, 0, -340)
+PRISON_POS = (-150, 0, -385)  # point 49b: behind the mountain, at the end of the pass road
 put("buildings/prison.tscn", PRISON_POS, 0, parent=".", name="Prison")
-sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, -4.4), -90)})
+# Point 49b: the bus comes down Country Lane and drives east, so the stop is on the south side now (facing the road).
+sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, 4.7), 0)})
+# Session B's shooting range (RangeClub): out of the pass road's way, north of the centre.
+sc.node("ShootingRangeSpot", "Marker3D", "Markers", props={"transform": xform((-50.0, 0.05, -122.0), 90)})
 debug_label("Markers/BusStop", "BUS STOP")
 sc.node("GasStation", "Marker3D", "Markers", props={"transform": xform((44.0, 0.2, -52.6), 180)})
 # Point 47c: the Crows' pier at the west end of the quay (Rival post "harbour"): turf rect + where they come from.
@@ -887,7 +902,7 @@ sc.node("HarbourTurfSign", "Label3D", NAV, props={"transform": xform((-163.8, 2.
         "text": q("PRIVATE PIER\nKEEP OUT"), "font_size": "56", "pixel_size": "0.008",
         "modulate": col(0.95, 0.3, 0.2), "outline_size": "10", "double_sided": "false"})
 sc.node("BusStopPole", "StaticBody3D", NAV, props={
-    "script": sc.script("res://scripts/procgen/proc_box.gd"), "transform": xform((-62.4, 0.15, -5.5)),
+    "script": sc.script("res://scripts/procgen/proc_box.gd"), "transform": xform((-63.0, 0.15, 4.3), 180),
     "size": "Vector3(0.1, 2.7, 0.1)", "material_key": q("metal_dark")})
 sc.node("BusStopSign", "Label3D", NAV + "/BusStopPole", props={
     "transform": xform((0, 2.45, 0.08)), "text": q("BUS 12\nRiverton - Prison"), "font_size": "40",

@@ -9,11 +9,12 @@ extends Node3D
 ## south at x -66 down to Quay Road at z 84 = a loop through the harbour).
 
 const CAR := preload("res://prefabs/vehicles/car.tscn")
-## Point 63: fewer cars (was 8): calmer streets, no queues.
-const CAR_COUNT: int = 5
+## Point 63: fewer cars (was 8): calmer streets, no queues. Point 49b: 6 = one per route, the 6th on the pass.
+const CAR_COUNT: int = 6
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time.
-const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0), Vector2(-114, 84)]
+const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0), Vector2(-114, 84),
+		Vector2(-150, 0)]
 const JUNCTION_HALF: float = 6.0
 ## Point 63: junctions with traffic lights (JUNCTIONS index -> arms that have a road + the cycle offset in s).
 ## There the lights decide who goes (cars of the green axis share the junction); the others keep the
@@ -78,6 +79,11 @@ func _build_routes() -> void:
 			[Vector2(31.75, -1.75), Vector2(-115.75, -1.75), Vector2(-115.75, 85.75), Vector2(-64.25, 85.75),
 			Vector2(-64.25, 61.75), Vector2(31.75, 61.75)],
 			[5.0, 5.0, 5.0, 7.75, 4.25, 5.0]))
+	# 5 (point 49b): over the mountain pass: Main Road's west end, Country Lane, the farm, the hairpins, the prison
+	# gate and back (with heights, from data/mountain).
+	var pass_pts: PackedVector3Array = Mountain.route_points()
+	if pass_pts.size() > 10:
+		routes.append(TrafficRoute.from_points(pass_pts))
 	for r: TrafficRoute in routes:
 		r.mark_junctions(JUNCTIONS, JUNCTION_HALF)
 		# The driving line as a Path3D (debug: F3 shows it).

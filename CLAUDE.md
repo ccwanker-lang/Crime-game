@@ -286,6 +286,13 @@ Godot console exe:
   (gen_prefabs `prison()`, node Prison at gen_world PRISON_POS, markers Cell1-4/DeskSpot/BusSpot, `CellDoor`
   NetDoor subclass, `IntroNPC` roles mentor/desk/guard, `ProcBus` boardable), marker Markers/BusStop. HUD
   `set_tutorial` / `say` / `fade`. Scenario prison_intro (`--yard` shot flag), self-test check intro.
+- Mountain pass (point 49b): `Mountain` (`scripts/procgen/mountain.gd`, node Mountain at the world root, StaticBody per
+  part: Terrain heightmap / Road ribbon trimesh / Rails / Pines / Rocks) built from `data/mountain/mountain.json` +
+  `height.bin` (made by `tools/generators/gen_mountain.py .`; export must include `data/mountain/*`). Statics
+  `route_points()` (traffic route 5, `TrafficRoute.from_points`), `bus_points()`, `road_points()`, `on_road(p)`,
+  `height_at(x, z)`, SNOW_LINE. Prison at gen_world PRISON_POS (-150, 0, -385); north hedge gap PASS_GAP; CAR_COUNT 6.
+  Intro bus ride: `Intro._start_ride`/`_set_bus`/`bus_progress`/`ride_speed_scale` (tests), `Player.enter_bus`/
+  `leave_bus`/`bus_ride`. Scenario mountain_pass, self-test check pass, shots 98/99/A0-A3.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

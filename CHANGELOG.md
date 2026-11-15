@@ -64,6 +64,7 @@ One line per finished part.
 - Point 47c: the Black Crows guard a private pier at the west end of the harbour (3 armed Crows, a fence and a KEEP OUT sign): step onto it and they shoot; scenario harbour_crows, self-test check harbour.
 - Points 56/57: no more endless falling - a player or car that falls out of the world is put back where it last stood; no more invisible walls in the fields - the whole village is one open area up to a hedge with trees and hills behind it (the quay at the sea); scenario open_border, self-test check ground.
 - Point 58: E at a station or placing furniture no longer makes your character kneel - a short effect at the object instead (a dust poof when placing / picking up); scenario no_kneel.
+- Point 49b: the prison now lies behind a mountain: a winding pass road from the farm with hairpin bends, snow, pines, rocks and guardrails; the intro bus really drives over it; traffic and your own car can drive it; scenario mountain_pass, self-test check pass.
 - Fix: the agora goals faced the wrong way - now the open side faces the pitch (scenario agora).
 - Point 63: fewer cars (5), traffic lights at the 3 busy Main Road junctions, cars overtake a car that stands still when the way is clear; scenario traffic_lights, self-test check lights.
 - Point 61: grass on every green plane (it grows round you as you walk or drive), never on roads, paths, fields or in buildings; scenario grass, self-test check grass.
