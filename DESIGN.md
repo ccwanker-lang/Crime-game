@@ -228,36 +228,24 @@ dealer hangouts per district, customer houses, car dealer.
   Mill Lane / Main Street (paths, grass, trees, benches, dog walkers, people sitting, youths smoking weed) and
   an "agora" (fenced mini football pitch with goals, sometimes NPCs playing).
 
-## Map layout (for milestone 4 — greybox first)
-Two parts, both open from the start, joined by a highway; in total a bit bigger than Schedule I:
-- The VILLAGE (chapter 1, small scale): grows out of today's test map. Old Town (starter room), the Crows'
-  districts, countryside with the barn, a small industrial edge with the lab warehouse and a small harbor.
-- The CITY (chapter 2, big): skyscrapers and a dense downtown grid, the syndicate's company towers, hillside
-  villas. Reached over the highway.
-- The PRISON: remote, outside both, on the bus line (story start).
-- The hills between village and city hold the mountain cabin.
-The sketch below was made for one town; it is split over the village and the city as above when the map is
-built (Roadmap 47 / 54). Top-down, north = up. Organic town, NOT a square grid; compact dense center.
-- Water: sea/bay along the south-west and south; a river flows from the northern hills
-  southwards, curving south-west into the bay. It splits Old Town (west) from Downtown (east).
-  2–3 bridges.
-- Downtown (center, east of river): dense grid of ~4x4 blocks with many buildings.
-  Town hall on a small square, police station, bank, supermarket, gun shop, hardware store,
-  bar, club. Main avenue runs north-south through downtown; a main east-west road crosses
-  the whole map over a bridge.
-- Old Town (north-west, west of river): curved streets, cheap houses, the player's starter room.
-- Countryside (far north-west): farm fields, the barn.
-- Industrial (south-west, west of river): large warehouses, factory, lab warehouse, black market.
-- Harbor (south-west coast/bay): piers, stacked containers, harbor storage, rival presence.
-- South (below downtown): car garage, gas station, motel, shooting range, park with a pond,
-  roadside service depot.
-- East side / Hillside (east of downtown, on a hill): curvy streets, suburbs with houses, villa,
-  hospital near downtown.
-- Northern hills: forested hills/mountains with a winding serpentine road up to the mountain cabin.
-- Highway: enters from the north-east edge and connects to the north end of the main avenue;
-  it is the link between the village and the city (open from the start).
-- Rival HQ: in the harbor/industrial area.
-Terrain should have real height differences (hills up, down to the river and harbor).
+## Map layout (DEFINITIVE, user blueprint 2026-11-15; replaces the old sketch)
+The user drew the zones over a top-down screenshot of the current map. Zones (blueprint colour):
+1. Prison (red, top right): the remote story prison behind the mountain pass (built in 49b).
+2. Military base (red, below the prison): fenced, watchtowers, boom gate, barracks, hangars, vehicles. Not open to
+   the public (guards; later for missions).
+3. Slums (pink): caravan park / trailers, shanty town, shacks, rubbish, fire barrels. A cheap property to buy.
+4. Farm (purple): exists (Hollow Farm).
+5. Docks (green): exist (harbour, quay, Crows' pier).
+6. Centre (blue): the current village.
+7. City (brown, left): big city with skyscrapers, office towers, wide roads, traffic lights, parking garages,
+   joined to the centre by a highway. Later the syndicate's home (replaces Roadmap 54's "chapter 2 map").
+8. Bunker (on the mountain between farm and prison): hidden bunker on top of / inside the mountain, reached by a
+   side road off the mountain pass. Later buyable as a secret lab or for missions.
+9. Border (black line): white snowy mountains all round the whole map as a natural border. No invisible walls in
+   open fields: you walk freely up to the mountains.
+Every zone is joined by roads that traffic and the navmesh follow. Build order: first the rough layout over the
+whole map (roads + buildings in place, drivable), then detail per zone. One F9 scenario per zone (spawn inside it)
+and a top-down overview screenshot. Push after every zone. Zone coordinates: from the blueprint image (pending).
 
 ## Roadmap
 First playable (co-op weed loop in a small test town):
@@ -428,7 +416,7 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
       the camera wherever a ray hits green ground; roads, paths, fields and buildings stay bare)
   62. Map: houses with driveways and parking, a rich neighbourhood with villas, a business district with tall
       office buildings. Layout: the prison (49) behind the mountain north of the farm (see 49b), the rich neighbourhood next to the farm, the business
-      district on the other side of the village - todo
+      district on the other side of the village - folded into 69/70 (user's map blueprint, 2026-11-15)
   63. Traffic: fewer cars, traffic lights at the big junctions, better flow: no jams or cars stuck behind each
       other, overtake / drive round when something blocks the road - DONE (5 cars instead of 8, lights at the 3
       busy Main Road junctions, cars overtake a car that stands still when the other lane is clear)
@@ -442,6 +430,10 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
   53. Story missions per act (chapter 1, acts 1-5; the traitor = an old friend of the players) - todo
   54. The city + the highway link (chapter 2 map: skyscrapers, downtown, hillside) - todo
   55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
+Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part):
+  69. Rough layout of the whole map: every zone's roads + buildings in place, drivable, traffic + navmesh - todo
+      (waiting for the blueprint image)
+  70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
