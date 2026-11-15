@@ -118,3 +118,5 @@
   city/army life) + the flaky "sent Crow" check fixed in `Territory.spot_near` (short walking path). Point 85
   (airfield) done. All of feedback round 75-85 is DONE. NEXT: wait for user feedback / B.md; B was asked (A.md) to
   widen Zones.ARMY_RECT to the new base.
+  Full self-test on the merge + Crow fix: 815 PASS, ALL PASSED; after point 85: checks army, airfield, ground, zones,
+  pass, bunker, grass, lamps PASS; netcheck 7794 both exit 0.
