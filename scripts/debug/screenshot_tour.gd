@@ -127,6 +127,7 @@ const SHOTS: Array[Array] = [
 	["94_south_harbour", Vector3(-60, 22, 100), Vector3(-100, 0, 80)],
 	["98_pass_from_farm", Vector3(-146, 3.5, -72), Vector3(-124, 9, -165)],
 	["99_hairpins", Vector3(-40, 75, -150), Vector3(-160, 10, -235)],
+	["B0_blueprint", Vector3(150, 520, -20), Vector3(-80, 0, -20)],
 	["A0_summit", Vector3(-150, 32.5, -248), Vector3(-150, 20, -160)],
 	["A1_prison_side", Vector3(-95, 28, -300), Vector3(-150, 0, -380)],
 	["A2_village_to_prison", Vector3(-60, 1.7, -60), Vector3(-150, 6, -385)],

@@ -245,7 +245,17 @@ The user drew the zones over a top-down screenshot of the current map. Zones (bl
    open fields: you walk freely up to the mountains.
 Every zone is joined by roads that traffic and the navmesh follow. Build order: first the rough layout over the
 whole map (roads + buildings in place, drivable), then detail per zone. One F9 scenario per zone (spawn inside it)
-and a top-down overview screenshot. Push after every zone. Zone coordinates: from the blueprint image (pending).
+and a top-down overview screenshot. Push after every zone.
+Blueprint: docs/map_blueprint.png (the user's drawing over a game screenshot); my reading of it: docs/map_zones.png
+(overview shot B0_blueprint, same angle: screen-up = WEST, screen-right = NORTH). World rectangles (x0, z0 .. x1, z1):
+  1 prison (-185, -420 .. -115, -350) | 2 army base (-105, -440 .. -25, -345), road from the prison gate east
+  3 slums (-108, -132 .. 75, -64) = the open field north of the centre | 4 farm (-193, -133 .. -114, 0)
+  5 docks (-193, 0 .. -114, 106) | 6 centre (-114, -62 .. 75, 106)
+  7 city (-65, 130 .. 115, 370), south of the centre, the sea west of it; highway from Main Road's east end
+    (75, 0) east to x 105 and south into the city
+  8 bunker (~(-85, -255), on the ridge east of the hairpins), side road from the climb's east hairpin (-118, -198)
+  9 border: a ring of snowy mountains round everything (west of the farm, north of prison + base, east of the base
+    and the slums/centre, south of the city); the sea west of the docks and the city.
 
 ## Roadmap
 First playable (co-op weed loop in a small test town):
@@ -432,7 +442,7 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
   55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
 Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part):
   69. Rough layout of the whole map: every zone's roads + buildings in place, drivable, traffic + navmesh - todo
-      (waiting for the blueprint image)
+      (order: border mountains + land, city + highway, slums, army base, bunker; one scenario per zone)
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
@@ -1004,6 +1014,11 @@ Choices made while working autonomously (what + why).
   the bus goes back to the prison (out of sight) for a late joiner.
 - Point 49b: the north border hedge has a gap at the pass (x -129..-119); walls round the mountain zone (MountainW/E/N)
   keep players inside. PRISON_POS (-150, 0, -385). For session B: Markers/ShootingRangeSpot (-50, -122) facing west.
+- Map blueprint orientation (2026-11-15): the user's screenshot was taken looking west (screen-up = west, right =
+  north): the sea + docks top left, the farm top centre, the pass to the right. Checked with an overview shot from
+  the same angle (B0_blueprint) with my zones drawn on (docs/map_zones.png). The city goes south of the centre
+  (left in the drawing) and stays east of x -65 so the harbour keeps its sea; the slums take the empty field north
+  of the centre; the army base sits east of the prison behind the ridge (out of sight like the prison).
 - Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
   the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
   of the fence) instead of the fence. Shots 96/97.
