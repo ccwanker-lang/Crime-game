@@ -125,7 +125,7 @@ func _build_terrain() -> void:
 	var shape := HeightMapShape3D.new()
 	shape.map_width = nx
 	shape.map_depth = nz
-	shape.map_data = _heights
+	shape.map_data = _collision_heights(nx, nz, x0, z0, cell)
 	var cs := CollisionShape3D.new()
 	cs.shape = shape
 	cs.position = Vector3(x0 + (nx - 1) * cell / 2.0, 0.0, z0 + (nz - 1) * cell / 2.0)
@@ -171,6 +171,24 @@ func _build_terrain() -> void:
 	mi.name = "Terrain"
 	mi.mesh = mesh
 	add_child(mi)
+
+
+## Point 84: the terrain collision has a hole (NaN samples = no collision in Jolt) under the bunker's entrance hall.
+## The hall floor carries you there; before, the heightmap's 1 m slope from the pad down into the dug shafts stood
+## in the underground garage as an invisible slanted wall (x -5 local, the lift's open side).
+func _collision_heights(nx: int, nz: int, x0: float, z0: float, cell: float) -> PackedFloat32Array:
+	var out: PackedFloat32Array = _heights.duplicate()
+	if not data().has("bunker"):
+		return out
+	var inv: Transform3D = bunker_spot().affine_inverse()
+	var hall := Rect2(BunkerComplex.HALL.position.x + 0.6, BunkerComplex.HALL.position.y + 0.6,
+			BunkerComplex.HALL.size.x - 1.2, BunkerComplex.HALL.size.y - 1.2)
+	for iz: int in nz:
+		for ix: int in nx:
+			var l: Vector3 = inv * Vector3(x0 + ix * cell, 0.0, z0 + iz * cell)
+			if hall.has_point(Vector2(l.x, l.z)):
+				out[iz * nx + ix] = NAN
+	return out
 
 
 # --- Road ------------------------------------------------------------------------------

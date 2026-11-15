@@ -497,10 +497,15 @@ User feedback after testing (2026-11-15, second round):
       allotments shrink to two columns; 3 traffic loops; scenario estate, shot H4)
   81. Close the small gap between the bunker mountain and the border mountains - DONE (the range runs 0.5 m under
       the pass mountain's edge for 8 m inside it; shots I0/I1; scenario mountain_seam)
-  82. Bunker: the lights hang at hip height - put them on the ceiling - todo
-  83. Bunker: the corridor behind the stairs leads nowhere - make it a room (storage / generator room) - todo
+  82. Bunker: the lights hang at hip height - put them on the ceiling - DONE (stairwell lamps on the shaft walls
+      above the landings, all others against the ceiling with a fitting; scenario bunker_lamps, shots F6/F8)
+  83. Bunker: the corridor behind the stairs leads nowhere - make it a room (storage / generator room) - DONE
+      (generator room at its end: two diesel generators, fuel tanks, switchboard, cable trays, marker GeneratorSpot;
+      scenario bunker_generator, shot F7)
   84. Bunker: an invisible wall blocks the way in the big open room - fix the collision, check every room for a way
-      through with a test walker - todo
+      through with a test walker - DONE (the mountain heightmap's slope into the dug shafts stood in the garage;
+      the terrain collision now has a hole under the hall; check bunker_rooms: rays across every room + a walker
+      through all of them; scenario bunker_garage)
   85. Army base bigger with an airfield: runway, control tower, hangars with F-16-style jets that now and then take
       off and land; move the garage further left to make room - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
@@ -1156,6 +1161,16 @@ Choices made while working autonomously (what + why).
   at (102, 84); North Road no longer dead-ends at x 71: it runs on to (90, -48) and down Orchard Lane (x 90) to a T on
   Main Road. Two new lane routes (Southfield loop, north-east loop), city.json "cars" 8. Green kept: the plaza strip
   before the city, a park strip x 75..95 west of the highway and a tree belt x 112..138 east of it.
+- Points 82-84 (bunker fixes): (82) the stairwell lamps hung off the middle wall 1.25 m above the steps - now wall
+  lamps on the shaft walls 2.9 m above each landing; the other lamps sit against their room's ceiling (a metal
+  fitting + the glowing strip), the one in the lift shaft moved to the garage ceiling. (83) The corridor's last 8 m
+  now open (full width) into a generator room (12 x 9 m, 4.5 m high): two generators on plinths, exhausts, fuel
+  tanks, a switchboard; its kit is a separate body "Machines". Marker GeneratorSpot for B. (84) The invisible wall:
+  the terrain heightmap is dug out only in the shafts (1 m cells), so its slope from the pad (32.9) down to 15.9 ran
+  through the garage at x -5 (the lift's open side). A heightmap can't make a cave, so the collision copy of the
+  heightmap gets NaN samples (= holes in Jolt) under the whole entrance hall; the hall's floor slab carries you there.
+  The mesh is unchanged. Check `bunker_rooms` casts rays at 0.5/1.4 m across every room (only furniture, lift panels
+  and Machines may be hit) and walks a test player through all rooms.
 - Point 81 (seam slit): the slit was the border range's 4 m render quads straddling the pass mountain's east edge
   (x -30 is not on the range's 4 m grid): the range dropped to -3 m inside the land, so those quads dipped into a
   groove next to the mountain mesh. gen_border now lifts the range to 0.5 m under the mountain heightmap for 8 m

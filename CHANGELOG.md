@@ -65,6 +65,9 @@ One line per finished part.
 - Points 56/57: no more endless falling - a player or car that falls out of the world is put back where it last stood; no more invisible walls in the fields - the whole village is one open area up to a hedge with trees and hills behind it (the quay at the sea); scenario open_border, self-test check ground.
 - Point 58: E at a station or placing furniture no longer makes your character kneel - a short effect at the object instead (a dust poof when placing / picking up); scenario no_kneel.
 - Merge feature-b (session B): product quality (Standard/Good/Premium weed, meth and coke from better seeds, lamps, reagents, a fume hood; better customers and prices), a shooting range at Hollow Farm (rank 2: drills, try any gun, a small aim bonus), engine sounds for every car, running people over from any side, standing on cars, dogs as real NPCs (fetch, they flee, they can be shot), birds/pigeons/cats/ducks, and staff assignment (pick a worker's locker and stations, a staff locker pays their wages); scenarios quality, shooting_range, car_sounds, run_over, car_roof, dogs, animals, ducks, staff_assign.
+- Point 84: no more invisible wall in the bunker's garage; every bunker room is tested with a walker; scenario bunker_garage.
+- Point 83: the bunker corridor now ends in a generator room; scenario bunker_generator.
+- Point 82: bunker lamps hang on the ceilings / high on the stairwell walls instead of at hip height; scenario bunker_lamps.
 - Point 81: the thin slit between the bunker mountain and the border mountains is closed; scenario mountain_seam.
 - Point 80: the junkyard next to the slums is now Rosehill Estate: streets, row houses with gardens, detached houses, a small park, and Orchard Lane runs on to it; scenario estate.
 - Point 79: no more trees on the road from the gas station to the slums.

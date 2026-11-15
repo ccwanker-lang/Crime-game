@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "bunker", "bunker_inside", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3875,6 +3875,84 @@ func _check_bunker_inside(world: Node3D) -> void:
 			"the vehicle lift: car down to %.1f m, back up to %.1f m, boom closed while away %s" % [low.y, high.y, gate_down])
 	veh.host_remove(pc)
 	await get_tree().physics_frame
+
+
+## Points 83/84: no invisible walls in the bunker - horizontal rays at knee and chest height across every room only
+## hit that room's own walls / furniture with a mesh, and a test walker reaches the far side of every room.
+func _check_bunker_rooms(world: Node3D) -> void:
+	var mountain: Node = world.find_child("Mountain", false, false)
+	var bunker := mountain.get_node_or_null("Bunker") as BunkerComplex if mountain else null
+	if bunker == null:
+		_report(false, "the bunker complex")
+		return
+	var t: Transform3D = bunker.global_transform
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var bad: Array[String] = []
+	var rooms: Array = BunkerComplex.ROOMS.duplicate()
+	rooms.append(["hall", Rect2i(BunkerComplex.HALL.position.x, 1, BunkerComplex.HALL.size.x, 1), BunkerComplex.HALL_H])
+	for r: Array in rooms:
+		var name: String = r[0]
+		if name == "stairs":
+			continue
+		var rect: Rect2i = r[1]
+		var fy: float = 0.0 if name == "hall" else -BunkerComplex.DEPTH
+		for hy: float in [0.5, 1.4]:
+			# Along x at every metre of z, and along z at every metre of x, 0.3 m in from the walls.
+			for z: int in range(rect.position.y, rect.end.y):
+				var a := Vector3(rect.position.x + 0.3, fy + hy, z + 0.5)
+				var b := Vector3(rect.end.x - 0.3, fy + hy, z + 0.5)
+				var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(t * a, t * b, 1 | 2))
+				if not hit.is_empty() and not _bunker_hit_ok(hit):
+					bad.append("%s x-ray z %d h %.1f hits %s at %s" % [name, z, hy, (hit["collider"] as Node).name,
+							(t.affine_inverse() * (hit["position"] as Vector3)).snapped(Vector3.ONE * 0.1)])
+			if name == "hall":
+				continue
+			for x: int in range(rect.position.x, rect.end.x):
+				var a2 := Vector3(x + 0.5, fy + hy, rect.position.y + 0.3)
+				var b2 := Vector3(x + 0.5, fy + hy, rect.end.y - 0.3)
+				var hit2: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(t * a2, t * b2, 1 | 2))
+				if not hit2.is_empty() and not _bunker_hit_ok(hit2):
+					bad.append("%s z-ray x %d h %.1f hits %s at %s" % [name, x, hy, (hit2["collider"] as Node).name,
+							(t.affine_inverse() * (hit2["position"] as Vector3)).snapped(Vector3.ONE * 0.1)])
+	_report(bad.is_empty(), "no invisible walls in the bunker rooms (%d: %s)" % [bad.size(), "; ".join(bad.slice(0, 6))])
+	# A walker crosses every lower room: garage -> corridor -> lab (far corner), storage, quarters, generator room.
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Inspector"
+	world.get_node("Players").add_child(p)
+	var y: float = -BunkerComplex.DEPTH
+	var legs: Array = [["garage", Vector3(-10, y, 1), Vector3(-10, y, 14)], ["garage -> corridor", Vector3(-10, y, 14), Vector3(-2, y, 17)],
+			["corridor", Vector3(-2, y, 17), Vector3(-2, y, 29)],
+			["lab", Vector3(-2, y, 29), Vector3(22, y, 38)], ["lab back", Vector3(22, y, 38), Vector3(22, y, 21.5)],
+			["storage", Vector3(-2, y, 23), Vector3(-14, y, 19.5)], ["quarters", Vector3(-2, y, 39), Vector3(-7, y, 39)], ["quarters back", Vector3(-7, y, 39), Vector3(-7, y, 44.5)]]
+	for extra: Array in BunkerComplex.EXTRA_LEGS:
+		legs.append(extra)
+	var stuck: Array[String] = []
+	for leg: Array in legs:
+		p.global_position = t * ((leg[1] as Vector3) + Vector3(0, 0.3, 0))
+		p.auto_target = t * (leg[2] as Vector3)
+		await get_tree().create_timer(maxf(4.0, (leg[1] as Vector3).distance_to(leg[2]) / 3.0 + 2.0)).timeout
+		var at: Vector3 = t.affine_inverse() * p.global_position
+		if Vector2(at.x, at.z).distance_to(Vector2((leg[2] as Vector3).x, (leg[2] as Vector3).z)) > 1.2:
+			stuck.append("%s (stopped at %s)" % [leg[0], at.snapped(Vector3.ONE * 0.1)])
+	_report(stuck.is_empty(), "a test walker gets through every bunker room (%d legs; stuck: %s)" % [legs.size(), ", ".join(stuck)])
+	p.queue_free()
+	GameState.player_data.erase("Inspector")
+	await get_tree().physics_frame
+
+
+func _bunker_hit_ok(hit: Dictionary) -> bool:
+	# Furniture (prefabs/interiors) is visible; only the complex's own bare collision counts as an invisible wall.
+	var n: Node = hit["collider"]
+	if n is BunkerLiftButton or n.name == &"Machines":
+		return true
+	while n != null:
+		if n.name == &"Furniture":
+			return true
+		n = n.get_parent()
+	return false
 
 
 ## Map zone 3: the slums north of the centre - shacks, caravans, fire barrels, the cheap shack for sale, the loop

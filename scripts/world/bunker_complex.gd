@@ -28,7 +28,12 @@ const ROOMS: Array = [
 	["lab", Rect2i(0, 20, 24, 20), 6.0],
 	["storage", Rect2i(-16, 18, 12, 12), 3.5],
 	["quarters", Rect2i(-16, 32, 12, 14), 3.5],
+	["generator", Rect2i(-7, 48, 12, 9), 4.5],  # point 83: the corridor's far end leads somewhere now
 ]
+## Extra walker legs for the self-test (point 83 adds the generator room).
+const EXTRA_LEGS: Array = [["generator room", Vector3(-2, -DEPTH, 44), Vector3(-1, -DEPTH, 55.5)]]
+## Extra lamps (point 83: the generator room), same format as in _build_lights.
+const EXTRA_LAMPS: Array = [[Vector3(-1, -DEPTH + 4.5, 51), 11.0, Vector3.ZERO], [Vector3(-1, -DEPTH + 4.5, 55), 11.0, Vector3.ZERO]]
 ## Openings in the lower level's walls: [axis, line, from, to, height] - axis "x" = the wall line x = line (cells
 ## from..to along z), "z" = the line z = line (along x).
 const OPENINGS: Array = [
@@ -37,9 +42,11 @@ const OPENINGS: Array = [
 	["x", 0, 27, 31, 3.0],   # corridor -> lab
 	["x", -4, 22, 24, 2.4],  # corridor -> storage
 	["x", -4, 38, 40, 2.4],  # corridor -> quarters
+	["z", 48, -4, 0, 3.0],   # corridor -> generator room (the whole corridor width)
 ]
 
 var _b := MeshBuilder.new()
+var _gb := MeshBuilder.new()  # the generator room's machines (own builder: _b is built before them)
 var _body: StaticBody3D
 var _cells: Dictionary = {}  # Vector2i -> [room name, height] (lower level)
 
@@ -58,6 +65,11 @@ func _ready() -> void:
 	mi.name = "ComplexMesh"
 	mi.mesh = _b.build()
 	add_child(mi)
+	_build_generator_room()
+	var gm := MeshInstance3D.new()
+	gm.name = "GeneratorMesh"
+	gm.mesh = _gb.build()
+	add_child(gm)
 	_build_moving_parts()
 	_build_furniture()
 	_build_markers()
@@ -372,6 +384,72 @@ func _build_furniture() -> void:
 	add_child(mi)
 
 
+## Point 83: the generator room at the corridor's far end - two diesel generators on plinths with exhaust pipes up
+## through the ceiling, fuel tanks, a switchboard with breakers, cable trays, a warning stripe. Solid (layer 1).
+func _build_generator_room() -> void:
+	var y: float = -DEPTH
+	var machines := StaticBody3D.new()  # (own body "Machines": visible kit, not a wall - see the bunker_rooms check)
+	machines.name = "Machines"
+	machines.collision_layer = 1
+	machines.collision_mask = 0
+	add_child(machines)
+	var olive := Color(0.33, 0.38, 0.28)
+	var steel := Color(0.42, 0.44, 0.45)
+	for gx: float in [-4.6, 2.6]:
+		_gb.color = CONCRETE_DARK
+		_gb.box(&"concrete", Vector3(gx, y + 0.1, 53.5), Vector3(3.0, 0.2, 5.0))
+		_gb.color = olive
+		_gb.box(&"item_matte", Vector3(gx, y + 1.0, 53.5), Vector3(2.2, 1.6, 4.2))
+		_gb.color = steel
+		_gb.box(&"item_metal", Vector3(gx, y + 1.9, 52.2), Vector3(1.6, 0.25, 1.2))
+		_gb.box(&"item_metal", Vector3(gx + 1.15, y + 1.0, 53.5), Vector3(0.1, 1.2, 3.6))
+		_gb.cylinder(&"item_metal", Vector3(gx - 0.5, y + 1.8, 55.0), Vector3(gx - 0.5, y + 4.5, 55.0), 0.16, 0.16, 8)
+		_gb.color = STRIPE
+		_gb.box(&"item_matte", Vector3(gx, y + 0.005, 50.6), Vector3(3.0, 0.01, 0.25))
+		var cs := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(2.2, 1.8, 4.2)
+		cs.shape = shape
+		cs.position = Vector3(gx, y + 1.1, 53.5)
+		machines.add_child(cs)
+	# Fuel tanks along the back wall, a switchboard on the west wall by the door.
+	for tx: float in [-5.5, -3.2]:
+		_gb.color = Color(0.55, 0.18, 0.12)
+		_gb.cylinder(&"item_glossy", Vector3(tx, y, 56.3), Vector3(tx, y + 1.9, 56.3), 0.55, 0.55, 10)
+	var tank := CollisionShape3D.new()
+	var tshape := BoxShape3D.new()
+	tshape.size = Vector3(3.5, 1.9, 1.1)
+	tank.shape = tshape
+	tank.position = Vector3(-4.35, y + 0.95, 56.3)
+	machines.add_child(tank)
+	_gb.color = Color(0.6, 0.62, 0.6)
+	_gb.box(&"item_metal", Vector3(-6.75, y + 1.3, 50.5), Vector3(0.5, 2.2, 2.4))
+	var board := CollisionShape3D.new()
+	var bshape := BoxShape3D.new()
+	bshape.size = Vector3(0.5, 2.2, 2.4)
+	board.shape = bshape
+	board.position = Vector3(-6.75, y + 1.3, 50.5)
+	machines.add_child(board)
+	_gb.color = Color(0.15, 0.15, 0.16)
+	for i: int in 6:
+		_gb.box(&"item_matte", Vector3(-6.48, y + 1.7 - (i / 3) * 0.6, 49.7 + (i % 3) * 0.8), Vector3(0.04, 0.35, 0.5))
+	_gb.color = Color(0.85, 0.12, 0.1)
+	_gb.box(&"item_glossy", Vector3(-6.46, y + 0.6, 51.3), Vector3(0.04, 0.25, 0.25))
+	# Cable trays along the ceiling from the switchboard into the corridor.
+	_gb.color = steel
+	_gb.box(&"item_metal", Vector3(-6.0, y + 4.25, 52.0), Vector3(0.5, 0.08, 7.0))
+	_gb.box(&"item_metal", Vector3(-2.0, y + 3.35, 32.0), Vector3(0.4, 0.06, 31.0))
+	var sign := Label3D.new()
+	sign.text = "GENERATORS - DANGER HIGH VOLTAGE"
+	sign.font_size = 36
+	sign.pixel_size = 0.006
+	sign.modulate = Color(0.95, 0.75, 0.1)
+	sign.outline_size = 6
+	sign.position = Vector3(-2.0, y + 3.25, 48.0 - 0.02)
+	sign.rotation.y = PI
+	add_child(sign)
+
+
 func _lab_spot(i: int) -> Vector3:
 	return Vector3(6.0 + (i % 3) * 7.0, -DEPTH, 25.0 + (i / 3) * 9.0)
 
@@ -387,6 +465,7 @@ func _build_markers() -> void:
 	for i: int in 3:
 		spots.append(["GarageSpot%d" % (i + 1), Vector3(-10.0, y, 3.5 + i * 4.5)])
 	spots.append(["ControlSpot", Vector3(4.5, 0, 13.0)])
+	spots.append(["GeneratorSpot", Vector3(-1.0, y, 52.5)])
 	for s: Array in spots:
 		var m := Marker3D.new()
 		m.name = s[0]
@@ -423,28 +502,46 @@ func _build_lights() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
 	var y: float = -DEPTH
+	# Point 82: every lamp sits against a ceiling (y = the room's ceiling) or high on a wall - the stairwell's used
+	# to hang off the divider wall 1.25 m above the steps (hip height), one floated in the middle of the lift shaft.
+	# [position of the lamp's top, range, wall normal (zero = ceiling lamp)]
 	var lamps: Array = [
-		[Vector3(0, DOOR_H + 0.9, -1.0), 9.0],  # outside over the door (on the face)
-		[Vector3(-3, HALL_H - 0.3, 5), 12.0], [Vector3(3, HALL_H - 0.3, 12), 12.0],
-		[Vector3(-8, y + 4.7, 5), 12.0], [Vector3(-8, y + 4.7, 12), 12.0], [Vector3(-2, y + 4.7, 6.5), 10.0],
-		[Vector3(4, -4.0, 7), 9.0], [Vector3(4, -11.0, 7), 9.0],
-		[Vector3(-2, y + 3.2, 22), 9.0], [Vector3(-2, y + 3.2, 34), 9.0], [Vector3(-2, y + 3.2, 45), 9.0],
-		[Vector3(6, y + 5.7, 25), 13.0], [Vector3(18, y + 5.7, 25), 13.0], [Vector3(6, y + 5.7, 35), 13.0],
-		[Vector3(18, y + 5.7, 35), 13.0],
-		[Vector3(-10, y + 3.2, 24), 10.0], [Vector3(-10, y + 3.2, 39), 10.0],
+		[Vector3(0, DOOR_H + 0.9, -1.0), 9.0, Vector3.ZERO],  # outside over the door (under the face's lintel)
+		[Vector3(-3, HALL_H, 5), 12.0, Vector3.ZERO], [Vector3(3, HALL_H, 13.5), 12.0, Vector3.ZERO],
+		[Vector3(-9, y + 5.0, 4), 12.0, Vector3.ZERO], [Vector3(-9, y + 5.0, 12), 12.0, Vector3.ZERO],
+		[Vector3(-2, y + 5.0, 14), 10.0, Vector3.ZERO],
+		[Vector3(STAIRS.position.x + 0.03, -7.0 + 2.9, 3), 8.0, Vector3.RIGHT],
+		[Vector3(STAIRS.position.x + 0.03, -14.0 + 2.9, 3), 8.0, Vector3.RIGHT],
+		[Vector3(STAIRS.end.x - 0.03, -3.5 + 2.9, 11), 8.0, Vector3.LEFT],
+		[Vector3(STAIRS.end.x - 0.03, -10.5 + 2.9, 11), 8.0, Vector3.LEFT],
+		[Vector3(-2, y + 3.5, 22), 9.0, Vector3.ZERO], [Vector3(-2, y + 3.5, 34), 9.0, Vector3.ZERO],
+		[Vector3(-2, y + 3.5, 45), 9.0, Vector3.ZERO],
+		[Vector3(6, y + 6.0, 25), 13.0, Vector3.ZERO], [Vector3(18, y + 6.0, 25), 13.0, Vector3.ZERO],
+		[Vector3(6, y + 6.0, 35), 13.0, Vector3.ZERO], [Vector3(18, y + 6.0, 35), 13.0, Vector3.ZERO],
+		[Vector3(-10, y + 3.5, 24), 10.0, Vector3.ZERO], [Vector3(-10, y + 3.5, 39), 10.0, Vector3.ZERO],
 	]
+	for extra: Array in EXTRA_LAMPS:
+		lamps.append(extra)
 	var b := MeshBuilder.new()
 	for l: Array in lamps:
 		var p: Vector3 = l[0]
+		var wall: Vector3 = l[2]
 		var light := OmniLight3D.new()
 		light.light_color = Color(1.0, 0.92, 0.78)
 		light.light_energy = 1.4
 		light.omni_range = l[1]
 		light.shadow_enabled = false
-		light.position = p - Vector3(0, 0.3, 0)
+		light.position = p + (wall * 0.4 if wall != Vector3.ZERO else Vector3(0, -0.4, 0))
 		add_child(light)
-		b.color = Color(1.0, 0.95, 0.8)
-		b.box(&"lamp_glow", p, Vector3(1.2, 0.08, 0.25))
+		b.color = Color(0.3, 0.31, 0.32)
+		if wall == Vector3.ZERO:
+			b.box(&"item_metal", p - Vector3(0, 0.03, 0), Vector3(1.3, 0.06, 0.32))  # the fitting on the ceiling
+			b.color = Color(1.0, 0.95, 0.8)
+			b.box(&"lamp_glow", p - Vector3(0, 0.1, 0), Vector3(1.2, 0.08, 0.25))
+		else:  # a wall lamp: a box on the wall, the glowing face towards the room
+			b.box(&"item_metal", p + wall * 0.05, Vector3(0.1, 0.32, 1.3))
+			b.color = Color(1.0, 0.95, 0.8)
+			b.box(&"lamp_glow", p + wall * 0.12, Vector3(0.06, 0.24, 1.2))
 	var mi := MeshInstance3D.new()
 	mi.name = "Lamps"
 	mi.mesh = b.build()

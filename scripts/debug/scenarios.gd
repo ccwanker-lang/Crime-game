@@ -63,6 +63,9 @@ const LIST: Array = [
 	["slum_road", "Slums road: centre lines, no trees on the road", "You stand at the junction where the road from the gas station (North Road) turns north to the slums. The road round the slums now has a dashed centre line (like every road, also across T-junctions), and the old tree row that stood on its carriageway is gone. Walk or drive the loop west."],
 	["apartments", "City apartment block: lobby, stairs, lift, roof", "You stand in front of an apartment block in the city (balconies, curtains, a glass lobby). Walk in: mailboxes and a bench in the lobby, the stairwell at the back left (two flights per floor up to the roof), the lift at the back right (E on the platform or the panel). Up top: a roof terrace with planters and the view over the lower city. There are three of these enterable blocks; the other apartment blocks are closed."],
 	["neighbourhoods", "New neighbourhoods (Southfield, Orchard Lane)", "You stand on Garden Row, the new street south of South Street, next to your car. Look round: row houses with back gardens, detached houses with driveways, a pocket park with a sandpit and swings, a cobbled square with small shops (deli, pharmacy, cafe, hair, books, flowers). Drive east to the highway and north to Main Road, then turn into Orchard Lane (x 90): more houses and allotments on the north corner. Between the village and the city a park strip and a tree belt stay green. The new houses are decoration (not enterable)."],
+	["bunker_lamps", "Bunker: lamps on the ceilings", "You stand at the top of the bunker's stairwell (the hall). Walk down the four flights: the lamps are on the shaft walls above each landing now (before they hung off the middle wall at hip height). Below, every room's lamps sit against its ceiling."],
+	["bunker_generator", "Bunker: the generator room", "You stand in the bunker corridor, facing its far end. It used to lead nowhere; now it ends in a generator room: two diesel generators with exhausts, fuel tanks, a switchboard, cable trays (marker GeneratorSpot for later)."],
+	["bunker_garage", "Bunker: no invisible wall in the garage", "You stand in the underground garage, west side. There used to be an invisible slanted wall through the garage (the mountain's ground reached into it next to the lift). Walk across to the lift pit and into the corridor: nothing stops you. A test walker checks every room in the self-test (check bunker_rooms)."],
 	["bunker_inside", "The bunker complex: lift, stairs, lab, garage", "You stand in the bunker's entrance hall, the blast door open, your car on the vehicle lift. Drive onto / stay on the lift and press E on the platform (or the call panel left of it) to go 14 m down to the underground garage. Or walk down the stairwell (right of the lift, four flights). Below: the garage, a corridor, the big lab hall (yellow squares = machine spots), storage and the bunk room. Buying it and the lab come later (session B)."],
 	["army_base", "Map zone 2: Fort Halden, the army base behind the mountain", "You stand on the pass road at the gate of the army base (east of the prison, out of sight of the village), next to your car. The base is closed: fence all round, the gate shut, a boom, a guard booth. Look through the fence: barracks, two hangars, army trucks and jeeps, a helipad, four watchtowers (their searchlights sweep at night - F7 to speed up time). Guards and missions come later. Drive back over the pass to the farm."],
 	["slums", "Map zone 3: the slums north of the centre (Rosehill Park)", "Evening (19:00) in the yard in the middle of the shanty town: shacks of tin and planks, rubbish, fire barrels burning. North: the caravan park; east: the junkyard and container homes; west by the road: the Rosehill Shack, FOR SALE for €4,000 (the cheapest property; E on the door, buy it at the estate agent). A car drives round the loop road. Turn north from North Road at the barber's corner to get here."],
@@ -471,6 +474,14 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 4, Vector3(8, 0.2, 85.75), PI / 2.0, "", 1.0)
 			_place(me, Vector3(5, 0.3, 89), Vector3(-30, 4, 76), dn, 11.0)
+		"bunker_lamps", "bunker_generator", "bunker_garage":
+			_kit(me, 200, [])
+			var bt2: Transform3D = Mountain.bunker_spot()
+			var spot: Dictionary = {"bunker_lamps": [Vector3(4, 0.3, 2.6), Vector3(4, -3.0, 10)],
+					"bunker_generator": [Vector3(-2, -13.7, 36), Vector3(-1, -13, 52)],
+					"bunker_garage": [Vector3(-11, -13.7, 2), Vector3(0, -13, 12)]}
+			var pl: Array = spot[id]
+			_place(me, bt2 * (pl[0] as Vector3), bt2 * (pl[1] as Vector3), dn, 14.0)
 		"bunker_inside":
 			_kit(me, 200, [])
 			var bt: Transform3D = Mountain.bunker_spot()

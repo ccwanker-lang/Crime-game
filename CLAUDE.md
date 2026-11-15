@@ -320,6 +320,9 @@ Godot console exe:
   `host_set_locked`), `BunkerLift` (Lift, open = down, `is_up`/`is_down`) + `BunkerLiftButton`s, `BunkerProperty`
   (Property "bunker", `rooms` AABBs, Furniture node), markers LabSpot1-6/StorageSpot1-4/BedSpot1-4/GarageSpot1-3/
   ControlSpot. `Mountain.bunker_spot()`. Scenarios bunker, bunker_inside; checks bunker, bunker_inside; shots F0-F6.
+- Bunker fixes (82-84): lamps in `_build_lights` ([top pos, range, wall normal]), `EXTRA_LAMPS`/`EXTRA_LEGS`, room
+  "generator" (`_build_generator_room`, body Machines, marker GeneratorSpot); terrain collision hole under the hall
+  (`Mountain._collision_heights`, NaN = no collision). Check bunker_rooms; scenarios bunker_lamps/generator/garage.
 - Mountains one style (point 73): `BorderRange.terrain_color` (both terrains), snow line 48; gen_border.py reads
   data/mountain (run it AFTER gen_mountain.py) and extrudes/pins the pass mountain's edges into the range.
 - Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from

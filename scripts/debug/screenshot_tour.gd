@@ -137,6 +137,8 @@ const SHOTS: Array[Array] = [
 	["F4_bunker_garage", Vector3(-83, 21.9, -255), Vector3(-95, 18.9, -246)],
 	["F5_bunker_lab", Vector3(-60, 22.9, -276), Vector3(-74, 18.9, -260)],
 	["F6_bunker_stairs", Vector3(-95, 31.4, -258), Vector3(-88, 27.9, -258)],
+	["F7_bunker_generators", Vector3(-51.5, 21.4, -252), Vector3(-43, 18.9, -253.5)],
+	["F8_bunker_stair_lamps", Vector3(-90, 26.9, -257.5), Vector3(-86, 25.4, -257.5)],
 	["G0_city_from_docks", Vector3(-150, 60, 40), Vector3(30, 15, 250)],
 	["G1_mountains_from_village", Vector3(-110, 110, 60), Vector3(-130, 20, -250)],
 	["G2_city_street", Vector3(-20, 30, 120), Vector3(40, 20, 260)],
