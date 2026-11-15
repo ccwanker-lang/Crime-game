@@ -192,10 +192,25 @@ dz = np.maximum(np.maximum(pz0 - Z, Z - pz1), 0)
 natural *= smooth01(np.hypot(dx, dz) / 25.0)
 natural = np.maximum(natural, 0.0)
 
+# Map zone 8: a dead-end side road east off the summit (z -254) into the ridge, rising 7%, to a flat pad with
+# the hidden bunker's door in the rock face at x -98 (facing west).
+SIDE_Z = -254.0
+SIDE_X0, SIDE_X1, PAD_X1 = -146.4, -112.0, -98.0
+i_side = int(np.argmin(np.hypot(centre[:, 0] + 150.0, centre[:, 1] - SIDE_Z)))
+side_h0 = float(H[i_side])
+pad_h = side_h0 + 0.07 * (SIDE_X1 - SIDE_X0)
+sx = np.arange(SIDE_X0, PAD_X1 - 8.0 + 0.001, 0.5)  # flat on the pad up to the apron
+side_road = np.stack([sx, np.full_like(sx, SIDE_Z)], axis=1)
+side_rh = side_h0 + (pad_h - side_h0) * smooth01((sx - SIDE_X0) / (SIDE_X1 - SIDE_X0))
+# Pad samples (1 m grid) 0.12 above the pad so the clamp under the road leaves the ground exactly at pad height.
+gx, gz = np.meshgrid(np.arange(SIDE_X1, PAD_X1 + 0.001, 1.0), np.arange(SIDE_Z - 8.0, SIDE_Z + 8.001, 1.0))
+pad = np.stack([gx.ravel(), gz.ravel()], axis=1)
+print(f"side road {sx[-1] - SIDE_X0:.0f} m from {side_h0:.2f} to {pad_h:.2f} m")
+
 # Road carving: within 6 m of the centre line the road height, blending to the natural slope at 18 m.
 ribbon = S >= s_ribbon
-rc = centre[ribbon]
-rh = H[ribbon]
+rc = np.concatenate([centre[ribbon], side_road, pad])
+rh = np.concatenate([H[ribbon], side_rh, np.full(len(pad), pad_h + 0.12)])
 height = natural.copy()
 for row in range(X.shape[0]):
     px = X[row][:, None]
@@ -273,7 +288,9 @@ sel = (S >= s_rail0) & (S <= s_rail1)
 idx = np.where(sel)[0][::5]  # every 2.5 m
 for side in (-1, 1):
     off = offset(centre, side * (ROAD_HALF + 1.15))
-    rails.append([[round(float(off[i, 0]), 2), round(float(H[i]), 3), round(float(off[i, 1]), 2)] for i in idx])
+    # East rail (side +1 on the north leg): a gap where the bunker road leaves.
+    rails.append([[round(float(off[i, 0]), 2), round(float(H[i]), 3), round(float(off[i, 1]), 2)] for i in idx
+                  if not (side > 0 and off[i, 0] > -150.0 and abs(off[i, 1] - SIDE_Z) < 6.5)])
 
 # ------------------------------------------------------------------ traffic route 5 + the bus path
 def lane(side):
@@ -361,6 +378,8 @@ data = {
     "route": route,
     "bus": bus,
     "hedge_gap": [-129.0, -119.0],
+    "side_road": [[round(float(side_road[i, 0]), 3), round(float(side_rh[i]), 3), SIDE_Z] for i in range(len(sx))],
+    "bunker": [PAD_X1, round(pad_h, 3), SIDE_Z, round(math.pi / 2, 5)],
 }
 with open(os.path.join(OUT, "mountain.json"), "w") as f:
     json.dump(data, f, separators=(",", ":"))

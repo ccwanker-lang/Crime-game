@@ -48,6 +48,14 @@ static func road_points() -> PackedVector3Array:
 	return _pts("road")
 
 
+## Map zone 8: the hidden bunker's entrance (position on the pad in front of the door, yaw = the door's facing).
+static func bunker_spot() -> Transform3D:
+	var b: Array = data().get("bunker", [])
+	if b.size() < 4:
+		return Transform3D.IDENTITY
+	return Transform3D(Basis(Vector3.UP, float(b[3])), Vector3(b[0], b[1], b[2]))
+
+
 ## True when (x, z) is on the pass road's asphalt (tests).
 static func on_road(p: Vector3, margin: float = 0.3) -> bool:
 	for q: Vector3 in road_points():
@@ -99,6 +107,7 @@ func _ready() -> void:
 		return
 	_build_terrain()
 	_build_road()
+	_build_bunker()
 	_build_rails()
 	_build_props()
 
@@ -185,7 +194,14 @@ static func _side(pts: PackedVector3Array, i: int, off: float) -> Vector3:
 
 
 func _build_road() -> void:
-	var all: PackedVector3Array = road_points()
+	_ribbon(road_points(), "Road")
+	# Map zone 8: the side road from the summit to the hidden bunker.
+	_ribbon(_pts("side_road"), "SideRoad")
+
+
+func _ribbon(all: PackedVector3Array, node_name: String) -> void:
+	if all.size() < 4:
+		return
 	var pts := PackedVector3Array()
 	for i: int in range(0, all.size(), 2):  # 1 m
 		pts.append(all[i])
@@ -218,14 +234,14 @@ func _build_road() -> void:
 			b.quad(&"road_marking", _side(pts, i, e - 0.06) + lift, _side(pts, i, e + 0.06) + lift,
 					_side(pts, i + 1, e + 0.06) + lift, _side(pts, i + 1, e - 0.06) + lift, up)
 	var mi := MeshInstance3D.new()
-	mi.name = "Road"
+	mi.name = node_name
 	mi.mesh = b.build()
 	add_child(mi)
 	var shape := ConcavePolygonShape3D.new()
 	shape.set_faces(faces)
 	shape.backface_collision = true
 	var cs := CollisionShape3D.new()
-	cs.name = "RoadCollision"
+	cs.name = node_name + "Collision"
 	cs.shape = shape
 	_body("Road").add_child(cs)
 
@@ -337,3 +353,68 @@ func _build_props() -> void:
 	rmi.name = "Rocks"
 	rmi.multimesh = rm
 	add_child(rmi)
+
+
+# --- Map zone 8: the hidden bunker -------------------------------------------------------
+
+## A concrete portal set into the rock face at the end of the side road: a frame, a blast door (shut), vents, a
+## lamp and a stencilled sign. Later buyable as a secret lab / used by missions (the inside comes then).
+func _build_bunker() -> void:
+	var t: Transform3D = bunker_spot()
+	if t == Transform3D.IDENTITY:
+		return
+	var root := Node3D.new()
+	root.name = "Bunker"
+	root.transform = t
+	add_child(root)
+	var b := MeshBuilder.new()
+	b.collide = true
+	var conc := Color(0.62, 0.62, 0.6)
+	# Local: the door faces -Z; the portal goes back into the slope along +Z.
+	b.color = conc
+	b.box(&"concrete", Vector3(0, 3.5, 6.0), Vector3(12.0, 7.0, 12.0))  # the block buried in the rock
+	b.color = conc.darkened(0.1)
+	b.box(&"concrete", Vector3(-4.2, 2.6, -0.4), Vector3(1.6, 5.2, 1.0))
+	b.box(&"concrete", Vector3(4.2, 2.6, -0.4), Vector3(1.6, 5.2, 1.0))
+	b.box(&"concrete", Vector3(0, 5.6, -0.4), Vector3(10.0, 1.2, 1.0))
+	b.color = Color(0.32, 0.36, 0.3)
+	b.box(&"metal_dark", Vector3(0, 2.25, -0.05), Vector3(6.8, 4.5, 0.3))
+	b.collide = false
+	b.color = Color(0.85, 0.65, 0.1)
+	for i: int in 5:
+		b.box(&"item_matte", Vector3(-3.0 + i * 1.5, 0.35, -0.22), Vector3(0.7, 0.3, 0.02))
+	b.color = Color(0.25, 0.25, 0.25)
+	for vx: float in [-3.0, 3.0]:
+		b.cylinder(&"item_metal", Vector3(vx, 7.0, 3.0), Vector3(vx, 8.4, 3.0), 0.35, 0.35, 8)
+	b.color = Color(0.5, 0.48, 0.45)
+	b.box(&"concrete", Vector3(0, 0.03, -4.0), Vector3(10.0, 0.06, 8.0))
+	var mi := MeshInstance3D.new()
+	mi.mesh = b.build()
+	root.add_child(mi)
+	var body := StaticBody3D.new()
+	body.name = "BunkerBody"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	root.add_child(body)
+	for box: Dictionary in b.collision_boxes:
+		var cs := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = box["size"]
+		cs.shape = shape
+		cs.transform = box["xform"]
+		body.add_child(cs)
+	var lbl := Label3D.new()
+	lbl.text = "AUTHORISED PERSONNEL ONLY"
+	lbl.font_size = 48
+	lbl.pixel_size = 0.006
+	lbl.modulate = Color(0.95, 0.9, 0.75)
+	lbl.position = Vector3(0, 5.6, -0.92)
+	lbl.rotation.y = PI
+	root.add_child(lbl)
+	if DisplayServer.get_name() != "headless":
+		var lamp := OmniLight3D.new()
+		lamp.light_color = Color(1.0, 0.85, 0.6)
+		lamp.light_energy = 1.2
+		lamp.omni_range = 9.0
+		lamp.position = Vector3(0, 4.9, -1.3)
+		root.add_child(lamp)

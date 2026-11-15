@@ -293,6 +293,9 @@ Godot console exe:
   `height_at(x, z)`, SNOW_LINE. Prison at gen_world PRISON_POS (-150, 0, -385); north hedge gap PASS_GAP; CAR_COUNT 6.
   Intro bus ride: `Intro._start_ride`/`_set_bus`/`bus_progress`/`ride_speed_scale` (tests), `Player.enter_bus`/
   `leave_bus`/`bus_ride`. Scenario mountain_pass, self-test check pass, shots 98/99/A0-A3.
+- Bunker (map zone 8): part of `Mountain` - gen_mountain.py writes "side_road" (east off the summit at z -254) +
+  "bunker" (x, y, z, yaw); `Mountain._ribbon(pts, name)` builds both roads, `_build_bunker()` the portal (node
+  Mountain/Bunker, shut door), `Mountain.bunker_spot()`. Scenario bunker, self-test check bunker, shots F0-F2.
 - Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from
   `data/border/` (`tools/generators/gen_border.py .`, LAND rects = playable land + sea; add a rect for a new zone and
   keep it in step with gen_world's Ground slabs). `BorderRange.height_at(x, z)`, `land_rects()`. Ground slabs: Ground,

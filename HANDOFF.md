@@ -107,3 +107,7 @@
   lights, vehicles, fuel, kerb PASS; netcheck 7794 both exit 0; scenarios mountain_pass + prison_intro OK.
 - NEXT: the user's new map blueprint (9 zones, DESIGN "Map layout"). The blueprint IMAGE did not come through
   (only the text) - asked the user to save it in the repo (e.g. docs/map_blueprint.png). Point 62 is folded into it.
+- 2026-11-15: map blueprint point 69 (rough layout) DONE: zones 9 (border mountains), 7 (city + highway), 3 (slums),
+  2 (army base), 8 (bunker side road + portal) each committed + pushed with scenario, self-test check and shots.
+  NEXT: point 70 = detail per zone (4-lane highway, city NPCs/navmesh/shops/syndicate tower, base guards, bunker
+  inside + buyable lab, slum life); merge feature-b when B.md says done.

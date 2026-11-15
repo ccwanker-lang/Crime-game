@@ -441,7 +441,7 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
   54. The city + the highway link (chapter 2 map: skyscrapers, downtown, hillside) - todo
   55. The syndicate (chapter 2 rival: suits, company front, mafia style; story to be written) - todo
 Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part):
-  69. Rough layout of the whole map: every zone's roads + buildings in place, drivable, traffic + navmesh - todo
+  69. Rough layout of the whole map: every zone's roads + buildings in place, drivable, traffic + navmesh - DONE
       (order: border mountains + land, city + highway, slums, army base, bunker; one scenario per zone)
       - zone 9 DONE: snowy border mountains round everything (BorderRange), the hedge ring, backdrop and field walls
         gone, new ground for the highway strip + the city; scenario border_mountains
@@ -453,6 +453,9 @@ Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part
       - zone 2 rough DONE: Fort Halden army base east of the prison (fence + closed gate with boom + booth, 4 watchtowers
         with night searchlights, 3 barracks, 2 hangars, 6 army vehicles, helipad, flag); the pass road now ends at its
         gate; scenario army_base. Detail later: guards, missions, a way in
+      - zone 8 rough DONE: hidden bunker - a 40 m side road east off the pass summit (z -254, 7% up) through a cutting
+        to a concrete apron + portal with a shut blast door in the rock (Mountain bunker_spot, x -98); scenario
+        bunker. Detail later: bury the portal block deeper (now a cube in a bowl), the inside, buying it as a lab
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
@@ -1059,6 +1062,11 @@ Choices made while working autonomously (what + why).
   flat north part (the ridge is 0 there), so no new terrain. The pass road (gen_mountain CORNERS) now runs on 19 m to
   the gate (-106, -355.65): traffic route 5 turns round there, the bus path is unchanged. New procedural props
   `Watchtower` (searchlight on at night via the day_night group, sweeping) and `ArmyTruck` (truck/jeep, parked).
+- Zone 8 (bunker, rough): part of the Mountain (gen_mountain.py writes "side_road" + "bunker"; the heightmap is
+  carved along the side road and flattened on a pad), so no new node/generator. The side road leaves the flat summit
+  (one height, no junction slope) eastwards into the ridge, the east guardrail has a gap there; dead end, no traffic
+  route (a car would only U-turn). The ribbon builder is generic now (`Mountain._ribbon`). The portal is built in
+  code (`_build_bunker`), door shut (layer-1 collision): the inside + buying it come with the detail pass / missions.
 - Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
   the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
   of the fence) instead of the fence. Shots 96/97.

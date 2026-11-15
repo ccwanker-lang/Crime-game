@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "bunker", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3687,6 +3687,60 @@ func _check_army(world: Node3D) -> void:
 	_report(p.global_position.x < -103.0, "walking at the gate: stopped outside (x %.1f)" % p.global_position.x)
 	p.queue_free()
 	GameState.player_data.erase("Recruit")
+	await get_tree().physics_frame
+
+
+## Map zone 8: the hidden bunker - a side road east off the pass summit, solid all the way, a car drives up it, the
+## blast door at the end is shut.
+func _check_bunker(world: Node3D) -> void:
+	var side: PackedVector3Array = Mountain._pts("side_road")
+	var spot: Transform3D = Mountain.bunker_spot()
+	var mountain: Node = world.find_child("Mountain", false, false)
+	var bunker: Node3D = mountain.get_node_or_null("Bunker") as Node3D if mountain else null
+	_report(side.size() > 40 and bunker != null and spot.origin.distance_to(Vector3(-98, spot.origin.y, -254)) < 1.0,
+			"the bunker side road (%d pts) + the bunker at %s" % [side.size(), spot.origin.snapped(Vector3.ONE)])
+	if side.is_empty() or bunker == null:
+		return
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var bad: int = 0
+	for i: int in range(0, side.size(), 6):
+		var q: Vector3 = side[i]
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(q + Vector3.UP * 3.0, q + Vector3.DOWN * 3.0, 1))
+		if hit.is_empty() or absf((hit["position"] as Vector3).y - q.y) > 0.1:
+			bad += 1
+	_report(bad == 0, "the side road is solid (%d bad samples)" % bad)
+	var door: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(spot.origin + Vector3(-4, 1.5, 0), spot.origin + Vector3(3, 1.5, 0), 1))
+	_report(not door.is_empty() and absf((door["position"] as Vector3).x - spot.origin.x) < 1.0, "the blast door is shut")
+	var veh: Vehicles = Vehicles.current
+	if veh == null:
+		return
+	var start: Vector3 = side[8]
+	var pc: PlayerCar = veh.host_spawn("sedan", 1, start + Vector3.UP * 0.4, -PI / 2.0, "", 1.0)
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Digger"
+	world.get_node("Players").add_child(p)
+	p.global_position = pc.exit_spot(0)
+	p.auto_target = p.global_position
+	await get_tree().physics_frame
+	pc.host_enter(p)
+	for i: int in 3:
+		await get_tree().physics_frame
+	pc.test_drive = true
+	pc.test_input = Vector3(0, 1, 0)
+	await get_tree().create_timer(4.0).timeout
+	var at: Vector3 = pc.global_position
+	pc.test_input = Vector3(0, 0, 1)
+	await get_tree().create_timer(1.0).timeout
+	pc.test_drive = false
+	_report(at.x > start.x + 20.0 and at.x < spot.origin.x and at.y > start.y + 1.5,
+			"a player car drives up the side road to the bunker (x %.1f -> %.1f, %.1f -> %.1f m high)" % [start.x, at.x, start.y, at.y])
+	pc.host_exit(p)
+	p.queue_free()
+	GameState.player_data.erase("Digger")
+	veh.host_remove(pc)
 	await get_tree().physics_frame
 
 
