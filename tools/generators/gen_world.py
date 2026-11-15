@@ -74,13 +74,16 @@ sc.node("OuterGround", "StaticBody3D", ".", props={
 sc.node("OuterGroundSE", "StaticBody3D", ".", props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((213, -0.02, 303.5)),
     "size": "Vector2(574, 399)", "collision": "false", "material": ground_mat})
-# Point 27: the edge of the world = tree rows, bushes and two rings of soft hills (no empty plane).
-# Point 57: one backdrop round the whole playable area (trees just outside the border hedge), none on the sea.
-sc.node("Backdrop", "Node3D", ".", props={
-    "script": sc.script("res://scripts/procgen/backdrop.gd"),
-    "area": f"Rect2({PLAY[0]:g}, {PLAY[1]:g}, {PLAY[2] - PLAY[0]:g}, {PLAY[3] - PLAY[1]:g})",
-    "tree_margin": "10.5", "hill_distance": "45.0", "ground_plane": "false",
-    "skip_rects": "Array[Rect2]([Rect2(-600, 100, 527, 700), Rect2(-262, -445, 232, 299), Rect2(-134, -152, 20, 14)])"})
+# Map blueprint zone 9: the snowy border mountains round the whole map (gen_border.py -> data/border); they replace
+# the old hedge + tree row + hills (points 27/57) and the walls in the fields.
+sc.node("BorderRange", "StaticBody3D", ".", props={"script": sc.script("res://scripts/procgen/border_range.gd")})
+# Ground for the new zones: the highway strip east of the village and the city south of it (blueprint zone 7).
+sc.node("GroundEast", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((111.5, 0, -13.5)),
+    "size": "Vector2(57, 255)", "material": ground_mat})
+sc.node("GroundCity", "StaticBody3D", NAV, props={
+    "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((33.75, 0, 257)),
+    "size": "Vector2(212.5, 286)", "material": ground_mat})
 # Point 49b: the mountain pass to the prison (terrain, road, rails, pines from data/mountain - gen_mountain.py).
 sc.node("Mountain", "StaticBody3D", ".", props={"script": sc.script("res://scripts/procgen/mountain.gd")})
 
@@ -744,8 +747,9 @@ for i in range(6):
     put("props/container_12m.tscn", (-160 + (i % 3) * 12.6, 3.3 + (i // 3) * 2.6, 110.2 + (i // 3) * 1.3), 0,
         name=uname("ShipContainer"), props={"color": wrng.choice(CONTAINER_COLS)})
 # The sea + a breakwater hiding where the water meets the land east of the harbour.
-water_mesh = sc.subres("PlaneMesh", {"size": "Vector2(426, 800)", "subdivide_width": "85", "subdivide_depth": "160"})
-sc.node("Sea", "MeshInstance3D", ".", props={"transform": xform((-287, -0.9, 504)), "mesh": water_mesh,
+# Blueprint zone 9: the sea ends under the border mountains (x -345, z 445) instead of running to the horizon.
+water_mesh = sc.subres("PlaneMesh", {"size": "Vector2(272.5, 340.2)", "subdivide_width": "55", "subdivide_depth": "68"})
+sc.node("Sea", "MeshInstance3D", ".", props={"transform": xform((-208.75, -0.9, 274.9)), "mesh": water_mesh,
         "material_override": sc.res("Material", "res://prefabs/materials/water.tres"), "cast_shadow": "0"})
 pbox("Breakwater", (-74, -2.0, 160), (4, 3.2, 112), "concrete", col(0.62, 0.6, 0.56), collision=False)
 # Trees round the edges of the yards.
@@ -813,38 +817,14 @@ for (x, z) in [(-160, -78.5), (-140, -78.5), (-128, -90), (-172, -80)]:
 # backdrop right behind it, and the invisible walls 7 m out, behind the hedge - never in the open.
 x0, z0, x1, z1 = PLAY
 HG = 6.0
-def hedge_run(ax, az, bx, bz, seed, gap=None):
-    """`gap` = (x0, x1): leave out the segments that overlap it (point 49b: the pass road)."""
-    length = abs(bx - ax) + abs(bz - az)
-    n = max(1, int(round(length / 10.0)))
-    for i in range(n):
-        t0, t1 = i / n, (i + 1) / n
-        cx, cz = ax + (bx - ax) * (t0 + t1) / 2, az + (bz - az) * (t0 + t1) / 2
-        if gap and az == bz and abs(cx - (gap[0] + gap[1]) / 2) < (length / n + gap[1] - gap[0]) / 2 - 0.5:
-            continue
-        rot = 0 if az == bz else 90
-        put("nature/hedge.tscn", (cx, 0, cz), rot, name=uname("BorderHedge"),
-            props={"size": v3(length / n + 0.4, 1.6, 1.0), "hedge_seed": str(seed + i)})
 PASS_GAP = (-129.0, -119.0)  # point 49b: the mountain road leaves the village here (x -127.5..-120.5)
-hedge_run(x0 - HG, z0 - HG, x1 + HG, z0 - HG, 5700, PASS_GAP)  # north
-hedge_run(x0 - HG, z0 - HG, x0 - HG, QUAY_Z, 5800)          # west (down to the quay)
-hedge_run(x1 + HG, z0 - HG, x1 + HG, z1 + HG, 5900)          # east
-hedge_run(SEA_X, z1 + HG, x1 + HG, z1 + HG, 6000)           # south (east of the sea)
 MT = (-262.0, -445.0, -30.0)  # point 49b: mountain area x0, z0 (north), x1 (gen_mountain GRID_*)
 sc.node("Bounds", "StaticBody3D", ".")
 W = 7.0
 for name, pos, size in [
-        # North wall with the pass road gap; the mountain (point 49b) has its own walls round it.
-        ("N", ((PASS_GAP[1] + x1 + W) / 2, 5, z0 - W), (x1 + W - PASS_GAP[1], 10, 1)),
-        ("NW", ((MT[0] + PASS_GAP[0]) / 2, 5, z0 - W), (PASS_GAP[0] - MT[0], 10, 1)),
-        ("MountainW", (MT[0], 25, (MT[1] + z0 - W) / 2), (1, 80, z0 - W - MT[1])),
-        ("MountainE", (MT[2], 25, (MT[1] + z0 - W) / 2), (1, 80, z0 - W - MT[1])),
-        ("MountainN", ((MT[0] + MT[2]) / 2, 25, MT[1]), (MT[2] - MT[0], 80, 1)),
-        ("W", (x0 - W, 5, (z0 - W + QUAY_Z) / 2), (1, 10, QUAY_Z - z0 + W)),
-        ("E", (x1 + W, 5, (z0 + z1) / 2), (1, 10, z1 - z0 + 2 * W)),
-        ("S", ((SEA_X + x1 + W) / 2, 5, z1 + W), (x1 + W - SEA_X, 10, 1)),
+        # Blueprint zone 9: the border mountains stop you now (too steep); walls only stand at the water's edge.
         ("Quay", ((x0 - W + SEA_X) / 2, 5, QUAY_Z), (SEA_X - x0 + W, 10, 0.4)),
-        ("SeaEast", (SEA_X, 5, (QUAY_Z + z1 + W) / 2), (0.4, 10, z1 + W - QUAY_Z))]:
+        ("SeaEast", (SEA_X, 5, (QUAY_Z + 400.0) / 2), (0.4, 10, 400.0 - QUAY_Z))]:
     sc.node("Wall" + name, "CollisionShape3D", "Bounds", props={
         "transform": xform(pos), "shape": sc.subres("BoxShape3D", {"size": v3(*size)})})
 

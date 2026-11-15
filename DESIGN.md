@@ -443,6 +443,8 @@ Feedback round 5 (user, 2026-11-14, from playing; bugs first, then in this order
 Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part):
   69. Rough layout of the whole map: every zone's roads + buildings in place, drivable, traffic + navmesh - todo
       (order: border mountains + land, city + highway, slums, army base, bunker; one scenario per zone)
+      - zone 9 DONE: snowy border mountains round everything (BorderRange), the hedge ring, backdrop and field walls
+        gone, new ground for the highway strip + the city; scenario border_mountains
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
@@ -1019,6 +1021,14 @@ Choices made while working autonomously (what + why).
   the same angle (B0_blueprint) with my zones drawn on (docs/map_zones.png). The city goes south of the centre
   (left in the drawing) and stays east of x -65 so the harbour keeps its sea; the slums take the empty field north
   of the centre; the army base sits east of the prison behind the ridge (out of sight like the prison).
+- Blueprint zone 9 (border): ONE coarse heightmap (2 m, gen_border.py) for the whole map instead of hand-placed
+  hills: the land rectangles (LAND, keep in step with gen_world's ground slabs) are cut out with a distance field, so
+  adding a zone = adding a rectangle. Profile from the land's edge: 6 m walkable grass foot, then a ~50 deg wall to
+  ~45 m (CharacterBody floor angle stops players and cars there - no invisible walls), peaks 60-120 m with snow above
+  48 m. Inside the land it sinks 3 m under the ground slabs and isn't drawn; edge cells sit exactly at ground height
+  (else a ditch along the edge). The sea is inside the ring: the mountains rise out of the water; walls only remain
+  at the water's edge (Quay, SeaEast, now down to z 400 along the city's coast). Collision = HeightMapShape3D with 1 m
+  spacing scaled x2 (heights pre-divided) - Jolt takes the uniform scale.
 - Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
   the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
   of the fence) instead of the fence. Shots 96/97.

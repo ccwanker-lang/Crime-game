@@ -293,6 +293,11 @@ Godot console exe:
   `height_at(x, z)`, SNOW_LINE. Prison at gen_world PRISON_POS (-150, 0, -385); north hedge gap PASS_GAP; CAR_COUNT 6.
   Intro bus ride: `Intro._start_ride`/`_set_bus`/`bus_progress`/`ride_speed_scale` (tests), `Player.enter_bus`/
   `leave_bus`/`bus_ride`. Scenario mountain_pass, self-test check pass, shots 98/99/A0-A3.
+- Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from
+  `data/border/` (`tools/generators/gen_border.py .`, LAND rects = playable land + sea; add a rect for a new zone and
+  keep it in step with gen_world's Ground slabs). `BorderRange.height_at(x, z)`, `land_rects()`. Ground slabs: Ground,
+  GroundSouth, GroundEast (highway strip x 83..140), GroundCity (x -72.5..140, z 114..400). Bounds walls only at the
+  water (Quay, SeaEast). Map blueprint: docs/map_blueprint.png + docs/map_zones.png, shot B0_blueprint (overview).
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

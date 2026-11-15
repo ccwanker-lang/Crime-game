@@ -3826,3 +3826,21 @@ func _check_ground(world: Node3D) -> void:
 		veh.host_remove(car)
 	GameState.player_data.erase("Faller")
 	await get_tree().physics_frame
+	# Blueprint zone 9: snowy border mountains all round; you walk freely up to their foot, then it's too steep.
+	var peaks: Array[float] = []
+	for at: Vector2 in [Vector2(230, 0), Vector2(-300, -60), Vector2(0, 470), Vector2(-150, -540), Vector2(40, -300)]:
+		peaks.append(BorderRange.height_at(at.x, at.y))
+	_report(peaks.min() > 35.0, "border mountains round the map (heights %s)" % str(peaks.map(func(h: float) -> int: return roundi(h))))
+	var w: Player = WALKER.instantiate()
+	w.auto_walk = true
+	w.name = "1"
+	w.player_name = "Climber"
+	world.get_node("Players").add_child(w)
+	w.global_position = Vector3(130, 0.3, 40)
+	w.auto_target = Vector3(200, 0, 40)
+	await get_tree().create_timer(9.0).timeout
+	_report(w.global_position.x > 141.0 and w.global_position.x < 160.0 and w.global_position.y < 8.0,
+			"walking east: past the old edge onto the mountain foot, then stopped by the slope (%s)" % w.global_position.snapped(Vector3.ONE * 0.1))
+	w.queue_free()
+	GameState.player_data.erase("Climber")
+	await get_tree().physics_frame
