@@ -104,7 +104,7 @@ const LIST: Array = [
 	["army_gate", "Fort Halden at noon: you stand on the pass road 25 m before the gate, a pistol + ammo", "Walk to the boom: a guard warns you (toast). Walk through the gate: ALARM, guards and 4 heavy reinforcements from the barracks shoot at you. Shoot a soldier from outside: they come for you too. Run far away: after a while it calms down."],
 	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
 	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
-	["bunker_lab", "Rank 5, your crew owns the Mountain Bunker; you stand at the portal with a Cook Station and supplies", "E on the green keypad left of the door: down into the hall. Place the Cook Station (B = build mode). The yellow keypad by the lift takes you back up. The bunker is never raided."],
+	["bunker_lab", "Rank 5 at the bunker's blast door with EUR 260,000 and a Cook Station; the bunker is for sale", "E on the door: locked. Buy the Mountain Bunker at the estate agent (it costs EUR 250,000) - here it is bought for you after 8 s (or start it with --owned): the door unlocks (E opens it). Inside: the lift / stairs down to the lab hall, place the Cook Station (B = build mode). The bunker is never raided."],
 	["mission_contact", "Marco by the park (2 Bags of Weed in your pockets): talk to him to get mission 1 'A Foot in the Door'", "E on Marco: a text box with choices (mouse or keys 1-4). 'Got anything for me?' -> 'I'm in.' starts the mission: gold waypoint + objective top right. Gas station -> E on Dex (2 bags) -> back to Marco, pick an answer -> reward. Tab > Missions = the log, Map = gold pin. With 2 instances: whoever joins after the start sees 'joined late' and gets no reward."],
 	["mission_pier", "Mission 2 'Pier Pressure' just started (mission 1 done): pistol, AK-47 + ammo, 60 m from the Crows' pier", "Walk to the pier: 3 Crows appear - kill them (counter in the HUD). Then backup comes: stay on the pier 45 s. Dying = mission failed (Tab > Missions: start it again)."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
@@ -819,16 +819,21 @@ static func run(world: Node, id: String) -> bool:
 		"bunker_lab":
 			Progression.force_gates = true
 			Progression.debug_set_rank(5)
-			_kit(me, 2000, [["cook_station", 1], ["lab_chemicals", 4], ["activator", 4]])
+			Zones.bunker_lock_forced = true
+			_kit(me, 260000, [["cook_station", 1], ["lab_chemicals", 4], ["activator", 4]])
 			for i: int in 3:
 				await world.get_tree().process_frame
-			var bl: BunkerLab = BunkerLab.current
-			if bl and bl.property:
-				bl.property.host_set_owned(me.player_name)
-				var pad: Vector3 = bl.outside_pad.global_position
-				_place(me, bl.spot * Vector3(-0.5, 0.15, -7.5), pad, dn, 12.0)
-				if "--bunker-in" in OS.get_cmdline_user_args():  # screenshot flag: inside the hall
-					_place(me, bl.entry_point() + Vector3.UP * 0.1, bl.hall * Vector3(0, 1.4, 6.0), dn, 12.0)
+			var bp: BunkerProperty = Zones.bunker
+			if bp:
+				var bt: Transform3D = (bp.get_parent() as Node3D).global_transform
+				_place(me, bt * Vector3(0, 0.3, -8), bt * Vector3(0, 2, 0), dn, 12.0)
+				if "--owned" in OS.get_cmdline_user_args():
+					bp.host_set_owned(me.player_name)
+				else:
+					get_tree_timer(world, 8.0).timeout.connect(func() -> void:
+						if is_instance_valid(bp) and not bp.is_crew_owned():
+							bp.host_set_owned(me.player_name)
+							me.show_message("Your crew bought the Mountain Bunker - the blast door unlocks."))
 		"mission_contact", "mission_pier":
 			GameState.world.erase("missions")
 			if id == "mission_contact":
@@ -1107,3 +1112,7 @@ static func _progress_near(route: TrafficRoute, p: Vector3) -> float:
 			best_d = d
 			best = i * 0.5
 	return best
+
+
+static func get_tree_timer(world: Node, seconds: float) -> SceneTreeTimer:
+	return world.get_tree().create_timer(seconds)

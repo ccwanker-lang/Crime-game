@@ -1,8 +1,8 @@
 class_name ZonesTest
 extends RefCounted
 ## Self-test check "zones" (SelfTest._check_zones), NOTES part 18: Fort Halden (guards, gate warning, intruder shot,
-## alarm + reinforcements), slum residents + cheap customers, city office workers + dear customers, the bunker lab
-## (for sale, keypad locked, teleport in/out, placing inside, never raided).
+## alarm + reinforcements), slum residents + cheap customers, city office workers + dear customers, the bunker
+## (A's complex: for sale, door locked until owned, placing inside, never raided).
 
 
 static func run(t: Node, world: Node3D) -> void:
@@ -113,43 +113,44 @@ static func run(t: Node, world: Node3D) -> void:
 			(r["npc"] as Node).queue_free()
 	Zones._residents.clear()
 
-	# --- The bunker ---
-	var lab: BunkerLab = BunkerLab.current
-	if lab == null or lab.property == null:
-		report.call(false, "no bunker (Mountain.bunker_spot)")
+	# --- The bunker (A's BunkerComplex; here: for sale, the door locked until the crew owns it, no raids) ---
+	var prop: BunkerProperty = Zones.bunker
+	var door: BunkerDoor = Zones.bunker_door()
+	if prop == null or door == null:
+		report.call(false, "no bunker property / door (Mountain/Bunker)")
 	else:
-		var prop: BunkerProperty = lab.property
-		var listed: bool = prop.for_sale and prop.price == BunkerLab.PRICE and prop.is_in_group(&"properties")
+		var root: Node3D = prop.get_parent() as Node3D
 		var props: Dictionary = GameState.world.get_or_add("properties", {})
-		props.erase(BunkerLab.PROPERTY_ID)
-		p.teleport(lab.outside_pad.global_position + lab.spot.basis * Vector3(0, -1.2, -1.5))
-		await tree.create_timer(0.3).timeout
-		var why: String = lab.host_use_player(p, true)
-		report.call(listed and why.begins_with("Access denied") and not lab.inside(p.global_position),
-				"bunker for sale (€%s, rank %d), the keypad stays shut ('%s')" % [Property.money(prop.price),
-				Progression.config.property_rank.get(&"bunker", 0), why])
+		props.erase(&"bunker")
+		Zones.bunker_lock_forced = true
+		await tree.create_timer(0.7).timeout
+		var listed: bool = prop.for_sale and prop.price == Zones.BUNKER_PRICE and prop.is_in_group(&"properties")
+		door.interact()
+		await tree.create_timer(0.6).timeout
+		report.call(listed and door.locked and not door.is_open and door.get_interaction_prompt().contains("locked"),
+				"bunker for sale (€%s, rank %d), the blast door stays locked" % [Property.money(prop.price),
+				Progression.config.property_rank.get(&"bunker", 0)])
 		prop.host_set_owned("Recruit")
-		why = lab.host_use_player(p, true)
-		await tree.create_timer(0.4).timeout
-		var floor_ok: bool = absf(p.global_position.y - lab.hall.origin.y) < 0.6
-		report.call(why == "" and lab.inside(p.global_position) and floor_ok and Zones.zone_at(p.global_position) == &"bunker",
-				"owned: the keypad takes you down into the hall (y %.1f, %.0f m under the portal)" % [p.global_position.y,
-				lab.spot.origin.y - lab.hall.origin.y])
+		await tree.create_timer(0.7).timeout
+		door.interact()
+		await tree.create_timer(0.6).timeout
+		report.call(not door.locked and door.is_open, "owned by the crew: the door unlocks and opens")
+		var spot: Vector3 = (root.get_node("LabSpot1") as Node3D).global_position
+		report.call(Zones.zone_at(spot + Vector3.UP) == &"bunker", "the lab hall counts as zone 'bunker'")
 		var item: ItemData = ItemDB.get_item(&"cook_station")
-		var spot: Vector3 = lab.hall * Vector3(6, 0.0, 2)
 		var place_why: String = Placement.check(world.get_world_3d(), tree, item, spot, 0.0)
-		report.call(place_why == "" and Placement.property_at(tree, spot) == prop, "you can place stations in the hall ('%s')" % place_why)
+		report.call(place_why == "" and Placement.property_at(tree, spot) == prop, "you can place stations in the lab hall ('%s')" % place_why)
 		var st: Node = world.call("host_place", "cook_station", spot, 0.0)
 		await tree.physics_frame
 		report.call(not Raids.lab_properties().has(prop) and Raids._production_in(prop) > 0, "a lab in the bunker is never raided")
 		if st:
 			world.call("host_remove_placed", (st as Station).station_id.trim_prefix("placed/"))
-		why = lab.host_use_player(p, false)
-		await tree.create_timer(0.4).timeout
-		report.call(why == "" and not lab.inside(p.global_position) and p.global_position.distance_to(lab.spot.origin) < 6.0,
-				"the lift keypad takes you back up to the portal")
-		props.erase(BunkerLab.PROPERTY_ID)
+		props.erase(&"bunker")
 		prop._update_label()
+		await tree.create_timer(0.7).timeout
+		report.call(door.locked and not door.is_open, "sold / not owned again: locked and shut")
+		Zones.bunker_lock_forced = false
+		door.host_set_locked(false)
 	if dn:
 		dn.set_hours(old_hours)
 	p.queue_free()

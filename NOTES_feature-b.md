@@ -769,13 +769,15 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   player becomes a customer (`make_zone_customer`, one at a time per zone): slums 1-2 bags at 60% of the price,
   city 2-4 bags at 150% (`Zones.PRICE`, `customer_price(npc, price)`), product via `Products.pick_customer_product`.
   The cheap starter property is A's slum_shack (€4,000, rank 0: not in RankConfig).
-- **Bunker lab** (`BunkerLab`, scripts/world/bunker_lab.gd, node World/BunkerLab built on every peer by Zones):
-  a 30 x 18 x 4.2 m concrete hall 14 m under A's portal (`Mountain.bunker_spot()`), behind it in the slope, with
-  pillars, lamps, a lift door. `BunkerProperty` (Property subclass, id "bunker", "Mountain Bunker", €250,000, rank 5
-  in RankConfig, listed by the estate agent; `contains` = the hall). Keypad left of the blast door (green, E = go in,
-  only for the owning crew, else "Access denied ... for sale") and one by the lift (yellow, E = up): the host
-  teleports (`host_use`). Stations/furniture are placed in the hall like in any property. `Raids.RAID_FREE` =
-  [&"bunker"]: never raided.
+- **Bunker** (A's `BunkerComplex` at Mountain/Bunker, point 74, with its `BunkerProperty` "bunker"): `Zones._setup_bunker`
+  (every peer) makes it buyable: "Mountain Bunker", €250,000 (`Zones.BUNKER_PRICE`), rank 5 (RankConfig), listed by
+  the estate agent. Host `_bunker_door_tick`: the blast door (`BunkerDoor.host_set_locked`) is locked while the crew
+  doesn't own it, unlocked once they do (and locked again when it's sold). The lock is off in the self-test /
+  netcheck / test scenarios (A's bunker checks walk in) unless GameState.world["bunker_lock"]
+  (`Zones.bunker_lock_forced`, my check + scenario). Lab: stations go anywhere inside (BunkerProperty.contains,
+  A's LabSpot1-6); `Raids.RAID_FREE` = [&"bunker"]: never raided. `Zones.zone_at` = &"bunker" inside.
+- Soldiers chase in straight lines only (`Soldier._chase_to`: one side step round an obstacle, else hold and watch;
+  a navmesh path from the base ran off to the town); tower guards stay up; gate guard 2 stands inside the gate.
 
 ## Decisions (what + why)
 - Soldiers on PoliceOfficer's brain (like the Crows): aiming, bursts, sight, leash all exist already.
@@ -785,24 +787,25 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - Gate guards face outward; the alarm also alerts guards within 40 m (the fence blocks their view of the yard).
 - Zone residents are our own pedestrians (not A's wandering ones) so the price can depend on the zone without
   touching world.gd; A's random customers keep normal prices (optional hook asked in B.md).
-- Bunker interior by teleport: the hall is deep under the terrain, the portal door stays A's shut prop; no tunnel
-  through the heightmap needed.
+- First version had my own hall under the portal (teleport keypads); A then built the real complex (point 74) and
+  left buying/lock/lab to me, so mine was dropped and only the sale + lock + no-raids logic stayed.
 
 ## Existing files changed (part 18)
-- project.godot (autoload Zones), autoload/raids.gd (RAID_FREE), scripts/progression/rank_config.gd (bunker: 5),
+- project.godot (autoload Zones), autoload/raids.gd (RAID_FREE); A's bunker: only property fields + door lock at runtime, scripts/progression/rank_config.gd (bunker: 5),
   self_test.gd (check zones), scenarios.gd (army_gate, slum_life, city_customers, bunker_lab + flag `--bunker-in`).
 
 ## Te testen door Curry
 - `army_gate` (F9): loop naar de slagboom (waarschuwing), loop erdoor (alarm, schieten, 4 versterkingen).
 - `slum_life`: bewoners rond de vuurtonnen; na ~10 s sms't er een (goedkoop, 60%).
 - `city_customers`: kantoormensen voor de torens; na ~10 s een rijke klant (150%).
-- `bunker_lab`: E op het groene keypad: naar beneden, B = bouwmodus, zet de Cook Station neer; geel keypad = omhoog.
+- `bunker_lab`: E op de staaldeur: op slot. Na 8 s koopt de crew de bunker: de deur gaat van het slot. Lift/trap
+  naar beneden, B = bouwmodus, zet de Cook Station in de labhal.
 
 ## For CLAUDE.md (suggested lines)
 - Zones (part 18): `Zones` autoload (`zone_at`, army_on/npcs_on), `Soldier` (PoliceOfficer subclass, group soldiers,
   `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
-  `make_zone_customer`, `PRICE`), `BunkerLab` (World/BunkerLab, `BunkerProperty` id bunker, keypads, `host_use`),
-  `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.
+  `make_zone_customer`, `PRICE`), bunker sale + door lock (`Zones.bunker`, `bunker_door()`, `BUNKER_PRICE`,
+  `bunker_lock_forced`), `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.
 
 
 # Part 19: the mission system (base for the story, user 2026-11-15)

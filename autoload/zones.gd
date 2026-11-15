@@ -5,7 +5,8 @@ extends Node
 ##   the ALARM: heavy reinforcements come out of the barracks (their own response, no police stars).
 ## - Rosehill Park (slums, zone 3): poor residents round the fire barrels; some become customers who pay less.
 ## - The city (zone 7): office workers in front of the towers by day; customers who pay more.
-## - The bunker (zone 8): `BunkerLab` (secret lab property under the mountain), built here on every peer.
+## - The bunker (zone 8): A's BunkerComplex (Mountain/Bunker); here: for sale (BUNKER_PRICE, rank gate in RankConfig),
+##   the blast door stays locked until the crew owns it, never raided (Raids.RAID_FREE).
 ## HOST AUTHORITATIVE: the NPCs are normal networked Pedestrians / Soldiers (World/NPCSpawner; the soldier scene is
 ## added to its spawnable list on every peer). No map files are touched: places come from A's nodes (ArmyBase,
 ## Watchtower*, Barracks*, FireBarrel*, Tower*), with fixed fallbacks.
@@ -40,8 +41,19 @@ const OFFICE_HOURS: Vector2 = Vector2(7.0, 20.0)
 var army_on: bool = true
 ## Host: residents (slums) + office workers (city). Off in the self-test / netcheck.
 var npcs_on: bool = true
+## Host: lock the bunker's blast door while the crew doesn't own it. Off in the self-test / netcheck and in test
+## scenarios (A's bunker checks walk in); `bunker_lock_forced` (my check / scenario) turns it on anyway.
+var bunker_lock_on: bool = true
+var bunker_lock_forced: bool:
+	get:
+		return bool(GameState.world.get("bunker_lock", false))  # (per game: a fresh scenario forgets it)
+	set(v):
+		GameState.world["bunker_lock"] = v
 
-var bunker: BunkerLab
+## Every peer: A's bunker property (Mountain/Bunker/Property), set up for sale by `_setup_bunker`.
+static var bunker: BunkerProperty
+const BUNKER_PRICE: int = 250000
+const BUNKER_TEXT: String = "A cold-war bunker deep under the pass: a vehicle lift, a big lab hall, storage, bunks. No neighbours, no raids. Reached by the side road off the summit."
 var _world: Node3D
 var _scan: float = 0.0
 var _hostile: Dictionary = {}   # Player -> until (s)
@@ -62,6 +74,7 @@ func _ready() -> void:
 	if "--selftest" in args or "--netcheck" in args:
 		army_on = false
 		npcs_on = false
+		bunker_lock_on = false
 	get_tree().node_added.connect(_on_node_added)
 
 
@@ -89,7 +102,7 @@ static func zone_at(pos: Vector3) -> StringName:
 		return &"slums"
 	if CITY_RECT.has_point(p):
 		return &"city"
-	if BunkerLab.current and BunkerLab.current.inside(pos):
+	if bunker and is_instance_valid(bunker) and bunker.contains(pos):
 		return &"bunker"
 	return &""
 
@@ -128,6 +141,7 @@ func _process(delta: float) -> void:
 	_scan = 0.5
 	if not _is_host():
 		return
+	_bunker_door_tick()
 	if army_on:
 		_army_tick()
 	if npcs_on:
@@ -145,9 +159,41 @@ func _on_world() -> void:
 	_spot_cache.clear()
 	_alarm_until = -1.0
 	_posts = []
-	bunker = BunkerLab.new()
-	bunker.name = "BunkerLab"
-	_world.add_child(bunker)
+	bunker = null
+	_setup_bunker.call_deferred()
+
+
+## Every peer (the same on all of them): A's bunker property becomes a buyable one.
+func _setup_bunker() -> void:
+	var mountain: Node = _world.get_node_or_null("Mountain") if _world else null
+	var prop := mountain.get_node_or_null("Bunker/Property") as BunkerProperty if mountain else null
+	if prop == null:
+		return
+	bunker = prop
+	prop.display_name = "Mountain Bunker"
+	prop.for_sale = true
+	prop.price = BUNKER_PRICE
+	prop.description = BUNKER_TEXT
+	if prop.has_method("_update_label"):
+		prop._update_label()
+	_bunker_door_tick()
+
+
+func bunker_door() -> BunkerDoor:
+	return bunker.get_parent().get_node_or_null("Door") as BunkerDoor if bunker and is_instance_valid(bunker) else null
+
+
+## Host: the blast door is locked unless the crew owns the bunker.
+func _bunker_door_tick() -> void:
+	if not _is_host():
+		return
+	var door: BunkerDoor = bunker_door()
+	if door == null or not (bunker_lock_forced or (bunker_lock_on and not SaveManager.scenario_mode)):
+		return
+	var lock: bool = not bunker.is_crew_owned()
+	if door.locked != lock:
+		door.host_set_locked(lock)
+		print("[Zones] bunker door %s" % ("locked" if lock else "unlocked"))
 
 
 func _npcs() -> Node:
@@ -176,7 +222,7 @@ func guard_posts() -> Array:
 		return _posts
 	var face_west: float = PI / 2.0
 	_posts.append({"pos": Vector3(-106.5, 0.1, -350.4), "yaw": face_west, "gate": true})
-	_posts.append({"pos": Vector3(-106.8, 0.1, -365.0), "yaw": face_west, "gate": true})
+	_posts.append({"pos": Vector3(-100.5, 0.1, -361.5), "yaw": face_west, "gate": true})  # inside, watching the gate
 	var base: Node = _world.get_node_or_null("ArmyBase")
 	var space: PhysicsDirectSpaceState3D = _world.get_world_3d().direct_space_state
 	if base:

@@ -130,10 +130,36 @@ func _patrol() -> void:
 ## Host: head for `at` (the alarm), shooting what they see on the way.
 func send_to(at: Vector3) -> void:
 	last_known = at
+	_chase_to(at, Anim.RUN_GUN)
+
+
+## No navmesh at the base (a navmesh path from here runs off to the town): straight lines only, round an obstacle
+## by one side step (a point from which both legs are clear); else hold the position and keep watching.
+func _chase_to(at: Vector3, anim: int) -> void:
+	if home.y > 4.0 and not reinforcement:
+		return  # (a tower guard stays up there and shoots from the platform)
 	if straight_way_clear(at, 120.0):
-		_go_direct(at, Anim.RUN_GUN)
-	else:
-		_go(at, Anim.RUN_GUN)
+		_go_direct(at, anim)
+		return
+	var best: Vector3 = Vector3.INF
+	var best_len: float = INF
+	var mid: Vector3 = (global_position + at) * 0.5
+	for i: int in 16:
+		var a: float = TAU * i / 16.0
+		for r: float in [6.0, 12.0]:
+			var c: Vector3 = mid + Vector3(cos(a), 0, sin(a)) * r
+			c.y = global_position.y
+			var length: float = global_position.distance_to(c) + c.distance_to(at)
+			if length < best_len and straight_way_clear(c, 120.0) and _clear_between(c, at):
+				best = c
+				best_len = length
+	if best != Vector3.INF:
+		_go_direct(best, anim)
+
+
+func _clear_between(a: Vector3, b: Vector3) -> bool:
+	var q := PhysicsRayQueryParameters3D.create(a + Vector3.UP * 0.6, b + Vector3.UP * 0.6, 1, [get_rid()])
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 static var _helmet_cache: ArrayMesh
