@@ -278,6 +278,10 @@ func _add_markings(b: MeshBuilder) -> void:
 					for i: int in 6:
 						_quad2(b, inner[i], inner[i + 1], outer[i + 1], outer[i])
 		Type.T:
+			# Point 77: the through road keeps its dashed centre line across the junction.
+			if center_line:
+				for x0: float in [-4.5, 1.5]:
+					_rect(b, Vector2(x0, -0.06), Vector2(x0 + 3.0, 0.06))
 			# Shark teeth (yield) on the incoming lane of the branch.
 			for i: int in 6:
 				var x: float = -3.2 + i * 0.55

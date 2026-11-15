@@ -332,9 +332,22 @@ Godot console exe:
   (`scripts/procgen/tower.gd`, prefabs/city/tower.tscn, material tower_glass), `ParkingGarage` (drivable ramps).
   Traffic: routes 6-8 from data/city/city.json (`Traffic.load_city()`, `city_first_route`, static `JUNCTIONS`/`LIGHTS` =
   `VILLAGE_JUNCTIONS`/`VILLAGE_LIGHTS` + city), `spawn_cars(n, city)`. Scenario city, self-test check city, shots C0-C3.
-- Slums (map zone 3): gen_world section "the slums" (`srng`, loop SLUM_LOOP, road tiles without centre line),
+- Rosehill Estate (point 80): in gen_world "new neighbourhoods" (`erng`), on the old junkyard (x 0..101, z -130..-62):
+  Estate Lane z -84, x 18/54 inner loop, x 66 + Orchard Lane x 90 north end; `lamps_x(..., skip=junction xs)`.
+  Scenario estate, shot H4.
+- Roads (points 77-79): Dock Road x -186 (no dead ends; only the pass road leaves the tile grid), self-test check
+  `roads` (open tile arms, centre lines, trees on asphalt). Scenarios dock_road, slum_road.
+- Apartments (point 76): `Tower.style` "apartment" (+ `enterable`: lobby, stairwell, `ApartmentLift` (BunkerLift
+  subclass, lobby <-> roof, `at_roof`/`at_lobby`), panels LiftButtonLobby/Roof, marker RoofSpot); gen_world
+  `block_towers(..., enter)`, nodes `ApartmentBlock1-3` under City. Scenario apartments, self-test check apartments.
+- Slums (map zone 3): gen_world section "the slums" (`srng`, loop SLUM_LOOP; point 77: centre lines on every road tile incl. the T through road),
   prefabs/slums/ (`Shack`, `Caravan`, `FireBarrel`), property slum_shack (SlumShack), traffic route 9 (appended to
   data/city/city.json). Scenario slums, self-test check slums, shots D0-D2. ShootingRangeSpot now (-145, -118).
+- Neighbourhoods (point 71): gen_world section "new neighbourhoods" (`nrng`, helpers `nhouse` (non-enterable row
+  house, facing S/N/E/W) / `nrow` / `villa` (set back + driveway + hedges) / `nshop` / `lamps_x` / `lamps_z`): Southfield
+  (Garden Row z 84, side road x 30 on to it, park, square + shops), Orchard Lane x 90 + allotments, east park strip +
+  tree belt; traffic routes Southfield loop + north-east loop (appended to city.json, "cars" 8). Scenario
+  neighbourhoods, shots H0-H3.
 - Army base (map zone 2): gen_world section "the army base" (`arng`, node ArmyBase at the root, AB rect x -104..-36,
   z -430..-350, `ab_fence`, marker ArmyBase/ArmyBaseSpot), prefabs/army/ (`Watchtower`, `ArmyTruck`). Pass road end
   (-106, -355.65). Scenario army_base, self-test check army, shots E0-E2.

@@ -95,6 +95,13 @@ seam = (d > 0) & (mdist < 10.0)
 wseam = 1.0 - smooth01(mdist / 10.0)
 height = np.where(seam, height * (1 - wseam) + mh[miz, mix] * wseam, height)
 height = np.where(inside, np.minimum(height, -0.05 - sink), height)
+# Point 81: just inside the pass mountain's edge the range runs on 0.5 m UNDER the mountain heightmap. The range's
+# 4 m render quads straddle the edge (x -30 is not on its grid); without this they dipped to -3 m right there and
+# left a slit you could see down into along the whole seam.
+m_in = np.minimum(np.minimum(X - _mg["x0"], _mg["x0"] + (_mg["nx"] - 1) * _mg["cell"] - X),
+                  np.minimum(Z - _mg["z0"], _mg["z0"] + (_mg["nz"] - 1) * _mg["cell"] - Z))
+under = (m_in >= 0) & (m_in < 8.0) & (mh[miz, mix] > 0.6)
+height = np.where(under, mh[miz, mix] - 0.5, height)
 edge = (~inside) & (d <= CELL * 1.01)
 height = np.where(edge, np.maximum(height, -0.05), height)
 

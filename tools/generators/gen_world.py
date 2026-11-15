@@ -104,19 +104,16 @@ for z in (-12, -24, -36):
     put(R + "road_straight.tscn", (30, 0, z), 90)
 # (-6, -48): a T junction since map zone 3 (the slums road goes north) - see "the slums".
 put(R + "road_t_junction.tscn", (30, 0, -48), 180)     # W, E, branch south
-for x in (6, 18, 42, 54, 66):
+for x in (6, 18, 42, 54):  # (66, -48): a T since point 80 (Rosehill Estate)
     put(R + "road_straight.tscn", (x, 0, -48))
 for z in range(12, 49, 12):
     put(R + "road_straight.tscn", (30, 0, z), 90)
 # Point 8: South Street branches west off the side road at z 60 (point 60: on to the docks, see the west side).
-put(R + "road_t_junction.tscn", (30, 0, 60), 90)
+# (30, 60): a T to the north/west/south (the side road runs on south since point 71) - see "new neighbourhoods".
 for x in range(-54, 19, 12):
     put(R + "road_straight.tscn", (x, 0, 60), 0, props={"crossing": "true"} if x == -30 else None)
 
-# Road ends: barriers at the map edge.
-for x, z, r in [(71, -49.8, 90), (71, -46.2, 90),  # (Main Road goes on as the highway, map zone 7)
-                (28.2, 65, 0), (31.8, 65, 0)]:
-    put("props/road_barrier.tscn", (x, 0, z), r)
+# (No road-end barriers any more: North Road and the side road x 30 run on since point 71.)
 
 # Manholes
 for x, z in [(-48, 1.6), (-20, -1.7), (12, 1.5), (46, -1.6), (30, 20), (12, -48.5)]:
@@ -478,7 +475,7 @@ for z in (18, 42):
 _nwalls = sorted({e for g in (gB2, gC2) for (a, b) in g for e in (a, b)})
 for x in (12, 42, 58):
     put("props/street_lamp.tscn", (min(_nwalls, key=lambda e: abs(e - x)), 0.15, -44.05), 0)
-for x in (0, 18, 48, 64):
+for x in (0, 18, 48):  # (x 64: the Estate T since point 80)
     put("props/street_lamp.tscn", (x, 0.15, -51.95), 180)
 # South Street: the south side too.
 for x in (-38, -14, 10):
@@ -503,9 +500,11 @@ for x in (-23, 64):
 # Map edge: tree line outside the playable area.
 for i in range(26):
     x = -72 + i * 5.8
-    put("nature/tree_large.tscn" if i % 3 == 0 else "nature/tree_medium.tscn",
-        (x + rng.uniform(-1.5, 1.5), 0, -58 + rng.uniform(-2, 2)), rng.uniform(0, 360),
-        props={"tree_seed": str(600 + i)})
+    tp = (x + rng.uniform(-1.5, 1.5), 0, -58 + rng.uniform(-2, 2))
+    tr = rng.uniform(0, 360)
+    if not -86 < tp[0] < 7 and not 58 < tp[0] < 76:  # point 79: the slums road (z -60, x -84..0); point 80: x 66
+        put("nature/tree_large.tscn" if i % 3 == 0 else "nature/tree_medium.tscn", tp, tr,
+            props={"tree_seed": str(600 + i)})
     if i % 2 == 0:
         tx, tz, tr = x + rng.uniform(-1.5, 1.5), 63 + rng.uniform(-2, 2), rng.uniform(0, 360)
         if not -74 < tx < 59:  # South Street runs there (z 54..66, point 60: bend at x -66), then Carlo's car lot
@@ -650,14 +649,14 @@ for x in range(-126, -175, -12):
 # west into Quay Road (z 84) - the police station's street now reaches the docks.
 put(R + "road_curve.tscn", (-66, 0, 60), 90)           # east <-> south
 put(R + "road_straight.tscn", (-66, 0, 72), 90)
-put(R + "road_curve.tscn", (-66, 0, 84), -90)          # north <-> west
+# (-66, 84): a T since point 71 (Garden Row runs east) - see "new neighbourhoods".
 for x in (-78, -90, -102):
     put(R + "road_straight.tscn", (x, 0, 84))
 for x, z, r in [(-69.95, 70, 90), (-62.05, 76, -90), (-84, 87.95, 0), (-96, 80.05, 180), (-108, 87.95, 0)]:
     put("props/street_lamp.tscn", (x, 0.15, z), r)
 put("props/sign_post.tscn", (-60.4, 0.15, 56.3), 0, props={"sign_text": q("TO THE HARBOUR")})
-for x, z in [(-181, -1.8), (-181, 1.8), (-181, 82.2), (-181, 85.8)]:
-    put("props/road_barrier.tscn", (x, 0, z), 90)
+# Point 78 (no dead ends): Main Road and Quay Road no longer end at x -180 - Dock Road (x -186) joins them.
+# (The tiles are placed in the "new neighbourhoods" section: road_tile is defined further down.)
 for x, z, r in [(-90, -3.95, 180), (-132, -3.95, 180), (-162, -3.95, 180),
                 (-84, 3.95, 0), (-102, 3.95, 0), (-138, 3.95, 0), (-168, 3.95, 0),
                 (-117.95, 18, 90), (-117.95, 42, 90), (-117.95, 66, 90),
@@ -754,7 +753,7 @@ sc.node("Sea", "MeshInstance3D", ".", props={"transform": xform((-208.75, -0.9, 
         "material_override": sc.res("Material", "res://prefabs/materials/water.tres"), "cast_shadow": "0"})
 pbox("Breakwater", (-74, -2.0, 160), (4, 3.2, 112), "concrete", col(0.62, 0.6, 0.56), collision=False)
 # Trees round the edges of the yards.
-for i, (x, z) in enumerate([(-186, 10), (-186, 26), (-186, 44), (-186, 62), (-84, 58), (-84, 72), (-100, 76)]):
+for i, (x, z) in enumerate([(-196.5, 10), (-196.5, 26), (-196.5, 44), (-196.5, 62), (-84, 58), (-84, 72), (-100, 76)]):
     put("nature/tree_medium.tscn", (x + wrng.uniform(-1, 1), 0, z + wrng.uniform(-1, 1)), wrng.uniform(0, 360),
         props={"tree_seed": str(4700 + i)})
 
@@ -890,11 +889,11 @@ for a, b in links:
         for z in range(a[1] + 12, b[1], 12):
             put(R + "road_straight.tscn", (a[0], 0, z), 90, parent="City")
 # The highway: Main Road on east (x 78, 90), a bend south at (102, 0), down to the city.
-for x in (78, 90):
-    put(R + "road_straight.tscn", (x, 0, 0), 0, name=uname("Highway"))  # under NavRegion: carves the asphalt
+put(R + "road_straight.tscn", (78, 0, 0), 0, name=uname("Highway"))  # (90, 0) is a T since point 71  # under NavRegion: carves the asphalt
 road_tile(HWY_X, 0, {"W", "S"}, parent=NAV)
 for z in range(12, CZ[0], 12):
-    put(R + "road_straight.tscn", (HWY_X, 0, z), 90, name=uname("Highway"))
+    if z != 84:  # (the Garden Row T, point 71)
+        put(R + "road_straight.tscn", (HWY_X, 0, z), 90, name=uname("Highway"))
 sign = put("props/sign_post.tscn", (HWY_X - 4.6, 0.15, 30), 90, parent="City", name="HighwaySignCity")
 sc.node("Label3D", "Label3D", f"City/{sign}", props={
     "transform": xform((0, 2.6, 0.06)), "text": q("CITY  ->"), "font_size": "64", "pixel_size": "0.006",
@@ -918,8 +917,15 @@ BRICK_TINTS = [col(0.85, 0.7, 0.62), col(0.75, 0.6, 0.52), col(0.9, 0.82, 0.72),
                col(0.8, 0.76, 0.66), col(0.62, 0.58, 0.55)]
 
 
-def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sign_text="", name=None, setback=3.0):
-    tint = crng.choice(TOWER_TINTS if style == "glass" else BAND_TINTS if style == "bands" else BRICK_TINTS)
+# Point 76: apartment blocks - plaster / brick in warm, light tints.
+APT_TINTS = [col(0.92, 0.88, 0.78), col(0.86, 0.8, 0.72), col(0.9, 0.84, 0.8), col(0.8, 0.84, 0.82),
+             col(0.88, 0.72, 0.6), col(0.82, 0.76, 0.86), col(0.95, 0.92, 0.86), col(0.78, 0.62, 0.52)]
+
+
+def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sign_text="", name=None, setback=3.0,
+          enterable=False):
+    tint = crng.choice(TOWER_TINTS if style == "glass" else BAND_TINTS if style == "bands" else
+                       APT_TINTS if style == "apartment" else BRICK_TINTS)
     props = {"width": f"{w:g}", "depth": f"{d:g}", "floors": str(floors), "style": q(style), "tint": tint,
              "variation_seed": str(crng.randint(1, 9999))}
     if setback_from:
@@ -930,10 +936,12 @@ def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sig
         props["antenna"] = "true"
     if sign_text:
         props["sign_text"] = q(sign_text)
+    if enterable:
+        props["enterable"] = "true"
     return put("city/tower.tscn", (cx, 0, cz), rot, parent="City", name=name or uname("Tower"), props=props)
 
 
-def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split):
+def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split, enter=0):
     """Fill a block with 1-4 buildings (1.5 m in from the sidewalk edge), each its own style (from `styles`),
     height, and shape: plain, a setback crown, or a 2-3 floor podium with a narrower tower on it."""
     m = 1.5
@@ -950,21 +958,30 @@ def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split):
         style = crng.choice(styles)
         shape = crng.random()
         setback_from, setback = 0, 3.0
-        if shape < 0.3 and min(cw, cd) > 16 and fl >= 7:
+        ent = enter > 0 and style == "apartment" and cw >= 14 and cd >= 12
+        if ent:  # point 76: an enterable apartment block (lobby, stairs + lift to the roof) - plain shape
+            enter -= 1
+            fl = max(fl, 4)
+            shape = 1.0
+        if shape < 0.3 and min(cw, cd) > 16 and fl >= 6:
             setback_from, setback = crng.randint(2, 3), round(min(cw, cd) * crng.uniform(0.18, 0.28), 1)  # podium
-        elif shape < 0.55 and fl >= 9:
-            setback_from = fl - crng.randint(2, 4)  # stepped crown
+        elif shape < 0.55 and fl >= 6:
+            setback_from = fl - crng.randint(1, 2)  # stepped crown
         cx, cz = x0 + w * (a + c) / 2, z0 + d * (b + e) / 2
-        tower(cx, cz, round(cw, 1), round(cd, 1), fl, style, setback_from=setback_from, antenna=fl >= 18,
-              setback=setback)
+        tower(cx, cz, round(cw, 1), round(cd, 1), fl, style, setback_from=setback_from, antenna=fl >= 10 and not ent,
+              setback=setback, enterable=ent, name=uname("ApartmentBlock") if ent else None)
 
 
 XB = [(-48, 0), (12, 60), (72, 96)]
 ZB = [(150, 198), (210, 258), (270, 318)]
 PLAN = {  # (bx, bz) -> (styles, floors min, max, split) or "garage"; the middle block holds the landmarks
-    (0, 0): (["bands", "brick"], 6, 9, 3), (0, 1): (["glass", "bands", "brick"], 7, 12, 4), (0, 2): "garage",
-    (1, 0): (["glass", "bands"], 8, 13, 3), (1, 1): (["glass", "bands"], 16, 22, 2), (1, 2): (["glass", "bands", "brick"], 8, 15, 4),
-    (2, 0): "garage", (2, 1): (["brick", "bands"], 6, 9, 2), (2, 2): (["bands", "glass", "brick"], 6, 11, 3),
+    # Point 75 (user, second round): lower again so the city fits the village - 3-8 floors, the landmarks 8-11.
+    # Point 76: apartment blocks in the outer blocks, one enterable (stairs + lift to the roof) per marked block.
+    (0, 0): (["apartment", "apartment", "brick"], 4, 6, 3, 1), (0, 1): (["apartment", "glass", "bands"], 4, 7, 4),
+    (0, 2): "garage",
+    (1, 0): (["glass", "bands"], 5, 8, 3), (1, 1): (["glass", "bands"], 8, 11, 2),
+    (1, 2): (["apartment", "bands", "brick"], 4, 8, 4),
+    (2, 0): "garage", (2, 1): (["apartment"], 4, 6, 2, 1), (2, 2): (["apartment", "bands", "glass"], 4, 7, 3, 1),
 }
 for (bx, bz), plan in PLAN.items():
     x0, x1 = XB[bx]
@@ -977,11 +994,11 @@ for (bx, bz), plan in PLAN.items():
         block_towers(x0, x1, z0, z1, *plan)
 # The east strip along the highway boulevard (x 108..140) and the skyline south of the last avenue.
 for z0, z1 in ZB:
-    block_towers(110, 138, z0, z1, ["glass", "bands", "brick"], 6, 12, 2)
-SKYLINE = [(-36, 360, 30, 28, 12, "bands"), (6, 352, 24, 22, 15, "glass"), (40, 362, 26, 26, 19, "glass"),
-           (78, 352, 26, 22, 11, "brick"), (118, 362, 28, 28, 14, "glass")]
+    block_towers(110, 138, z0, z1, ["apartment", "glass", "bands", "brick"], 3, 7, 2, 1 if z0 == ZB[0][0] else 0)
+SKYLINE = [(-36, 360, 30, 28, 7, "bands"), (6, 352, 24, 22, 9, "glass"), (40, 362, 26, 26, 11, "glass"),
+           (78, 352, 26, 22, 6, "brick"), (118, 362, 28, 28, 8, "glass")]
 for i, (cx, cz, w, d, fl, st) in enumerate(SKYLINE):
-    tower(cx, cz, w, d, fl, st, setback_from=fl - 3, antenna=fl >= 15, name=f"Skyscraper{i + 1}")
+    tower(cx, cz, w, d, fl, st, setback_from=fl - 2, antenna=fl >= 10, name=f"Skyscraper{i + 1}")
 # Plaza between the village and the city (z 114..138): trees and benches; a promenade along the coast (x -66).
 for i, x in enumerate(range(-40, 96, 16)):
     put("nature/tree_medium.tscn", (x + crng.uniform(-2, 2), 0, 126 + crng.uniform(-3, 3)), crng.uniform(0, 360),
@@ -1042,13 +1059,14 @@ SLUM_LOOP = [(-6, -60), (-6, -96), (-78, -96), (-78, -60)]
 slum_arms = {(-6, -48): {"S", "E", "N"}, (-6, -60): {"N", "S", "W"}, (-6, -96): {"S", "W"},
              (-78, -96): {"E", "S"}, (-78, -60): {"N", "E"}}
 for (x, z), ar in slum_arms.items():
-    road_tile(x, z, ar, parent=NAV, props={"center_line": "false"})
+    road_tile(x, z, ar, parent=NAV)
 for z in (-72, -84):
-    put(R + "road_straight.tscn", (-6, 0, z), 90, props={"center_line": "false"})
-    put(R + "road_straight.tscn", (-78, 0, z), 90, props={"center_line": "false"})
+    if z != -84:  # (-6, -84): a T since point 80 (Estate Lane)
+        put(R + "road_straight.tscn", (-6, 0, z), 90)
+    put(R + "road_straight.tscn", (-78, 0, z), 90)
 for x in range(-66, -6, 12):
-    put(R + "road_straight.tscn", (x, 0, -96), 0, props={"center_line": "false"})
-    put(R + "road_straight.tscn", (x, 0, -60), 0, props={"center_line": "false"})
+    put(R + "road_straight.tscn", (x, 0, -96), 0)
+    put(R + "road_straight.tscn", (x, 0, -60), 0)
 sign = put("props/sign_post.tscn", (-1.4, 0.15, -64), 270, name="SlumSign")
 sc.node("Label3D", "Label3D", f"{NAV}/{sign}", props={
     "transform": xform((0, 2.6, 0.06)), "text": q("ROSEHILL PARK"), "font_size": "52", "pixel_size": "0.006",
@@ -1057,7 +1075,7 @@ sc.node("Label3D", "Label3D", f"{NAV}/{sign}", props={
 # Packed earth under the shanty town (inside the loop) and the caravan park.
 paved("SlumYard", -42, -78, 60, 24, "soil", 0.04)
 paved("CaravanPark", -55, -116, 90, 26, "soil", 0.04)
-paved("Junkyard", 16, -98, 26, 56, "soil", 0.04)
+# (Point 80: the junkyard east of the loop became Rosehill Estate - see "new neighbourhoods".)
 SHACK = "slums/shack.tscn"
 # Shacks along the inside of the loop, the middle (x -46..-34) left open as a yard with fire barrels.
 for row_z, rot in ((-70.5, 180), (-85.5, 0)):
@@ -1093,18 +1111,11 @@ for r, (z, rot) in enumerate([(-106, 180), (-114, 0), (-126, 180)]):
                    "awning": "true" if srng.random() < 0.4 else "false", "rust": f"{srng.uniform(0.1, 0.8):.2f}",
                    "caravan_seed": str(srng.randint(1, 9999))})
         x += ln + srng.uniform(3.0, 5.0)
-# Junkyard: wrecks, tyre stacks, a fence round it; container homes beyond.
-for i in range(10):
-    put("props/covered_car.tscn", (srng.uniform(6, 26), 0.04, srng.uniform(-124, -74)), srng.uniform(0, 360),
-        name=uname("JunkCar"))
-fence_line(3, -127, 29, -127)
-fence_line(3, -127, 3, -71)
-fence_line(29, -127, 29, -71)
-CONT = [col(0.6, 0.25, 0.18), col(0.15, 0.35, 0.5), col(0.25, 0.42, 0.25), col(0.55, 0.5, 0.42)]
-for i, (x, z, rot) in enumerate([(40, -80, 90), (48, -80, 90), (56, -80, 90), (40, -98, 90), (48, -98, 90),
-                                 (64, -98, 90), (44, -116, 0), (60, -116, 0)]):
-    put("props/container_6m.tscn", (x, 0.05, z), rot, name=uname("ContainerHome"), props={"color": srng.choice(CONT)})
-put("slums/fire_barrel.tscn", (52, 0.04, -89), 0, name="FireBarrel7")
+# (Point 80: no junkyard / container homes any more - Rosehill Estate stands there now.)
+for i in range(10):  # (keeps srng's sequence for everything after it)
+    srng.uniform(6, 26), srng.uniform(-124, -74), srng.uniform(0, 360)
+for i in range(8):
+    srng.choice([0, 1, 2, 3])
 # The cheap property: a tin shack by the west road.
 put("buildings/warehouse.tscn", (-94, 0.04, -78), 90, name="SlumShack", props={
     "width": "8", "depth": "7", "floor_height": "3.2", "bays": "2", "door_bay": "0", "variation_seed": "3031",
@@ -1194,6 +1205,298 @@ for i in range(8):
     put("props/crate_long.tscn", (arng.uniform(-100, -82), 0.04, arng.uniform(-428, -420)), arng.choice([0, 90]),
         parent="ArmyBase", name=uname("ArmyCrate"))
 sc.node("ArmyBaseSpot", "Marker3D", "ArmyBase", props={"transform": xform((-112.0, 0.1, -352.5), 90)})
+
+# --------------------------------------------------------------------------- new neighbourhoods (point 71)
+# User feedback 2026-11-15 (docs/feedback_open_spaces.png): the empty fields round the centre get streets, row houses,
+# detached houses with driveways, a pocket park, a square with small shops. The new houses are NOT enterable (no
+# interiors: cheap to draw + bake). Green stays between the zones: a park strip west of the highway, a tree belt east
+# of it and the plaza strip before the city (z 106..140).
+#   Southfield: Garden Row (z 84) from the harbour bend (-66, 84) to the highway (102, 84); the side road x 30 runs on
+#   from South Street to it. North-east: North Road on east to (90, -48), then down x 90 to Main Road (90, 0).
+nrng = random.Random(7171)
+FACING_ROT = {"S": 0, "N": 180, "E": 90, "W": 270}
+INTO = {"S": -1, "N": 1, "E": -1, "W": 1}  # from the street into the lot (z for S/N, x for E/W)
+
+
+def _xz(along, depth, facing):
+    return (along, depth) if facing in "SN" else (depth, along)
+
+
+def nhouse(along, front, facing, w, depth=9.0, props=None, name=None):
+    """A non-enterable house; `along` = its middle along the street, `front` = the line of its front wall."""
+    x, z = _xz(along, front, facing)
+    p = {"width": f"{w:.2f}", "depth": f"{depth:g}", "variation_seed": str(nrng.randint(1, 9999)),
+         "door_color": nrng.choice(DOORS), "enterable": "false", "upper_floors": "false", "furnish": q("none"),
+         "floors": str(nrng.choice([2, 2, 3]))}
+    wm = nrng.choice(WALLS)
+    p["wall_material"] = q(wm)
+    p["wall_tint"] = nrng.choice(PLASTER_TINTS) if wm == "plaster" else ptint(wm, MATERIAL_SWATCH[wm], nrng.uniform(0.92, 1.04))
+    rm, rs = nrng.choice(ROOFS)
+    p["roof_material"] = q(rm)
+    p["roof_tint"] = ptint(rm, rs)
+    if props:
+        p.update(props)
+    return put(f"buildings/row_house_{nrng.choice('abcdef')}.tscn", (round(x, 2), 0, round(z, 2)),
+               FACING_ROT[facing] + nrng.uniform(-0.3, 0.3), props=p, name=name or uname("NHouse"))
+
+
+def nrow(a0, a1, street_edge, facing, gardens=None):
+    """Row houses with their fronts on the street edge, from a0 to a1 along the street."""
+    a = a0
+    while a < a1 - 4.5:
+        w = nrng.uniform(5.0, 7.2)
+        if a1 - (a + w) < 4.6:
+            w = a1 - a
+        nhouse(a + w / 2, street_edge, facing, w)
+        if gardens is not None:
+            gardens.append((a, a + w))
+        a += w
+
+
+def nhedge(along0, along1, depth, facing, across=False):
+    x, z = _xz((along0 + along1) / 2, depth, facing)
+    rot = 0 if (facing in "SN") != across else 90
+    put("nature/hedge.tscn", (round(x, 2), 0, round(z, 2)), rot, name=uname("NHedge"),
+        props={"size": v3(abs(along1 - along0), 1.2, 0.7), "hedge_seed": str(nrng.randint(1, 99))})
+
+
+def villa(lot0, street_edge, facing, lot_w=12.0):
+    """A detached house set back 3 m, a driveway along one side (sometimes a covered car on it), hedges."""
+    s = INTO[facing]
+    left = nrng.random() < 0.5
+    house_a = lot0 + (4.5 if left else lot_w - 4.5)
+    drive_a = lot0 + (lot_w - 1.8 if left else 1.8)
+    nhouse(house_a, street_edge + s * 3.0, facing, 8.0, 8.5, props={
+        "side_windows": "true", "roof_type": q(nrng.choice(["hip", "gable"])), "floors": str(nrng.choice([1, 2, 2])),
+        "chimney": q(nrng.choice(["left", "right", "none"]))}, name=uname("Villa"))
+    dx, dz = _xz(drive_a, street_edge + s * 6.0, facing)
+    sx, sz = _xz(3.0, 12.0, facing)
+    paved(uname("Driveway"), dx, dz, sx, sz, "concrete", 0.04)
+    if nrng.random() < 0.45:
+        cx, cz = _xz(drive_a, street_edge + s * 5.0, facing)
+        put("props/covered_car.tscn", (round(cx, 2), 0.04, round(cz, 2)), FACING_ROT[facing] + nrng.uniform(-4, 4),
+            name=uname("DrivewayCar"))
+    a0, a1 = (lot0 + 0.3, lot0 + lot_w - 3.6) if left else (lot0 + 3.6, lot0 + lot_w - 0.3)
+    nhedge(a0, a1, street_edge + s * 0.8, facing)
+    # The hedge between this lot and the previous one (along the depth).
+    hx, hz = _xz(lot0, street_edge + s * 7.5, facing)
+    put("nature/hedge.tscn", (round(hx, 2), 0, round(hz, 2)), 90 if facing in "SN" else 0, name=uname("NHedge"),
+        props={"size": v3(12.0, 1.2, 0.6), "hedge_seed": str(nrng.randint(1, 99))})
+    if nrng.random() < 0.5:
+        tx, tz = _xz(lot0 + nrng.uniform(2, lot_w - 2), street_edge + s * 13.0, facing)
+        put("nature/tree_medium.tscn", (round(tx, 2), 0, round(tz, 2)), nrng.uniform(0, 360), name=uname("GardenTree"),
+            props={"tree_seed": str(nrng.randint(1, 999))})
+
+
+def nshop(along, street_edge, facing, w, sign, awning_col):
+    return nhouse(along, street_edge, facing, w, 10.0, props={
+        "ground_floor": q("shop"), "shop_sign": q(sign), "awning": "true", "awning_color": awning_col,
+        "floors": str(nrng.choice([2, 3])), "wall_material": q(nrng.choice(["brick_old", "brick_mixed", "brick_yellow"]))},
+        name=uname("NShop"))
+
+
+def lamps_x(x0, x1, z_road, step=24, skip=()):
+    """Lamps both sides of an E-W road, staggered; `skip` = x of junctions (no lamp in their mouths)."""
+    for x in range(int(x0), int(x1), step):
+        for lx, lz, r in ((x, z_road - 3.95, 180), (x + step // 2, z_road + 3.95, 0)):
+            if all(abs(lx - j) > 6.5 for j in skip):
+                put("props/street_lamp.tscn", (lx, 0.15, lz), r, name=uname("NLamp"))
+
+
+def lamps_z(z0, z1, x_road, step=24):
+    for z in range(int(z0), int(z1), step):
+        put("props/street_lamp.tscn", (x_road - 3.95, 0.15, z), 90, name=uname("NLamp"))
+        put("props/street_lamp.tscn", (x_road + 3.95, 0.15, z + step // 2), 270, name=uname("NLamp"))
+
+
+# Roads: Southfield.
+road_tile(30, 60, {"N", "W", "S"}, parent=NAV)
+put(R + "road_straight.tscn", (30, 0, 72), 90, name=uname("NRoad"))
+road_tile(30, 84, {"N", "W", "E"}, parent=NAV)
+road_tile(-66, 84, {"N", "W", "E"}, parent=NAV)
+road_tile(HWY_X, 84, {"N", "S", "W"}, parent=NAV)
+for x in range(-54, 91, 12):
+    if x != 30:
+        put(R + "road_straight.tscn", (x, 0, 84), 0, name=uname("NRoad"),
+            props={"crossing": "true"} if x in (-6, 66) else None)
+# Roads: the north-east (North Road on to x 90, down to Main Road).
+put(R + "road_straight.tscn", (78, 0, -48), 0, name=uname("NRoad"))
+road_tile(90, -48, {"W", "S", "N"}, parent=NAV)  # (point 80: on north to Estate Lane)
+for z in (-36, -24, -12):
+    put(R + "road_straight.tscn", (90, 0, z), 90, name=uname("NRoad"))
+road_tile(90, 0, {"W", "E", "N"}, parent=NAV)
+put("props/sign_post.tscn", (24.6, 0.15, 80.3), 180, name="GardenRowSign", props={"sign_text": q("GARDEN ROW")})
+put("props/sign_post.tscn", (84.6, 0.15, -3.72), 0, name="OrchardLaneSign", props={"sign_text": q("ORCHARD LANE")})
+lamps_x(-54, 90, 84)
+lamps_z(-42, -6, 90)
+
+# Southfield, north side of Garden Row (fronts on z 78, back gardens to z 66.6 behind South Street's lamps).
+g1 = []
+nrow(-59.5, -12.0, 78.0, "S", g1)
+garden_fences(g1, 69.0, 66.6)
+SHOPS = [("CORNER DELI", col(0.15, 0.35, 0.2)), ("PHARMACY", col(0.1, 0.4, 0.45)), ("CAFE LENA", col(0.55, 0.18, 0.12)),
+         ("HAIR BY INES", col(0.45, 0.2, 0.4)), ("BOOKS", col(0.2, 0.25, 0.45)), ("FLOWERS", col(0.5, 0.45, 0.1))]
+a = -11.0
+for i in range(3):
+    nshop(a + 3.75, 78.0, "S", 7.5, *SHOPS[i])
+    a += 7.7
+for i in range(2):  # two more homes up to the side road x 30
+    nhouse(a + 3.4 + i * 6.9, 78.0, "S", 6.8)
+g2 = []
+nrow(37.0, 95.0, 78.0, "S", g2)
+garden_fences(g2, 69.0, 66.6)
+# Southfield, south side (fronts face north onto z 90): detached houses, the pocket park, the square + shops.
+for lot in range(-60, -12, 12):
+    villa(lot, 90.0, "N")
+# Pocket park (x -11..22): paths, trees, benches, a sandpit + swings, planters.
+paved("ParkPathN", 5.5, 92.0, 33.0, 2.0, "sidewalk", 0.03)
+paved("ParkPathX", 5.5, 97.5, 2.0, 9.0, "sidewalk", 0.03)
+for i, (x, z) in enumerate([(-8, 97), (-3, 103), (13, 96), (19, 102), (-9, 103), (16, 103), (1, 102), (10, 104)]):
+    put("nature/tree_medium.tscn", (x, 0, z), nrng.uniform(0, 360), name=uname("ParkTree"),
+        props={"tree_seed": str(7300 + i)})
+for x, z, r in [(3.4, 96.5, 90), (7.6, 96.5, 270), (-4, 93.6, 180), (15, 93.6, 180)]:
+    put("props/bench.tscn", (x, 0.03, z), r, name=uname("ParkBench"))
+pbox("Sandpit", (-2.0, 0.0, 99.5), (4.0, 0.25, 4.0), "planks", col(0.55, 0.42, 0.28))
+paved("SandpitSand", -2.0, 99.5, 3.4, 3.4, "soil", 0.27)
+for x in (9.0, 12.5):
+    for z in (100.0, 102.0):
+        pbox(uname("SwingPost"), (x, 0.0, z), (0.15, 2.4, 0.15), "item_metal", col(0.85, 0.3, 0.2))
+    pbox(uname("SwingBar"), (x, 2.4, 101.0), (0.15, 0.12, 2.15), "item_metal", col(0.85, 0.3, 0.2), collision=False)
+pbox("SwingTop", (10.75, 2.4, 101.0), (3.65, 0.12, 0.12), "item_metal", col(0.85, 0.3, 0.2), collision=False)
+put("props/planter_box.tscn", (-10.0, 0.03, 91.6), 0, name=uname("ParkPlanter"))
+put("props/planter_box.tscn", (21.0, 0.03, 91.6), 0, name=uname("ParkPlanter"))
+put("props/trash_can.tscn", (5.5, 0.03, 90.8), 0, name=uname("ParkBin"))
+# The square south of the Garden Row / x 30 junction, with shops on its east side.
+paved("SouthfieldSquare", 29.0, 97.0, 12.0, 14.0, "cobbles", 0.04)
+for x, z in [(25, 93), (33, 93), (25, 101), (33, 101)]:
+    put("nature/tree_medium.tscn", (x, 0, z), nrng.uniform(0, 360), name=uname("SquareTree"),
+        props={"tree_seed": str(nrng.randint(1, 999))})
+put("props/bench.tscn", (29.0, 0.04, 97.0), 90, name=uname("SquareBench"))
+put("props/post_box.tscn", (34.3, 0.04, 90.8), 0, name=uname("SquarePostBox"))
+put("props/bike_rack.tscn", (23.6, 0.04, 95.0), 90, name=uname("SquareBikes"))
+a = 36.0
+for i in range(3, 6):
+    nshop(a + 3.5, 90.0, "N", 7.0, *SHOPS[i])
+    a += 7.2
+for lot in (58, 70, 82):
+    villa(lot, 90.0, "N")
+
+# North-east (Orchard Lane, x 90): row houses facing it from the west (fronts on x 84), detached houses on the east.
+nrow(-41.0, -7.0, 84.0, "E")
+for lot in (-41.5, -29.5, -17.5):
+    villa(lot, 96.0, "W", 11.0)
+# Allotments north of North Road's new stretch (x 73..83, z -55..-79; point 80: Orchard Lane runs on north at x 90).
+for x in (75.5, 80.5):
+    for z in (-58.5, -64.5, -70.5, -76.5):
+        paved(uname("Allotment"), x, z, 4.5, 5.0, "soil", 0.06)
+pbox("AllotmentShed", (78.0, 0.0, -80.0), (3.0, 2.2, 1.6), "planks", col(0.45, 0.32, 0.2))
+fence_line(73.0, -55.0, 83.0, -55.0, gaps=(77,))
+
+# Green between the zones: a park strip west of the highway (x 75..95, z 12..62) and a tree belt east of it.
+paved("EastParkPath", 85.0, 37.0, 2.0, 50.0, "sidewalk", 0.03)
+for i in range(16):
+    x, z = nrng.uniform(75, 95), nrng.uniform(13, 62)
+    if abs(x - 85) < 2.5:
+        continue
+    put(f"nature/tree_{nrng.choice(['medium', 'large'])}.tscn", (round(x, 1), 0, round(z, 1)), nrng.uniform(0, 360),
+        name=uname("EastParkTree"), props={"tree_seed": str(7500 + i)})
+for z in (24, 44, 58):
+    put("props/bench.tscn", (83.6, 0.03, z), 90, name=uname("EastParkBench"))
+for i in range(36):
+    x, z = nrng.uniform(112, 138), nrng.uniform(-66, 104)
+    put(f"nature/tree_{nrng.choice(['medium', 'large'])}.tscn", (round(x, 1), 0, round(z, 1)), nrng.uniform(0, 360),
+        name=uname("EastBeltTree"), props={"tree_seed": str(7600 + i)})
+
+# Point 78: Dock Road (x -186) joins the west ends of Main Road and Quay Road (no more dead ends at the docks).
+road_tile(-186, 0, {"E", "S"}, parent=NAV)
+for z in range(12, 84, 12):
+    put(R + "road_straight.tscn", (-186, 0, z), 90, name=uname("DockRoad"))
+road_tile(-186, 84, {"E", "N"}, parent=NAV)
+for z in (18, 42, 66):
+    put("props/street_lamp.tscn", (-182.05, 0.15, z), 270, name=uname("NLamp"))
+put("props/sign_post.tscn", (-180.4, 0.15, 6.4), 270, name="DockRoadSign", props={"sign_text": q("DOCK ROAD")})
+city_routes.append(lane_route([(-114, 0), (-186, 0), (-186, 84), (-114, 84)]))
+
+
+# Point 80: Rosehill Estate - the old junkyard + container lot east of the slums (x 0..72, z -130..-62) as a housing
+# estate with the original row-house prefabs: Estate Lane (z -84) from the slums loop to x 66 and up to North Road,
+# an inner loop (x 18 / z -120 / x 54) round a block of terraces, detached houses, a small park, gardens.
+erng = random.Random(8080)
+for x in range(6, 66, 12):
+    if x not in (18, 54):
+        put(R + "road_straight.tscn", (x, 0, -84), 0, name=uname("NRoad"), props={"crossing": "true"} if x == 42 else None)
+road_tile(-6, -84, {"N", "S", "E"}, parent=NAV)
+road_tile(18, -84, {"W", "E", "N"}, parent=NAV)
+road_tile(54, -84, {"W", "E", "N"}, parent=NAV)
+road_tile(66, -84, {"W", "S", "E"}, parent=NAV)
+put(R + "road_straight.tscn", (78, 0, -84), 0, name=uname("NRoad"))
+road_tile(90, -84, {"W", "S"}, parent=NAV)
+for z in (-60, -72):
+    put(R + "road_straight.tscn", (90, 0, z), 90, name=uname("NRoad"))
+lamps_z(-78, -54, 90)
+# East of the estate: terraces along Estate Lane's east stretch, detached houses on Orchard Lane's north end.
+gF = []
+nrow(72.5, 101.0, -90.0, "S", gF)
+garden_fences(gF, -99.0, -106.0)
+for lot in (-78.0, -66.0):
+    villa(lot, 96.0, "W", 12.0)
+for i, x in enumerate(range(76, 104, 7)):
+    put("nature/tree_medium.tscn", (x + erng.uniform(-1, 1), 0, -112.0 + erng.uniform(-2, 2)), erng.uniform(0, 360),
+        name=uname("EstateTree"), props={"tree_seed": str(8300 + i)})
+for z in (-72, -60):
+    put(R + "road_straight.tscn", (66, 0, z), 90, name=uname("NRoad"))
+road_tile(66, -48, {"W", "E", "N"}, parent=NAV)
+for z in (-96, -108):
+    put(R + "road_straight.tscn", (18, 0, z), 90, name=uname("NRoad"))
+    put(R + "road_straight.tscn", (54, 0, z), 90, name=uname("NRoad"))
+road_tile(18, -120, {"S", "E"}, parent=NAV)
+road_tile(54, -120, {"S", "W"}, parent=NAV)
+for x in (30, 42):
+    put(R + "road_straight.tscn", (x, 0, -120), 0, name=uname("NRoad"))
+put("props/sign_post.tscn", (1.6, 0.15, -78.4), 0, name="EstateSign", props={"sign_text": q("ESTATE LANE")})
+lamps_x(6, 60, -84, skip=(54, 66))
+lamps_z(-114, -90, 18)
+lamps_z(-114, -90, 54)
+lamps_z(-78, -54, 66)
+# Between North Road and Estate Lane: terraces facing the lane, back gardens up to the gas station's back.
+gE = []
+nrow(1.0, 59.5, -78.0, "N", gE)
+garden_fences(gE, -69.0, -62.8)
+# The block inside the inner loop: terraces back to back (gardens between).
+gB1, gB2 = [], []
+nrow(24.5, 47.5, -90.0, "S", gB1)
+nrow(24.5, 47.5, -114.0, "N", gB2)
+garden_fences(gB1, -99.0, -102.0, back_fence=True)
+garden_fences(gB2, -105.0, -102.0, back_fence=False)
+# Detached houses with driveways west of x 18 and along Estate Lane's south end.
+for lot in (-114.0, -102.0):
+    villa(lot, 12.0, "E")
+# A small park east of the inner loop (x 61..72, z -128..-91): a path, trees, benches, a sandpit.
+paved("EstateParkPath", 66.0, -109.0, 2.0, 34.0, "sidewalk", 0.03)
+for i, (x, z) in enumerate([(62.5, -94), (69.5, -99), (62.5, -106), (69.5, -113), (62.5, -120), (69.5, -125)]):
+    put("nature/tree_medium.tscn", (x, 0, z), erng.uniform(0, 360), name=uname("EstateParkTree"),
+        props={"tree_seed": str(8100 + i)})
+for z in (-102.0, -117.0):
+    put("props/bench.tscn", (64.6, 0.03, z), 90, name=uname("EstateBench"))
+pbox("EstateSandpit", (69.0, 0.0, -106.0), (3.0, 0.25, 3.0), "planks", col(0.55, 0.42, 0.28))
+paved("EstateSand", 69.0, -106.0, 2.5, 2.5, "soil", 0.27)
+# South of the inner loop: a hedge + a row of trees towards the border.
+nhedge(13.0, 59.0, -127.6, "S")
+for i, x in enumerate(range(16, 60, 9)):
+    put("nature/tree_medium.tscn", (x + erng.uniform(-1, 1), 0, -130.5), erng.uniform(0, 360), name=uname("EstateTree"),
+        props={"tree_seed": str(8200 + i)})
+city_routes.append(lane_route([(-6, -84), (66, -84), (66, -48), (-6, -48)]))
+city_routes.append(lane_route([(18, -84), (54, -84), (54, -120), (18, -120)]))
+city_routes.append(lane_route([(66, -84), (90, -84), (90, -48), (66, -48)]))
+city_junctions += [[-6, -84], [18, -84], [54, -84], [66, -48], [66, -84], [90, -48]]
+
+# Traffic: the Southfield loop and the north-east loop (after the city + slum routes).
+city_routes.append(lane_route([(30, 60), (30, 84), (-66, 84), (-66, 60)]))
+city_routes.append(lane_route([(30, 0), (90, 0), (90, -48), (30, -48)]))
+city_junctions += [[30, 84], [-66, 84], [HWY_X, 84], [90, 0]]
+with open(_os.path.join(ROOT, "data", "city", "city.json"), "w") as _f:
+    _json.dump({"routes": city_routes, "junctions": city_junctions, "lights": city_lights, "cars": 8}, _f, indent=1)
+
 
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")

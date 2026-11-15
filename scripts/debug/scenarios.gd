@@ -57,6 +57,12 @@ const LIST: Array = [
 	["grass", "Point 61: grass on every green plane", "You stand in the open field north of the centre. Look and walk around: grass tufts everywhere the ground is green (fields, verges, along the border hedge, round the farm), none on roads, pavements, the soil fields or in buildings. It grows in about 50 m round you and fades out further away. Drive a car around: the grass keeps up."],
 	["bunker", "Map zone 8: the hidden bunker in the mountain", "You stand next to your car at the top of the mountain pass, where a narrow side road turns off east into the rock. Drive or walk up it: it climbs through a cutting to a concrete apron and the blast door of a hidden bunker (AUTHORISED PERSONNEL ONLY). E opens the door."],
 	["mountains", "The mountains in one style", "You stand at the top of the mountain pass (31 m up). Look round: the pass mountain, the bunker's ridge and the snowy border range are one mountain landscape now - the same grass, rock and snow, the same pines, the ridges run on into the border peaks. F10 (admin noclip) to fly round."],
+	["mountain_seam", "Bunker mountain meets the border range", "You stand at the north edge of the village, looking north along the east side of the pass mountain. There used to be a thin slit where the pass/bunker mountain met the border mountains (a straight groove up the slope); the range now runs on just under the mountain's edge, so the slope is closed. F10 (noclip) to fly along the seam."],
+	["estate", "Rosehill Estate (was the junkyard)", "You stand on Estate Lane, the new street east of the slums where the junkyard and the container homes were. Row houses (the same houses as at the first crossroads) with back gardens, an inner loop round a block of terraces, detached houses with driveways, a small park with a sandpit. Estate Lane runs from the slums loop to North Road by the gas station, so traffic drives through."],
+	["dock_road", "Dock Road: no more dead ends at the docks", "You sit next to your car at the west end of Main Road by the docks. It used to end at barriers here; now Dock Road bends south along the yards to Quay Road, so you can drive a loop (Main Road - Dock Road - Quay Road - Industrial Road). Traffic drives the loop too. Every road on the map now joins another one; only the mountain road to the army base ends."],
+	["slum_road", "Slums road: centre lines, no trees on the road", "You stand at the junction where the road from the gas station (North Road) turns north to the slums. The road round the slums now has a dashed centre line (like every road, also across T-junctions), and the old tree row that stood on its carriageway is gone. Walk or drive the loop west."],
+	["apartments", "City apartment block: lobby, stairs, lift, roof", "You stand in front of an apartment block in the city (balconies, curtains, a glass lobby). Walk in: mailboxes and a bench in the lobby, the stairwell at the back left (two flights per floor up to the roof), the lift at the back right (E on the platform or the panel). Up top: a roof terrace with planters and the view over the lower city. There are three of these enterable blocks; the other apartment blocks are closed."],
+	["neighbourhoods", "New neighbourhoods (Southfield, Orchard Lane)", "You stand on Garden Row, the new street south of South Street, next to your car. Look round: row houses with back gardens, detached houses with driveways, a pocket park with a sandpit and swings, a cobbled square with small shops (deli, pharmacy, cafe, hair, books, flowers). Drive east to the highway and north to Main Road, then turn into Orchard Lane (x 90): more houses and allotments on the north corner. Between the village and the city a park strip and a tree belt stay green. The new houses are decoration (not enterable)."],
 	["bunker_inside", "The bunker complex: lift, stairs, lab, garage", "You stand in the bunker's entrance hall, the blast door open, your car on the vehicle lift. Drive onto / stay on the lift and press E on the platform (or the call panel left of it) to go 14 m down to the underground garage. Or walk down the stairwell (right of the lift, four flights). Below: the garage, a corridor, the big lab hall (yellow squares = machine spots), storage and the bunk room. Buying it and the lab come later (session B)."],
 	["army_base", "Map zone 2: Fort Halden, the army base behind the mountain", "You stand on the pass road at the gate of the army base (east of the prison, out of sight of the village), next to your car. The base is closed: fence all round, the gate shut, a boom, a guard booth. Look through the fence: barracks, two hangars, army trucks and jeeps, a helipad, four watchtowers (their searchlights sweep at night - F7 to speed up time). Guards and missions come later. Drive back over the pass to the farm."],
 	["slums", "Map zone 3: the slums north of the centre (Rosehill Park)", "Evening (19:00) in the yard in the middle of the shanty town: shacks of tin and planks, rubbish, fire barrels burning. North: the caravan park; east: the junkyard and container homes; west by the road: the Rosehill Shack, FOR SALE for €4,000 (the cheapest property; E on the door, buy it at the estate agent). A car drives round the loop road. Turn north from North Road at the barber's corner to get here."],
@@ -438,6 +444,33 @@ static func run(world: Node, id: String) -> bool:
 		"mountains":
 			_kit(me, 200, [])
 			_place(me, Vector3(-145.5, 31.0, -251.5), Vector3(-260, 60, -250), dn, 12.0)
+		"mountain_seam":
+			_kit(me, 200, [])
+			_place(me, Vector3(-22, 0.3, -128), Vector3(-34, 25, -230), dn, 12.0)
+		"estate":
+			_kit(me, 200, [])
+			_place(me, Vector3(8, 0.3, -88.5), Vector3(40, 3.0, -82), dn, 12.0)
+		"dock_road":
+			_kit(me, 200, [])
+			var veh: Vehicles = Vehicles.current
+			if veh:
+				veh.host_spawn("sedan", 4, Vector3(-168, 0.2, -1.75), -PI / 2.0, "", 1.0)
+			_place(me, Vector3(-166, 0.3, -5), Vector3(-190, 1.5, 20), dn, 12.0)
+		"slum_road":
+			_kit(me, 200, [])
+			_place(me, Vector3(-1.5, 0.3, -52), Vector3(-40, 1.0, -60), dn, 12.0)
+		"apartments":
+			_kit(me, 200, [])
+			var blk := world.find_child("ApartmentBlock1", true, false) as Tower
+			if blk:
+				var bt: Transform3D = blk.global_transform
+				_place(me, bt * Vector3(1.5, 0.3, -blk.depth / 2.0 - 4.0), bt * Vector3(0, 2.0, 0), dn, 17.0)
+		"neighbourhoods":
+			_kit(me, 300, [])
+			var veh: Vehicles = Vehicles.current
+			if veh:
+				veh.host_spawn("sedan", 4, Vector3(8, 0.2, 85.75), PI / 2.0, "", 1.0)
+			_place(me, Vector3(5, 0.3, 89), Vector3(-30, 4, 76), dn, 11.0)
 		"bunker_inside":
 			_kit(me, 200, [])
 			var bt: Transform3D = Mountain.bunker_spot()

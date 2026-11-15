@@ -459,7 +459,11 @@ Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 User feedback on the rough layout (2026-11-15, docs/feedback_*.png):
   71. Fill the open spaces (between the centre and the city and elsewhere) with streets, row houses, houses with
-      driveways, small parks, squares and small shops; keep some green between the zones - todo
+      driveways, small parks, squares and small shops; keep some green between the zones - DONE (Southfield: Garden
+      Row z 84 from the harbour bend to the highway, side road x 30 on to it, row houses + gardens, detached houses with
+      driveways, pocket park, cobbled square + 6 small shops; Orchard Lane x 90 (North Road -> Main Road) with houses +
+      allotments; park strip west of the highway + tree belt east of it; 2 new traffic routes; scenario neighbourhoods,
+      shots H0-H3, before = docs/before_71_village_top.png)
   72. City 3-4x lower (6-15 floors, a few taller landmarks in the middle), more variety in height, shape and colour
       - DONE (towers 6-12 floors, the middle block 16-22, the skyline 11-19; style per building, podium + crown
       shapes, 3-4 buildings per block, more tints; shots G0/G2 vs docs/feedback_city_too_tall.png)
@@ -472,6 +476,33 @@ User feedback on the rough layout (2026-11-15, docs/feedback_*.png):
       with BunkerDoor, vehicle lift BunkerLift + call panels, stairwell, garage, corridor, lab hall, storage, bunk room,
       Property "bunker" (BunkerProperty, not for sale yet), markers for B; scenario bunker_inside, check bunker_inside,
       shots F3-F6. B: price/rank/selling, lab logic, locking the door)
+User feedback after testing (2026-11-15, second round):
+  75. City: the tallest towers much lower again so they fit the village - DONE (blocks 3-8 floors, the middle
+      landmarks 8-11, the skyline 6-11; shots G0/G2/C0)
+  76. City: some blocks become apartment buildings (balconies, curtained windows, entrance hall); a few enterable
+      with a stairwell + lift up to a walkable roof - DONE (Tower style "apartment": brick/plaster, curtained windows,
+      balconies front + back, entrance + canopy; 3 enterable `ApartmentBlock`s: glass lobby, stairwell two flights
+      per floor, `ApartmentLift` lobby <-> roof stair-house, roof terrace; scenario apartments, check apartments)
+  77. Roads: a centre line on every road - DONE (slum roads got theirs back, T junctions keep the through road's
+      dashes; check roads, scenario slum_road)
+  78. Roads: no dead ends - every road joins another so you can always drive loops (e.g. join the two dead-end
+      streets at the docks); only the road to the army base may end - DONE (Dock Road x -186 joins Main Road and Quay
+      Road + a traffic loop; check roads finds no open tile arm; scenario dock_road)
+  79. Roads: the trees along the road from the gas station to the slums stand on the carriageway: move them off - DONE
+      (the old map-edge tree row skips the slum road; check roads: no tree on any asphalt)
+  80. Fill the remaining empty spots with houses from the original first crossroads (the row-house prefabs), with
+      streets, gardens and small parks; the lot with cars + containers next to the slums becomes a housing estate - DONE
+      (Rosehill Estate on the old junkyard: Estate Lane z -84 from the slums loop to x 90, up x 66 and Orchard Lane to
+      North Road, an inner loop round a terrace block, row houses with gardens, detached houses, a small park; the
+      allotments shrink to two columns; 3 traffic loops; scenario estate, shot H4)
+  81. Close the small gap between the bunker mountain and the border mountains - DONE (the range runs 0.5 m under
+      the pass mountain's edge for 8 m inside it; shots I0/I1; scenario mountain_seam)
+  82. Bunker: the lights hang at hip height - put them on the ceiling - todo
+  83. Bunker: the corridor behind the stairs leads nowhere - make it a room (storage / generator room) - todo
+  84. Bunker: an invisible wall blocks the way in the big open room - fix the collision, check every room for a way
+      through with a test walker - todo
+  85. Army base bigger with an airfield: runway, control tower, hangars with F-16-style jets that now and then take
+      off and land; move the garage further left to make room - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
@@ -1118,6 +1149,40 @@ Choices made while working autonomously (what + why).
 - Nothing ticked = automatic: old saves and existing crews keep working unchanged.
 - Unpaid staff-locker workers stop instead of quitting: that's the point of the wage box (a buffer you refill).
 - Several workers may share a station (Schedule I forbids it; here it only shows "also: name").
+- Point 71 (fill the open spaces): new gen_world section "new neighbourhoods" (own `nrng`). The new houses are the
+  row-house prefabs but NOT enterable (enterable/upper_floors off, furnish none): dozens of extra interiors would cost
+  draw calls + navmesh bake time and nobody needs to walk into decoration; they keep the village look. Garden Row (z
+  84) closes the old dead ends at (30, 65) and the harbour bend (-66, 84 is a T now) and meets the highway with a T
+  at (102, 84); North Road no longer dead-ends at x 71: it runs on to (90, -48) and down Orchard Lane (x 90) to a T on
+  Main Road. Two new lane routes (Southfield loop, north-east loop), city.json "cars" 8. Green kept: the plaza strip
+  before the city, a park strip x 75..95 west of the highway and a tree belt x 112..138 east of it.
+- Point 81 (seam slit): the slit was the border range's 4 m render quads straddling the pass mountain's east edge
+  (x -30 is not on the range's 4 m grid): the range dropped to -3 m inside the land, so those quads dipped into a
+  groove next to the mountain mesh. gen_border now lifts the range to 0.5 m under the mountain heightmap for 8 m
+  inside its rect (hidden under the mountain mesh, a few extra triangles) - simpler than skirts or re-gridding.
+- Point 80 (Rosehill Estate): the junkyard + container homes were the only "lot full of cars" next to the slums; the
+  estate replaces them with the same non-enterable row-house prefabs as Southfield (nrow/villa), so it reads like the
+  first crossroads. It stays tied into the road net with no dead end: Estate Lane meets the slums loop (T at
+  (-6, -84)), runs east to Orchard Lane, which now goes on north from (90, -48); x 66 links it to North Road beside the
+  gas station. The slums keep their srng sequence (the removed junkyard still draws its random numbers), so the
+  shacks and caravans did not move. Fire barrels: 6 left (the junkyard one went).
+- Points 77-79 (roads): every road tile draws its centre line (the slum loop had them switched off as "back
+  street" look - the user wants them everywhere); a T junction's through road keeps the dashes too, crossings
+  (4-way) stay clean like real junction boxes. Dead ends: a tile scan found only the two west ends at the docks
+  (x -174) besides the pass road; Dock Road (x -186, curves at both ends) joins them with its own traffic loop. The
+  bunker side road counts as a driveway into the bunker (the vehicle lift continues it), not a dead-end street. The
+  trees on the slum road were the old map-edge tree row (z -58) from before the slums: it now skips x -86..7.
+  Self-test check `roads` keeps all three true (open tile arms, centre lines, trees on asphalt).
+- Point 75 (city lower again): user found 16-22 floors still too tall next to 2-3 floor houses. Now 3-8 floors per
+  block, the middle block 8-11 as the landmark group, skyline 6-11; crowns/podiums from 6 floors, antennas from 10.
+- Point 76 (apartments): a Tower style instead of a new prefab, so the generator mixes them per building like the
+  other styles (`APT_TINTS`). Enterable blocks are hollow only in an 8 m strip down the middle (lobby at the front,
+  stair + lift core at the back) - the flats themselves stay solid (no interiors to furnish or bake), the landings
+  get a front door each. Stairs = two 1.7 m flights per floor (invisible ramp collision + step boxes, like the bunker),
+  the lift = `ApartmentLift` (BunkerLift turned upside down: two stops, lobby + roof, a boom at each end while the
+  platform is away), call panels = BunkerLiftButton with own prompt texts. Roof: parapet collision + a stair-house.
+  One enterable block per marked city block (3); `block_towers(..., enter)` picks the first apartment cell >= 14 x 12 m.
+  The lobby floor has a thin collision box so GrassCover grows no grass inside.
 - Point 72 (city lower): plain blocks 6-15 floors, the middle block (1,1) 16-22 floors as the landmark group, the
   skyline row 11-19 (was 30-58). `block_towers` now picks the style per building from a list per block, splits a block
   into 1-4 buildings of uneven size, and gives ~30% a 2-3 floor podium with a narrower tower and ~25% a stepped

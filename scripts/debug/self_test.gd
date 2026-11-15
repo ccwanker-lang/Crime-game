@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "army", "bunker", "bunker_inside", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "bunker", "bunker_inside", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -260,6 +260,8 @@ func _check_doors(world: Node3D) -> void:
 		var door := d as NetDoor
 		if door.name.begins_with("BalconyDoor"):
 			continue  # upstairs, see _check_balconies
+		if door is BunkerLift or door is BunkerDoor:
+			continue  # lifts + the bunker's blast door: own checks (bunker_inside, apartments)
 		var building: String = door.get_parent().name
 		door._set_open(true)
 		await get_tree().create_timer(0.7).timeout
@@ -3894,6 +3896,10 @@ func _check_slums(world: Node3D) -> void:
 			"Rosehill Shack €%d" % prop.price if prop else "missing"))
 	var traffic: Traffic = world.get_node("Traffic") as Traffic
 	var r: int = traffic.routes.size() - 1
+	for i: int in traffic.routes.size():  # (point 71 appended routes after the slum loop: find it by place)
+		var q: Vector3 = traffic.routes[i].sample(0.0)[0]
+		if q.z < -55.0 and q.x > -82.0 and q.x < -2.0:
+			r = i
 	var pt: Vector3 = traffic.routes[r].sample(0.0)[0]
 	_report(pt.z < -55.0 and pt.x > -82.0 and pt.x < -2.0, "a traffic route round the slums (route %d starts at %s)" % [r, pt.snapped(Vector3.ONE)])
 	var car: Car = Traffic.CAR.instantiate()
@@ -3908,6 +3914,114 @@ func _check_slums(world: Node3D) -> void:
 
 ## Map zone 7: the city south of the centre - routes from data/city, a traffic car down the highway into the city,
 ## solid ground, the multi-storey car park can be driven up.
+## Point 76: enterable apartment blocks - a walker gets into the lobby, climbs the first flights, the lift rides to
+## the roof and back, the roof is walkable.
+func _check_apartments(world: Node3D) -> void:
+	var blocks: Array[Tower] = []
+	for n: Node in world.find_children("ApartmentBlock*", "Tower", true, false):
+		if (n as Tower).enterable:
+			blocks.append(n as Tower)
+	var plain: int = 0
+	for n: Node in world.find_children("*", "Tower", true, false):
+		if (n as Tower).style == "apartment" and not (n as Tower).enterable:
+			plain += 1
+	_report(blocks.size() >= 2 and plain >= 4, "apartment blocks: %d enterable, %d more" % [blocks.size(), plain])
+	if blocks.is_empty():
+		return
+	var tw: Tower = blocks[0]
+	var t: Transform3D = tw.global_transform
+	var hz: float = tw.depth / 2.0 - 0.15
+	var zc0: float = hz - 0.3 - Tower.SHAFT
+	var top: float = tw.height()
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var roof: Vector3 = t * Vector3(-5.0, top, -hz + 3.0)
+	var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(roof + Vector3.UP * 2.0, roof + Vector3.DOWN, 1))
+	_report(not hit.is_empty() and absf((hit["position"] as Vector3).y - roof.y) < 0.1, "the roof is walkable (%.1f m up)" % top)
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Tenant"
+	world.get_node("Players").add_child(p)
+	p.global_position = t * Vector3(0, 0.3, -hz - 3.0)
+	p.auto_target = t * Vector3(-1.0, 0, zc0 - 1.0)
+	await get_tree().create_timer(6.0).timeout
+	var lobby: Vector3 = t.affine_inverse() * p.global_position
+	_report(lobby.z > -hz + 1.0 and absf(lobby.x) < Tower.CORE_X, "walking in through the front door into the lobby (local %s)" % lobby.snapped(Vector3.ONE * 0.1))
+	p.global_position = t * Vector3(-3.0, 0.3, zc0 + 0.6)
+	p.auto_target = t * Vector3(-2.0, tw.floor_height / 2.0, hz - 1.0)
+	await get_tree().create_timer(5.0).timeout
+	var mid: Vector3 = t.affine_inverse() * p.global_position
+	p.auto_target = t * Vector3(-1.0, tw.floor_height, zc0 + 0.6)
+	await get_tree().create_timer(5.0).timeout
+	var up1: Vector3 = t.affine_inverse() * p.global_position
+	_report(absf(mid.y - tw.floor_height / 2.0) < 0.4 and absf(up1.y - tw.floor_height) < 0.4,
+			"climbing the stairs to the 1st floor (landing %.1f m, floor %.1f m)" % [mid.y, up1.y])
+	# The lift: stand on it, ride to the roof, walk out of the stair-house, ride back down.
+	var lift := tw.get_node("Lift") as ApartmentLift
+	p.global_position = t * Vector3(2.2, 0.3, zc0 + 3.0)
+	p.auto_target = t * Vector3(2.2, 0, zc0 + 3.0)
+	await get_tree().create_timer(1.0).timeout
+	lift.interact()
+	await get_tree().create_timer(lift.travel_time + 1.5).timeout
+	var ride: Vector3 = t.affine_inverse() * p.global_position
+	p.auto_target = t * Vector3(0, top, zc0 - 1.2)  # off the lift into the stair-house, then out of its door
+	await get_tree().create_timer(3.0).timeout
+	p.auto_target = t * Vector3(0, top, -hz + 3.0)
+	await get_tree().create_timer(6.0).timeout
+	var out: Vector3 = t.affine_inverse() * p.global_position
+	_report(absf(ride.y - top) < 0.6 and lift.at_roof() and out.z < zc0 - 3.0 and absf(out.y - top) < 0.5,
+			"the lift rides to the roof (%.1f m) and you walk out onto it (local %s)" % [ride.y, out.snapped(Vector3.ONE * 0.1)])
+	lift.interact()
+	await get_tree().create_timer(lift.travel_time + 1.0).timeout
+	_report(lift.at_lobby(), "the lift goes back down to the lobby")
+	p.queue_free()
+	GameState.player_data.erase("Tenant")
+	await get_tree().physics_frame
+
+
+## Points 77-79: every road tile joins another one (no dead ends: only the pass road leaves the tile grid, north of
+## Country Lane), every tile draws a centre line, no tree stands on the asphalt.
+func _check_roads(world: Node3D) -> void:
+	var dirs: Dictionary = {"W": Vector3(-1, 0, 0), "E": Vector3(1, 0, 0), "N": Vector3(0, 0, -1), "S": Vector3(0, 0, 1)}
+	var base: Dictionary = {RoadTile.Type.STRAIGHT: ["W", "E"], RoadTile.Type.CURVE: ["W", "S"],
+			RoadTile.Type.T: ["W", "E", "N"], RoadTile.Type.CROSS: ["W", "E", "N", "S"]}
+	var tiles: Dictionary = {}  # Vector2i (grid of 12 m) -> Array of world arm dirs (Vector2i)
+	var all: Array[RoadTile] = []
+	var no_line: int = 0
+	for n: Node in world.find_children("*", "RoadTile", true, false):
+		var rt := n as RoadTile
+		all.append(rt)
+		if not rt.center_line:
+			no_line += 1
+		var arms: Array[Vector2i] = []
+		for d: String in base[rt.type]:
+			var w: Vector3 = rt.global_basis * (dirs[d] as Vector3)
+			arms.append(Vector2i(roundi(w.x), roundi(w.z)))
+		tiles[Vector2i(roundi(rt.global_position.x / 6.0), roundi(rt.global_position.z / 6.0))] = arms
+	var open: Array[String] = []
+	for key: Vector2i in tiles:
+		for a: Vector2i in tiles[key]:
+			var nb: Vector2i = key + a * 2
+			if not tiles.has(nb) or not (tiles[nb] as Array).has(-a):
+				var at := Vector2(key.x * 6, key.y * 6)
+				if at == Vector2(-150, -72) and a == Vector2i(0, -1):
+					continue  # Country Lane -> the mountain pass ribbon (the road to the army base may end)
+				open.append("%s %s" % [at, a])
+	_report(open.is_empty(), "no dead ends: every road tile joins another (%d tiles; open: %s)" % [tiles.size(), ", ".join(open)])
+	_report(no_line == 0, "a centre line on every road tile (%d without)" % no_line)
+	var on_road: Array[String] = []
+	for n: Node in world.find_children("*", "Node3D", true, false):
+		var n3 := n as Node3D
+		if not n3.scene_file_path.contains("nature/tree_"):
+			continue
+		for rt: RoadTile in all:
+			if absf(rt.global_position.x - n3.global_position.x) < 6.5 and absf(rt.global_position.z - n3.global_position.z) < 6.5 					and rt.is_on_asphalt(n3.global_position):
+				on_road.append("%s %s" % [n3.name, Vector2(n3.global_position.x, n3.global_position.z).snapped(Vector2.ONE)])
+				break
+	_report(on_road.is_empty(), "no trees on the asphalt (%s)" % ", ".join(on_road))
+
+
 func _check_city(world: Node3D) -> void:
 	var traffic: Traffic = world.get_node("Traffic") as Traffic
 	var first: int = Traffic.city_first_route

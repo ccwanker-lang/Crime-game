@@ -111,3 +111,6 @@
   2 (army base), 8 (bunker side road + portal) each committed + pushed with scenario, self-test check and shots.
   NEXT: point 70 = detail per zone (4-lane highway, city NPCs/navmesh/shops/syndicate tower, base guards, bunker
   inside + buyable lab, slum life); merge feature-b when B.md says done.
+
+- 2026-11-15: points 71-74 done (71 = Southfield + Orchard Lane neighbourhoods, 72 lower city, 73 mountains one
+  style, 74 bunker complex). New user feedback round = Roadmap 75-85 (DESIGN), worked in that order.

@@ -4,6 +4,8 @@ extends StaticBody3D
 
 var lift: BunkerLift
 var upper: bool = true  # the panel at the hall (true) or in the garage
+var here_text: String = ""  # optional prompts (point 76: the apartment lift) when the platform is here / away
+var call_text: String = ""
 
 
 func _ready() -> void:
@@ -32,7 +34,9 @@ func get_interaction_prompt() -> String:
 	if lift == null:
 		return ""
 	var here: bool = lift.is_open != upper  # the platform is at this level (or on its way here)
-	return ("Send the lift down" if upper else "Send the lift up") if here else "Call the lift"
+	if here:
+		return here_text if here_text != "" else ("Send the lift down" if upper else "Send the lift up")
+	return call_text if call_text != "" else "Call the lift"
 
 
 func interact() -> void:
