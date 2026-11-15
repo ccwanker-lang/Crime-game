@@ -8,7 +8,8 @@ part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14): all a
 New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
-(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker).
+(shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker), Part 18 (zone systems:
+army base, slums, city, bunker).
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -743,3 +744,63 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - Staff assignment (part 12): worker rec "locker"/"stations" (empty = automatic), `Staff._work_stations/_work_lockers`,
   `assign_kinds`, `StaffConfig.max_stations`, `route_text`, requests assign/locker/wages; `StaffLocker` (wage box
   state "wages", item staff_locker), CrewWindow modes worker/locker. Scenario staff_assign, check staff_assign.
+
+
+# Part 18: zone systems - Fort Halden, the slums, the city, the bunker lab (user 2026-11-15)
+
+## How it works
+- `Zones` autoload (autoload/zones.gd, after Ambience). Static `zone_at(pos)` -> &"army" / &"slums" / &"city" /
+  &"bunker" / &"" from fixed rects that match A's map zones (ARMY_RECT x -104..-36 z -430..-350, SLUM_RECT, CITY_RECT)
+  + `BunkerLab.inside`; `zone_name(pos)`. `army_on` / `npcs_on` are off under --selftest / --netcheck (checks turn
+  them on). Host ticks every 0.5 s.
+- **Fort Halden** (`Soldier`, scripts/npc/soldier.gd, prefabs/npc/soldier.tscn, PoliceOfficer subclass like Rival,
+  group "soldiers", AK-47, 150 HP, camo + helmet; the scene is added to World/NPCSpawner at runtime). 8 guard posts
+  (`Zones.guard_posts()`): 2 outside the gate, one on top of every Watchtower (ray down onto the platform), 2 on the
+  parade ground; a dead guard comes back after 180 s. Within 16 m of the gate (`ARMY_GATE`) a player gets a toast
+  "HALT! ... we open fire" (every 15 s) and the gate guards aim. Inside the fence (`in_army_base`) or shooting a
+  soldier = `army_hostile(p)` (90 s): the soldiers who see you shoot (no arrests, no police stars: the army handles
+  it itself), guards within 40 m come for you, and the ALARM (60 s, extended while you stay near) sends 4 heavy
+  reinforcements (220 HP) out of the barracks; after the alarm they walk back and vanish (`dismiss`). Soldiers
+  don't follow you further than 30 m from the base. Dead soldiers drop 7.62 ammo (15% an AK).
+  `Zones.allow_army(p, seconds)` = a pass for missions.
+- **Slums** (Rosehill Park): 2-3 poor residents per FireBarrel (`slum_spots()`), **city**: 3 office workers in front of
+  every 3rd Tower (`city_spots()`, only 07:00-20:00). Non-wandering networked pedestrians (`add_resident`), spawned
+  when a player is within 150 m of the zone, removed past 220 m (a waiting customer stays). They stand by their
+  spot, chat (TALK), flee from gunfire like everyone and walk back. Every 40-90 s one of them in a zone near a
+  player becomes a customer (`make_zone_customer`, one at a time per zone): slums 1-2 bags at 60% of the price,
+  city 2-4 bags at 150% (`Zones.PRICE`, `customer_price(npc, price)`), product via `Products.pick_customer_product`.
+  The cheap starter property is A's slum_shack (€4,000, rank 0: not in RankConfig).
+- **Bunker lab** (`BunkerLab`, scripts/world/bunker_lab.gd, node World/BunkerLab built on every peer by Zones):
+  a 30 x 18 x 4.2 m concrete hall 14 m under A's portal (`Mountain.bunker_spot()`), behind it in the slope, with
+  pillars, lamps, a lift door. `BunkerProperty` (Property subclass, id "bunker", "Mountain Bunker", €250,000, rank 5
+  in RankConfig, listed by the estate agent; `contains` = the hall). Keypad left of the blast door (green, E = go in,
+  only for the owning crew, else "Access denied ... for sale") and one by the lift (yellow, E = up): the host
+  teleports (`host_use`). Stations/furniture are placed in the hall like in any property. `Raids.RAID_FREE` =
+  [&"bunker"]: never raided.
+
+## Decisions (what + why)
+- Soldiers on PoliceOfficer's brain (like the Crows): aiming, bursts, sight, leash all exist already.
+- No navmesh at the base (A's ArmyBase is not under NavRegion): guards stand at posts and walk straight lines; a
+  blocked line puts them back on the post. Good enough for guards; ask A for a navmesh if they should patrol.
+- Army = its own reaction, no Wanted stars: the user asked for "eigen zware reactie"; the police don't come up.
+- Gate guards face outward; the alarm also alerts guards within 40 m (the fence blocks their view of the yard).
+- Zone residents are our own pedestrians (not A's wandering ones) so the price can depend on the zone without
+  touching world.gd; A's random customers keep normal prices (optional hook asked in B.md).
+- Bunker interior by teleport: the hall is deep under the terrain, the portal door stays A's shut prop; no tunnel
+  through the heightmap needed.
+
+## Existing files changed (part 18)
+- project.godot (autoload Zones), autoload/raids.gd (RAID_FREE), scripts/progression/rank_config.gd (bunker: 5),
+  self_test.gd (check zones), scenarios.gd (army_gate, slum_life, city_customers, bunker_lab + flag `--bunker-in`).
+
+## Te testen door Curry
+- `army_gate` (F9): loop naar de slagboom (waarschuwing), loop erdoor (alarm, schieten, 4 versterkingen).
+- `slum_life`: bewoners rond de vuurtonnen; na ~10 s sms't er een (goedkoop, 60%).
+- `city_customers`: kantoormensen voor de torens; na ~10 s een rijke klant (150%).
+- `bunker_lab`: E op het groene keypad: naar beneden, B = bouwmodus, zet de Cook Station neer; geel keypad = omhoog.
+
+## For CLAUDE.md (suggested lines)
+- Zones (part 18): `Zones` autoload (`zone_at`, army_on/npcs_on), `Soldier` (PoliceOfficer subclass, group soldiers,
+  `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
+  `make_zone_customer`, `PRICE`), `BunkerLab` (World/BunkerLab, `BunkerProperty` id bunker, keypads, `host_use`),
+  `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.

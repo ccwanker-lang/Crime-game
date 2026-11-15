@@ -101,6 +101,10 @@ const LIST: Array = [
 	["animals", "12:00 in the park: a pigeon flock in front of you, a cat 6 m to your right, birds on the roofs around", "Walk up to the pigeons: the flock flies up onto a roof and comes back down after a while (at night they stay up). Walk to the cat: it bolts. Fire a shot (1, LMB): every bird, pigeon and cat within ~45 m takes off. Look up: birds sit on ridges and gutters and now and then fly to another roof."],
 	["ducks", "12:00 on the quay, looking out over the harbour water", "Ducks swim and dabble on the sea and bob on the waves. Stay on the quay edge: the near ones swim away from you. Fire a shot (1, LMB): they fly off low over the water and land further on."],
 	["staff_assign", "Rank 4, Starter Room: weed corner, a Staff Locker with supplies (empty wage box), a grower working from it and a packager; you face the grower", "E on the grower: their locker, their stations (tick = on the route, max 6), Show = yellow arrow over it, the route at the bottom. Tick one pot: they walk to it and only work that one. E on the Staff Locker: the wage box - put in EUR 100. Hold F7 for a game day: the wage comes out of the box. Empty box at day end = the grower stops and texts you (Tab); money in = back to work."],
+	["army_gate", "Fort Halden at noon: you stand on the pass road 25 m before the gate, a pistol + ammo", "Walk to the boom: a guard warns you (toast). Walk through the gate: ALARM, guards and 4 heavy reinforcements from the barracks shoot at you. Shoot a soldier from outside: they come for you too. Run far away: after a while it calms down."],
+	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
+	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
+	["bunker_lab", "Rank 5, your crew owns the Mountain Bunker; you stand at the portal with a Cook Station and supplies", "E on the green keypad left of the door: down into the hall. Place the Cook Station (B = build mode). The yellow keypad by the lift takes you back up. The bunker is never raided."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
 
@@ -791,6 +795,38 @@ static func run(world: Node, id: String) -> bool:
 				var face: Vector3 = sl.global_basis.z
 				_place(me, gp + face * 2.2 + Vector3.UP * 0.1, gp + Vector3.UP * 1.5, dn, 12.0)
 			Staff._broadcast()
+		"army_gate":
+			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
+			_place(me, Zones.ARMY_GATE + Vector3(-25.0, 0.3, 0.0), Zones.ARMY_GATE + Vector3(0, 1.5, 0), dn, 12.0)
+			me.combat.host_set_mags([8])
+		"slum_life", "city_customers":
+			var slum: bool = id == "slum_life"
+			_kit(me, 500, [["weed_bag", 6 if slum else 8]])
+			if slum:
+				var fb: Node3D = world.find_child("FireBarrel1", true, false) as Node3D
+				var at: Vector3 = fb.global_position + Vector3(0, 0.3, 5.0) if fb else Vector3(-40, 0.3, -90)
+				_place(me, at, (fb.global_position if fb else at) + Vector3.UP, dn, 19.5)
+			else:
+				var spots: Array = Zones.city_spots()
+				var cs: Vector3 = spots[0]["pos"] if not spots.is_empty() else Vector3(20, 0.1, 200)
+				var yaw: float = spots[0]["yaw"] if not spots.is_empty() else 0.0
+				var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
+				_place(me, cs + fwd * 6.0 + Vector3.UP * 0.3, cs + Vector3.UP * 1.5, dn, 12.0)
+			var zone: StringName = &"slums" if slum else &"city"
+			Zones._next_customer[zone] = Zones._now() + 8.0  # the first text comes soon
+		"bunker_lab":
+			Progression.force_gates = true
+			Progression.debug_set_rank(5)
+			_kit(me, 2000, [["cook_station", 1], ["lab_chemicals", 4], ["activator", 4]])
+			for i: int in 3:
+				await world.get_tree().process_frame
+			var bl: BunkerLab = BunkerLab.current
+			if bl and bl.property:
+				bl.property.host_set_owned(me.player_name)
+				var pad: Vector3 = bl.outside_pad.global_position
+				_place(me, bl.spot * Vector3(-0.5, 0.15, -7.5), pad, dn, 12.0)
+				if "--bunker-in" in OS.get_cmdline_user_args():  # screenshot flag: inside the hall
+					_place(me, bl.entry_point() + Vector3.UP * 0.1, bl.hall * Vector3(0, 1.4, 6.0), dn, 12.0)
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)

@@ -79,12 +79,16 @@ func tick(hours: float, night: bool) -> void:
 	announce(String((labs.pick_random() as Property).property_id))
 
 
+## NOTES part 18: properties the Crows never raid (the bunker deep in the mountain).
+const RAID_FREE: Array[StringName] = [&"bunker"]
+
+
 ## Crew-owned properties with production stations in them.
 func lab_properties() -> Array:
 	var out: Array = []
 	for n: Node in get_tree().get_nodes_in_group(&"properties"):
 		var p := n as Property
-		if p.is_crew_owned() and _production_in(p) > 0:
+		if p.is_crew_owned() and _production_in(p) > 0 and not p.property_id in RAID_FREE:
 			out.append(p)
 	return out
 
