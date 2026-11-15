@@ -445,6 +445,9 @@ Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part
       (order: border mountains + land, city + highway, slums, army base, bunker; one scenario per zone)
       - zone 9 DONE: snowy border mountains round everything (BorderRange), the hedge ring, backdrop and field walls
         gone, new ground for the highway strip + the city; scenario border_mountains
+      - zone 7 rough DONE: city grid (4 x 4 nodes) with ~30 towers/skyscrapers, 2 drivable car parks, plaza + coast
+        promenade, highway (Main Road east -> x 102 south), traffic routes 6-8 + 4 light junctions; scenario city.
+        Detail later: a real 4-lane highway, shops/NPCs/pedestrian navmesh in the city, the syndicate tower
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
@@ -1029,6 +1032,17 @@ Choices made while working autonomously (what + why).
   (else a ditch along the edge). The sea is inside the ring: the mountains rise out of the water; walls only remain
   at the water's edge (Quay, SeaEast, now down to z 400 along the city's coast). Collision = HeightMapShape3D with 1 m
   spacing scaled x2 (heights pre-divided) - Jolt takes the uniform scale.
+- Zone 7 (city, rough): the same 12 m road tiles as the village on a 60 m grid (streets x -54/6/66/102, avenues z 144/
+  204/264/324); gen_world picks each tile's type + rotation from its open sides (`road_tile`). Towers = new procedural
+  `Tower` (prefabs/city/tower.tscn; glass/bands/brick, setback, roof plant, antenna; one collision box per volume, not
+  enterable yet) with its own glass shader (tower_glass: UV = window number x floor, so each window keeps one look -
+  the village window shader picks looks per world position, which made big facades noisy). `ParkingGarage`: ramps
+  stacked in one lane at 12.5 %, landings at both ends, every part collides - you can drive up. City traffic data in
+  data/city/city.json (written by gen_world: lane corners computed from the centre-line loop, right turns r 2.5, left
+  r 5) so the generator and Traffic can't disagree; `Traffic.JUNCTIONS`/`LIGHTS` became static vars (village const +
+  city) rebuilt by `load_city()`. City cars (5) come on top of the village's 6 (`spawn_cars(n, city)`). The highway is a
+  normal 2-lane road for now (rough layout); the detail pass makes it 4 lanes. City not under NavRegion yet (no city
+  pedestrians -> no bake cost yet).
 - Agora goals fix (user, 2026-11-14): the goals stood back to front (net on the pitch side). Now the open mouth faces
   the pitch, the net is against the end fence, and the goal line in the ball physics is the mouth (GOAL_DEPTH in front
   of the fence) instead of the fence. Shots 96/97.

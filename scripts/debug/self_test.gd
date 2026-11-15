@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -2608,7 +2608,9 @@ func _check_lights(world: Node3D) -> void:
 			both += 1
 		t += 0.25
 	_report(both == 0 and seen.size() == 6, "traffic lights: x and z never both go, every colour shows (%d clashes, %s)" % [both, seen.keys()])
-	_report(world.find_children("Light*", "TrafficLight", true, false).size() == 10, "10 traffic light poles at 3 junctions (%d)" % 			world.find_children("Light*", "TrafficLight", true, false).size())
+	var village_poles: int = world.find_children("Light*", "TrafficLight", true, false).filter(
+			func(t: Node) -> bool: return Traffic.VILLAGE_LIGHTS.has((t as TrafficLight).junction)).size()
+	_report(village_poles == 10, "10 traffic light poles at the village's 3 junctions (%d; the city has its own)" % village_poles)
 	traffic.spawn_cars(5)
 	await get_tree().physics_frame
 	var car: Car = null
@@ -3649,6 +3651,72 @@ const SEA_X: float = -72.5
 
 
 ## Point 61: grass on the open green land, none on roads, soil fields or in buildings.
+## Map zone 7: the city south of the centre - routes from data/city, a traffic car down the highway into the city,
+## solid ground, the multi-storey car park can be driven up.
+func _check_city(world: Node3D) -> void:
+	var traffic: Traffic = world.get_node("Traffic") as Traffic
+	var first: int = Traffic.city_first_route
+	_report(first == 6 and traffic.routes.size() >= 9 and Traffic.JUNCTIONS.has(Vector2(6, 204)) and Traffic.LIGHTS.size() >= 7,
+			"city traffic data: routes %d.. (%d routes), %d junctions, %d with lights" % [first, traffic.routes.size(),
+			Traffic.JUNCTIONS.size(), Traffic.LIGHTS.size()])
+	if first < 0 or traffic.routes.size() <= first:
+		return
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var holes: int = 0
+	for at: Vector2 in [Vector2(102, 60), Vector2(6, 230), Vector2(-54, 300), Vector2(120, 340), Vector2(-66, 200), Vector2(40, 126)]:
+		var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(at.x, 3, at.y), Vector3(at.x, -2, at.y), 1))
+		if hit.is_empty() or absf((hit["position"] as Vector3).y) > 0.3:
+			holes += 1
+	_report(holes == 0, "the city and the highway stand on solid ground (%d holes)" % holes)
+	var route: TrafficRoute = traffic.routes[first]
+	var start: float = 0.0
+	while start < route.length and not ((route.sample(start)[0] as Vector3).z > 30.0):
+		start += 1.0
+	var car: Car = Traffic.CAR.instantiate()
+	car.route_id = first
+	car.progress = start
+	car.kind = 2
+	traffic.add_child(car, true)
+	await get_tree().create_timer(10.0).timeout
+	_report(car.progress > start + 60.0 and car.global_position.z > 100.0,
+			"a traffic car drives down the highway into the city (%.0f m, now at %s)" % [car.progress - start, car.global_position.snapped(Vector3.ONE)])
+	car.queue_free()
+	var veh: Vehicles = Vehicles.current
+	var garage: Node3D = world.find_child("ParkingGarage*", true, false) as Node3D
+	_report(garage != null, "a multi-storey car park")
+	if veh == null or garage == null:
+		return
+	var lane_x: float = garage.global_position.x + float(garage.get("width")) / 2.0 - 3.0
+	var bottom_z: float = garage.global_position.z + float(garage.get("depth")) / 2.0 + 3.0
+	var pc: PlayerCar = veh.host_spawn("sedan", 1, Vector3(lane_x, 0.3, bottom_z), 0.0, "", 1.0)
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Parker"
+	world.get_node("Players").add_child(p)
+	p.global_position = pc.exit_spot(0)
+	p.auto_target = p.global_position
+	await get_tree().physics_frame
+	pc.host_enter(p)
+	for i: int in 3:
+		await get_tree().physics_frame
+	pc.test_drive = true
+	pc.test_input = Vector3(0, 0.6, 0)
+	var top: float = 0.0
+	for i: int in 40:
+		await get_tree().create_timer(0.1).timeout
+		top = maxf(top, pc.global_position.y)
+	pc.test_input = Vector3(0, 0, 1)
+	await get_tree().create_timer(1.0).timeout
+	_report(top > 2.5, "a car drives up the car park ramp (highest %.1f m)" % top)
+	pc.test_drive = false
+	pc.host_exit(p)
+	p.queue_free()
+	GameState.player_data.erase("Parker")
+	veh.host_remove(pc)
+
+
 ## Point 49b: the mountain pass - terrain under the road, a traffic car climbs it, a player car drives up a
 ## straight, the mountain hides the prison from the village and the farm.
 func _check_pass(world: Node3D) -> void:

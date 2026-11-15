@@ -298,6 +298,11 @@ Godot console exe:
   keep it in step with gen_world's Ground slabs). `BorderRange.height_at(x, z)`, `land_rects()`. Ground slabs: Ground,
   GroundSouth, GroundEast (highway strip x 83..140), GroundCity (x -72.5..140, z 114..400). Bounds walls only at the
   water (Quay, SeaEast). Map blueprint: docs/map_blueprint.png + docs/map_zones.png, shot B0_blueprint (overview).
+- City (map zone 7): gen_world section "the city" (`crng`, `road_tile(x, z, arms)` picks tile + rotation, `tower(...)`,
+  `block_towers`, PLAN per block, `lane_route(nodes, uturn)`), node City (not under NavRegion). `Tower`
+  (`scripts/procgen/tower.gd`, prefabs/city/tower.tscn, material tower_glass), `ParkingGarage` (drivable ramps).
+  Traffic: routes 6-8 from data/city/city.json (`Traffic.load_city()`, `city_first_route`, static `JUNCTIONS`/`LIGHTS` =
+  `VILLAGE_JUNCTIONS`/`VILLAGE_LIGHTS` + city), `spawn_cars(n, city)`. Scenario city, self-test check city, shots C0-C3.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

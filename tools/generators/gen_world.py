@@ -113,7 +113,7 @@ for x in range(-54, 19, 12):
     put(R + "road_straight.tscn", (x, 0, 60), 0, props={"crossing": "true"} if x == -30 else None)
 
 # Road ends: barriers at the map edge.
-for x, z, r in [(71, -1.8, 90), (71, 1.8, 90), (71, -49.8, 90), (71, -46.2, 90),
+for x, z, r in [(71, -49.8, 90), (71, -46.2, 90),  # (Main Road goes on as the highway, map zone 7)
                 (28.2, 65, 0), (31.8, 65, 0)]:
     put("props/road_barrier.tscn", (x, 0, z), r)
 
@@ -827,6 +827,193 @@ for name, pos, size in [
         ("SeaEast", (SEA_X, 5, (QUAY_Z + 400.0) / 2), (0.4, 10, 400.0 - QUAY_Z))]:
     sc.node("Wall" + name, "CollisionShape3D", "Bounds", props={
         "transform": xform(pos), "shape": sc.subres("BoxShape3D", {"size": v3(*size)})})
+
+# --------------------------------------------------------------------------- the city (map blueprint zone 7)
+# South of the centre (left in the user's drawing): a 12 m road-tile grid (streets x -54/6/66/102, avenues z 144/
+# 204/264/324), office towers + skyscrapers, two multi-storey car parks; the highway = Main Road on east past x 72,
+# down x 102 into the city. Traffic routes 6-8 + junctions + lights go to data/city/city.json (Traffic loads them).
+# Rough layout (roadmap 69); detail later. Not under NavRegion (no city pedestrians yet).
+import json as _json
+import math as _math
+import os as _os
+crng = random.Random(7070)
+sc.node("City", "Node3D", ".")
+CX = [-54, 6, 66, 102]
+CZ = [144, 204, 264, 324]
+HWY_X = 102
+DIRS = {"W": (-1, 0), "E": (1, 0), "N": (0, -1), "S": (0, 1)}
+TILE_BASE = {"road_straight.tscn": {"W", "E"}, "road_curve.tscn": {"W", "S"},
+             "road_t_junction.tscn": {"W", "E", "N"}, "road_crossing.tscn": {"W", "E", "N", "S"}}
+
+
+def _rot_dir(d, deg):
+    t = _math.radians(deg)
+    x, z = DIRS[d]
+    rx, rz = round(x * _math.cos(t) + z * _math.sin(t)), round(-x * _math.sin(t) + z * _math.cos(t))
+    return next(k for k, v in DIRS.items() if v == (rx, rz))
+
+
+def road_tile(x, z, arms, parent="City", props=None):
+    """A road tile at (x, z) whose open sides are `arms` (set of W/E/N/S): picks the type + rotation."""
+    for prefab, base in TILE_BASE.items():
+        if len(base) != len(arms):
+            continue
+        for deg in (0, 90, 180, 270):
+            if {_rot_dir(d, deg) for d in base} == set(arms):
+                return put(R + prefab, (x, 0, z), deg, parent=parent, props=props)
+    raise ValueError(f"no tile for {arms}")
+
+
+# Links between grid nodes (+ the highway into the top-right node).
+links = set()
+for i, x in enumerate(CX):
+    for j, z in enumerate(CZ):
+        if i + 1 < len(CX):
+            links.add(((x, z), (CX[i + 1], z)))
+        if j + 1 < len(CZ):
+            links.add(((x, z), (x, CZ[j + 1])))
+arms = {}
+for a, b in links:
+    da = "E" if b[0] > a[0] else "S"
+    db = "W" if da == "E" else "N"
+    arms.setdefault(a, set()).add(da)
+    arms.setdefault(b, set()).add(db)
+arms[(HWY_X, CZ[0])].add("N")
+for node, ar in arms.items():
+    road_tile(node[0], node[1], ar)
+for a, b in links:
+    if a[1] == b[1]:
+        for x in range(a[0] + 12, b[0], 12):
+            put(R + "road_straight.tscn", (x, 0, a[1]), 0, parent="City")
+    else:
+        for z in range(a[1] + 12, b[1], 12):
+            put(R + "road_straight.tscn", (a[0], 0, z), 90, parent="City")
+# The highway: Main Road on east (x 78, 90), a bend south at (102, 0), down to the city.
+for x in (78, 90):
+    put(R + "road_straight.tscn", (x, 0, 0), 0, parent="City", name=uname("Highway"))
+road_tile(HWY_X, 0, {"W", "S"})
+for z in range(12, CZ[0], 12):
+    put(R + "road_straight.tscn", (HWY_X, 0, z), 90, parent="City", name=uname("Highway"))
+sign = put("props/sign_post.tscn", (HWY_X - 4.6, 0.15, 30), 90, parent="City", name="HighwaySignCity")
+sc.node("Label3D", "Label3D", f"City/{sign}", props={
+    "transform": xform((0, 2.6, 0.06)), "text": q("CITY  ->"), "font_size": "64", "pixel_size": "0.006",
+    "modulate": col(1, 1, 1), "outline_size": "0"})
+
+# Street lamps: one at every grid node corner + along the highway.
+for (x, z) in arms:
+    put("props/street_lamp.tscn", (x - 4.8, 0.15, z - 3.95), 180, parent="City", name=uname("CityLamp"))
+for z in range(24, CZ[0], 24):
+    put("props/street_lamp.tscn", (HWY_X - 3.95, 0.15, z), 90, parent="City", name=uname("HighwayLamp"))
+    put("props/street_lamp.tscn", (HWY_X + 3.95, 0.15, z + 12), 270, parent="City", name=uname("HighwayLamp"))
+
+# Buildings per block (x0, x1, z0, z1 between the road tiles).
+TOWER_TINTS = [col(0.55, 0.62, 0.7), col(0.62, 0.66, 0.7), col(0.45, 0.52, 0.6), col(0.7, 0.72, 0.74),
+               col(0.5, 0.58, 0.55)]
+BAND_TINTS = [col(0.78, 0.76, 0.72), col(0.7, 0.68, 0.64), col(0.82, 0.8, 0.76), col(0.66, 0.6, 0.55)]
+BRICK_TINTS = [col(0.85, 0.7, 0.62), col(0.75, 0.6, 0.52), col(0.9, 0.82, 0.72)]
+
+
+def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sign_text="", name=None):
+    tint = crng.choice(TOWER_TINTS if style == "glass" else BAND_TINTS if style == "bands" else BRICK_TINTS)
+    props = {"width": f"{w:g}", "depth": f"{d:g}", "floors": str(floors), "style": q(style), "tint": tint,
+             "variation_seed": str(crng.randint(1, 9999))}
+    if setback_from:
+        props["setback_from"] = str(setback_from)
+    if antenna:
+        props["antenna"] = "true"
+    if sign_text:
+        props["sign_text"] = q(sign_text)
+    return put("city/tower.tscn", (cx, 0, cz), rot, parent="City", name=name or uname("Tower"), props=props)
+
+
+def block_towers(x0, x1, z0, z1, style, fmin, fmax, split):
+    """Fill a block with 1, 2 or 4 towers (1.5 m in from the sidewalk edge)."""
+    m = 1.5
+    x0, x1, z0, z1 = x0 + m, x1 - m, z0 + m, z1 - m
+    w, d = x1 - x0, z1 - z0
+    cells = {1: [(0, 0, 1, 1)], 2: [(0, 0, 0.5, 1), (0.5, 0, 1, 1)] if w >= d else [(0, 0, 1, 0.5), (0, 0.5, 1, 1)],
+             4: [(0, 0, 0.5, 0.5), (0.5, 0, 1, 0.5), (0, 0.5, 0.5, 1), (0.5, 0.5, 1, 1)]}[split]
+    for a, b, c, e in cells:
+        gap = 2.0 if split > 1 else 0.0
+        cw, cd = w * (c - a) - gap, d * (e - b) - gap
+        fl = crng.randint(fmin, fmax)
+        tower(x0 + w * (a + c) / 2, z0 + d * (b + e) / 2, round(cw, 1), round(cd, 1), fl, style,
+              setback_from=fl - crng.randint(3, 6) if fl > 18 and crng.random() < 0.6 else 0, antenna=fl > 30)
+
+
+XB = [(-48, 0), (12, 60), (72, 96)]
+ZB = [(150, 198), (210, 258), (270, 318)]
+PLAN = {  # (bx, bz) -> (style, floors min, max, split) or "garage"
+    (0, 0): ("bands", 8, 14, 2), (0, 1): ("glass", 14, 24, 2), (0, 2): "garage",
+    (1, 0): ("glass", 18, 30, 2), (1, 1): ("glass", 28, 42, 1), (1, 2): ("glass", 20, 34, 4),
+    (2, 0): "garage", (2, 1): ("brick", 6, 10, 2), (2, 2): ("bands", 8, 12, 2),
+}
+for (bx, bz), plan in PLAN.items():
+    x0, x1 = XB[bx]
+    z0, z1 = ZB[bz]
+    if plan == "garage":
+        gw, gd = (x1 - x0) - 3, min(40.0, (z1 - z0) - 3)
+        put("city/parking_garage.tscn", ((x0 + x1) / 2, 0, (z0 + z1) / 2), 0, parent="City", name=uname("ParkingGarage"),
+            props={"width": f"{gw:g}", "depth": f"{gd:g}", "levels": "3"})
+    else:
+        block_towers(x0, x1, z0, z1, *plan)
+# The east strip along the highway boulevard (x 108..140) and the skyline south of the last avenue.
+for z0, z1 in ZB:
+    tower(124, (z0 + z1) / 2, 26, z1 - z0 - 3, crng.randint(10, 22), crng.choice(["glass", "bands"]))
+SKYLINE = [(-36, 360, 34, 34, 52, "glass"), (6, 352, 24, 22, 38, "bands"), (40, 362, 30, 30, 58, "glass"),
+           (78, 352, 26, 22, 30, "glass"), (118, 362, 30, 32, 46, "glass")]
+for i, (cx, cz, w, d, fl, st) in enumerate(SKYLINE):
+    tower(cx, cz, w, d, fl, st, setback_from=fl - 8, antenna=True, name=f"Skyscraper{i + 1}")
+# Plaza between the village and the city (z 114..138): trees and benches; a promenade along the coast (x -66).
+for i, x in enumerate(range(-40, 96, 16)):
+    put("nature/tree_medium.tscn", (x + crng.uniform(-2, 2), 0, 126 + crng.uniform(-3, 3)), crng.uniform(0, 360),
+        parent="City", props={"tree_seed": str(7100 + i)})
+for z in range(150, 330, 18):
+    put("nature/tree_medium.tscn", (-66, 0, z), crng.uniform(0, 360), parent="City", props={"tree_seed": str(7200 + z)})
+    put("props/bench.tscn", (-64.5, 0.0, z + 9), 270, parent="City", name=uname("CityBench"))
+
+# Traffic for the city -> data/city/city.json (Traffic loads it after routes 0-5).
+
+
+def lane_route(nodes, uturn=None):
+    """Right-hand lane corners (+ fillet radii) of a closed loop through centre-line `nodes`. `uturn` = index of a
+    node where the route turns back on itself (two corners 3.5 m apart, radius 1.75)."""
+    corners, radii = [], []
+    n = len(nodes)
+    for i in range(n):
+        p, c, nx = nodes[i - 1], nodes[i], nodes[(i + 1) % n]
+        din = (c[0] - p[0], c[1] - p[1])
+        dout = (nx[0] - c[0], nx[1] - c[1])
+        li, lo = _math.hypot(*din), _math.hypot(*dout)
+        din, dout = (din[0] / li, din[1] / li), (dout[0] / lo, dout[1] / lo)
+        if i == uturn:
+            r_in = (-din[1], din[0])
+            corners += [(c[0] + r_in[0] * 1.75, c[1] + r_in[1] * 1.75), (c[0] - r_in[0] * 1.75, c[1] - r_in[1] * 1.75)]
+            radii += [1.75, 1.75]
+            continue
+        cross = din[0] * dout[1] - din[1] * dout[0]
+        if abs(cross) < 1e-6:
+            continue
+        ri, ro = (-din[1], din[0]), (-dout[1], dout[0])
+        corners.append((c[0] + (ri[0] + ro[0]) * 1.75, c[1] + (ri[1] + ro[1]) * 1.75))
+        radii.append(2.5 if cross > 0 else 5.0)  # right turn tight, left turn wide
+    return {"corners": [[round(a, 2), round(b, 2)] for a, b in corners], "radii": radii}
+
+
+city_routes = [
+    # 6: Main Road -> highway -> round the whole city -> back up the highway (U-turn on Main Road at x 42).
+    lane_route([(42, 0), (HWY_X, 0), (HWY_X, CZ[-1]), (CX[0], CZ[-1]), (CX[0], CZ[0]), (HWY_X, CZ[0]), (HWY_X, 0)], uturn=0),
+    # 7 + 8: block loops downtown.
+    lane_route([(CX[1], CZ[1]), (CX[2], CZ[1]), (CX[2], CZ[2]), (CX[1], CZ[2])]),
+    lane_route([(CX[1], CZ[2]), (CX[0], CZ[2]), (CX[0], CZ[0]), (CX[1], CZ[0])]),
+]
+city_junctions = [[x, z] for (x, z), ar in arms.items() if len(ar) >= 3]
+# Lights at the four inner crossings.
+city_lights = [{"at": [CX[1], CZ[1]], "arms": "WENS", "offset": 0.0}, {"at": [CX[2], CZ[1]], "arms": "WENS", "offset": 9.0},
+               {"at": [CX[1], CZ[2]], "arms": "WENS", "offset": 18.0}, {"at": [CX[2], CZ[2]], "arms": "WENS", "offset": 27.0}]
+_os.makedirs(_os.path.join(ROOT, "data", "city"), exist_ok=True)
+with open(_os.path.join(ROOT, "data", "city", "city.json"), "w") as _f:
+    _json.dump({"routes": city_routes, "junctions": city_junctions, "lights": city_lights, "cars": 5}, _f, indent=1)
 
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")

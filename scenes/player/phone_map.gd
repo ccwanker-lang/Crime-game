@@ -7,9 +7,9 @@ extends Control
 ## (the estate agent's window) properties for sale get an orange pin, and `focus` centres
 ## the map on one property and highlights it.
 
-const BOUNDS := Rect2(-199, -139, 280, 251)  # world x, z (point 47: + the west side, 57: one area)
+const BOUNDS := Rect2(-199, -139, 339, 539)  # world x, z (point 47: + the west side, 57: one area, zone 7: + the city)
 ## Point 47: the sea south of the harbour quay (world x, z).
-const SEA := Rect2(-260, 104.5, 186, 80)
+const SEA := Rect2(-340, 104.5, 267.5, 335.5)
 const LANDMARKS: Dictionary = {
 	"Store": "Store", "Hospital": "Hospital",
 	"GunShop": "Guns", "ContactHideout": "Dries", "Garage": "Garage", "PoliceStation": "Police",
@@ -46,6 +46,18 @@ func _ready() -> void:
 			var w: Vector3 = b.global_transform * Vector3(c.x, 0, c.y)
 			out.append(Vector2(w.x, w.z))
 		_buildings.append(out)
+	# Map zone 7: city towers and car parks (footprint centred on the origin).
+	for n: Node in world.find_children("*", "StaticBody3D", true, false):
+		if not (n is Tower or n is ParkingGarage):
+			continue
+		var t := n as Node3D
+		var hx: float = float(t.get("width")) * 0.5
+		var hz: float = float(t.get("depth")) * 0.5
+		var fp := PackedVector2Array()
+		for c: Vector2 in [Vector2(-hx, -hz), Vector2(hx, -hz), Vector2(hx, hz), Vector2(-hx, hz)]:
+			var w: Vector3 = t.global_transform * Vector3(c.x, 0, c.y)
+			fp.append(Vector2(w.x, w.z))
+		_buildings.append(fp)
 	for key: String in LANDMARKS:
 		var node := world.find_child(key, true, false) as Node3D
 		if node:

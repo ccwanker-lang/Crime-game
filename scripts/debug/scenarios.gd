@@ -55,6 +55,7 @@ const LIST: Array = [
 	["no_kneel", "Point 58: no kneeling on E - a poof at the object instead", "Weed corner at home + a sofa and a pot in slot 1/2. V = third person. E on the pots / rack / table: your body stays standing, a short effect plays at the object. B = build mode: place the sofa (LMB) -> poof; hold E on it -> poof, back in your inventory."],
 	["open_border", "Points 56/57: walk anywhere up to the mountains at the edge; the fall safety net", "You stand north of the centre (where the invisible wall used to be) next to your car. Walk or drive north-west across the grass to the farm and on to the mountains at the edge: no invisible walls before them. Safety net: F10 (fly), Ctrl to sink deep under the ground, F10 off -> you fall and land back where you last stood, alive."],
 	["grass", "Point 61: grass on every green plane", "You stand in the open field north of the centre. Look and walk around: grass tufts everywhere the ground is green (fields, verges, along the border hedge, round the farm), none on roads, pavements, the soil fields or in buildings. It grows in about 50 m round you and fades out further away. Drive a car around: the grass keeps up."],
+	["city", "Map zone 7: the city + the highway", "You stand on the plaza between the village and the city next to your car. Drive into the city: a grid of avenues with office towers and skyscrapers, traffic lights at the 4 inner crossings, city traffic. Drive up a multi-storey car park (blue P; the ramp lane is at the right-hand side, entrance from the avenue). Back to the village over the highway: from the city's north-east corner north along the east side to Main Road. Phone map (Tab > Map) shows the city too. Rough layout: no shops or people in the city yet."],
 	["border_mountains", "Map zone 9: snowy mountains round the whole map", "You stand on the empty strip east of the village (where the highway will come) next to your car, facing the border mountains. Walk or drive east: no invisible wall, you get onto the grassy foot and then the slope is too steep. Look round: snowy peaks with pines on every side; at the sea the mountains rise out of the water. F10 (fly) to see it from above."],
 	["mountain_pass", "Point 49b: the mountain pass behind the farm to the prison", "You stand on Country Lane south of the farm next to your own car (full tank). Drive north past the barn: the road turns east, then climbs the mountain in hairpin bends (guardrails, rocks, pines; snow near the top). Over the top it winds down to the prison on the far side (turn round in front of the gate). A traffic car also drives the pass. From the village and the farm you can't see the prison: the mountain is in the way. The prison intro bus now really drives this road (scenario prison_intro, or F2 skips the ride)."],
 	["traffic_lights", "Point 63: traffic lights, fewer cars, overtaking", "13:00 on Main Road. Traffic lights at the 3 busy junctions (Main Road x Mill Lane, x Station Road, x Industrial Road): cars stop at red (and at amber when they can), the cross street goes on green. A broken-down car stands in the lane in front of you: cars behind it wait a moment, then overtake on the left when nothing comes the other way, and pull back in. Fewer cars on the streets (5)."],
@@ -414,6 +415,12 @@ static func run(world: Node, id: String) -> bool:
 		"grass":
 			_kit(me, 200, [])
 			_place(me, Vector3(-40, 0.3, -66), Vector3(-90, 1.0, -80), dn, 12.0)
+		"city":
+			_kit(me, 300, [])
+			var veh: Vehicles = Vehicles.current
+			if veh:
+				veh.host_spawn("sedan", 4, Vector3(12, 0.2, 131.5), PI / 2.0, "", 1.0)
+			_place(me, Vector3(14, 0.3, 128), Vector3(14, 25, 260), dn, 13.0)
 		"border_mountains":
 			_kit(me, 200, [])
 			var veh: Vehicles = Vehicles.current

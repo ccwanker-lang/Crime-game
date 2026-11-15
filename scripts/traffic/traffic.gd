@@ -12,15 +12,37 @@ const CAR := preload("res://prefabs/vehicles/car.tscn")
 ## Point 63: fewer cars (was 8): calmer streets, no queues. Point 49b: 6 = one per route, the 6th on the pass.
 const CAR_COUNT: int = 6
 
-## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time.
-const JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0), Vector2(-114, 84),
+## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time. The village + pass ones here; the
+## city's (map zone 7) come from data/city/city.json: `JUNCTIONS` = both, rebuilt by `load_city()`.
+const VILLAGE_JUNCTIONS: Array[Vector2] = [Vector2(-6, 0), Vector2(30, 0), Vector2(30, -48), Vector2(30, 60), Vector2(-114, 0), Vector2(-114, 84),
 		Vector2(-150, 0)]
 const JUNCTION_HALF: float = 6.0
 ## Point 63: junctions with traffic lights (JUNCTIONS index -> arms that have a road + the cycle offset in s).
 ## There the lights decide who goes (cars of the green axis share the junction); the others keep the
 ## one-car-at-a-time reservation.
-const LIGHTS: Dictionary = {0: {"arms": "WEN", "offset": 0.0}, 1: {"arms": "WENS", "offset": 11.0},
+const VILLAGE_LIGHTS: Dictionary = {0: {"arms": "WEN", "offset": 0.0}, 1: {"arms": "WENS", "offset": 11.0},
 		4: {"arms": "WES", "offset": 5.0}}
+const CITY_PATH: String = "res://data/city/city.json"
+static var JUNCTIONS: Array[Vector2] = VILLAGE_JUNCTIONS.duplicate()
+static var LIGHTS: Dictionary = VILLAGE_LIGHTS.duplicate(true)
+## Map zone 7: the city routes (6..) and how many cars drive them.
+static var _city: Dictionary = {}
+static var city_first_route: int = -1
+
+
+## (Re)builds JUNCTIONS + LIGHTS with the city's; returns the city data (empty without the file).
+static func load_city() -> Dictionary:
+	if _city.is_empty() and FileAccess.file_exists(CITY_PATH):
+		_city = JSON.parse_string(FileAccess.get_file_as_string(CITY_PATH))
+	JUNCTIONS = VILLAGE_JUNCTIONS.duplicate()
+	LIGHTS = VILLAGE_LIGHTS.duplicate(true)
+	for j: Array in _city.get("junctions", []):
+		JUNCTIONS.append(Vector2(j[0], j[1]))
+	for l: Dictionary in _city.get("lights", []):
+		var idx: int = JUNCTIONS.find(Vector2(l["at"][0], l["at"][1]))
+		if idx >= 0:
+			LIGHTS[idx] = {"arms": l["arms"], "offset": float(l["offset"])}
+	return _city
 ## Light cycle (s): x green, amber, all red, z green, amber, all red.
 const X_GREEN: float = 16.0
 const Z_GREEN: float = 10.0
@@ -46,6 +68,7 @@ func _ready() -> void:
 			if arg.begins_with("--cars="):
 				count = arg.trim_prefix("--cars=").to_int()
 		spawn_cars.call_deferred(count)
+		spawn_cars.call_deferred(int(_city.get("cars", 0)) if count > 0 else 0, true)
 		# (The network check stays deterministic: no patrols that arrest its client mid-walk.)
 		var police_cars: int = 0 if "--netcheck" in OS.get_cmdline_user_args() else 2
 		for arg: String in OS.get_cmdline_user_args():
@@ -84,6 +107,17 @@ func _build_routes() -> void:
 	var pass_pts: PackedVector3Array = Mountain.route_points()
 	if pass_pts.size() > 10:
 		routes.append(TrafficRoute.from_points(pass_pts))
+	# 6.. (map zone 7): the highway + the city loops (data/city/city.json from gen_world.py).
+	var city: Dictionary = load_city()
+	city_first_route = routes.size()
+	for cr: Dictionary in city.get("routes", []):
+		var corners: Array[Vector2] = []
+		for c: Array in cr["corners"]:
+			corners.append(Vector2(c[0], c[1]))
+		var radii: Array[float] = []
+		for v: float in cr["radii"]:
+			radii.append(v)
+		routes.append(TrafficRoute.new(corners, radii))
 	for r: TrafficRoute in routes:
 		r.mark_junctions(JUNCTIONS, JUNCTION_HALF)
 		# The driving line as a Path3D (debug: F3 shows it).
@@ -224,14 +258,19 @@ func replace_car(old: Car) -> void:
 
 
 ## Host: spreads `count` cars over the routes.
-func spawn_cars(count: int) -> void:
+## Host: `count` cars spread over the village + pass routes (0..5); `city` = over the city routes instead.
+func spawn_cars(count: int, city: bool = false) -> void:
+	var first: int = city_first_route if city else 0
+	var last: int = routes.size() if city else (city_first_route if city_first_route >= 0 else routes.size())
+	if last <= first:
+		return
 	var per_route: Array[int] = []
 	per_route.resize(routes.size())
 	per_route.fill(0)
 	for i: int in count:
-		per_route[i % routes.size()] += 1
+		per_route[first + i % (last - first)] += 1
 	var n: int = 0
-	for r: int in routes.size():
+	for r: int in range(first, last):
 		for k: int in per_route[r]:
 			var car: Car = CAR.instantiate()
 			car.route_id = r
