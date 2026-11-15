@@ -1,20 +1,10 @@
-[gd_resource type="Resource" script_class="MissionData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="MissionData" format=3]
 
 [ext_resource type="Script" path="res://scripts/missions/mission_data.gd" id="1_data"]
 [ext_resource type="Script" path="res://scripts/missions/mission_objective.gd" id="2_obj"]
-
-[sub_resource type="Resource" id="Resource_talk"]
-script = ExtResource("2_obj")
-kind = 1
-text = "Meet {npc} by the park"
-marker = "ParkSmokeSpot"
-offset = Vector3(3, 0, 0)
-radius = 3.0
-npc_id = &"marco"
-npc_name = "Marco"
-npc_variant = 2
-npc_yaw = 90.0
-lines = PackedStringArray("So you're the new face. Word is you can get stuff.", "A guy called Dex waits at the QuickFuel on North Road. He wants two bags of weed. Don't keep him waiting.")
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_data.gd" id="3_dd"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_node.gd" id="4_dn"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_choice.gd" id="5_dc"]
 
 [sub_resource type="Resource" id="Resource_go"]
 script = ExtResource("2_obj")
@@ -33,9 +23,46 @@ npc_id = &"dex"
 npc_name = "Dex"
 npc_variant = 5
 npc_yaw = 180.0
-lines = PackedStringArray("Marco sent you? Good. Smells right.", "Here, for your trouble. Tell Marco I'm happy.")
+lines = PackedStringArray("Marco sent you? Good. Smells right.", "Tell Marco I'm happy. He'll pay you.")
 item_id = "weed_bag"
 count = 2
+
+[sub_resource type="Resource" id="Choice_easy"]
+script = ExtResource("5_dc")
+text = "Easy money."
+next = &"pay"
+action = 2
+
+[sub_resource type="Resource" id="Choice_more"]
+script = ExtResource("5_dc")
+text = "Next time, give me something harder."
+next = &"pay"
+action = 2
+
+[sub_resource type="Resource" id="Node_report"]
+script = ExtResource("4_dn")
+id = &"report"
+text = "Dex called. He says you didn't even smell like cops. Not bad for a first day."
+choices = Array[ExtResource("5_dc")]([SubResource("Choice_easy"), SubResource("Choice_more")])
+
+[sub_resource type="Resource" id="Node_pay"]
+script = ExtResource("4_dn")
+id = &"pay"
+text = "Here's your cut. Keep your phone on - I'll have more."
+
+[sub_resource type="Resource" id="Dialogue_report"]
+script = ExtResource("3_dd")
+speaker = "Marco"
+nodes = Array[ExtResource("4_dn")]([SubResource("Node_report"), SubResource("Node_pay")])
+
+[sub_resource type="Resource" id="Resource_report"]
+script = ExtResource("2_obj")
+kind = 1
+text = "Go back to {npc} by the park"
+radius = 3.0
+npc_id = &"marco"
+npc_name = "Marco"
+dialogue = SubResource("Dialogue_report")
 
 [resource]
 script = ExtResource("1_data")
@@ -43,7 +70,7 @@ id = &"first_contact"
 title = "A Foot in the Door"
 summary = "Marco runs the corners round the park. Do him a small favour and you're in."
 giver = "Marco"
-objectives = Array[ExtResource("2_obj")]([SubResource("Resource_talk"), SubResource("Resource_go"), SubResource("Resource_deliver")])
+objectives = Array[ExtResource("2_obj")]([SubResource("Resource_go"), SubResource("Resource_deliver"), SubResource("Resource_report")])
 reward_cash = 600
 reward_xp = 150
 reward_items = {

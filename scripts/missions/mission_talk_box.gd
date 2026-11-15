@@ -21,8 +21,8 @@ func _ready() -> void:
 	add_to_group(&"interactable")
 	_tag = Label3D.new()
 	_tag.text = npc_name
-	_tag.font_size = 40
-	_tag.pixel_size = 0.005
+	_tag.font_size = 32
+	_tag.pixel_size = 0.0028
 	_tag.outline_size = 10
 	_tag.modulate = Color(1.0, 0.85, 0.35)
 	_tag.billboard = BaseMaterial3D.BILLBOARD_ENABLED

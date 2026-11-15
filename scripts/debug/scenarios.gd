@@ -105,7 +105,7 @@ const LIST: Array = [
 	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
 	["city_customers", "The city at noon, 8 Bags of Weed, in front of an office tower", "Office workers stand in front of the towers by day (none at night). Soon one texts you (Tab): bigger deals at 150% prices."],
 	["bunker_lab", "Rank 5, your crew owns the Mountain Bunker; you stand at the portal with a Cook Station and supplies", "E on the green keypad left of the door: down into the hall. Place the Cook Station (B = build mode). The yellow keypad by the lift takes you back up. The bunker is never raided."],
-	["mission_contact", "Mission 1 'A Foot in the Door' just started: 2 Bags of Weed in your pockets, Marco waits by the park", "Gold waypoint on screen + objective top right. E on Marco (talk) -> go to the gas station -> E on Dex (gives him 2 bags) -> reward. Tab > Missions = the log; Map = gold pin. With 2 instances: whoever joins after the start sees 'joined late' and gets no reward."],
+	["mission_contact", "Marco by the park (2 Bags of Weed in your pockets): talk to him to get mission 1 'A Foot in the Door'", "E on Marco: a text box with choices (mouse or keys 1-4). 'Got anything for me?' -> 'I'm in.' starts the mission: gold waypoint + objective top right. Gas station -> E on Dex (2 bags) -> back to Marco, pick an answer -> reward. Tab > Missions = the log, Map = gold pin. With 2 instances: whoever joins after the start sees 'joined late' and gets no reward."],
 	["mission_pier", "Mission 2 'Pier Pressure' just started (mission 1 done): pistol, AK-47 + ammo, 60 m from the Crows' pier", "Walk to the pier: 3 Crows appear - kill them (counter in the HUD). Then backup comes: stay on the pier 45 s. Dying = mission failed (Tab > Missions: start it again)."],
 	["bulk_deal", "Rank 4, 30 Bags of Meth in your pockets, the bulk buyer waiting next to you", "Read the Dutchman's text (Tab). E on the buyer (yellow label) = 30 bags of meth sold in one go (+XP, money). With fewer bags he refuses. From rank 4 he texts every 20-30 in-game hours (F7) with a new offer somewhere in town; he waits 6 hours."],
 ]
@@ -844,7 +844,18 @@ static func run(world: Node, id: String) -> bool:
 				_place(me, pier + Vector3(60, 0.3, -6), pier + Vector3(0, 1.5, 0), dn, 15.0)
 				me.combat.host_set_mags([8])
 			await world.get_tree().physics_frame
-			Missions.host_start(&"first_contact" if id == "mission_contact" else &"pier_pressure", me)
+			if id == "mission_pier":
+				Missions.host_start(&"pier_pressure", me)
+			elif "--talk" in OS.get_cmdline_user_args():  # screenshot flag: Marco's dialogue open
+				for i: int in 20:
+					await world.get_tree().create_timer(0.1).timeout
+					if Missions.mission_npc(&"marco"):
+						break
+				var mc: Pedestrian = Missions.mission_npc(&"marco")
+				if mc:
+					_place(me, mc.global_position + Vector3(1.6, 0.3, 0), mc.global_position + Vector3.UP * 1.6, dn, 13.0)
+					await world.get_tree().create_timer(0.3).timeout
+					Missions.host_talk(me, &"marco")
 		"bulk_deal":
 			Progression.force_gates = true
 			Progression.debug_set_rank(4)

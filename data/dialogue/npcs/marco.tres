@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TalkNPCData" format=3]
+
+[ext_resource type="Script" path="res://scripts/dialogue/talk_npc_data.gd" id="1_t"]
+[ext_resource type="Resource" path="res://data/dialogue/marco.tres" id="2_d"]
+
+[resource]
+script = ExtResource("1_t")
+npc_id = &"marco"
+npc_name = "Marco"
+marker = "ParkSmokeSpot"
+offset = Vector3(3, 0, 0)
+yaw = 90.0
+variant = 2
+dialogue = ExtResource("2_d")

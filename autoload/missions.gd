@@ -15,12 +15,19 @@ extends Node
 signal changed
 
 const DIR: String = "res://data/missions/"
+const NPC_DIR: String = "res://data/dialogue/npcs/"
 const PEDESTRIAN_SCENE: String = "res://prefabs/npc/pedestrian.tscn"
 const NPC_PREFIX: String = "MissionNPC_"
 const TALK_RANGE: float = 4.0
 const TICK: float = 0.25
 
 var all: Dictionary = {}          # id -> MissionData
+## Part 20: NPCs that always stand somewhere and talk (TalkNPCData in data/dialogue/npcs/): npc_id -> data.
+var talkers: Dictionary = {}
+## Host: spawn the talkers (off in the self-test / netcheck; checks turn it on).
+var talkers_on: bool = true
+## Every peer, tests: the last talk opened for the local player {npc, who, mission, step, lines, dialogue}.
+var last_talk: Dictionary = {}
 ## Every peer: what the HUD / phone show (from the host).
 var view: Dictionary = {}
 var hud: MissionHUD
@@ -32,6 +39,8 @@ var _npc_spots: Dictionary = {}   # host: npc_id -> {pos, yaw}
 
 func _ready() -> void:
 	_load_all()
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	talkers_on = not ("--selftest" in args or "--netcheck" in args)
 	get_tree().node_added.connect(_on_node_added)
 	add_to_group(&"kill_hooks")
 
@@ -47,6 +56,14 @@ func _load_all() -> void:
 		var m := load(DIR + f) as MissionData
 		if m and m.id != &"":
 			all[m.id] = m
+	var nd := DirAccess.open(NPC_DIR)
+	if nd:
+		for f: String in nd.get_files():
+			f = f.trim_suffix(".remap")
+			if f.ends_with(".tres") or f.ends_with(".res"):
+				var t := load(NPC_DIR + f) as TalkNPCData
+				if t and t.npc_id != &"":
+					talkers[t.npc_id] = t
 
 
 func get_mission(id: StringName) -> MissionData:
@@ -192,6 +209,8 @@ func _dress_npcs() -> void:
 
 
 func _npc_display(npc_id: StringName) -> String:
+	if talkers.has(npc_id) and (talkers[npc_id] as TalkNPCData).npc_name != "":
+		return (talkers[npc_id] as TalkNPCData).npc_name
 	for m: MissionData in all.values():
 		for o: MissionObjective in m.objectives:
 			if o.npc_id == npc_id and o.npc_name != "":
@@ -266,6 +285,8 @@ func _request_abandon() -> void:
 func _target(o: MissionObjective) -> Vector3:
 	if o == null:
 		return Vector3.INF
+	if o.marker == "" and o.position == Vector3.ZERO and talkers.has(o.npc_id):
+		return _talker_spot(talkers[o.npc_id])
 	if o.marker != "" and _world:
 		var m: Node3D = _world.find_child(o.marker, true, false) as Node3D
 		if m:
@@ -355,6 +376,8 @@ func _reward(m: MissionData) -> void:
 # --- Host tick ---------------------------------------------------------------------------------
 
 func _host_tick(dt: float) -> void:
+	if talkers_on:
+		_ensure_talkers()
 	var s: Dictionary = state()
 	if str(s["active"]) == "":
 		return
@@ -440,6 +463,9 @@ func mission_npc(npc_id: StringName) -> Pedestrian:
 
 
 func _ensure_npc(o: MissionObjective) -> void:
+	if talkers.has(o.npc_id):
+		_ensure_talker(talkers[o.npc_id])
+		return
 	var npc: Pedestrian = mission_npc(o.npc_id)
 	var at: Vector3 = _target(o)
 	if npc == null or npc.dead:
@@ -459,7 +485,11 @@ func _ensure_npc(o: MissionObjective) -> void:
 		npcs.add_child(npc)
 		print("[Missions] %s waits at %s" % [o.npc_name, at])
 		return
-	# Back to the spot after a scare; face the way the mission says.
+	_keep_at(npc, at, deg_to_rad(o.npc_yaw))
+
+
+## Host: back to the spot after a scare; face the given way when nobody talks to them.
+func _keep_at(npc: Pedestrian, at: Vector3, yaw: float) -> void:
 	if npc.is_fleeing() or npc._moving or npc.wants > 0:
 		return
 	if npc.global_position.distance_to(at) > 1.5:
@@ -467,9 +497,47 @@ func _ensure_npc(o: MissionObjective) -> void:
 			npc._go_direct(at, Pedestrian.Anim.WALK)
 		else:
 			npc._go(at, Pedestrian.Anim.WALK)
-	elif absf(angle_difference(npc.rotation.y, deg_to_rad(o.npc_yaw))) > 0.1 and npc.anim_state != Pedestrian.Anim.TALK:
-		npc.rotation.y = deg_to_rad(o.npc_yaw)
-		npc.net_yaw = npc.rotation.y
+	elif float(npc.get_meta(&"talk_until", 0.0)) < _now() and absf(angle_difference(npc.rotation.y, yaw)) > 0.1:
+		npc.rotation.y = yaw
+		npc.net_yaw = yaw
+
+
+# --- Host: the talkers (part 20) --------------------------------------------------------------
+
+func _talker_spot(t: TalkNPCData) -> Vector3:
+	if t.marker != "" and _world:
+		var m: Node3D = _world.find_child(t.marker, true, false) as Node3D
+		if m:
+			return m.global_transform * t.offset
+	return t.position + t.offset
+
+
+func _ensure_talkers() -> void:
+	for t: TalkNPCData in talkers.values():
+		_ensure_talker(t)
+
+
+## Host: the talker stands at their spot (spawned when missing; a killed one comes back once the body is gone).
+func _ensure_talker(t: TalkNPCData) -> void:
+	var npc: Pedestrian = mission_npc(t.npc_id)
+	var at: Vector3 = _talker_spot(t)
+	if npc == null:
+		var npcs: Node = _npcs()
+		if npcs == null:
+			return
+		npc = (load(PEDESTRIAN_SCENE) as PackedScene).instantiate()
+		npc.name = NPC_PREFIX + str(t.npc_id)
+		npc.variant = t.variant if t.variant >= 0 else (hash(t.npc_id) & 0xffff) % Pedestrian.VARIANTS.size()
+		npc.color_seed = hash(str(t.npc_id) + "colors")
+		npc.ambient = false
+		npc.position = at
+		npc.rotation.y = deg_to_rad(t.yaw)
+		npc.set_meta(&"talker", t.npc_id)
+		npcs.add_child(npc)
+		print("[Missions] %s stands at %s" % [t.npc_name, at])
+		return
+	if not npc.dead:
+		_keep_at(npc, at, deg_to_rad(t.yaw))
 
 
 func _despawn_npcs(keep: StringName) -> void:
@@ -477,7 +545,8 @@ func _despawn_npcs(keep: StringName) -> void:
 	if npcs == null:
 		return
 	for n: Node in npcs.get_children():
-		if str(n.name).begins_with(NPC_PREFIX) and str(n.name) != NPC_PREFIX + str(keep):
+		if str(n.name).begins_with(NPC_PREFIX) and str(n.name) != NPC_PREFIX + str(keep) \
+				and not talkers.has(StringName(str(n.name).trim_prefix(NPC_PREFIX))):
 			n.queue_free()
 
 
@@ -530,7 +599,8 @@ func _request_talk(npc_id: String) -> void:
 			host_talk(p, StringName(npc_id))
 
 
-## Host: `p` talks to the NPC. Returns what happened ("talked", "delivered", "missing", "too far", "nothing").
+## Host: `p` talks to the NPC. Returns what happened ("talked", "dialogue", "delivered", "missing", "too far",
+## "nothing"). A mission step with this NPC comes first, else the talker's own dialogue (part 20).
 func host_talk(p: Player, npc_id: StringName) -> String:
 	var npc: Pedestrian = mission_npc(npc_id)
 	if npc == null or p.dead or npc.dead:
@@ -538,32 +608,101 @@ func host_talk(p: Player, npc_id: StringName) -> String:
 	if p.global_position.distance_to(npc.global_position) > TALK_RANGE + 1.0:
 		return "too far"
 	npc.face(p.global_position)
+	npc.set_meta(&"talk_until", _now() + 8.0)
 	var o: MissionObjective = objective()
-	if o == null or o.npc_id != npc_id:
-		p.show_message("%s: \"Not now.\"" % _npc_display(npc_id))
-		return "nothing"
-	if o.kind == MissionObjective.Kind.TALK_TO:
-		say(p, o.npc_name, o.lines, o.dialogue)
-		_advance()
-		return "talked"
-	if o.kind == MissionObjective.Kind.DELIVER:
-		if GameState.count_item(p.player_name, o.item_id) < o.count:
-			var it: ItemData = ItemDB.get_item(StringName(o.item_id))
-			p.show_message("%s: \"Where's my stuff? %d x %s.\"" % [o.npc_name, o.count, it.display_name if it else o.item_id])
-			return "missing"
-		GameState.remove_item(p.player_name, o.item_id, o.count)
-		p.send_wallet()
-		say(p, o.npc_name, o.lines, o.dialogue)
-		_advance()
-		return "delivered"
+	var m: MissionData = active()
+	var step: int = int(state()["step"])
+	if o and o.npc_id == npc_id:
+		if o.kind == MissionObjective.Kind.TALK_TO:
+			if o.dialogue is DialogueData:
+				_open_talk(p, npc_id, str(m.id), step, PackedStringArray())
+				return "dialogue"
+			_open_talk(p, npc_id, "", -1, o.lines)
+			_advance()
+			return "talked"
+		if o.kind == MissionObjective.Kind.DELIVER:
+			if GameState.count_item(p.player_name, o.item_id) < o.count:
+				var it: ItemData = ItemDB.get_item(StringName(o.item_id))
+				_open_talk(p, npc_id, "", -1, PackedStringArray(["Where's my stuff? %d x %s." % [o.count,
+						it.display_name if it else o.item_id]]))
+				return "missing"
+			GameState.remove_item(p.player_name, o.item_id, o.count)
+			p.send_wallet()
+			_open_talk(p, npc_id, "", -1, o.lines)
+			_advance()
+			return "delivered"
+	var t: TalkNPCData = talkers.get(npc_id) as TalkNPCData
+	if t and t.dialogue:
+		_open_talk(p, npc_id, "", -1, PackedStringArray())
+		return "dialogue"
+	_open_talk(p, npc_id, "", -1, PackedStringArray(["Not now."]))
 	return "nothing"
 
 
-## Host: show what an NPC says to `p` (the dialogue box when there is one, part 20; else a toast per line).
-func say(p: Player, who: String, lines: PackedStringArray, _dialogue: Resource = null) -> void:
-	if lines.is_empty():
-		return
-	p.show_message("%s: \"%s\"" % [who, "\" \"".join(lines)])
+## Host: open the dialogue box for `p`: `mission` + `step` = that objective's DialogueData, else `lines` (pages), else
+## the talker's own dialogue.
+func _open_talk(p: Player, npc_id: StringName, mission: String, step: int, lines: PackedStringArray) -> void:
+	if p.peer_id == multiplayer.get_unique_id() or not multiplayer.has_multiplayer_peer():
+		_show_talk(str(npc_id), mission, step, lines)
+	elif p.peer_id in Net.peers_in_world:
+		_show_talk_rpc.rpc_id(p.peer_id, str(npc_id), mission, step, lines)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _show_talk_rpc(npc_id: String, mission: String, step: int, lines: PackedStringArray) -> void:
+	_show_talk(npc_id, mission, step, lines)
+
+
+## Every peer: which DialogueData a talk uses (null = only lines).
+func talk_dialogue(npc_id: StringName, mission: String, step: int, lines: PackedStringArray) -> DialogueData:
+	if mission != "":
+		var m: MissionData = get_mission(StringName(mission))
+		if m and step >= 0 and step < m.objectives.size():
+			return m.objectives[step].dialogue as DialogueData
+		return null
+	if not lines.is_empty():
+		return null
+	var t: TalkNPCData = talkers.get(npc_id) as TalkNPCData
+	return t.dialogue if t else null
+
+
+## Owner: show the talk in the dialogue box.
+func _show_talk(npc_id: String, mission: String, step: int, lines: PackedStringArray) -> void:
+	var data: DialogueData = talk_dialogue(StringName(npc_id), mission, step, lines)
+	var who: String = _npc_display(StringName(npc_id))
+	last_talk = {"npc": npc_id, "who": who, "mission": mission, "step": step, "lines": lines, "dialogue": data}
+	var p: Player = _local_player()
+	if p and p.ui and (data != null or not lines.is_empty()):
+		DialogueBox.open_for(p, StringName(npc_id), who, data, lines, mission != "")
+
+
+## Owner (DialogueBox): the talk for a mission step is over / its "finish" answer was picked.
+func request_step_done(npc_id: StringName) -> void:
+	if _is_host():
+		var p: Player = _local_player()
+		if p:
+			host_step_done(p, npc_id)
+	else:
+		_request_step_done.rpc_id(1, str(npc_id))
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _request_step_done(npc_id: String) -> void:
+	if multiplayer.is_server():
+		var p: Player = _player_by_peer(multiplayer.get_remote_sender_id())
+		if p:
+			host_step_done(p, StringName(npc_id))
+
+
+## Host: finish the current TALK_TO step with `npc_id` (only near the NPC). Returns true when it moved on.
+func host_step_done(p: Player, npc_id: StringName) -> bool:
+	var o: MissionObjective = objective()
+	var npc: Pedestrian = mission_npc(npc_id)
+	if o == null or o.kind != MissionObjective.Kind.TALK_TO or o.npc_id != npc_id or npc == null or p.dead \
+			or p.global_position.distance_to(npc.global_position) > TALK_RANGE + 4.0:
+		return false
+	_advance()
+	return true
 
 
 # --- Sync to every peer ------------------------------------------------------------------------

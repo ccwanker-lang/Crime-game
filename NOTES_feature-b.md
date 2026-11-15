@@ -9,7 +9,7 @@ New parts go below a new "Open for the next merge" line.
 
 ## Open for the next merge: Part 9 (product quality), Part 10 (districts + property ranks for 47a/47b), Part 11
 (shooting range), Parts 13-15 (Roadmap 64-66: run over, stand on cars, engine sound), Part 16 (67: dogs), Part 17 (68: birds, pigeons, cats, ducks), Part 12 (staff assignment + staff locker), Part 18 (zone systems:
-army base, slums, city, bunker), Part 19 (missions).
+army base, slums, city, bunker), Part 19 (missions), Part 20 (dialogue).
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).
@@ -855,3 +855,48 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   GameState.world["missions"], `host_start`/`request_start`, `host_talk`, `host_end`, `view` + `changed`),
   `MissionHUD`, `MissionTalkBox` (NPC "MissionNPC_<id>"), `MissionMapPin`, `MissionLog` (phone app). Check missions,
   scenarios mission_contact / mission_pier.
+
+
+# Part 20: dialogue system for NPCs (text box with choices that can start missions, user 2026-11-15)
+
+## How it works
+- Data: `DialogueData` (speaker + pages), `DialogueNode` (id, speaker, text, choices, next, `entry` + `show_if`),
+  `DialogueChoice` (text, next page, action NONE / START_MISSION (mission) / FINISH_STEP, `show_if`). Conditions
+  (`DialogueNode.Show`): ALWAYS, MISSION_AVAILABLE, MISSION_DONE, MISSION_NOT_DONE, MISSION_RUNNING,
+  NO_MISSION_RUNNING (checked on every peer from `Missions.view`). A talk starts on the first `entry` page whose
+  condition holds; answers whose condition fails are hidden. Example: data/dialogue/marco.tres.
+- Talkers: `TalkNPCData` .tres in data/dialogue/npcs/ (npc_id, name, marker + offset or position, yaw, variant,
+  dialogue). `Missions` spawns them on the host as "MissionNPC_<npc_id>" (same node a mission step can point at by
+  npc_id, never despawned by missions; `talkers_on` off in self-test/netcheck). Marco stands by the park
+  (ParkSmokeSpot + 3 m) and gives both test missions through his dialogue.
+- E on an NPC -> `Missions.host_talk`: the running mission's step with this NPC first (TALK_TO with a dialogue opens
+  it; its FINISH_STEP answer - or, when it has none, the end of the talk - finishes the step via
+  `request_step_done` -> `host_step_done` (host checks the step + distance); TALK_TO with plain `lines` and DELIVER
+  show the lines as pages), else the talker's own dialogue, else "Not now.". The host only sends WHICH dialogue
+  (npc, mission, step, lines) to the owner (`_show_talk_rpc`); the owner shows `DialogueBox`.
+- `DialogueBox` (scripts/dialogue/dialogue_box.gd, in the player's HUD layer): name, typed-out text (Space = all),
+  answer buttons (mouse or keys 1-4), Continue/Bye on pages without answers; Esc, death or walking > 7 m away
+  closes it. START_MISSION -> `Missions.request_start` (host checks `why_not`).
+- Mission 1 now: Marco's dialogue starts it ("Got anything for me?" -> "I'm in." / "What's in it for me?" ->
+  "Deal."), steps: QuickFuel -> give Dex 2 bags -> back to Marco (his report dialogue: answer = step done -> reward).
+  After it Marco offers "Any bigger work?" -> Pier Pressure.
+
+## Decisions (what + why)
+- Dialogue lives on the owner's peer (only the start / finish actions go to the host): no network traffic per page,
+  and the host still decides every effect.
+- Talkers share the mission NPC naming so a mission can simply say npc_id "marco".
+- Conditions are a fixed enum (not script expressions): easy to pick in the Inspector, safe, enough for missions.
+
+## Existing files changed (part 20)
+- autoload/missions.gd (talkers, host_talk with dialogues, step done), data/missions/first_contact.tres (new steps),
+  missions_test.gd (dialogue flow), scenarios.gd (mission_contact without auto start + flag `--talk`).
+
+## Te testen door Curry
+- `mission_contact` (F9): E op Marco: tekstvak met keuzes (muis of 1-4). "Got anything for me?" -> "I'm in." start
+  missie 1. Na Dex terug naar Marco, kies een antwoord -> beloning. Praat daarna weer met Marco: nieuwe klus.
+
+## For CLAUDE.md (suggested lines)
+- Dialogue (part 20): `DialogueData`/`DialogueNode`/`DialogueChoice` (.tres, conditions `DialogueNode.Show`,
+  actions START_MISSION/FINISH_STEP), talkers `TalkNPCData` in data/dialogue/npcs/ (Missions.talkers, `talkers_on`),
+  `DialogueBox.open_for`, `Missions.host_talk` / `_show_talk` / `host_step_done`, `last_talk` (tests). Scenario
+  mission_contact (`--talk`), check missions.
