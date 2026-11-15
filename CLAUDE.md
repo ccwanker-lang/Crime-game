@@ -303,6 +303,9 @@ Godot console exe:
   (`scripts/procgen/tower.gd`, prefabs/city/tower.tscn, material tower_glass), `ParkingGarage` (drivable ramps).
   Traffic: routes 6-8 from data/city/city.json (`Traffic.load_city()`, `city_first_route`, static `JUNCTIONS`/`LIGHTS` =
   `VILLAGE_JUNCTIONS`/`VILLAGE_LIGHTS` + city), `spawn_cars(n, city)`. Scenario city, self-test check city, shots C0-C3.
+- Slums (map zone 3): gen_world section "the slums" (`srng`, loop SLUM_LOOP, road tiles without centre line),
+  prefabs/slums/ (`Shack`, `Caravan`, `FireBarrel`), property slum_shack (SlumShack), traffic route 9 (appended to
+  data/city/city.json). Scenario slums, self-test check slums, shots D0-D2. ShootingRangeSpot now (-145, -118).
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "slums", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -3651,6 +3651,37 @@ const SEA_X: float = -72.5
 
 
 ## Point 61: grass on the open green land, none on roads, soil fields or in buildings.
+## Map zone 3: the slums north of the centre - shacks, caravans, fire barrels, the cheap shack for sale, the loop
+## road with its own traffic route.
+func _check_slums(world: Node3D) -> void:
+	var shacks: int = world.find_children("Shack*", "Shack", true, false).size()
+	var caravans: int = world.find_children("Caravan*", "Caravan", true, false).size()
+	var fires: int = world.find_children("FireBarrel*", "FireBarrel", true, false).size()
+	_report(shacks >= 10 and caravans >= 20 and fires >= 5, "the slums: %d shacks, %d caravans, %d fire barrels" % [shacks, caravans, fires])
+	var prop: Property = null
+	for n: Node in get_tree().get_nodes_in_group(&"properties"):
+		if (n as Property).property_id == &"slum_shack":
+			prop = n
+	if prop == null:
+		for n: Node in world.find_children("Property", "Node3D", true, false):
+			if n is Property and (n as Property).property_id == &"slum_shack":
+				prop = n
+	_report(prop != null and prop.for_sale and prop.price <= 5000, "a cheap property for sale in the slums (%s)" % (
+			"Rosehill Shack €%d" % prop.price if prop else "missing"))
+	var traffic: Traffic = world.get_node("Traffic") as Traffic
+	var r: int = traffic.routes.size() - 1
+	var pt: Vector3 = traffic.routes[r].sample(0.0)[0]
+	_report(pt.z < -55.0 and pt.x > -82.0 and pt.x < -2.0, "a traffic route round the slums (route %d starts at %s)" % [r, pt.snapped(Vector3.ONE)])
+	var car: Car = Traffic.CAR.instantiate()
+	car.route_id = r
+	car.progress = 1.0
+	car.kind = 1
+	traffic.add_child(car, true)
+	await get_tree().create_timer(6.0).timeout
+	_report(car.progress > 25.0, "a car drives the slum loop (%.0f m)" % car.progress)
+	car.queue_free()
+
+
 ## Map zone 7: the city south of the centre - routes from data/city, a traffic car down the highway into the city,
 ## solid ground, the multi-storey car park can be driven up.
 func _check_city(world: Node3D) -> void:
@@ -3812,7 +3843,7 @@ func _check_grass(world: Node3D) -> void:
 	await get_tree().physics_frame
 	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
 	var skip: Array[Rect2] = GrassCover.field_rects(get_tree())
-	var open: int = GrassCover.tuft_points(space, Vector2i(-4, -7), skip).size()  # the field north of the centre
+	var open: int = GrassCover.tuft_points(space, Vector2i(11, -6), skip).size()  # the open strip east of the village (zone 3 took the old field)
 	var full: int = int(GrassCover.CHUNK * GrassCover.CHUNK * GrassCover.DENSITY * 0.8)
 	_report(open >= full, "open green land is covered with grass (%d tufts in a 10 m chunk, want >= %d)" % [open, full])
 	var on_road: int = 0

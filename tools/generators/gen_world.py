@@ -101,7 +101,7 @@ for x in range(-66, 67, 12):
 for z in (-12, -24, -36):
     put(R + "road_straight.tscn", (-6, 0, z), 90)
     put(R + "road_straight.tscn", (30, 0, z), 90)
-put(R + "road_curve.tscn", (-6, 0, -48), 90)          # south <-> east
+# (-6, -48): a T junction since map zone 3 (the slums road goes north) - see "the slums".
 put(R + "road_t_junction.tscn", (30, 0, -48), 180)     # W, E, branch south
 for x in (6, 18, 42, 54, 66):
     put(R + "road_straight.tscn", (x, 0, -48))
@@ -1015,6 +1015,91 @@ _os.makedirs(_os.path.join(ROOT, "data", "city"), exist_ok=True)
 with open(_os.path.join(ROOT, "data", "city", "city.json"), "w") as _f:
     _json.dump({"routes": city_routes, "junctions": city_junctions, "lights": city_lights, "cars": 5}, _f, indent=1)
 
+# --------------------------------------------------------------------------- the slums (map blueprint zone 3)
+# The empty field north of the centre (x -108..75, z -132..-64): a road loop off North Road (T at (-6, -48)),
+# a shanty town inside the loop round an open yard, a caravan park to the north, a junkyard + container homes to
+# the east, a cheap shack for sale to the west. Under NavRegion (pedestrians may come here). Rough layout.
+srng = random.Random(3030)
+SLUM_LOOP = [(-6, -60), (-6, -96), (-78, -96), (-78, -60)]
+slum_arms = {(-6, -48): {"S", "E", "N"}, (-6, -60): {"N", "S", "W"}, (-6, -96): {"S", "W"},
+             (-78, -96): {"E", "S"}, (-78, -60): {"N", "E"}}
+for (x, z), ar in slum_arms.items():
+    road_tile(x, z, ar, parent=NAV, props={"center_line": "false"})
+for z in (-72, -84):
+    put(R + "road_straight.tscn", (-6, 0, z), 90, props={"center_line": "false"})
+    put(R + "road_straight.tscn", (-78, 0, z), 90, props={"center_line": "false"})
+for x in range(-66, -6, 12):
+    put(R + "road_straight.tscn", (x, 0, -96), 0, props={"center_line": "false"})
+    put(R + "road_straight.tscn", (x, 0, -60), 0, props={"center_line": "false"})
+sign = put("props/sign_post.tscn", (-1.4, 0.15, -64), 270, name="SlumSign")
+sc.node("Label3D", "Label3D", f"{NAV}/{sign}", props={
+    "transform": xform((0, 2.6, 0.06)), "text": q("ROSEHILL PARK"), "font_size": "52", "pixel_size": "0.006",
+    "modulate": col(1, 1, 1), "outline_size": "0"})
+
+# Packed earth under the shanty town (inside the loop) and the caravan park.
+paved("SlumYard", -42, -78, 60, 24, "soil", 0.04)
+paved("CaravanPark", -55, -116, 90, 26, "soil", 0.04)
+paved("Junkyard", 16, -98, 26, 56, "soil", 0.04)
+SHACK = "slums/shack.tscn"
+# Shacks along the inside of the loop, the middle (x -46..-34) left open as a yard with fire barrels.
+for row_z, rot in ((-70.5, 180), (-85.5, 0)):
+    x = -70.0
+    while x < -12:
+        if -50 < x < -30:
+            x = -30
+            continue
+        w = srng.uniform(3.2, 5.0)
+        put(SHACK, (x + w / 2, 0.04, row_z + srng.uniform(-0.8, 0.8)), rot + srng.uniform(-6, 6), name=uname("Shack"),
+            props={"size": v3(round(w, 2), round(srng.uniform(2.2, 2.7), 2), round(srng.uniform(2.8, 3.6), 2)),
+                   "shack_seed": str(srng.randint(1, 9999))})
+        x += w + srng.uniform(0.8, 2.2)
+for i, (x, z) in enumerate([(-44, -75), (-25, -78), (-35, -83), (-12, -91), (-40, -109), (-80, -116)]):
+    put("slums/fire_barrel.tscn", (x, 0.04, z), 0, name=f"FireBarrel{i + 1}")
+# Rubbish: bags, crates, tyres and barrels.
+for i in range(46):
+    x, z = srng.uniform(-74, -10), srng.uniform(-92, -64)
+    if -46 < x < -34 or abs(z - (-70.5)) < 2.2 or abs(z - (-85.5)) < 2.2:
+        continue
+    kind = srng.choice(["props/trashbag.tscn", "props/trashbag.tscn", "props/crate_flat.tscn", "props/barrel.tscn",
+                        "props/trash_can_rusty.tscn"])
+    put(kind, (round(x, 2), 0.04, round(z, 2)), srng.uniform(0, 360), name=uname("SlumJunk"))
+# Caravan park: three rows of caravans, doors to the paths between.
+CARAVAN_BODY = [col(0.92, 0.9, 0.82), col(0.85, 0.86, 0.8), col(0.9, 0.84, 0.7), col(0.8, 0.82, 0.85)]
+CARAVAN_STRIPE = [col(0.55, 0.3, 0.2), col(0.25, 0.4, 0.55), col(0.35, 0.5, 0.3), col(0.6, 0.5, 0.2)]
+for r, (z, rot) in enumerate([(-106, 180), (-114, 0), (-126, 180)]):
+    x = -96.0
+    while x < -12:
+        ln = srng.uniform(6.0, 8.5)
+        put("slums/caravan.tscn", (x + ln / 2, 0.04, z), rot + srng.uniform(-4, 4), name=uname("Caravan"),
+            props={"length": f"{ln:.2f}", "body_color": srng.choice(CARAVAN_BODY), "stripe_color": srng.choice(CARAVAN_STRIPE),
+                   "awning": "true" if srng.random() < 0.4 else "false", "rust": f"{srng.uniform(0.1, 0.8):.2f}",
+                   "caravan_seed": str(srng.randint(1, 9999))})
+        x += ln + srng.uniform(3.0, 5.0)
+# Junkyard: wrecks, tyre stacks, a fence round it; container homes beyond.
+for i in range(10):
+    put("props/covered_car.tscn", (srng.uniform(6, 26), 0.04, srng.uniform(-124, -74)), srng.uniform(0, 360),
+        name=uname("JunkCar"))
+fence_line(3, -127, 29, -127)
+fence_line(3, -127, 3, -71)
+fence_line(29, -127, 29, -71)
+CONT = [col(0.6, 0.25, 0.18), col(0.15, 0.35, 0.5), col(0.25, 0.42, 0.25), col(0.55, 0.5, 0.42)]
+for i, (x, z, rot) in enumerate([(40, -80, 90), (48, -80, 90), (56, -80, 90), (40, -98, 90), (48, -98, 90),
+                                 (64, -98, 90), (44, -116, 0), (60, -116, 0)]):
+    put("props/container_6m.tscn", (x, 0.05, z), rot, name=uname("ContainerHome"), props={"color": srng.choice(CONT)})
+put("slums/fire_barrel.tscn", (52, 0.04, -89), 0, name="FireBarrel7")
+# The cheap property: a tin shack by the west road.
+put("buildings/warehouse.tscn", (-94, 0.04, -78), 90, name="SlumShack", props={
+    "width": "8", "depth": "7", "floor_height": "3.2", "bays": "2", "door_bay": "0", "variation_seed": "3031",
+    "wall_material": q("corrugated"), "wall_tint": col(0.58, 0.55, 0.5), "roof_material": q("roof_dark"),
+    "roof_type": q("flat"), "lit_windows": "0.1"})
+property_node("SlumShack", "slum_shack", "Rosehill Shack", 4000,
+              "Rosehill Park, the slums. A tin shack nobody asks questions about. Cheap, small, out of sight.", 0.0, 3.6)
+# Traffic: a loop round the shanty town (route after the city's), the two new junctions.
+city_routes.append(lane_route(SLUM_LOOP))
+city_junctions += [[-6, -48], [-6, -60]]
+with open(_os.path.join(ROOT, "data", "city", "city.json"), "w", newline="\n") as _f:
+    _json.dump({"routes": city_routes, "junctions": city_junctions, "lights": city_lights, "cars": 6}, _f, indent=1)
+
 # --------------------------------------------------------------------------- markers
 sc.node("Markers", "Node3D", ".")
 sc.node("SpawnPoints", "Node3D", "Markers")
@@ -1057,7 +1142,7 @@ put("buildings/prison.tscn", PRISON_POS, 0, parent=".", name="Prison")
 # Point 49b: the bus comes down Country Lane and drives east, so the stop is on the south side now (facing the road).
 sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, 4.7), 0)})
 # Session B's shooting range (RangeClub): out of the pass road's way, north of the centre.
-sc.node("ShootingRangeSpot", "Marker3D", "Markers", props={"transform": xform((-50.0, 0.05, -122.0), 90)})
+sc.node("ShootingRangeSpot", "Marker3D", "Markers", props={"transform": xform((-145.0, 0.05, -118.0), 90)})  # zone 3 took the old spot
 debug_label("Markers/BusStop", "BUS STOP")
 sc.node("GasStation", "Marker3D", "Markers", props={"transform": xform((44.0, 0.2, -52.6), 180)})
 # Point 47c: the Crows' pier at the west end of the quay (Rival post "harbour"): turf rect + where they come from.
