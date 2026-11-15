@@ -7,8 +7,8 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: Part 18 (zone systems: army base, slums, city, bunker), Part 19 (missions), Part 20
-(dialogue), Part 21 (city life + army base life), Part 22 (missions 3 + 4). Each part below has "How it works", "Decisions", "For CLAUDE.md".
+Parts 18-22 MERGED (A, 2026-11-15): in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next
+merge" line.
 
 ## Planned (in this order, from Curry 2026-11-14)
 1. Part 9: product quality - done (below).

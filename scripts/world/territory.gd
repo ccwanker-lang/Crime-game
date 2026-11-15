@@ -195,20 +195,31 @@ func send_crow(p: Player) -> Rival:
 	return crow
 
 
-## A walkable outdoor spot (navmesh, nothing overhead) `near`..`far` m from `who`, or INF.
-static func spot_near(who: Node3D, near: float, far: float) -> Vector3:
+## A walkable outdoor spot (navmesh, nothing overhead) `near`..`far` m from `who`, or INF. The walking path from it
+## to `who` may be at most `detour` x the straight distance (no spot behind a block that means a long way round).
+static func spot_near(who: Node3D, near: float, far: float, detour: float = 1.35) -> Vector3:
 	var w3d: World3D = who.get_world_3d()
 	var space := w3d.direct_space_state
-	for i: int in 24:
+	var goal: Vector3 = NavigationServer3D.map_get_closest_point(w3d.navigation_map, who.global_position)
+	var fallback: Vector3 = Vector3.INF
+	for i: int in 32:
 		var ang: float = randf() * TAU
 		var cand: Vector3 = who.global_position + Vector3(cos(ang), 0, sin(ang)) * randf_range(near, far)
 		var pt: Vector3 = NavigationServer3D.map_get_closest_point(w3d.navigation_map, cand)
 		if pt.distance_to(cand) > 4.0 or pt.y > 0.6:
 			continue
 		var up := PhysicsRayQueryParameters3D.create(pt + Vector3.UP * 0.5, pt + Vector3.UP * 12.0, 1)
-		if space.intersect_ray(up).is_empty():
+		if not space.intersect_ray(up).is_empty():
+			continue
+		var path: PackedVector3Array = NavigationServer3D.map_get_path(w3d.navigation_map, pt, goal, true)
+		var length: float = 0.0
+		for k: int in range(1, path.size()):
+			length += path[k - 1].distance_to(path[k])
+		if path.size() >= 2 and path[path.size() - 1].distance_to(goal) < 2.0 and length <= pt.distance_to(goal) * detour:
 			return pt
-	return Vector3.INF
+		if fallback == Vector3.INF:
+			fallback = pt
+	return fallback
 
 
 ## Group "kill_hooks" (PlayerCombat / Player): a player killed someone, or a player was killed.
