@@ -168,7 +168,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 111.5, 0, -13.5)
 size = Vector2(57, 255)
 material = ExtResource("3_r")
 
-[node name="GroundCity" type="StaticBody3D" parent="NavRegion"]
+[node name="GroundCity" type="StaticBody3D" parent="."]
 script = ExtResource("4_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 33.75, 0, 257)
 size = Vector2(212.5, 286)
@@ -4358,46 +4358,46 @@ transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 6, 0, 30
 [node name="RoadStraight148" parent="City" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 6, 0, 312)
 
-[node name="Highway1" parent="City" instance=ExtResource("7_r")]
+[node name="Highway1" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 78, 0, 0)
 
-[node name="Highway2" parent="City" instance=ExtResource("7_r")]
+[node name="Highway2" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 90, 0, 0)
 
-[node name="RoadCurve6" parent="City" instance=ExtResource("75_r")]
+[node name="RoadCurve6" parent="NavRegion" instance=ExtResource("75_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 102, 0, 0)
 
-[node name="Highway3" parent="City" instance=ExtResource("7_r")]
+[node name="Highway3" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 12)
 
-[node name="Highway4" parent="City" instance=ExtResource("7_r")]
+[node name="Highway4" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 24)
 
-[node name="Highway5" parent="City" instance=ExtResource("7_r")]
+[node name="Highway5" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 36)
 
-[node name="Highway6" parent="City" instance=ExtResource("7_r")]
+[node name="Highway6" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 48)
 
-[node name="Highway7" parent="City" instance=ExtResource("7_r")]
+[node name="Highway7" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 60)
 
-[node name="Highway8" parent="City" instance=ExtResource("7_r")]
+[node name="Highway8" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 72)
 
-[node name="Highway9" parent="City" instance=ExtResource("7_r")]
+[node name="Highway9" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 84)
 
-[node name="Highway10" parent="City" instance=ExtResource("7_r")]
+[node name="Highway10" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 96)
 
-[node name="Highway11" parent="City" instance=ExtResource("7_r")]
+[node name="Highway11" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 108)
 
-[node name="Highway12" parent="City" instance=ExtResource("7_r")]
+[node name="Highway12" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 120)
 
-[node name="Highway13" parent="City" instance=ExtResource("7_r")]
+[node name="Highway13" parent="NavRegion" instance=ExtResource("7_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 102, 0, 132)
 
 [node name="HighwaySignCity" parent="City" instance=ExtResource("67_r")]
@@ -4490,40 +4490,69 @@ transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, 98.05, 0
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, 105.95, 0.15, 132)
 
 [node name="Tower1" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -35.25, 0, 174)
-width = 20.5
-depth = 43
-floors = 13
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34.66, 0, 174)
+width = 21.2
+depth = 42.5
+floors = 6
 style = "bands"
-tint = Color(0.82, 0.8, 0.76, 1)
-variation_seed = 9824
+tint = Color(0.76, 0.66, 0.6, 1)
+variation_seed = 2960
 
 [node name="Tower2" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.75, 0, 174)
-width = 20.5
-depth = 43
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.16, 0, 162.75)
+width = 18.8
+depth = 20
 floors = 8
 style = "bands"
-tint = Color(0.7, 0.68, 0.64, 1)
-variation_seed = 141
+tint = Color(0.85, 0.78, 0.62, 1)
+variation_seed = 6097
 
 [node name="Tower3" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -35.25, 0, 234)
-width = 20.5
-depth = 43
-floors = 20
-style = "glass"
-tint = Color(0.62, 0.66, 0.7, 1)
-variation_seed = 4759
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.16, 0, 185.25)
+width = 18.8
+depth = 20
+floors = 6
+style = "bands"
+tint = Color(0.82, 0.8, 0.76, 1)
+variation_seed = 178
 
 [node name="Tower4" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12.75, 0, 234)
-width = 20.5
-depth = 43
-floors = 15
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -37.3878, 0, 222.75)
+width = 15.7
+depth = 20
+floors = 9
+style = "brick"
+tint = Color(0.62, 0.58, 0.55, 1)
+variation_seed = 1344
+
+[node name="Tower5" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -14.8878, 0, 222.75)
+width = 24.3
+depth = 20
+floors = 8
 style = "glass"
-tint = Color(0.7, 0.72, 0.74, 1)
-variation_seed = 5652
+tint = Color(0.5, 0.58, 0.55, 1)
+variation_seed = 9987
+
+[node name="Tower6" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -33.1122, 0, 245.25)
+width = 24.3
+depth = 20
+floors = 11
+style = "bands"
+tint = Color(0.76, 0.66, 0.6, 1)
+variation_seed = 6469
+setback_from = 7
+
+[node name="Tower7" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10.6122, 0, 245.25)
+width = 15.7
+depth = 20
+floors = 9
+style = "bands"
+tint = Color(0.66, 0.6, 0.55, 1)
+variation_seed = 8971
+setback_from = 5
 
 [node name="ParkingGarage1" parent="City" instance=ExtResource("78_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 0, 294)
@@ -4531,74 +4560,92 @@ width = 45
 depth = 40
 levels = 3
 
-[node name="Tower5" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24.75, 0, 174)
-width = 20.5
-depth = 43
-floors = 26
-style = "glass"
-tint = Color(0.62, 0.66, 0.7, 1)
-variation_seed = 4891
-setback_from = 22
-
-[node name="Tower6" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47.25, 0, 174)
-width = 20.5
-depth = 43
-floors = 23
-style = "glass"
-tint = Color(0.5, 0.58, 0.55, 1)
-variation_seed = 1344
-setback_from = 18
-
-[node name="Tower7" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 36, 0, 234)
-width = 45
-depth = 45
-floors = 31
-style = "glass"
-tint = Color(0.45, 0.52, 0.6, 1)
-variation_seed = 9987
-setback_from = 25
-antenna = true
-
 [node name="Tower8" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24.75, 0, 282.75)
-width = 20.5
-depth = 20.5
-floors = 29
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 23.1645, 0, 174)
+width = 16.8
+depth = 42.5
+floors = 13
 style = "glass"
-tint = Color(0.45, 0.52, 0.6, 1)
-variation_seed = 5717
-setback_from = 23
+tint = Color(0.55, 0.62, 0.7, 1)
+variation_seed = 6812
+setback_from = 10
 
 [node name="Tower9" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47.25, 0, 282.75)
-width = 20.5
-depth = 20.5
-floors = 20
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.6645, 0, 162.75)
+width = 23.2
+depth = 20
+floors = 12
 style = "glass"
-tint = Color(0.5, 0.58, 0.55, 1)
-variation_seed = 2420
-setback_from = 14
+tint = Color(0.55, 0.62, 0.7, 1)
+variation_seed = 2326
+setback_from = 9
 
 [node name="Tower10" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 24.75, 0, 305.25)
-width = 20.5
-depth = 20.5
-floors = 21
-style = "glass"
-tint = Color(0.62, 0.66, 0.7, 1)
-variation_seed = 6065
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.6645, 0, 185.25)
+width = 23.2
+depth = 20
+floors = 10
+style = "bands"
+tint = Color(0.66, 0.6, 0.55, 1)
+variation_seed = 1305
+setback_from = 7
 
 [node name="Tower11" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 47.25, 0, 305.25)
-width = 20.5
-depth = 20.5
-floors = 27
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 25.5961, 0, 234)
+width = 21.7
+depth = 42.5
+floors = 18
 style = "glass"
 tint = Color(0.45, 0.52, 0.6, 1)
-variation_seed = 53
+variation_seed = 8742
+antenna = true
+
+[node name="Tower12" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48.0961, 0, 234)
+width = 18.3
+depth = 42.5
+floors = 22
+style = "bands"
+tint = Color(0.82, 0.8, 0.76, 1)
+variation_seed = 5220
+antenna = true
+
+[node name="Tower13" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 26.4312, 0, 282.75)
+width = 23.4
+depth = 20
+floors = 12
+style = "glass"
+tint = Color(0.55, 0.62, 0.7, 1)
+variation_seed = 6140
+
+[node name="Tower14" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 48.9312, 0, 282.75)
+width = 16.6
+depth = 20
+floors = 14
+style = "bands"
+tint = Color(0.78, 0.76, 0.72, 1)
+variation_seed = 2235
+setback_from = 11
+
+[node name="Tower15" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 23.0688, 0, 305.25)
+width = 16.6
+depth = 20
+floors = 12
+style = "brick"
+tint = Color(0.68, 0.5, 0.42, 1)
+variation_seed = 2246
+
+[node name="Tower16" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 45.5688, 0, 305.25)
+width = 23.4
+depth = 20
+floors = 10
+style = "glass"
+tint = Color(0.55, 0.62, 0.7, 1)
+variation_seed = 2727
 
 [node name="ParkingGarage2" parent="City" instance=ExtResource("78_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 174)
@@ -4606,225 +4653,261 @@ width = 21
 depth = 40
 levels = 3
 
-[node name="Tower12" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 222.75)
-width = 19
-depth = 20.5
-floors = 9
-style = "brick"
-tint = Color(0.9, 0.82, 0.72, 1)
-variation_seed = 484
-
-[node name="Tower13" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 245.25)
-width = 19
-depth = 20.5
-floors = 9
-style = "brick"
-tint = Color(0.9, 0.82, 0.72, 1)
-variation_seed = 6640
-
-[node name="Tower14" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 282.75)
-width = 19
-depth = 20.5
-floors = 8
-style = "bands"
-tint = Color(0.7, 0.68, 0.64, 1)
-variation_seed = 5264
-
-[node name="Tower15" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 305.25)
-width = 19
-depth = 20.5
-floors = 11
-style = "bands"
-tint = Color(0.66, 0.6, 0.55, 1)
-variation_seed = 4242
-
-[node name="Tower16" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 174)
-width = 26
-depth = 45
-floors = 17
-style = "glass"
-tint = Color(0.45, 0.52, 0.6, 1)
-variation_seed = 5066
-
 [node name="Tower17" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 234)
-width = 26
-depth = 45
-floors = 11
-style = "glass"
-tint = Color(0.62, 0.66, 0.7, 1)
-variation_seed = 8742
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 221.257)
+width = 18.5
+depth = 17
+floors = 7
+style = "bands"
+tint = Color(0.76, 0.66, 0.6, 1)
+variation_seed = 1940
+setback_from = 3
+setback = 4.1
 
 [node name="Tower18" parent="City" instance=ExtResource("77_r")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 294)
-width = 26
-depth = 45
-floors = 21
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 243.757)
+width = 18.5
+depth = 23
+floors = 6
+style = "brick"
+tint = Color(0.9, 0.82, 0.72, 1)
+variation_seed = 9343
+
+[node name="Tower19" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 84, 0, 283.831)
+width = 18.5
+depth = 22.2
+floors = 11
+style = "bands"
+tint = Color(0.78, 0.76, 0.72, 1)
+variation_seed = 3914
+
+[node name="Tower20" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 78.75, 0, 306.331)
+width = 8
+depth = 17.8
+floors = 11
+style = "bands"
+tint = Color(0.76, 0.66, 0.6, 1)
+variation_seed = 896
+
+[node name="Tower21" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 89.25, 0, 306.331)
+width = 8
+depth = 17.8
+floors = 10
+style = "brick"
+tint = Color(0.68, 0.5, 0.42, 1)
+variation_seed = 220
+
+[node name="Tower22" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 162.426)
+width = 22.5
+depth = 19.4
+floors = 12
+style = "brick"
+tint = Color(0.9, 0.82, 0.72, 1)
+variation_seed = 4939
+
+[node name="Tower23" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 184.926)
+width = 22.5
+depth = 20.6
+floors = 8
+style = "bands"
+tint = Color(0.78, 0.76, 0.72, 1)
+variation_seed = 1762
+
+[node name="Tower24" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 220.76)
+width = 22.5
+depth = 16
+floors = 9
+style = "bands"
+tint = Color(0.78, 0.76, 0.72, 1)
+variation_seed = 5755
+
+[node name="Tower25" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 243.26)
+width = 22.5
+depth = 24
+floors = 7
+style = "bands"
+tint = Color(0.62, 0.66, 0.6, 1)
+variation_seed = 9048
+
+[node name="Tower26" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 282.42)
+width = 22.5
+depth = 19.3
+floors = 7
 style = "bands"
 tint = Color(0.7, 0.68, 0.64, 1)
-variation_seed = 4443
+variation_seed = 9032
+
+[node name="Tower27" parent="City" instance=ExtResource("77_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 124, 0, 304.92)
+width = 22.5
+depth = 20.7
+floors = 9
+style = "glass"
+tint = Color(0.45, 0.52, 0.6, 1)
+variation_seed = 4769
+setback_from = 5
 
 [node name="Skyscraper1" parent="City" instance=ExtResource("77_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -36, 0, 360)
-width = 34
-depth = 34
-floors = 52
-style = "glass"
-tint = Color(0.45, 0.52, 0.6, 1)
-variation_seed = 8496
-setback_from = 44
-antenna = true
+width = 30
+depth = 28
+floors = 12
+style = "bands"
+tint = Color(0.66, 0.6, 0.55, 1)
+variation_seed = 6502
+setback_from = 9
 
 [node name="Skyscraper2" parent="City" instance=ExtResource("77_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6, 0, 352)
 width = 24
 depth = 22
-floors = 38
-style = "bands"
-tint = Color(0.82, 0.8, 0.76, 1)
-variation_seed = 647
-setback_from = 30
+floors = 15
+style = "glass"
+tint = Color(0.38, 0.5, 0.52, 1)
+variation_seed = 1779
+setback_from = 12
 antenna = true
 
 [node name="Skyscraper3" parent="City" instance=ExtResource("77_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 40, 0, 362)
-width = 30
-depth = 30
-floors = 58
+width = 26
+depth = 26
+floors = 19
 style = "glass"
 tint = Color(0.55, 0.62, 0.7, 1)
-variation_seed = 6140
-setback_from = 50
+variation_seed = 8388
+setback_from = 16
 antenna = true
 
 [node name="Skyscraper4" parent="City" instance=ExtResource("77_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 78, 0, 352)
 width = 26
 depth = 22
-floors = 30
-style = "glass"
-tint = Color(0.7, 0.72, 0.74, 1)
-variation_seed = 4658
-setback_from = 22
-antenna = true
+floors = 11
+style = "brick"
+tint = Color(0.9, 0.82, 0.72, 1)
+variation_seed = 4447
+setback_from = 8
 
 [node name="Skyscraper5" parent="City" instance=ExtResource("77_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 118, 0, 362)
-width = 30
-depth = 32
-floors = 46
+width = 28
+depth = 28
+floors = 14
 style = "glass"
-tint = Color(0.5, 0.58, 0.55, 1)
-variation_seed = 9859
-setback_from = 38
-antenna = true
+tint = Color(0.38, 0.5, 0.52, 1)
+variation_seed = 7325
+setback_from = 11
 
 [node name="TreeMedium75" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.310049, 0, -0.950721, 0, 1, 0, 0.950721, 0, -0.310049, -40.2325, 0, 123.518)
+transform = Transform3D(0.784194, 0, 0.620516, 0, 1, 0, -0.620516, 0, 0.784194, -39.5786, 0, 127.24)
 tree_seed = 7100
 
 [node name="TreeMedium76" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.511857, 0, -0.859071, 0, 1, 0, 0.859071, 0, 0.511857, -23.3402, 0, 124.839)
+transform = Transform3D(-0.28937, 0, 0.957217, 0, 1, 0, -0.957217, 0, -0.28937, -22.5614, 0, 125.187)
 tree_seed = 7101
 
 [node name="TreeMedium77" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.129424, 0, -0.991589, 0, 1, 0, 0.991589, 0, 0.129424, -8.27016, 0, 123.851)
+transform = Transform3D(-0.438049, 0, 0.898951, 0, 1, 0, -0.898951, 0, -0.438049, -9.06769, 0, 124.831)
 tree_seed = 7102
 
 [node name="TreeMedium78" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.491791, 0, 0.870713, 0, 1, 0, -0.870713, 0, 0.491791, 6.23674, 0, 127.962)
+transform = Transform3D(0.596142, 0, 0.802879, 0, 1, 0, -0.802879, 0, 0.596142, 7.69238, 0, 125.018)
 tree_seed = 7103
 
 [node name="TreeMedium79" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.463345, 0, -0.886178, 0, 1, 0, 0.886178, 0, 0.463345, 25.3728, 0, 123.812)
+transform = Transform3D(-0.815997, 0, -0.578056, 0, 1, 0, 0.578056, 0, -0.815997, 25.5045, 0, 126.524)
 tree_seed = 7104
 
 [node name="TreeMedium80" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.661209, 0, -0.750201, 0, 1, 0, 0.750201, 0, -0.661209, 38.9006, 0, 126.463)
+transform = Transform3D(0.861012, 0, 0.508585, 0, 1, 0, -0.508585, 0, 0.861012, 40.0867, 0, 126.362)
 tree_seed = 7105
 
 [node name="TreeMedium81" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.852004, 0, 0.523536, 0, 1, 0, -0.523536, 0, 0.852004, 57.3901, 0, 123.25)
+transform = Transform3D(-0.992415, 0, 0.122935, 0, 1, 0, -0.122935, 0, -0.992415, 54.5331, 0, 125.324)
 tree_seed = 7106
 
 [node name="TreeMedium82" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.706978, 0, -0.707236, 0, 1, 0, 0.707236, 0, -0.706978, 71.3618, 0, 127.442)
+transform = Transform3D(0.85496, 0, -0.518693, 0, 1, 0, 0.518693, 0, 0.85496, 71.6824, 0, 126.286)
 tree_seed = 7107
 
 [node name="TreeMedium83" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.069771, 0, 0.997563, 0, 1, 0, -0.997563, 0, 0.069771, 88.9164, 0, 123.524)
+transform = Transform3D(0.930393, 0, -0.366565, 0, 1, 0, 0.366565, 0, 0.930393, 86.2454, 0, 127.944)
 tree_seed = 7108
 
 [node name="TreeMedium84" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.585191, 0, -0.810896, 0, 1, 0, 0.810896, 0, -0.585191, -66, 0, 150)
+transform = Transform3D(-0.913844, 0, 0.406066, 0, 1, 0, -0.406066, 0, -0.913844, -66, 0, 150)
 tree_seed = 7350
 
 [node name="CityBench1" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 159)
 
 [node name="TreeMedium85" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.914014, 0, 0.405682, 0, 1, 0, -0.405682, 0, 0.914014, -66, 0, 168)
+transform = Transform3D(0.720646, 0, 0.693304, 0, 1, 0, -0.693304, 0, 0.720646, -66, 0, 168)
 tree_seed = 7368
 
 [node name="CityBench2" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 177)
 
 [node name="TreeMedium86" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.814803, 0, -0.579738, 0, 1, 0, 0.579738, 0, 0.814803, -66, 0, 186)
+transform = Transform3D(0.611402, 0, -0.79132, 0, 1, 0, 0.79132, 0, 0.611402, -66, 0, 186)
 tree_seed = 7386
 
 [node name="CityBench3" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 195)
 
 [node name="TreeMedium87" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.941655, 0, 0.33658, 0, 1, 0, -0.33658, 0, 0.941655, -66, 0, 204)
+transform = Transform3D(0.990535, 0, -0.137263, 0, 1, 0, 0.137263, 0, 0.990535, -66, 0, 204)
 tree_seed = 7404
 
 [node name="CityBench4" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 213)
 
 [node name="TreeMedium88" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.497212, 0, -0.867629, 0, 1, 0, 0.867629, 0, -0.497212, -66, 0, 222)
+transform = Transform3D(-0.73237, 0, -0.680907, 0, 1, 0, 0.680907, 0, -0.73237, -66, 0, 222)
 tree_seed = 7422
 
 [node name="CityBench5" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 231)
 
 [node name="TreeMedium89" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.95166, 0, -0.307153, 0, 1, 0, 0.307153, 0, -0.95166, -66, 0, 240)
+transform = Transform3D(-0.353719, 0, 0.935352, 0, 1, 0, -0.935352, 0, -0.353719, -66, 0, 240)
 tree_seed = 7440
 
 [node name="CityBench6" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 249)
 
 [node name="TreeMedium90" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.996474, 0, 0.0839058, 0, 1, 0, -0.0839058, 0, 0.996474, -66, 0, 258)
+transform = Transform3D(0.983668, 0, 0.179991, 0, 1, 0, -0.179991, 0, 0.983668, -66, 0, 258)
 tree_seed = 7458
 
 [node name="CityBench7" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 267)
 
 [node name="TreeMedium91" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(-0.146541, 0, -0.989205, 0, 1, 0, 0.989205, 0, -0.146541, -66, 0, 276)
+transform = Transform3D(-0.997499, 0, -0.0706825, 0, 1, 0, 0.0706825, 0, -0.997499, -66, 0, 276)
 tree_seed = 7476
 
 [node name="CityBench8" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 285)
 
 [node name="TreeMedium92" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.362736, 0, -0.931892, 0, 1, 0, 0.931892, 0, 0.362736, -66, 0, 294)
+transform = Transform3D(0.603969, 0, -0.797008, 0, 1, 0, 0.797008, 0, 0.603969, -66, 0, 294)
 tree_seed = 7494
 
 [node name="CityBench9" parent="City" instance=ExtResource("45_r")]
 transform = Transform3D(-1.83697e-16, 0, -1, 0, 1, 0, 1, 0, -1.83697e-16, -64.5, 0, 303)
 
 [node name="TreeMedium93" parent="City" instance=ExtResource("21_r")]
-transform = Transform3D(0.848495, 0, -0.529204, 0, 1, 0, 0.529204, 0, 0.848495, -66, 0, 312)
+transform = Transform3D(-0.270076, 0, -0.962839, 0, 1, 0, 0.962839, 0, -0.270076, -66, 0, 312)
 tree_seed = 7512
 
 [node name="CityBench10" parent="City" instance=ExtResource("45_r")]

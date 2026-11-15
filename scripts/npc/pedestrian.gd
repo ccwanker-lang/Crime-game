@@ -918,8 +918,8 @@ func _wander() -> void:
 			continue
 		var p: Vector3 = random_sidewalk_point(self)
 		if p != Vector3.INF:
+			stats["walk"] += 1  # counted when it sets off: with the bigger map a walk can take minutes
 			await walk_to(p)
-			stats["walk"] += 1
 		await idle(randf_range(0.3, 2.0))
 
 

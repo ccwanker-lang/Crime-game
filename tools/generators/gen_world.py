@@ -81,7 +81,8 @@ sc.node("BorderRange", "StaticBody3D", ".", props={"script": sc.script("res://sc
 sc.node("GroundEast", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((111.5, 0, -13.5)),
     "size": "Vector2(57, 255)", "material": ground_mat})
-sc.node("GroundCity", "StaticBody3D", NAV, props={
+# (not under NavRegion: no pedestrians in the city yet - its towers are not baked as obstacles)
+sc.node("GroundCity", "StaticBody3D", ".", props={
     "script": sc.script("res://scripts/procgen/ground_area.gd"), "transform": xform((33.75, 0, 257)),
     "size": "Vector2(212.5, 286)", "material": ground_mat})
 # Point 49b: the mountain pass to the prison (terrain, road, rails, pines from data/mountain - gen_mountain.py).
@@ -890,10 +891,10 @@ for a, b in links:
             put(R + "road_straight.tscn", (a[0], 0, z), 90, parent="City")
 # The highway: Main Road on east (x 78, 90), a bend south at (102, 0), down to the city.
 for x in (78, 90):
-    put(R + "road_straight.tscn", (x, 0, 0), 0, parent="City", name=uname("Highway"))
-road_tile(HWY_X, 0, {"W", "S"})
+    put(R + "road_straight.tscn", (x, 0, 0), 0, name=uname("Highway"))  # under NavRegion: carves the asphalt
+road_tile(HWY_X, 0, {"W", "S"}, parent=NAV)
 for z in range(12, CZ[0], 12):
-    put(R + "road_straight.tscn", (HWY_X, 0, z), 90, parent="City", name=uname("Highway"))
+    put(R + "road_straight.tscn", (HWY_X, 0, z), 90, name=uname("Highway"))
 sign = put("props/sign_post.tscn", (HWY_X - 4.6, 0.15, 30), 90, parent="City", name="HighwaySignCity")
 sc.node("Label3D", "Label3D", f"City/{sign}", props={
     "transform": xform((0, 2.6, 0.06)), "text": q("CITY  ->"), "font_size": "64", "pixel_size": "0.006",
@@ -907,18 +908,24 @@ for z in range(24, CZ[0], 24):
     put("props/street_lamp.tscn", (HWY_X + 3.95, 0.15, z + 12), 270, parent="City", name=uname("HighwayLamp"))
 
 # Buildings per block (x0, x1, z0, z1 between the road tiles).
+# User feedback (2026-11-15): the towers were 3-4x too tall and too alike. Now 6-15 floors (a few 16-22 in the
+# middle as landmarks), the style picked per building (not per block), more tints, podium + tower shapes.
 TOWER_TINTS = [col(0.55, 0.62, 0.7), col(0.62, 0.66, 0.7), col(0.45, 0.52, 0.6), col(0.7, 0.72, 0.74),
-               col(0.5, 0.58, 0.55)]
-BAND_TINTS = [col(0.78, 0.76, 0.72), col(0.7, 0.68, 0.64), col(0.82, 0.8, 0.76), col(0.66, 0.6, 0.55)]
-BRICK_TINTS = [col(0.85, 0.7, 0.62), col(0.75, 0.6, 0.52), col(0.9, 0.82, 0.72)]
+               col(0.5, 0.58, 0.55), col(0.38, 0.5, 0.52), col(0.6, 0.55, 0.48), col(0.32, 0.36, 0.42)]
+BAND_TINTS = [col(0.78, 0.76, 0.72), col(0.7, 0.68, 0.64), col(0.82, 0.8, 0.76), col(0.66, 0.6, 0.55),
+              col(0.85, 0.78, 0.62), col(0.62, 0.66, 0.6), col(0.76, 0.66, 0.6)]
+BRICK_TINTS = [col(0.85, 0.7, 0.62), col(0.75, 0.6, 0.52), col(0.9, 0.82, 0.72), col(0.68, 0.5, 0.42),
+               col(0.8, 0.76, 0.66), col(0.62, 0.58, 0.55)]
 
 
-def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sign_text="", name=None):
+def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sign_text="", name=None, setback=3.0):
     tint = crng.choice(TOWER_TINTS if style == "glass" else BAND_TINTS if style == "bands" else BRICK_TINTS)
     props = {"width": f"{w:g}", "depth": f"{d:g}", "floors": str(floors), "style": q(style), "tint": tint,
              "variation_seed": str(crng.randint(1, 9999))}
     if setback_from:
         props["setback_from"] = str(setback_from)
+        if setback != 3.0:
+            props["setback"] = f"{setback:g}"
     if antenna:
         props["antenna"] = "true"
     if sign_text:
@@ -926,27 +933,38 @@ def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sig
     return put("city/tower.tscn", (cx, 0, cz), rot, parent="City", name=name or uname("Tower"), props=props)
 
 
-def block_towers(x0, x1, z0, z1, style, fmin, fmax, split):
-    """Fill a block with 1, 2 or 4 towers (1.5 m in from the sidewalk edge)."""
+def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split):
+    """Fill a block with 1-4 buildings (1.5 m in from the sidewalk edge), each its own style (from `styles`),
+    height, and shape: plain, a setback crown, or a 2-3 floor podium with a narrower tower on it."""
     m = 1.5
     x0, x1, z0, z1 = x0 + m, x1 - m, z0 + m, z1 - m
     w, d = x1 - x0, z1 - z0
-    cells = {1: [(0, 0, 1, 1)], 2: [(0, 0, 0.5, 1), (0.5, 0, 1, 1)] if w >= d else [(0, 0, 1, 0.5), (0, 0.5, 1, 1)],
-             4: [(0, 0, 0.5, 0.5), (0.5, 0, 1, 0.5), (0, 0.5, 0.5, 1), (0.5, 0.5, 1, 1)]}[split]
+    k = crng.uniform(0.4, 0.6)
+    cells = {1: [(0, 0, 1, 1)], 2: [(0, 0, k, 1), (k, 0, 1, 1)] if w >= d else [(0, 0, 1, k), (0, k, 1, 1)],
+             3: [(0, 0, k, 1), (k, 0, 1, 0.5), (k, 0.5, 1, 1)] if w >= d else [(0, 0, 1, k), (0, k, 0.5, 1), (0.5, k, 1, 1)],
+             4: [(0, 0, k, 0.5), (k, 0, 1, 0.5), (0, 0.5, 1 - k, 1), (1 - k, 0.5, 1, 1)]}[split]
     for a, b, c, e in cells:
-        gap = 2.0 if split > 1 else 0.0
+        gap = 2.5 if split > 1 else 0.0
         cw, cd = w * (c - a) - gap, d * (e - b) - gap
         fl = crng.randint(fmin, fmax)
-        tower(x0 + w * (a + c) / 2, z0 + d * (b + e) / 2, round(cw, 1), round(cd, 1), fl, style,
-              setback_from=fl - crng.randint(3, 6) if fl > 18 and crng.random() < 0.6 else 0, antenna=fl > 30)
+        style = crng.choice(styles)
+        shape = crng.random()
+        setback_from, setback = 0, 3.0
+        if shape < 0.3 and min(cw, cd) > 16 and fl >= 7:
+            setback_from, setback = crng.randint(2, 3), round(min(cw, cd) * crng.uniform(0.18, 0.28), 1)  # podium
+        elif shape < 0.55 and fl >= 9:
+            setback_from = fl - crng.randint(2, 4)  # stepped crown
+        cx, cz = x0 + w * (a + c) / 2, z0 + d * (b + e) / 2
+        tower(cx, cz, round(cw, 1), round(cd, 1), fl, style, setback_from=setback_from, antenna=fl >= 18,
+              setback=setback)
 
 
 XB = [(-48, 0), (12, 60), (72, 96)]
 ZB = [(150, 198), (210, 258), (270, 318)]
-PLAN = {  # (bx, bz) -> (style, floors min, max, split) or "garage"
-    (0, 0): ("bands", 8, 14, 2), (0, 1): ("glass", 14, 24, 2), (0, 2): "garage",
-    (1, 0): ("glass", 18, 30, 2), (1, 1): ("glass", 28, 42, 1), (1, 2): ("glass", 20, 34, 4),
-    (2, 0): "garage", (2, 1): ("brick", 6, 10, 2), (2, 2): ("bands", 8, 12, 2),
+PLAN = {  # (bx, bz) -> (styles, floors min, max, split) or "garage"; the middle block holds the landmarks
+    (0, 0): (["bands", "brick"], 6, 9, 3), (0, 1): (["glass", "bands", "brick"], 7, 12, 4), (0, 2): "garage",
+    (1, 0): (["glass", "bands"], 8, 13, 3), (1, 1): (["glass", "bands"], 16, 22, 2), (1, 2): (["glass", "bands", "brick"], 8, 15, 4),
+    (2, 0): "garage", (2, 1): (["brick", "bands"], 6, 9, 2), (2, 2): (["bands", "glass", "brick"], 6, 11, 3),
 }
 for (bx, bz), plan in PLAN.items():
     x0, x1 = XB[bx]
@@ -959,11 +977,11 @@ for (bx, bz), plan in PLAN.items():
         block_towers(x0, x1, z0, z1, *plan)
 # The east strip along the highway boulevard (x 108..140) and the skyline south of the last avenue.
 for z0, z1 in ZB:
-    tower(124, (z0 + z1) / 2, 26, z1 - z0 - 3, crng.randint(10, 22), crng.choice(["glass", "bands"]))
-SKYLINE = [(-36, 360, 34, 34, 52, "glass"), (6, 352, 24, 22, 38, "bands"), (40, 362, 30, 30, 58, "glass"),
-           (78, 352, 26, 22, 30, "glass"), (118, 362, 30, 32, 46, "glass")]
+    block_towers(110, 138, z0, z1, ["glass", "bands", "brick"], 6, 12, 2)
+SKYLINE = [(-36, 360, 30, 28, 12, "bands"), (6, 352, 24, 22, 15, "glass"), (40, 362, 26, 26, 19, "glass"),
+           (78, 352, 26, 22, 11, "brick"), (118, 362, 28, 28, 14, "glass")]
 for i, (cx, cz, w, d, fl, st) in enumerate(SKYLINE):
-    tower(cx, cz, w, d, fl, st, setback_from=fl - 8, antenna=True, name=f"Skyscraper{i + 1}")
+    tower(cx, cz, w, d, fl, st, setback_from=fl - 3, antenna=fl >= 15, name=f"Skyscraper{i + 1}")
 # Plaza between the village and the city (z 114..138): trees and benches; a promenade along the coast (x -66).
 for i, x in enumerate(range(-40, 96, 16)):
     put("nature/tree_medium.tscn", (x + crng.uniform(-2, 2), 0, 126 + crng.uniform(-3, 3)), crng.uniform(0, 360),

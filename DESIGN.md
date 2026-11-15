@@ -457,6 +457,16 @@ Map blueprint (user, 2026-11-15; see "Map layout"; replaces 62 and 54's map part
         to a concrete apron + portal with a shut blast door in the rock (Mountain bunker_spot, x -98); scenario
         bunker. Detail later: bury the portal block deeper (now a cube in a bowl), the inside, buying it as a lab
   70. Detail per zone: military base, slums, city + highway, bunker + side road, mountain border - todo
+User feedback on the rough layout (2026-11-15, docs/feedback_*.png):
+  71. Fill the open spaces (between the centre and the city and elsewhere) with streets, row houses, houses with
+      driveways, small parks, squares and small shops; keep some green between the zones - todo
+  72. City 3-4x lower (6-15 floors, a few taller landmarks in the middle), more variety in height, shape and colour
+      - DONE (towers 6-12 floors, the middle block 16-22, the skyline 11-19; style per building, podium + crown
+      shapes, 3-4 buildings per block, more tints; shots G0/G2 vs docs/feedback_city_too_tall.png)
+  73. Mountains in one style: the border range and the pass/bunker mountain the same shape, material, snow and trees,
+      flowing into each other - todo
+  74. The bunker enterable: the blast door opens onto an underground complex (corridors, lift/stairs, lab hall,
+      storage, sleeping quarters, underground garage); B builds the buying + lab logic - todo
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
@@ -1103,6 +1113,13 @@ Choices made while working autonomously (what + why).
 - Nothing ticked = automatic: old saves and existing crews keep working unchanged.
 - Unpaid staff-locker workers stop instead of quitting: that's the point of the wage box (a buffer you refill).
 - Several workers may share a station (Schedule I forbids it; here it only shows "also: name").
+- Point 72 (city lower): plain blocks 6-15 floors, the middle block (1,1) 16-22 floors as the landmark group, the
+  skyline row 11-19 (was 30-58). `block_towers` now picks the style per building from a list per block, splits a block
+  into 1-4 buildings of uneven size, and gives ~30% a 2-3 floor podium with a narrower tower and ~25% a stepped
+  crown; more tints for every style. Also: the highway tiles now sit under NavRegion (they carve their asphalt out of
+  the navmesh: pedestrians walked on the highway at x 76) and GroundCity is no longer baked (no pedestrians in the
+  city until it gets its own navmesh - the towers aren't baked as obstacles). Pedestrian `stats["walk"]` counts a
+  walk when it sets off (the bigger map made walks too long for the self-test's 90 s window).
 - Zone 8 (bunker, rough): part of the Mountain (gen_mountain.py writes "side_road" + "bunker"; the heightmap is
   carved along the side road and flattened on a pad), so no new node/generator. The side road leaves the flat summit
   (one height, no junction slope) eastwards into the ridge, the east guardrail has a gap there; dead end, no traffic
