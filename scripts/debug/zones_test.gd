@@ -149,6 +149,26 @@ static func run(t: Node, world: Node3D) -> void:
 	var ccust: Pedestrian = _customer(&"city")
 	report.call(city.size() >= 6 and ccust != null and Zones.customer_price(ccust, 100) == 150,
 			"the city: %d office workers by day, customers pay 150%% (%s)" % [city.size(), ccust.name if ccust else "no customer"])
+	# A's NpcStreamer puts far NPCs to sleep: Zones must leave a sleeping resident where it is (no walk / sit jumps).
+	var sleepers: Array = Zones._residents.values().filter(func(r: Dictionary) -> bool:
+		return is_instance_valid(r.get("npc")) and not (r["npc"] as Pedestrian)._sitting and (r["npc"] as Pedestrian).wants <= 0)
+	var moved: int = 0
+	var slept: int = 0
+	var s0: Array = []
+	for r: Dictionary in sleepers:
+		(r["npc"] as Pedestrian).set_lod(Pedestrian.Lod.ASLEEP)
+		s0.append((r["npc"] as Node3D).global_position)
+	await tree.create_timer(4.0).timeout
+	for i: int in sleepers.size():
+		var n: Pedestrian = sleepers[i]["npc"] as Pedestrian
+		if not is_instance_valid(n):
+			continue
+		if n.lod == Pedestrian.Lod.ASLEEP:
+			slept += 1
+		if n.global_position.distance_to(s0[i]) > 0.5 or n._sitting:
+			moved += 1
+		n.set_lod(Pedestrian.Lod.FULL)
+	report.call(slept >= 5 and moved == 0, "sleeping residents (NpcStreamer) stay put: %d asleep, %d moved" % [slept, moved])
 	if dn:
 		dn.set_hours(22.0)
 		await tree.create_timer(1.0).timeout

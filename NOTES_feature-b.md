@@ -7,6 +7,8 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: Part 24 (Zones residents and A's NpcStreamer).
+
 Part 23 MERGED (A, 2026-11-16): in DESIGN/CHANGELOG/CLAUDE.md.
 
 Parts 18-22 MERGED (A, 2026-11-15): in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next
@@ -1001,3 +1003,24 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 
 ## For CLAUDE.md (suggested lines)
 - Army base rect (part 23): `Zones.ARMY_RECT` = the whole fence incl. the airfield; scenario army_airfield.
+
+
+# Part 24: Zones residents with A's NPC streaming (A's point 87, A.md 2026-11-16)
+
+## How it works
+- `Zones._residents_tick` skips `_resident_step` for a resident whose `lod` is `Pedestrian.Lod.ASLEEP` (far from every
+  player): no walk / sit / chat orders for ~100 sleeping office workers. It wakes where it was and carries on.
+- Checked the other B NPCs against `NpcStreamer.pinned`: mission NPCs (`MissionNPC_*`, also Marco / Old Joe) and
+  mission enemies (meta "mission") are pinned already; staff, dealers and the bulk buyer are local Node3D visuals (not
+  Pedestrians); soldiers are only manned within 220 m of the base and may sleep at their post; live-raid Crows only
+  come while the crew is near.
+
+## Decisions (what + why)
+- Skip, don't pin: residents are scenery, so sleeping far away is exactly what point 87 wants. Before the change a
+  sleeping walker was already left alone (its `_moving` flag stays set), so this is a small CPU saving, not a bug fix.
+
+## Existing files changed (part 24)
+- autoload/zones.gd (one skip), scripts/debug/zones_test.gd (check "sleeping residents stay put").
+
+## Te testen door Curry
+- Niets nieuws om te zien (alleen een interne besparing); `city_life` (F9) moet er hetzelfde uitzien als voorheen.

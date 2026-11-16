@@ -523,6 +523,8 @@ func _residents_tick() -> void:
 			npc.queue_free()
 			_residents.erase(key)
 			continue
+		if npc.lod == Pedestrian.Lod.ASLEEP:
+			continue  # (A's NpcStreamer: far from every player; it wakes where it was and carries on)
 		_resident_step(npc, r)
 	for zone: StringName in [&"slums", &"city"]:
 		if keep[zone] and _now() >= float(_next_customer[zone]):
