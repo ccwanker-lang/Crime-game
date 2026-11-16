@@ -74,6 +74,7 @@ One line per finished part.
 - Points 86/87/90a: the frame rate. Measured where the time went (NPC brains map-wide, long shadows, everything drawn to the horizon, lights, traffic), then: NPCs far from every player sleep and wake where they were, mid-distance ones think less often, small things/trees/lamps stop drawing at a distance, buildings hide what stands behind them, shadows only up to 90 m, far traffic thinks less. City 21 -> ~96-125 FPS, docks 14-23 -> ~84-110. F3 shows FPS, NPCs and draw calls; scenarios fps_docks, fps_city, fps_army.
 - Point 91: jets take off or land only every ~4 minutes (configurable), and you only hear them near the base: behind the mountain it is a dull rumble at most; scenario jet_sound.
 - Point 92: the bunker lift moved so the foot of the stairs has a free 2 m way into the garage; the workshop has 6 workbenches, storage has cabinets, the bunk room 6 beds; tested on foot from the stairs and the garage to every room; scenario bunker_rooms.
+- Point 95: no more grass growing through roads and pavements (the slums, two village spots, and along the kerbs after loading a game); the whole map is checked by the self-test; scenario grass_roads.
 - Point 94: no more squealing tyres in bends - only the engine, unless you really slide (handbrake or a very hard turn at speed).
 - Point 83: the bunker corridor now ends in a generator room; scenario bunker_generator.
 - Point 82: bunker lamps hang on the ceilings / high on the stairwell walls instead of at hip height; scenario bunker_lamps.

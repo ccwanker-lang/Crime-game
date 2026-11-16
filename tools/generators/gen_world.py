@@ -10,6 +10,10 @@ rng = random.Random(42)
 # Colours use their own random stream: the layout (rng) stays exactly the same.
 crng = random.Random(27)
 sc = Scene()
+# Point 95: every road tile / paved area (x0, z0, x1, z1) and every grass field written, so a last pass can cut holes
+# where a (older) grass field lies under a (newer) road - grass grew through the slum road and two village spots.
+PAVED_RECTS = []
+GRASS_NODES = []  # [index in sc.nodes, cx, cz, sx, sz]
 
 PF = "res://prefabs/"
 NAV = "NavRegion"
@@ -36,6 +40,8 @@ def put(prefab, pos, rot=0.0, parent=NAV, name=None, props=None, scale=1.0):
     if nm in SKIP_NODES:
         return nm
     sc.node(nm, None, parent, instance=PF + prefab, props=p)
+    if prefab.startswith("roads/road_"):
+        PAVED_RECTS.append((pos[0] - 6.0, pos[2] - 6.0, pos[0] + 6.0, pos[2] + 6.0))
     return nm
 
 
@@ -237,6 +243,7 @@ def grass(cx, cz, sx, sz, seed):
             if holes:
                 props["holes"] = "Array[Rect2]([" + ", ".join(holes) + "])"
             sc.node(uname("Grass"), None, ".", instance=PF + "nature/grass_field.tscn", props=props)
+            GRASS_NODES.append([len(sc.nodes) - 1, x, z, tx, tz])
 
 
 # Properties for sale (point 26: spread over the neighbourhoods, never next to the police station).
@@ -340,6 +347,7 @@ garden_dressing(gD2, 15.5, 30)
 grass(-43, 23, 58, 14, 5)
 
 # Contact alley: cobbles between the houses, hideout annex at the end.
+PAVED_RECTS.append((-36.0, 6.0, -33.0, 22.0))  # ContactAlley (below)
 sc.node("ContactAlley", "StaticBody3D", NAV, props={
     "script": sc.script("res://scripts/procgen/paved_area.gd"), "transform": xform((-34.5, 0, 14)),
     "size": "Vector2(3, 16)", "surface": q("cobbles"), "height": "0.15"})
@@ -600,6 +608,8 @@ CONC = "res://scripts/procgen/paved_area.gd"
 
 
 def paved(name, cx, cz, sx, sz, surface="concrete", h=0.05, parent=NAV):
+    if surface != "soil":
+        PAVED_RECTS.append((cx - sx / 2, cz - sz / 2, cx + sx / 2, cz + sz / 2))
     sc.node(name, "StaticBody3D", parent, props={"script": sc.script(CONC), "transform": xform((cx, 0, cz)),
             "size": f"Vector2({sx:g}, {sz:g})", "surface": q(surface), "height": f"{h:g}", "edge": "false"})
 
@@ -1682,5 +1692,26 @@ for nm in ("InfoLabel", "PlayersLabel"):
 sc.node("LeaveButton", "Button", "HUD/Panel/VBox", props={
     "unique_name_in_owner": "true", "layout_mode": "2", "text": q("Leave to menu")})
 
+# Point 95: holes in every grass field where a road tile or a paved area lies on it.
+cut = 0
+for gi, gx, gz, gsx, gsz in GRASS_NODES:
+    g0x, g0z, g1x, g1z = gx - gsx / 2, gz - gsz / 2, gx + gsx / 2, gz + gsz / 2
+    extra = []
+    for (px0, pz0, px1, pz1) in PAVED_RECTS:
+        ix0, iz0, ix1, iz1 = max(g0x, px0 - 0.2), max(g0z, pz0 - 0.2), min(g1x, px1 + 0.2), min(g1z, pz1 + 0.2)
+        if ix1 - ix0 > 0.05 and iz1 - iz0 > 0.05:
+            extra.append(f"Rect2({ix0 - gx:g}, {iz0 - gz:g}, {ix1 - ix0:g}, {iz1 - iz0:g})")
+    if not extra:
+        continue
+    cut += 1
+    lines = sc.nodes[gi].split("\n")
+    for k, ln in enumerate(lines):
+        if ln.startswith("holes = "):
+            lines[k] = ln[:-2] + ", " + ", ".join(extra) + "])"
+            break
+    else:
+        lines.append("holes = Array[Rect2]([" + ", ".join(extra) + "])")
+    sc.nodes[gi] = "\n".join(lines)
+print(f"point 95: holes cut in {cut} grass fields under roads / paving")
 sc.save(ROOT + "scenes/world/world.tscn")
 print("world.tscn written,", len(sc.nodes), "nodes")

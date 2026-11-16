@@ -551,7 +551,9 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       room, gate with a boom) - the story's start - todo
   94. Car sound: no tyre squeal in bends; only the engine (with throttle + rpm); squeal only on a real slide or the
       handbrake - DONE (PlayerCar.net_skid; scenario car_sounds / driving)
-  95. No grass through roads and pavements anywhere on the map (slums now) + a self-test - todo
+  95. No grass through roads and pavements anywhere on the map (slums now) + a self-test - DONE (gen_world cuts
+      holes in grass fields under roads/paving, GrassCover skips roads + paved areas from its own World; check
+      grass_roads; scenario grass_roads)
   96. Three more gas stations (city, by the prison, the docks): same as QuickFuel, reachable by car, on the roads - todo
   97. LATER (not now): at 5 stars the army leaves the base and hunts the 5-star player - documented only
 Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
@@ -1323,6 +1325,17 @@ Choices made while working autonomously (what + why).
   `net_skid` (0-1, computed by whoever simulates, synced + sent with `_drive`): handbrake at > 3 m/s, or sideways
   acceleration past `PlayerCar.GRIP` (14 m/s2, only a full-lock turn at speed); VehicleSound screeches only on that,
   traffic cars only on an emergency stop while panicking. The engine (gear, rpm, load) is unchanged.
+- Point 95 (grass through the road): two causes. (1) Hand-placed GrassFields from the first village (verges north
+  of North Road at z -52, by the contact's alley, at (67, 11)) were never cut when the slum road and later paving
+  were laid over them - they draw their own grass over their whole rectangle. gen_world now records every road tile
+  and every non-soil paved area (PAVED_RECTS) and, as its last step, cuts a hole (+0.2 m) into every grass field
+  they overlap (10 fields). Why in the generator: the map is generated, so new roads stay clean by themselves.
+  (2) GrassCover took `tree.current_scene` as the map, which is not the World after the menu / a scenario restart,
+  so its road squares were empty and tufts grew along the kerbs on the asphalt; it now uses its own parent (the
+  World), waits 3 physics frames before the first chunk (bodies of the freshly loaded map must be in the physics
+  space, else the ray falls through paving) and also skips every PavedArea rect, all 0.25 m wider. Self-test check
+  grass_roads: every flat mesh at ground height on the whole map is a no-grass zone (411 surfaces, 1079 chunks of
+  tufts computed like GrassCover) + no grass field draws grass on a road tile or paved area.
 - Points 82-84 (bunker fixes): (82) the stairwell lamps hung off the middle wall 1.25 m above the steps - now wall
   lamps on the shaft walls 2.9 m above each landing; the other lamps sit against their room's ceiling (a metal
   fitting + the glowing strip), the one in the lift shaft moved to the garage ceiling. (83) The corridor's last 8 m

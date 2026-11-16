@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -4519,7 +4519,7 @@ func _check_pass(world: Node3D) -> void:
 func _check_grass(world: Node3D) -> void:
 	await get_tree().physics_frame
 	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
-	var skip: Array[Rect2] = GrassCover.field_rects(get_tree())
+	var skip: Array[Rect2] = GrassCover.field_rects(get_tree(), world)
 	var open: int = GrassCover.tuft_points(space, Vector2i(11, -6), skip).size()  # the open strip east of the village (zone 3 took the old field)
 	var full: int = int(GrassCover.CHUNK * GrassCover.CHUNK * GrassCover.DENSITY * 0.8)
 	_report(open >= full, "open green land is covered with grass (%d tufts in a 10 m chunk, want >= %d)" % [open, full])
@@ -4547,6 +4547,102 @@ func _check_grass(world: Node3D) -> void:
 			if r.has_point(Vector2(p.x, p.z)):
 				dup += 1
 	_report(skip.size() > 0 and dup == 0, "the hand-placed grass fields keep their own grass (%d bare rects, %d doubles)" % [skip.size(), dup])
+
+
+## Point 95: map-wide - no cover-grass tuft on anything paved. Every flat mesh at ground height (roads, pavements,
+## kerbs, yards, plazas: AABB < 0.5 m high, top between -0.05 and 0.35 m) is a no-grass zone; every 10 m chunk that
+## touches one is filled exactly like GrassCover does and no tuft may land inside such a zone.
+func _check_grass_roads(world: Node3D) -> void:
+	await get_tree().physics_frame
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var skip: Array[Rect2] = GrassCover.field_rects(get_tree(), world)
+	var zones: Array = []  # [Rect2, path]
+	for m: Node in world.find_children("*", "MeshInstance3D", true, false):
+		var mi := m as MeshInstance3D
+		if mi.mesh == null or not mi.is_visible_in_tree():
+			continue
+		var anc: Node = mi
+		var bad: bool = false
+		while anc != null and anc != world:
+			if anc is GroundArea or anc is GrassField or anc is GrassCover or anc is Pedestrian or anc is Car or anc is PlayerCar:
+				bad = true
+				break
+			anc = anc.get_parent()
+		if bad:
+			continue
+		var box: AABB = mi.global_transform * mi.get_aabb()
+		if box.size.y > 0.5 or box.end.y > 0.35 or box.end.y < -0.05 or box.size.x * box.size.z < 0.5:
+			continue
+		zones.append([Rect2(box.position.x + 0.15, box.position.z + 0.15, box.size.x - 0.3, box.size.z - 0.3), str(mi.get_path())])
+	var keys: Dictionary = {}
+	for z: Array in zones:
+		var r: Rect2 = z[0]
+		for kx: int in range(floori(r.position.x / GrassCover.CHUNK), floori(r.end.x / GrassCover.CHUNK) + 1):
+			for kz: int in range(floori(r.position.y / GrassCover.CHUNK), floori(r.end.y / GrassCover.CHUNK) + 1):
+				keys[Vector2i(kx, kz)] = true
+	var hits: Dictionary = {}  # path -> count
+	var total: int = 0
+	for key: Vector2i in keys:
+		var area := Rect2(key.x * GrassCover.CHUNK, key.y * GrassCover.CHUNK, GrassCover.CHUNK, GrassCover.CHUNK)
+		var near: Array = []
+		for z: Array in zones:
+			if (z[0] as Rect2).intersects(area):
+				near.append(z)
+		for p: Vector3 in GrassCover.tuft_points(space, key, skip):
+			for z: Array in near:
+				if (z[0] as Rect2).has_point(Vector2(p.x, p.z)):
+					total += 1
+					var path: String = z[1]
+					hits[path] = int(hits.get(path, 0)) + 1
+					break
+	var worst: Array = hits.keys()
+	worst.sort_custom(func(a: String, b: String) -> bool: return int(hits[a]) > int(hits[b]))
+	var lines: PackedStringArray = []
+	for k: String in worst.slice(0, 8):
+		lines.append("%s (%d)" % [k.trim_prefix("/root/World/"), hits[k]])
+	# Hand-placed GrassFields (verges, gardens) draw their own grass over their whole rect: none may lie on a road
+	# tile or a paved area.
+	var paved_rects: Array = []
+	for n: Node in world.find_children("*", "RoadTile", true, false):
+		var t: Vector3 = (n as Node3D).global_position
+		paved_rects.append([Rect2(t.x - RoadTile.HALF, t.z - RoadTile.HALF, RoadTile.TILE, RoadTile.TILE), str(n.name)])
+	for n: Node in world.find_children("*", "PavedArea", true, false):
+		var pa := n as PavedArea
+		if pa.surface == "soil":
+			continue
+		var bx: AABB = pa.global_transform * AABB(Vector3(-pa.size.x / 2.0, 0, -pa.size.y / 2.0), Vector3(pa.size.x, 0.1, pa.size.y))
+		paved_rects.append([Rect2(bx.position.x, bx.position.z, bx.size.x, bx.size.z), str(n.name)])
+	var over: PackedStringArray = []
+	for n: Node in world.find_children("*", "GrassField", true, false):
+		var g := n as GrassField
+		if not g.is_visible_in_tree():
+			continue
+		var c: Vector3 = g.global_position
+		var gr := Rect2(c.x - g.size.x / 2.0, c.z - g.size.y / 2.0, g.size.x, g.size.y).grow(-0.3)
+		for pr: Array in paved_rects:
+			if gr.intersects(pr[0]) and _grass_shows_in(g, gr.intersection(pr[0] as Rect2)):
+				over.append("%s @(%.0f, %.0f) on %s" % [g.get_path().get_concatenated_names().trim_prefix("root/World/"), c.x, c.z, pr[1]])
+				break
+	_report(over.is_empty(), "no hand-placed grass field lies on a road or paved area (%d: %s)" % [over.size(), ", ".join(over.slice(0, 10))])
+	_report(total == 0, "no grass on any road / pavement / paved yard on the whole map (%d paved surfaces, %d chunks; %d tufts on: %s)" % [
+			zones.size(), keys.size(), total, ", ".join(lines)])
+
+
+## Does GrassField `g` draw grass anywhere in world rect `r` (5x5 sample points, minus its holes)?
+func _grass_shows_in(g: GrassField, r: Rect2) -> bool:
+	var c: Vector3 = g.global_position
+	for i: int in 5:
+		for j: int in 5:
+			var p := Vector2(r.position.x + r.size.x * (i + 0.5) / 5.0, r.position.y + r.size.y * (j + 0.5) / 5.0)
+			var local := p - Vector2(c.x, c.z)
+			var in_hole: bool = false
+			for h: Rect2 in g.holes:
+				if h.has_point(local):
+					in_hole = true
+					break
+			if not in_hole:
+				return true
+	return false
 
 
 func _check_ground(world: Node3D) -> void:

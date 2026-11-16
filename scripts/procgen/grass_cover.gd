@@ -28,25 +28,41 @@ func _ready() -> void:
 
 
 func _collect_fields() -> void:
-	_skip = field_rects(get_tree())
+	# Point 95: wait until every body of the freshly loaded map is in the physics space - chunks built in the first
+	# frame used to miss the paving's collision (the ray fell through to the ground: grass through the concrete).
+	for i: int in 3:
+		await get_tree().physics_frame
+	_skip = field_rects(get_tree(), get_parent())
 	_ready_done = true
 
 
 ## World-space rectangles without cover grass: every GrassField (first), then every RoadTile square (both axis
 ## aligned: the generator never rotates fields, tiles only in 90 degree steps).
-static func field_rects(tree: SceneTree) -> Array[Rect2]:
+static func field_rects(tree: SceneTree, world: Node = null) -> Array[Rect2]:
 	var out: Array[Rect2] = []
-	var root: Node = tree.current_scene
+	# Point 95: the map itself, not tree.current_scene - after the menu or a scenario restart the current scene is
+	# not the World, so no road / field was skipped at all (grass on the asphalt along every kerb).
+	var root: Node = world if world else tree.current_scene
 	if root == null:
 		return out
 	for n: Node in root.find_children("*", "GrassField", true, false):
 		var g := n as GrassField
 		var c: Vector3 = g.global_position
 		out.append(Rect2(c.x - g.size.x / 2.0, c.z - g.size.y / 2.0, g.size.x, g.size.y))
+	# Point 95: roads and every paved area (yards, plazas, paths) as squares too, PAVE_MARGIN wider so no tuft at
+	# the verge leans over the kerb - the ray alone fails where paving lies flush with the ground.
 	for n: Node in root.find_children("*", "RoadTile", true, false):
 		var t: Vector3 = (n as Node3D).global_position
-		out.append(Rect2(t.x - RoadTile.HALF, t.z - RoadTile.HALF, RoadTile.TILE, RoadTile.TILE))
+		out.append(Rect2(t.x - RoadTile.HALF, t.z - RoadTile.HALF, RoadTile.TILE, RoadTile.TILE).grow(PAVE_MARGIN))
+	for n: Node in root.find_children("*", "PavedArea", true, false):
+		var pa := n as PavedArea
+		var box: AABB = pa.global_transform * AABB(Vector3(-pa.size.x / 2.0, 0, -pa.size.y / 2.0), Vector3(pa.size.x, 0.1, pa.size.y))
+		out.append(Rect2(box.position.x, box.position.z, box.size.x, box.size.z).grow(PAVE_MARGIN))
 	return out
+
+
+## Bare strip round roads and paved areas (a tuft is ~0.25 m wide).
+const PAVE_MARGIN: float = 0.25
 
 
 func _process(_delta: float) -> void:

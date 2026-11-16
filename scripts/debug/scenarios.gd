@@ -109,6 +109,7 @@ const LIST: Array = [
 	["fps_city", "Points 86-90: frame rate in the city centre (F3 overlay on)", "You stand on a city street between the towers, F3 overlay on. Before: ~21-32 FPS; now ~75-125. Look around and walk a block: the overlay shows FPS, NPCs active/asleep and draw calls."],
 	["fps_army", "Points 86-90: frame rate at the army base (F3 overlay on)", "You stand west of Fort Halden's apron with an army pass, F3 overlay on. Before: ~70 FPS; now ~120-140."],
 	["bunker_rooms", "Point 92: the bunker's lower level - free way from the stairs, every room furnished", "You stand at the foot of the bunker stairs (lower level, -14 m). Turn right: the lift moved 1 m west, so a 2 m lane runs past the shaft into the garage (the lift pit is only a 0.3 m step now). Walk on: the corridor leads to the workshop (lab hall: 6 workbenches with stools along the east wall, the 6 yellow machine spots in the middle), storage (shelves + cabinets on every wall), the bunk room (6 beds, lockers, a table) and the generator room at the end."],
+	["grass_roads", "Point 95: no grass through roads or pavements (the slums)", "You stand on the pavement of the slum loop road (Rosehill Park), right after loading. Look round: the road, the pavements and the paved yards are bare; grass only grows on the green verges and fields. Before, the first grass patches round where you spawned were made before the paving existed and grew straight through the concrete. The same holds on the whole map (self-test check grass_roads)."],
 	["jet_sound", "Point 91: the jets are rare and only heard near the base", "You stand on the pass road below the summit (south side, the mountain between you and the base), next to a car (F gets in). A jet lines up in ~25 s. Here you hear nothing or a dull rumble; drive up over the summit and down towards Fort Halden: the roar gets clear and louder the closer you get. Take-offs and landings now come every 3-5 minutes (about 4 min) instead of every minute."],
 	["army_airfield", "Fort Halden's airfield at noon, outside the south fence by the apron (god mode on), a pistol", "The airfield is part of the base now: soldiers chat on the apron, a patrol walks along the fence, marksmen on the towers. Climb or walk in anywhere on the airfield (not only at the gate): the alarm goes and they shoot."],
 	["army_life", "Fort Halden at noon, outside the south fence (god mode on), a pistol", "The base is manned: guards at the gate and the flag, soldiers chatting at the hangars and the helipads, two patrols of two walking their rounds, a marksman with a sniper rifle on every watchtower. Walk through the gate: the alarm goes, they shoot (AKs + snipers, harder than the police) and heavy reinforcements come."],
@@ -513,6 +514,9 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 200, [])
 			var bt3: Transform3D = Mountain.bunker_spot()
 			_place(me, bt3 * Vector3(3, -13.7, 3), bt3 * Vector3(-4, -13, 3), dn, 14.0)
+		"grass_roads":
+			_kit(me, 200, [])
+			_place(me, Vector3(-40, 0.3, -64.8), Vector3(-60, 0.5, -60), dn, 12.0)
 		"jet_sound":
 			_kit(me, 200, [])
 			Zones.allow_army(me, 3600.0)
