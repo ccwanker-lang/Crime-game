@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1556,6 +1556,81 @@ func _check_growing(world: Node3D) -> void:
 
 
 # --- Pedestrians -----------------------------------------------------------------
+
+## Point 87: NPC streaming - asleep beyond the despawn radius (no AI / physics / drawing, position kept), MID / FULL
+## nearer, hysteresis between spawn and despawn radius, mission NPCs always awake, deals first under the cap, and
+## nobody wakes up in view right in front of a player.
+func _check_streaming(world: Node3D) -> void:
+	var st: NpcStreamer = world.get_node_or_null("NpcStreamer") as NpcStreamer
+	_report(st != null and st.config != null, "the NPC streamer + its config (data/npc/streaming.tres)")
+	if st == null:
+		return
+	var cfg: NpcStreamConfig = st.config
+	var p: Player = WALKER.instantiate()
+	p.name = "1"
+	p.player_name = "Streamer"
+	world.get_node("Players").add_child(p)
+	var base := Vector3(-8, 0.3, -4.6)
+	p.global_position = base
+	p.rotation.y = 0.0  # looks -Z
+	await get_tree().physics_frame
+	var mk := func(off: Vector3, nm: String = "") -> Pedestrian:
+		var n: Pedestrian = world.call("_add_pedestrian", base + off, 0)
+		if nm != "":
+			n.name = nm
+		return n
+	var near: Pedestrian = mk.call(Vector3(0, 0, 20))  # behind the player
+	var mid: Pedestrian = mk.call(Vector3(0, 0, cfg.full_radius + 40.0))
+	var far: Pedestrian = mk.call(Vector3(cfg.despawn_radius + 80.0, 0, 0))
+	var mission: Pedestrian = mk.call(Vector3(-cfg.despawn_radius - 80.0, 0, 0), "MissionNPC_streamtest")
+	for n: Pedestrian in [near, mid, far, mission]:
+		n.set_physics_process(false)  # (stand still: the test moves the player, not them)
+	await get_tree().physics_frame
+	st.update_now()
+	var far_pos: Vector3 = far.global_position
+	_report(near.lod == Pedestrian.Lod.FULL and mid.lod == Pedestrian.Lod.MID and far.lod == Pedestrian.Lod.ASLEEP
+			and mission.lod != Pedestrian.Lod.ASLEEP,
+			"levels by distance: 20 m FULL (%d), %.0f m MID (%d), %.0f m asleep (%d), a mission NPC that far stays awake (%d)" % [
+			near.lod, cfg.full_radius + 40.0, mid.lod, cfg.despawn_radius + 80.0, far.lod, mission.lod])
+	_report(far.process_mode == Node.PROCESS_MODE_DISABLED and not far.visible and far.collision_layer == 0,
+			"asleep = no scripts, not drawn, no collision")
+	# Hysteresis: between the radii nothing changes.
+	p.global_position = far.global_position + Vector3(-(cfg.spawn_radius + cfg.despawn_radius) / 2.0, 0, 0)
+	st.update_now()
+	var still_asleep: bool = far.lod == Pedestrian.Lod.ASLEEP
+	p.global_position = far.global_position + Vector3(-cfg.spawn_radius + 30.0, 0, 0)
+	p.rotation.y = PI / 2.0  # looks -X: away from it
+	st.update_now()
+	_report(still_asleep and far.lod != Pedestrian.Lod.ASLEEP and far.global_position.is_equal_approx(far_pos) and far.visible
+			and far.process_mode != Node.PROCESS_MODE_DISABLED,
+			"hysteresis: asleep until within %.0f m, then it wakes where it was (%s)" % [cfg.spawn_radius, far.global_position.snapped(Vector3.ONE * 0.1)])
+	# No popping up in view: an asleep NPC 30 m right in front stays asleep while the player looks at it.
+	far.set_lod(Pedestrian.Lod.ASLEEP)
+	p.global_position = far.global_position + Vector3(0, 0, 30)
+	p.rotation.y = 0.0  # looks -Z, straight at it
+	st.update_now()
+	var stayed: bool = far.lod == Pedestrian.Lod.ASLEEP
+	p.rotation.y = PI  # turns round
+	st.update_now()
+	_report(stayed and far.lod != Pedestrian.Lod.ASLEEP, "nobody wakes up in view %.0f m in front of a player (only once he looks away)" % 30.0)
+	# The cap: deals first, then the nearest.
+	p.global_position = base
+	p.rotation.y = 0.0
+	mid.wants = 1
+	NpcStreamer.cap_override = 1
+	st.update_now()
+	var capped: bool = mid.lod != Pedestrian.Lod.ASLEEP and near.lod == Pedestrian.Lod.ASLEEP and mission.lod != Pedestrian.Lod.ASLEEP
+	NpcStreamer.cap_override = -1
+	mid.wants = 0
+	_report(capped, "max_active_npcs: over the cap the customer (deal) stays awake before a nearer NPC; mission NPCs always")
+	for n: Node in get_tree().get_nodes_in_group(&"npc"):
+		(n as Pedestrian).set_lod(Pedestrian.Lod.FULL)
+	for n: Pedestrian in [near, mid, far, mission]:
+		n.queue_free()
+	p.queue_free()
+	GameState.player_data.erase("Streamer")
+	await get_tree().physics_frame
+
 
 func _check_pedestrians(world: Node3D) -> void:
 	# (With --only this runs right after the bake: random points need the map's regions ready.)
@@ -3835,6 +3910,23 @@ func _check_airfield(world: Node3D) -> void:
 			for b: int in range(a + 1, ps.size()):
 				closest = minf(closest, ps[a].distance_to(ps[b]))
 	_report(closest > 15.0, "the jets never come closer than %.0f m to each other" % closest)
+	# Point 91: a movement (take-off or landing) every 3-5 minutes on the whole field, and the roar only near the base.
+	var moves: Array[float] = []
+	for i: int in af.jets.size():
+		var off: float = float(i) * af.cycle / af.jets.size()
+		for ev: String in ["lift_off", "touchdown"]:
+			moves.append(fposmod(af.event_time(i, ev) - off, af.cycle))
+	moves.sort()
+	var gaps: Array[float] = []
+	for k: int in moves.size():
+		gaps.append(fposmod(moves[(k + 1) % moves.size()] - moves[k], af.cycle))
+	var snd: AudioStreamPlayer3D = null
+	for c: Node in af.jets[0].get_children():
+		if c is AudioStreamPlayer3D:
+			snd = c
+	_report(gaps.min() >= 150.0 and gaps.max() <= 330.0 and af.sound_range <= 600.0,
+			"a take-off or landing every %.0f-%.0f s (cycle %.0f s); jet sound heard up to %.0f m%s" % [gaps.min(), gaps.max(),
+			af.cycle, af.sound_range, "" if snd == null else " (max_distance %.0f)" % snd.max_distance])
 	# Live: jet 1 a second before its take-off roll -> 4 s later it is rolling fast down the runway, burner on.
 	af.set_phase(0, af.event_time(0, "roll") - 1.0)
 	for k: int in 3:
@@ -3976,12 +4068,12 @@ func _check_bunker_inside(world: Node3D) -> void:
 	var veh: Vehicles = Vehicles.current
 	if veh == null:
 		return
-	var pc: PlayerCar = veh.host_spawn("sedan", 1, t * Vector3(-2, 0.5, 6.5), 0.0, "", 1.0)
+	var pc: PlayerCar = veh.host_spawn("sedan", 1, t * Vector3(BunkerComplex.LIFT.get_center().x, 0.5, 6.5), 0.0, "", 1.0)
 	await get_tree().create_timer(1.0).timeout
 	lift.interact()
 	await get_tree().create_timer(lift.travel_time + 2.0).timeout
 	var low: Vector3 = t.affine_inverse() * pc.global_position
-	var gate_down: bool = not space.intersect_ray(PhysicsRayQueryParameters3D.create(t * Vector3(-2, 0.8, 0.5), t * Vector3(-2, 0.8, 3), 1)).is_empty()
+	var gate_down: bool = not space.intersect_ray(PhysicsRayQueryParameters3D.create(t * Vector3(-3, 0.8, 0.5), t * Vector3(-3, 0.8, 3), 1)).is_empty()
 	lift.interact()
 	await get_tree().create_timer(lift.travel_time + 2.0).timeout
 	var high: Vector3 = t.affine_inverse() * pc.global_position
@@ -4052,6 +4144,61 @@ func _check_bunker_rooms(world: Node3D) -> void:
 		if Vector2(at.x, at.z).distance_to(Vector2((leg[2] as Vector3).x, (leg[2] as Vector3).z)) > 1.2:
 			stuck.append("%s (stopped at %s)" % [leg[0], at.snapped(Vector3.ONE * 0.1)])
 	_report(stuck.is_empty(), "a test walker gets through every bunker room (%d legs; stuck: %s)" % [legs.size(), ", ".join(stuck)])
+	# Point 92: every room reachable on foot in ONE walk (no teleports) from the foot of the stairs AND from the
+	# garage, with the lift both up and down.
+	var lift: BunkerLift = bunker.get_node("Lift") as BunkerLift
+	var stair_foot := Vector3(3, y, 3)
+	var garage := Vector3(-10, y, 8)
+	var hub: Array = [Vector3(1, y, 3), Vector3(1, y, 12.6), Vector3(-2, y, 15), Vector3(-2, y, 18)]
+	var from_garage: Array = [Vector3(-10, y, 13.5), Vector3(-2, y, 15), Vector3(-2, y, 18)]
+	var rooms_to: Dictionary = {
+		"garage": [Vector3(-2, y, 15), Vector3(-10, y, 13.5), Vector3(-10, y, 4)],
+		"lab": [Vector3(-2, y, 29), Vector3(12, y, 30)],
+		"storage": [Vector3(-2, y, 23), Vector3(-10, y, 23.5)],
+		"quarters": [Vector3(-2, y, 39), Vector3(-10, y, 39)],
+		"generator room": [Vector3(-2, y, 46), Vector3(-1, y, 52)],
+		"stairs": [Vector3(-2, y, 15), Vector3(1, y, 12.6), Vector3(1, y, 3), Vector3(3, y, 3)],
+	}
+	var unreached: Array[String] = []
+	for lift_down: bool in [false, true]:
+		if lift.is_open != lift_down:
+			lift.interact()
+			await get_tree().create_timer(lift.travel_time + 1.0).timeout
+		for start_name: String in ["stairs", "garage"]:
+			for room: String in rooms_to:
+				if room == start_name:
+					continue
+				var route: Array = (hub if start_name == "stairs" else from_garage).duplicate()
+				if room == "garage" or room == "stairs":
+					route = (hub if start_name == "stairs" else []).duplicate()
+					route = route.slice(0, 3) if start_name == "stairs" else [Vector3(-10, y, 13.5)]
+				route.append_array(rooms_to[room])
+				p.global_position = t * ((stair_foot if start_name == "stairs" else garage) + Vector3(0, 0.3, 0))
+				p.velocity = Vector3.ZERO
+				var ok: bool = true
+				var prev: Vector3 = stair_foot if start_name == "stairs" else garage
+				for wp: Vector3 in route:
+					p.auto_target = t * wp
+					var limit: float = prev.distance_to(wp) / 2.5 + 2.5
+					var waited: float = 0.0
+					while waited < limit:
+						await get_tree().create_timer(0.25).timeout
+						waited += 0.25
+						var at2: Vector3 = t.affine_inverse() * p.global_position
+						if Vector2(at2.x, at2.z).distance_to(Vector2(wp.x, wp.z)) < 0.8:
+							break
+					var at3: Vector3 = t.affine_inverse() * p.global_position
+					if Vector2(at3.x, at3.z).distance_to(Vector2(wp.x, wp.z)) > 1.2 or absf(at3.y - y) > 0.6:
+						unreached.append("%s -> %s (lift %s, stuck at %s on the way to %s)" % [start_name, room,
+								"down" if lift_down else "up", at3.snapped(Vector3.ONE * 0.1), wp])
+						ok = false
+						break
+					prev = wp
+				if not ok:
+					continue
+	if lift.is_open:
+		lift.interact()
+	_report(unreached.is_empty(), "every bunker room is reachable on foot from the stairs and from the garage, lift up and down (unreached: %s)" % "; ".join(unreached))
 	p.queue_free()
 	GameState.player_data.erase("Inspector")
 	await get_tree().physics_frame

@@ -48,6 +48,18 @@ func _ready() -> void:
 	info_label.text = "You are the %s" % role
 	_refresh_players()
 
+	# Point 87: NPC streaming / level of detail (every peer; off in the self-test unless a check turns it on).
+	var streamer := NpcStreamer.new()
+	streamer.name = "NpcStreamer"
+	if "--selftest" in OS.get_cmdline_user_args():
+		streamer.process_mode = Node.PROCESS_MODE_DISABLED
+	add_child(streamer)
+	var lod := WorldLod.new()  # point 90: draw distances + light fade
+	lod.name = "WorldLod"
+	add_child(lod)
+	_perf_overlay = PerfOverlay.new()  # point 86: F3 shows FPS / NPCs / draw calls too
+	_perf_overlay.name = "PerfOverlay"
+	add_child(_perf_overlay)
 	_set_debug_visible(false)
 	add_child(ScenarioMenu.new())  # F9
 	# Point 61: grass on every green plane, built round the camera (only where something is drawn).
@@ -83,6 +95,8 @@ func _ready() -> void:
 		add_child(preload("res://scripts/debug/viewmodel_preview.gd").new())
 	elif "--selftest" in OS.get_cmdline_user_args():
 		add_child(preload("res://scripts/debug/self_test.gd").new())
+	elif "--perf" in OS.get_cmdline_user_args():
+		add_child(preload("res://scripts/debug/perf_probe.gd").new())
 
 	if not multiplayer.is_server():
 		_request_snapshot.rpc_id(1)
@@ -630,9 +644,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 var _debug_visible: bool = false
+var _perf_overlay: PerfOverlay
 
 
 func _set_debug_visible(on: bool) -> void:
+	if _perf_overlay:
+		_perf_overlay.visible = on
 	for n: Node in get_tree().get_nodes_in_group("debug_only"):
 		(n as Node3D).visible = on
 

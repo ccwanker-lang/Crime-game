@@ -37,6 +37,10 @@ var net_pos: Vector3 = Vector3.ZERO
 var net_yaw: float = 0.0
 var net_speed: float = 0.0
 var net_steer: float = 0.0
+## Point 94: how much the tyres really slip (0-1): handbrake at speed, or turning harder than GRIP allows.
+## Set by whoever simulates (the driver), synced like the rest; VehicleSound screeches only on this.
+var net_skid: float = 0.0
+const GRIP: float = 14.0  # m/s² of sideways acceleration the tyres hold before they slide
 ## Peer id per seat (0 = free); seat 0 drives.
 var seats: PackedInt32Array = PackedInt32Array([0, 0, 0, 0]):
 	set(v):
@@ -280,7 +284,7 @@ func _physics_process(delta: float) -> void:
 		net_speed = speed
 		net_steer = steer
 		if not host:
-			_drive.rpc_id(1, net_pos, net_yaw, net_speed, net_steer)
+			_drive.rpc_id(1, net_pos, net_yaw, net_speed, net_steer, net_skid)
 	elif host and driver_peer() == 0:
 		_simulate(delta, Vector3(0, 0, 0.0))  # rolls out and stops
 		net_pos = global_position
@@ -340,6 +344,11 @@ func _simulate(delta: float, input: Vector3) -> void:
 	steer = move_toward(steer, clampf(input.x, -1.0, 1.0) * lock, STEER_RATE * delta)
 	var base: float = float(ProcCar.SPECS[int(spec["kind"])]["base"])
 	rotation.y += speed / base * tan(steer) * delta
+	var lateral: float = speed * speed / base * absf(tan(steer))
+	var skid: float = clampf((lateral - GRIP) / 8.0, 0.0, 1.0)
+	if input.z > 0.5 and absf(speed) > 3.0:
+		skid = maxf(skid, clampf(absf(speed) / 12.0, 0.4, 1.0))
+	net_skid = skid
 	var fwd: Vector3 = -global_transform.basis.z
 	velocity = Vector3(fwd.x, 0, fwd.z) * speed
 	var before: Vector3 = global_position
@@ -375,7 +384,7 @@ func _animate_wheels(delta: float) -> void:
 
 ## Driver -> host, every physics frame.
 @rpc("any_peer", "call_remote", "unreliable_ordered")
-func _drive(pos: Vector3, yaw: float, spd: float, st: float) -> void:
+func _drive(pos: Vector3, yaw: float, spd: float, st: float, skid: float = 0.0) -> void:
 	if not multiplayer.is_server() or multiplayer.get_remote_sender_id() != driver_peer():
 		return
 	var now: int = Time.get_ticks_msec()
@@ -389,6 +398,7 @@ func _drive(pos: Vector3, yaw: float, spd: float, st: float) -> void:
 	net_yaw = yaw
 	net_speed = clampf(spd, -REVERSE_MAX, float(spec["max_speed"]))
 	net_steer = st
+	net_skid = clampf(skid, 0.0, 1.0)
 
 
 @rpc("authority", "call_remote", "reliable")

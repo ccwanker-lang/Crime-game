@@ -4,8 +4,10 @@ extends Node3D
 ## to every traffic Car (group "cars") and PlayerCar (group "player_cars"), so the car scripts stay untouched.
 ## Everything comes from the vehicle's own movement (works the same on the host and on clients, which only get
 ## smoothed positions): speed -> a simulated gearbox -> rpm -> pitch of two engine loops (engine_on = under load,
-## engine_off = coasting / idle), crossfaded by acceleration. Tyres screech on hard cornering or hard braking;
-## brakes squeal now and then when a car stops. Only runs within HEAR_RANGE of the camera.
+## engine_off = coasting / idle), crossfaded by acceleration. Point 94 (A, user feedback "geen piepende banden in
+## bochten"): tyres screech ONLY on a real slide - a player car's `net_skid` (handbrake, or turning past its grip) -
+## or a panicking traffic car's emergency stop; never just from taking a bend. Brakes squeal now and then when a car
+## stops. Only runs within HEAR_RANGE of the camera.
 
 const ENGINE_ON := preload("res://assets/audio/vehicles/engine_on.ogg")
 const ENGINE_OFF := preload("res://assets/audio/vehicles/engine_off.ogg")
@@ -125,8 +127,13 @@ func _physics_process(delta: float) -> void:
 	gear = int(gr[0])
 	rpm = lerpf(rpm, float(gr[1]), clampf(delta * 7.0, 0.0, 1.0))
 	engine_load = clampf(_accel / 2.5, 0.0, 1.0) if speed > 0.4 else 0.0
-	var side: float = absf(_yaw_rate) * speed
-	slide = clampf(maxf((side - SLIDE_ACCEL) / 6.0, (-_accel - SLIDE_BRAKE) / 6.0 if speed > 4.0 else 0.0), 0.0, 1.0)
+	var skid: Variant = vehicle.get("net_skid")
+	if skid != null:  # a player car (or a test stand-in): its own slip value
+		slide = lerpf(slide, float(skid), clampf(delta * 10.0, 0.0, 1.0))
+	elif float(vehicle.get("panic") if vehicle.get("panic") != null else 0.0) > 0.0 and speed > 4.0:
+		slide = clampf((-_accel - SLIDE_BRAKE) / 6.0, 0.0, 1.0)  # an emergency stop in a panic
+	else:
+		slide = 0.0
 	running = engine_on()
 	_active = _near()
 	if not _active:

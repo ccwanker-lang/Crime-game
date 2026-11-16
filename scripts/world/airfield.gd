@@ -6,8 +6,18 @@ extends Node3D
 ## Decoration, local on every peer: the timeline is a pure function of a shared clock (the system time), so all peers
 ## see the jets at (nearly) the same spot without any network traffic. `clock_offset` shifts it (tests/scenarios).
 
-## Seconds every jet's cycle takes; jets are spread evenly over it (a take-off or landing every ~cycle/2n s).
-@export var cycle: float = 330.0
+## Point 91: seconds between two movements (a take-off or a landing) on the whole field; 180-300 = one every
+## 3-5 minutes. Every jet's cycle = event_every * 2 * jets; the jets are spread evenly over it and each one lands
+## event_every s after its take-off, so the movements come evenly spaced.
+@export var event_every: float = 240.0
+## The jet sound: full volume within `sound_unit` m, gone beyond `sound_range` m (only audible near the base,
+## e.g. once you come over the pass towards it).
+@export var sound_unit: float = 30.0
+@export var sound_range: float = 650.0
+## With rock (or any world geometry) between the camera and the jet the roar drops by this much and gets muffled.
+@export var blocked_db: float = -24.0
+## Seconds every jet's cycle takes (set from event_every in _ready).
+var cycle: float = 1440.0
 @export var runway_x0: float = -20.0
 @export var runway_x1: float = 230.0
 @export var runway_z: float = -425.0
@@ -43,6 +53,7 @@ func _ready() -> void:
 	current = self
 	var hangars: Array[Node] = get_parent().find_children("JetHangar*", "JetHangar", false, false)
 	hangars.sort_custom(func(a: Node, b: Node) -> bool: return (a as Node3D).global_position.x < (b as Node3D).global_position.x)
+	cycle = maxf(event_every * 2.0 * maxf(hangars.size(), 1), 330.0)
 	for h: Node in hangars:
 		var jet := ProcJet.new()
 		jet.name = "Jet_%s" % h.name
@@ -71,19 +82,40 @@ func _ready() -> void:
 			if stream is AudioStreamOggVorbis:
 				(stream as AudioStreamOggVorbis).loop = true
 			snd.stream = stream
-			snd.unit_size = 40.0
-			snd.max_distance = 1400.0
+			snd.unit_size = sound_unit
+			snd.max_distance = sound_range
 			snd.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
 			snd.position = Vector3(0, 2, 8)
 			jet.add_child(snd)
 			snd.play()
 		_sounds.append(snd)
+	_blocked.resize(jets.size())
+	_occ_t.resize(jets.size())
 	_process(0.0)
 
 
 func _exit_tree() -> void:
 	if current == self:
 		current = null
+
+
+## Per jet: is there rock between the camera and it? (A ray every OCCLUSION_EVERY s.)
+var _blocked: Array[bool] = []
+var _occ_t: Array[float] = []
+const OCCLUSION_EVERY: float = 0.3
+
+
+func _occlusion_check(i: int, from: Vector3, to: Vector3) -> void:
+	while _blocked.size() <= i:
+		_blocked.append(false)
+		_occ_t.append(0.0)
+	var now: float = Time.get_ticks_msec() / 1000.0
+	if now - _occ_t[i] < OCCLUSION_EVERY:
+		return
+	_occ_t[i] = now
+	var q := PhysicsRayQueryParameters3D.create(from, to, 1)
+	q.exclude = [_bodies[i].get_rid()]
+	_blocked[i] = not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 static func clock() -> float:
@@ -121,8 +153,16 @@ func _process(_delta: float) -> void:
 		_bodies[i].collision_layer = 2 if solid else 0
 		var snd: AudioStreamPlayer3D = _sounds[i]
 		if snd.stream:
+			# Out of earshot (or hidden): pause the stream instead of mixing it silently.
+			var cam: Camera3D = get_viewport().get_camera_3d()
+			var far_off: bool = not s["visible"] or cam == null 					or cam.global_position.distance_to(s["pos"]) > sound_range + 50.0
+			if snd.stream_paused != far_off:
+				snd.stream_paused = far_off
+			if not far_off:
+				_occlusion_check(i, cam.global_position, (s["pos"] as Vector3) + Vector3.UP * 3.0)
 			var speed: float = s["speed"]
-			snd.volume_db = -30.0 if not s["visible"] else lerpf(-12.0, 6.0, clampf(speed / 90.0, 0.0, 1.0)) + (4.0 if s["burner"] else 0.0)
+			snd.volume_db = -30.0 if not s["visible"] else lerpf(-12.0, 6.0, clampf(speed / 90.0, 0.0, 1.0)) + (4.0 if s["burner"] else 0.0) 					+ (blocked_db if _blocked[i] else 0.0)
+			snd.attenuation_filter_cutoff_hz = 900.0 if _blocked[i] else 5000.0
 			snd.pitch_scale = lerpf(0.7, 1.25, clampf(speed / 120.0, 0.0, 1.0))
 
 
@@ -327,7 +367,9 @@ func _build_track(hangar: JetHangar) -> Dictionary:
 	_mark("gone")
 	var out_end: Vector3 = _last()
 	_push(out_end, 0.0, east, 0.0, 0, 0.05)
-	_push(out_end, 0.0, east, 0.0, 0, 50.0)  # away (hidden) for a while
+	# Away (hidden) until the landing comes event_every s after the take-off (approach time estimated).
+	var flown: float = _now() - float((_b["events"] as Dictionary).get("lift_off", _now()))
+	_push(out_end, 0.0, east, 0.0, 0, maxf(20.0, event_every - flown - APPROACH / ((TOUCHDOWN_SPEED + 95.0) / 2.0)))
 	# Approach from the west along the runway line, touchdown 15 m past the threshold.
 	var x_td: float = runway_x0 + 15.0
 	var glide: PackedFloat32Array = _profile(x_td, -1.0, APPROACH, func(dist: float) -> float:

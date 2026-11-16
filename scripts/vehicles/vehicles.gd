@@ -60,7 +60,7 @@ func _create(data: Dictionary) -> Node:
 	var sync := MultiplayerSynchronizer.new()
 	sync.name = "Sync"
 	var cfg := SceneReplicationConfig.new()
-	for prop: String in [":net_pos", ":net_yaw", ":net_speed", ":net_steer"]:
+	for prop: String in [":net_pos", ":net_yaw", ":net_speed", ":net_steer", ":net_skid"]:
 		cfg.add_property(NodePath("." + prop))
 		cfg.property_set_replication_mode(NodePath("." + prop), SceneReplicationConfig.REPLICATION_MODE_ALWAYS)
 	for prop: String in [":seats", ":fuel"]:

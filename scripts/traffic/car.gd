@@ -270,7 +270,23 @@ func _build_police_gear() -> void:
 	siren = siren
 
 
+## Point 87: far from every player (NpcStreamer sets `far`) the car thinks every FAR_TICK_EVERY physics ticks
+## with the summed delta; clients don't move cars they don't draw.
+const FAR_TICK_EVERY: int = 3
+var _far_tick: int = 0
+var _far_delta: float = 0.0
+
+
 func _physics_process(delta: float) -> void:
+	if far and _uturn.is_empty():
+		_far_delta += delta
+		_far_tick += 1
+		if _far_tick % FAR_TICK_EVERY != 0:
+			return
+		delta = _far_delta
+	_far_delta = 0.0
+	if not _is_host() and not visible:
+		return
 	if not _is_host():
 		if global_position.distance_to(net_pos) > 6.0:
 			global_position = net_pos
@@ -594,7 +610,24 @@ func _place_on(route: TrafficRoute) -> void:
 
 ## Host: what is in the lane ahead? Checks SENSE_SEGMENTS boxes following the
 ## route from the front bumper on; returns [what ("car"/"person"/""), segment].
+## Point 87: NpcStreamer marks cars far from every player; they sense the lane only every FAR_SENSE_EVERY ticks.
+const FAR_SENSE_EVERY: int = 2
+var far: bool = false
+var _sense_tick: int = 0
+var _sense_cache: Array = []
+
+
 func _sense(route: TrafficRoute) -> Array:
+	if far:
+		_sense_tick += 1
+		if _sense_tick % FAR_SENSE_EVERY != 0 and not _sense_cache.is_empty():
+			return _sense_cache
+		_sense_cache = _sense_now(route)
+		return _sense_cache
+	return _sense_now(route)
+
+
+func _sense_now(route: TrafficRoute) -> Array:
 	var half_len: float = ProcCar.collision_size(kind).z / 2.0
 	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
 	var q := PhysicsShapeQueryParameters3D.new()

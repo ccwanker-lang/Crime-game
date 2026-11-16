@@ -216,3 +216,7 @@ phone={
 [gui]
 
 theme/custom="res://assets/ui/game_theme.tres"
+
+[rendering]
+
+occlusion_culling/use_occlusion_culling=true

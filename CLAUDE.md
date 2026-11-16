@@ -303,7 +303,7 @@ Godot console exe:
   Scenario shooting_range, self-test check range.
 - Car sound (Roadmap 66): `Ambience` autoload attaches `VehicleSound` (engine loops by simulated rpm `rpm_for`, tyre
   screech, brake squeal; sounds from gen_engine_sounds.py) to every Car / PlayerCar. Check engine_sound, scenario
-  car_sounds. Run over (64): `PlayerCar.impact_speed` (any side), check run_over. Standing on cars (65):
+  car_sounds; point 94: screech only on `PlayerCar.net_skid` (handbrake / past GRIP) or a panicking traffic stop. Run over (64): `PlayerCar.impact_speed` (any side), check run_over. Standing on cars (65):
   `CarShapes.add` (body + cabin boxes), check car_roof.
 - Dogs (Roadmap 67): `Dog` (scripts/npc/dog.gd, layer 3, World/Dogs/Dog_<owner>, made by `Ambience` on every peer,
   host drives + `_net` RPC), `Dog.of(npc)`, `host_fetch`, `Dog.auto_fetch`, states FOLLOW/FETCH/MOURN/FLEE/DEAD,
@@ -321,6 +321,9 @@ Godot console exe:
   `host_set_locked`), `BunkerLift` (Lift, open = down, `is_up`/`is_down`) + `BunkerLiftButton`s, `BunkerProperty`
   (Property "bunker", `rooms` AABBs, Furniture node), markers LabSpot1-6/StorageSpot1-4/BedSpot1-4/GarageSpot1-3/
   ControlSpot. `Mountain.bunker_spot()`. Scenarios bunker, bunker_inside; checks bunker, bunker_inside; shots F0-F6.
+  Point 92: LIFT x -6..0 (2 m lane at the stair foot), pit = BunkerLift.THICK, `_build_workbenches` (Workbench1-6
+  markers, body Workbenches under Furniture); check bunker_rooms walks stairs/garage -> every room; scenario
+  bunker_rooms; shots F9-FC.
 - Bunker fixes (82-84): lamps in `_build_lights` ([top pos, range, wall normal]), `EXTRA_LAMPS`/`EXTRA_LEGS`, room
   "generator" (`_build_generator_room`, body Machines, marker GeneratorSpot); terrain collision hole under the hall
   (`Mountain._collision_heights`, NaN = no collision). Check bunker_rooms; scenarios bunker_lamps/generator/garage.
@@ -360,10 +363,20 @@ Godot console exe:
   (scripts/procgen/jet_hangar.gd, door -Z, `jet_spot()`), control tower + OpsBuilding. `Airfield` (scripts/world/
   airfield.gd, node ArmyBase/Airfield, `Airfield.current`): one `ProcJet` (scripts/procgen/proc_jet.gd, `gear_down`,
   `burner`) per hangar, precomputed `tracks`, `sample(i, t)`, `phase(i)`, `set_phase(i, t)`, `event_time(i, name)`
-  (taxi_out/line_up/roll/lift_off/gone/appear/touchdown/exit/parked), static `clock_offset` / `terrain_at`. Local per
+  (taxi_out/line_up/roll/lift_off/gone/appear/touchdown/exit/parked), static `clock_offset` / `terrain_at`. Point 91:
+  `event_every` (s between two movements; cycle derived), `sound_range`, `blocked_db` (camera->jet ray = muffled);
+  scenario jet_sound. Local per
   peer from the system clock. Sound assets/audio/vehicles/jet_loop.ogg (gen_jet_sound.py). ArmyPost*/ArmyPatrol*
   markers for B's soldiers. Scenario airfield, check airfield, shots J0-J4.
-- Zones (B part 18): `Zones` autoload (`zone_at`, army_on/npcs_on), `Soldier` (PoliceOfficer subclass, group soldiers,
+- Performance (points 86/87/90): `--perf [--perf-spots=docks,city,army_base,village] [--perf-quick] [--perf-abl=a,b]
+  [--perf-spikes] [--npc-cap=N]` (window, port 7790) = scripts/debug/perf_probe.gd: FPS / 1% low / ms / draws per spot +
+  A-B-A ablations -> `screenshots/perf_report.txt`. `NpcStreamer` (World/NpcStreamer, every peer, config
+  `NpcStreamConfig` data/npc/streaming.tres): `Pedestrian.lod` FULL / MID / ASLEEP via `set_lod` (asleep = process
+  off, layer 0, hidden; wakes where it was), `pinned(npc)` (MissionNPC_*, meta mission, officer target/foe, Crow
+  sent_target), `cap_override`, `update_now()`; traffic `Car.far`. Off in the self-test (check streaming drives it).
+  `WorldLod` (World/WorldLod): visibility ranges + light fade + `Occluder` boxes in closed Building/Tower. F3 also
+  toggles `PerfOverlay`. Scenarios fps_docks / fps_city / fps_army.
+- Zones (B part 18): `Zones` autoload (`zone_at`, army_on/npcs_on, `ARMY_RECT` = the whole fence incl. the airfield (part 23)), `Soldier` (PoliceOfficer subclass, group soldiers,
   `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
   `make_zone_customer`, `PRICE`), bunker sale + door lock (`Zones.bunker`, `bunker_door()`, `BUNKER_PRICE`,
   `bunker_lock_forced`), `Raids.RAID_FREE`. Scenarios army_gate, slum_life, city_customers, bunker_lab; check zones.

@@ -233,9 +233,9 @@ for row in range(X.shape[0]):
     hrow = np.where(under, np.minimum(hrow, rh[near] - 0.12), hrow)
     height[row] = hrow
 height = np.maximum(height, -0.05)
-# The bunker's lift shaft + stairwell (BunkerComplex LIFT/STAIRS: local x -5..6, z 2..12 -> world z -249..-260,
+# The bunker's lift shaft + stairwell (BunkerComplex LIFT/STAIRS: local x -6..6, z 2..12 -> world z -248..-260,
 # x -96..-86) go 14 m down: no terrain in them (the slopes at the edge cells lie under the hall's floor).
-shaft = (X >= PAD_X1 + 2.0) & (X <= PAD_X1 + 12.0) & (Z >= SIDE_Z - 6.0) & (Z <= SIDE_Z + 5.0)
+shaft = (X >= PAD_X1 + 2.0) & (X <= PAD_X1 + 12.0) & (Z >= SIDE_Z - 6.0) & (Z <= SIDE_Z + 6.0)
 height = np.where(shaft, pad_h - 17.0, height)
 
 # ------------------------------------------------------------------ props

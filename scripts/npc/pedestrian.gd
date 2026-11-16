@@ -163,6 +163,51 @@ const CUSTOMER_NAMES: Array[String] = ["Kevin", "Jens", "Lotte", "Sam", "Dylan",
 		"Femke", "Robbe", "Elke", "Senne", "Jana", "Milan", "Lisa"]
 
 
+# --- Point 87: level of detail / streaming (set by World/NpcStreamer) -------------------------------------
+enum Lod { FULL, MID, ASLEEP }
+## Physics ticks per AI step at Lod.MID (the step moves `MID_STEP` x as far).
+const MID_STEP: int = 3
+var lod: int = Lod.FULL
+var _lod_tick: int = 0
+var _lod_saved_layer: int = -1
+## Host: standing still on the floor -> no move_and_slide until it moves again (re-checked now and then).
+var _resting: int = 0
+
+
+## NpcStreamer: FULL = everything; MID = AI/physics every MID_STEP ticks, animation updated by the streamer;
+## ASLEEP = no scripts, physics, collision or drawing (position + state stay: it wakes up where it was).
+func set_lod(l: int) -> void:
+	if l == lod or stationary:
+		return
+	var host: bool = _is_host()
+	if l == Lod.ASLEEP:
+		if host:
+			process_mode = Node.PROCESS_MODE_DISABLED
+			_lod_saved_layer = collision_layer
+			collision_layer = 0
+		else:
+			set_physics_process(false)
+		visible = false
+	elif lod == Lod.ASLEEP:
+		if host:
+			process_mode = Node.PROCESS_MODE_INHERIT
+			if _lod_saved_layer >= 0:
+				collision_layer = _lod_saved_layer
+		else:
+			set_physics_process(true)
+		visible = true
+		_resting = 0
+	if _anim:
+		_anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL if l != Lod.FULL 				else AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_IDLE
+	lod = l
+
+
+## NpcStreamer (MID): advance the animation by hand at a low rate.
+func lod_animate(delta: float) -> void:
+	if _anim and lod == Lod.MID:
+		_anim.advance(delta)
+
+
 func _ready() -> void:
 	if stationary:
 		$Sync.free()
@@ -336,6 +381,10 @@ func _physics_process(delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, net_yaw, minf(1.0, 10.0 * delta))
 		return
 
+	if lod == Lod.MID and not dead:
+		_lod_tick += 1
+		if _lod_tick % MID_STEP != 0:
+			return
 	if dead:
 		_on_velocity_computed(Vector3.ZERO)  # just gravity
 		net_pos = global_position
@@ -401,7 +450,13 @@ func _physics_process(delta: float) -> void:
 					_unstick()
 					_finish_move(false)
 	else:
+		# Standing still: once it rests on the floor, skip move_and_slide (re-check every ~2 s).
+		if _resting > 0 and is_on_floor():
+			_resting -= 1
+			if _resting > 0:
+				return
 		_on_velocity_computed(Vector3.ZERO)
+		_resting = 120 if is_on_floor() else 0
 	net_pos = global_position
 	net_yaw = rotation.y
 
@@ -410,6 +465,10 @@ func _on_velocity_computed(safe: Vector3) -> void:
 	if _sitting or not is_inside_tree():
 		return
 	var delta: float = get_physics_process_delta_time()
+	if lod == Lod.MID and not dead:
+		# One step stands for MID_STEP physics ticks.
+		safe *= MID_STEP
+		delta *= MID_STEP
 	velocity.x = safe.x
 	velocity.z = safe.z
 	if is_on_floor():

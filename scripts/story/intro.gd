@@ -87,7 +87,7 @@ func _exit_tree() -> void:
 
 static func _test_run() -> bool:
 	var args: PackedStringArray = OS.get_cmdline_user_args()
-	for flag: String in ["--selftest", "--netcheck", "--screenshot", "--vmpreview", "--style-shots", "--no-intro"]:
+	for flag: String in ["--selftest", "--netcheck", "--screenshot", "--vmpreview", "--style-shots", "--no-intro", "--perf"]:
 		if flag in args:
 			return true
 	var sm: Node = Engine.get_main_loop().root.get_node_or_null("/root/SaveManager") if Engine.get_main_loop() else null

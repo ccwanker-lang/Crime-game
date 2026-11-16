@@ -28,6 +28,12 @@ static func run(t: Node, world: Node3D) -> void:
 
 	# A stand-in car we drive by hand, with a camera next to it.
 	var fake := Node3D.new()
+	var fs := GDScript.new()  # a stand-in with the player car's slip value (point 94)
+	fs.source_code = "extends Node3D
+var net_skid: float = 0.0
+"
+	fs.reload()
+	fake.set_script(fs)
 	fake.name = "SoundTestCar"
 	world.add_child(fake)
 	fake.global_position = Vector3(0, 30, 0)  # (in the air: nothing in the way)
@@ -48,14 +54,24 @@ static func run(t: Node, world: Node3D) -> void:
 	report.call(s.speed > 10.0 and s.gear == 3 and s.engine_load > 0.5 and s.is_playing() and s._on.pitch_scale > 1.5,
 			"accelerating at %.1f m/s: gear %d, %d rpm, load %.2f, pitch %.2f, playing %s" % [s.speed, s.gear, s.rpm,
 			s.engine_load, s._on.pitch_scale, s.is_playing()])
-	# A hard turn at speed: the tyres screech.
+	# Point 94: a bend at speed without a slip: no screech (only the engine).
 	for i: int in 30:
 		await tree.physics_frame
 		var dt: float = 1.0 / Engine.physics_ticks_per_second
 		fake.rotation.y += 1.2 * dt
 		fake.global_position += -fake.global_basis.z * v * dt
 		cam.global_position = fake.global_position + Vector3(6, 2, 0)
-	report.call(s.slide > 0.2 and s._tyres.playing, "a hard turn at %.0f m/s: tyres screech (slide %.2f)" % [s.speed, s.slide])
+	report.call(s.slide < 0.05 and not s._tyres.playing and s.is_playing(),
+			"a bend at %.0f m/s without slipping: engine only, no tyre screech (slide %.2f)" % [s.speed, s.slide])
+	# A real slide (handbrake / past the grip): the tyres screech.
+	fake.set("net_skid", 0.8)
+	for i: int in 20:
+		await tree.physics_frame
+		var dt: float = 1.0 / Engine.physics_ticks_per_second
+		fake.global_position += -fake.global_basis.z * v * dt
+		cam.global_position = fake.global_position + Vector3(6, 2, 0)
+	report.call(s.slide > 0.2 and s._tyres.playing, "a real slide (handbrake): tyres screech (slide %.2f)" % s.slide)
+	fake.set("net_skid", 0.0)
 	# Far from the camera: silent.
 	cam.global_position = fake.global_position + Vector3(150, 0, 0)
 	for i: int in 3:

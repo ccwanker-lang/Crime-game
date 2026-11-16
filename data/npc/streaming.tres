@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="NpcStreamConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/npc_stream_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+spawn_radius = 250.0
+despawn_radius = 300.0
+full_radius = 45.0
+max_active_npcs = 60
+no_pop_radius = 60.0
+interval = 0.25
+mid_anim_hz = 10.0
+anim_radius = 95.0

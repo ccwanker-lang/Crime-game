@@ -16,7 +16,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const SCENARIO_PATH: String = "user://scenario_test.json"
 const SAVE_VERSION: int = 2
 const AUTOSAVE_INTERVAL: float = 120.0
-const TEST_FLAGS: Array[String] = ["--selftest", "--screenshot", "--netcheck", "--vmpreview"]
+const TEST_FLAGS: Array[String] = ["--selftest", "--screenshot", "--netcheck", "--vmpreview", "--perf"]
 
 var enabled: bool = true
 var save_path: String = SAVE_PATH

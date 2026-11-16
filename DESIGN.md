@@ -512,6 +512,48 @@ User feedback after testing (2026-11-15, second round):
       tower + ops building, windsock, 6 watchtowers; the vehicle hangars moved west; `Airfield` flies every jet on a
       330 s cycle (taxi, take-off east over the mountains, approach from the west, landing, back into the hangar),
       jet sound; ArmyPost*/ArmyPatrol* markers for B's soldiers; scenario airfield, check airfield, shots J0-J4)
+Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar met F9"; FPS first):
+  86. FPS measurement: `--perf` probe (real hosted game, 3+ spots: docks, city centre, army base; baseline + A-B-A
+      ablation per subsystem and per NPC class), top 5 culprits with numbers, before/after report; F3 debug overlay
+      (FPS, active NPCs, draw calls) - DONE (F3 = marker labels + PerfOverlay; scenarios fps_docks/fps_city/fps_army)
+  87. NPC streaming: ambient NPCs only exist within a radius round EVERY player (host decides, union of players):
+      spawn 250 m / despawn 300 m (hysteresis, configurable); outside = light data (position, state) so they come
+      back where they were; never spawn in view close to a player; mission NPCs + guards of an active mission always
+      stay; `max_active_npcs` cap (nearest first, deals/missions first) - DONE (NpcStreamer + Pedestrian.lod
+      FULL/MID/ASLEEP, data/npc/streaming.tres; self-test check streaming)
+  88. NPC day rhythm: same total, but each ambient NPC belongs to a time block (morning 09-12 30%, afternoon 12-16 30%,
+      evening 16-22 30%, night 22-09 10%; configurable); outside its block it is "inside" its own house (data only):
+      walks to its front door at the end of its block and comes out of it at the start; home deliveries (a customer
+      inside can still deal: at the door it spawns, steps out, deals, goes back in); fixed NPCs (shopkeepers, Marco,
+      Old Joe, soldiers on post, mission NPCs) keep their own role; host decides, clients get the state - todo
+  89. `npc_bench` scenario (F9): raises the number of active NPCs step by step (20, 40, 60, 80 ...) at city centre,
+      slums and docks, 20 s per step, mean FPS + 1% low; highest count with 1% low > 55 FPS (with margin) =
+      `max_active_npcs`; report the table - todo
+  90. World streaming: visibility_range_end on small props (~80 m), trees (~250 m), lamps (~100 m), big buildings
+      stay as silhouettes; occlusion culling (OccluderInstance3D for buildings + mountains); repeated objects (trees,
+      lamp posts, fences, grass) as MultiMeshInstance3D; lights: only the nearest ~16 cast shadows, the rest without or
+      off; far things process_mode DISABLED; outdoor world in chunks (~200x200 m): beyond ~600 m only low-poly or
+      nothing, no scripts/physics/lamps; interiors (businesses, bunker, apartments, shops, hangars) as separate scenes
+      loaded threaded within ~40 m of the door, unloaded far away; co-op: client loads round itself, host round all
+      players. Measure before/after at the same 3 spots (mean FPS, 1% low, draw calls, active nodes). Goal: stable
+      60 FPS on the user's PC (RTX 5060 Ti) - PART 1 DONE (WorldLod: visibility ranges props 80 / medium 160 /
+      facade parts 220 / trees 250 / lamps 100 m, light distance fade 70-95 m, box occluders in every closed
+      building/tower + occlusion culling on, sun shadows 2 splits to 90 m, far traffic cars think every 3rd tick and
+      are not drawn beyond 300 m); todo: chunks, threaded interiors, MultiMesh
+  91. Jets: 3D positional sound (audible only once you come over the mountain towards the base, louder closer); far
+      fewer flights: about 1 take-off or landing per 3-5 minutes, configurable - DONE (Airfield.event_every 240 s,
+      sound_range 650 m, muffled behind rock; scenario jet_sound)
+  92. Bunker: the lift blocks the way at the foot of the stairs - move it so the passage is free; every room reachable
+      and visible (storage with cabinets, the big workshop with the 6 work stations, bunk room with beds, generator
+      room); self-test: every room on foot from the stairs AND from the garage - DONE (LIFT x -6..0, pit 0.3 m, 6
+      workbenches, cabinets, 6 beds; scenario bunker_rooms; check bunker_rooms)
+  93. Prison: a real complex (cell blocks with bars + cell doors, corridors, a yard, watchtowers, canteen, visiting
+      room, gate with a boom) - the story's start - todo
+  94. Car sound: no tyre squeal in bends; only the engine (with throttle + rpm); squeal only on a real slide or the
+      handbrake - DONE (PlayerCar.net_skid; scenario car_sounds / driving)
+  95. No grass through roads and pavements anywhere on the map (slums now) + a self-test - todo
+  96. Three more gas stations (city, by the prison, the docks): same as QuickFuel, reachable by car, on the roads - todo
+  97. LATER (not now): at 5 stars the army leaves the base and hunts the 5-star player - documented only
 Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
   - Zones: Fort Halden soldiers (gate warning, shot on sight inside, alarm + reinforcements, no police stars), slum
     residents (cheap customers), city office workers (rich customers), the bunker for sale (EUR 250,000, rank 5,
@@ -1217,6 +1259,70 @@ Choices made while working autonomously (what + why).
   at (102, 84); North Road no longer dead-ends at x 71: it runs on to (90, -48) and down Orchard Lane (x 90) to a T on
   Main Road. Two new lane routes (Southfield loop, north-east loop), city.json "cars" 8. Green kept: the plaza strip
   before the city, a park strip x 75..95 west of the highway and a tree belt x 112..138 east of it.
+- B part 23 (merged 2026-11-16): `Zones.ARMY_RECT` = the whole new fence (x -104..236, z -442..-350), so walking
+  onto the airfield anywhere sets off the alarm; the soldiers use A's ArmyPost* / ArmyPatrol* markers (30 incl. a
+  marksman per watchtower). One rectangle is enough: the fence is one rectangle again.
+- Point 86 (FPS measurement, 2026-11-16): `--perf` (scripts/debug/perf_probe.gd) hosts a real game in a window
+  (1920x1080, vsync off, RTX 5060 Ti), stands at docks / city / army base / village, measures 6 s (mean FPS, 1% low,
+  process / physics / render-cpu / gpu ms, draw calls) and then switches subsystems off one by one, each A-B-A (a
+  fresh baseline before and after, 3 s windows) because NPCs walking in and out made single baselines drift 30%.
+  `--perf-abl=a,b` limits the ablations, `--perf-spikes` counts hitches (> 25 ms) with every autoload / World child
+  off in turn, `--npc-cap=N` overrides max_active_npcs. BEFORE: docks 14-23 FPS (1% low 10-17), city 21-27, village
+  27, army base 71; the game was CPU-bound (gpu 5-8 ms). Top 5: (1) NPC AI + physics of ~146 NPCs that ran map-wide
+  all the time (133 Pedestrians, mostly B's residents / office workers): -36..43 ms/frame at the docks, -21 ms in
+  the city; (2) the sun's 4 shadow cascades to 140 m: 12900 -> 4500 draws, -13..18 ms; (3) no draw distances
+  (everything drawn to the horizon): -8..16 ms; (4) point/spot lights everywhere: -8..15 ms; (5) the traffic cars
+  (lane sensing every tick): -8..15 ms. Grass, jets, HUD, environment effects and the terrain were each < 1-4 ms. F3
+  now also shows `PerfOverlay` (FPS + worst frame, NPCs active / asleep / total, draw calls, primitives, nodes,
+  script + physics ms).
+- Point 87 (NPC streaming): NOT despawn + respawn from data, but sleep: a node beyond 300 m gets process_mode
+  DISABLED (host; clients only stop their smoothing), collision layer 0 and visible = false. Why: ten different
+  spawners (World, Zones' residents, CityLife, police, Crows, park, soldiers, staff views; half of them session B's)
+  would each need a data-only form plus a respawn path, and every reference held to an NPC (deals, missions, phone
+  texts, wanted, territory) would break when the node goes. A sleeping node costs ~nothing per frame (measured:
+  -far_npcs gains < 0.5 ms once they sleep) and wakes up exactly where and how it was. One generic NpcStreamer
+  (World/NpcStreamer, every peer) does it for the group "npc": FULL < 45 m, MID < 250 m (AI + physics every 3rd tick
+  with 3x the step, animation advanced by hand at 10 Hz and only within 95 m - their meshes stop at 90 m anyway),
+  ASLEEP > 300 m (hysteresis: an asleep NPC wakes only within 250 m). Host = union of all players (it runs the AI);
+  a client decides only what it draws round its own player. Pinned (never asleep, outside the cap): MissionNPC_*,
+  meta "mission", an officer with a target / foe, a Crow sent after a player. Cap `max_active_npcs` (60, point 89
+  tunes it): deals (wants > 0) first, then nearest. No pop-in: an asleep NPC within 60 m in a player's view cone
+  stays asleep until he looks away. Standing NPCs on the floor skip move_and_slide (re-check every 2 s). Traffic
+  cars: `Car.far` (> 120 m from every player) = think every 3rd tick with the summed delta, lane sensing cached for
+  2 of those; not drawn beyond 300 m (clients don't even smooth them). Off in the self-test unless the check
+  streaming drives it by hand (update_now) - the other checks place NPCs anywhere.
+- Point 90 part 1: WorldLod (World/WorldLod, windowed peers only) walks the map once after load and every node
+  added later: small props (< 1.6 m) 80 m, medium (< 5 m) 160 m, small parts of buildings/towers (window frames,
+  trim) 220 m, trees/shrubs/hedges 250 m, street lamps 100 m, big pieces (walls, roofs, terrain, roads) no limit =
+  the silhouettes. Tiny pieces (< 0.5 m) cast no shadow. Every point/spot light fades out 70-95 m (Godot culls it
+  beyond: this is the light budget; only the sun casts shadows, as before). Closed (non-enterable) buildings and
+  towers get a BoxOccluder3D 12% / 1.2 m inside the shell (80% of the height) and occlusion culling is on in
+  project.godot; enterable ones none (you would stand inside the box and nothing outside would draw). The sun:
+  PARALLEL_2_SPLITS to 90 m (was 4 splits to 140 m) - the user asked for shadows only at short range. Chunked
+  low-poly far world, threaded interior scenes and MultiMesh trees/lamps are the next part: after part 1 the
+  bottleneck is no longer drawing (render cpu 3-4 ms, gpu 3-4 ms) but script + physics time.
+  AFTER (same probe, same spots): docks 84 FPS (1% low 48), city 96 (49), village 76 (45), army base 142 (51);
+  steady state in the city after warm-up ~125 FPS with 0-2 hitches per 8 s (no single system causes them).
+- Point 91 (jets): `Airfield.event_every` (240 s = one movement every 4 min; 180-300 = the asked 3-5 min) sets the
+  cycle (event_every x 2 x jets = 1440 s) and each jet stays away long enough that its landing comes event_every s
+  after its take-off, so the six movements are evenly spaced (self-test: 233-250 s apart). Sound: unit 30 m, gone
+  beyond `sound_range` 650 m, the stream paused out of earshot; a ray (every 0.3 s) from the camera to the jet: rock
+  or a building in between = -24 dB and a 900 Hz low-pass. Why the ray: the base lies right behind the pass, so
+  distance alone would let the town hear every take-off; with the mountain in the way you hear a dull rumble at
+  most until you come over the summit.
+- Point 92 (bunker): the stairwell's foot opens west at z 2..4; the lift (x -5..1) left a 1 m strip and a 0.35 m pit
+  (a step the player's 0.35 m step-up only just took). LIFT moved to x -6..0 (the hall is x -7..7: still inside, the
+  rail 1 m from the west wall) = a 2 m lane past the shaft; the pit = BunkerLift.THICK (0.3 m). gen_mountain digs
+  the shaft from local x -6. Rooms: storage got shelves, a drawer cabinet, a low cabinet, a wardrobe on its north and
+  south walls; the lab hall is the workshop: 6 workbenches (built in code, one body Workbenches under Furniture,
+  pegboard + tools + vice, markers Workbench1-6) along the east wall, clear of B's 6 LabSpots, a stool each; the bunk
+  room 6 beds, nightstands, two lockers, chairs at the table. The self-test walks one unbroken route (no teleports)
+  from the foot of the stairs and from the garage to every room, with the lift up and down.
+- Point 94 (car sound, session B's VehicleSound; B is idle, told in A.md): the screech came from yaw rate x speed >
+  7 m/s2, which every bend at town speed exceeds - but the arcade model never slips. Now: a player car has
+  `net_skid` (0-1, computed by whoever simulates, synced + sent with `_drive`): handbrake at > 3 m/s, or sideways
+  acceleration past `PlayerCar.GRIP` (14 m/s2, only a full-lock turn at speed); VehicleSound screeches only on that,
+  traffic cars only on an emergency stop while panicking. The engine (gear, rpm, load) is unchanged.
 - Points 82-84 (bunker fixes): (82) the stairwell lamps hung off the middle wall 1.25 m above the steps - now wall
   lamps on the shaft walls 2.9 m above each landing; the other lamps sit against their room's ceiling (a metal
   fitting + the glowing strip), the one in the lift shaft moved to the garage ceiling. (83) The corridor's last 8 m

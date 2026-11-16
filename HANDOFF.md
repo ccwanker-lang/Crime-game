@@ -122,3 +122,10 @@
   pass, bunker, grass, lamps PASS; netcheck 7794 both exit 0.
 - 2026-11-15: self-test counts SCRIPT ERRORs per check as FAIL (ScriptErrorCounter); real_estate copes with the bunker
   (no Building). Full self-test on main with point 85: 836 PASS, ALL PASSED, no script errors; netcheck 7794 both exit 0.
+- 2026-11-16: playtest feedback round = Roadmap 86-97 (DESIGN). DONE: 86 (perf probe + F3 PerfOverlay), 87 (NpcStreamer:
+  NPCs sleep > 300 m, MID AI, cap, pins; Car.far), 90 part 1 (WorldLod: draw distances, light fade, occluders, sun
+  shadows 90 m), 91 (jets every ~4 min, sound only near the base / muffled behind rock), 92 (bunker lift moved, rooms
+  furnished, walk test from stairs + garage), 94 (tyre screech only on a real skid). FPS before -> after (1920x1080,
+  vsync off): docks 14-23 -> 84, city 21-27 -> 96 (125 steady), village 27 -> 76, army base 71 -> 142.
+  NEXT in order: 88 (day rhythm), 89 (npc_bench), 90 part 2 (chunks / interiors / MultiMesh), 93 (prison complex),
+  95 (no grass on roads + check), 96 (3 gas stations). B part 23 (ARMY_RECT) merged locally with this push.

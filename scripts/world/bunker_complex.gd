@@ -17,7 +17,9 @@ const HALL := Rect2i(-7, 0, 14, 16)  # x, z, w, d (1 m cells)
 const HALL_H: float = 6.0
 const DOOR_W: float = 6.0
 const DOOR_H: float = 4.5
-const LIFT := Rect2i(-5, 2, 6, 9)
+## Point 92: one metre further west (was x -5..1) - the stairwell's foot now opens onto a 2 m free lane (x 0..2)
+## along the shaft instead of straight onto the lift.
+const LIFT := Rect2i(-6, 2, 6, 9)
 const STAIRS := Rect2i(2, 2, 4, 10)  # shaft: near landing z 2..4, flights z 4..10, far landing z 10..12
 const FLIGHT_RISE: float = 3.5
 ## Lower level rooms: [name, rect, height]. The lift cells are part of the garage (open up to the hall).
@@ -212,7 +214,7 @@ func _build_lower() -> void:
 			if start != -999 and (not here or h != start_h or lift != start_lift):
 				var cx: float = (start + x) / 2.0
 				var w: float = float(x - start)
-				var fy: float = y0 - (0.35 if start_lift else 0.0)
+				var fy: float = y0 - (BunkerLift.THICK if start_lift else 0.0)  # (point 92: a step you can walk out of)
 				_solid(&"item_matte", Vector3(cx, fy - 0.2, z + 0.5), Vector3(w, 0.4, 1.0), FLOOR)
 				if start_h < DEPTH - 0.01:
 					_solid(&"concrete", Vector3(cx, y0 + start_h + 0.2, z + 0.5), Vector3(w, 0.4, 1.0), CONCRETE_DARK)
@@ -361,7 +363,20 @@ func _build_furniture() -> void:
 		["bed", Vector3(-15.0, y, 41.0), 90.0], ["bed", Vector3(-15.0, y, 44.0), 90.0],
 		["wardrobe", Vector3(-8.0, y, 45.4), 180.0], ["dining_table", Vector3(-8.5, y, 36.0), 0.0],
 		["tool_cart", Vector3(-12.3, y, 14.5), 90.0],
+		# Point 92: storage gets cabinets on its north and south walls ...
+		["steel_shelves", Vector3(-12.5, y, 18.5), 0.0], ["steel_shelves", Vector3(-9.5, y, 18.5), 0.0],
+		["drawer_cabinet", Vector3(-6.8, y, 18.4), 0.0], ["metal_rack", Vector3(-12.5, y, 29.5), 180.0],
+		["low_cabinet", Vector3(-9.5, y, 29.6), 180.0], ["wardrobe", Vector3(-6.8, y, 29.5), 180.0],
+		["cardboard_box", Vector3(-14.6, y, 29.0), 40.0],
+		# ... the bunk room two more beds, nightstands and a locker ...
+		["bed", Vector3(-5.1, y, 33.6), -90.0], ["bed", Vector3(-5.1, y, 44.4), -90.0],
+		["nightstand", Vector3(-15.5, y, 35.5), 90.0], ["nightstand", Vector3(-15.5, y, 42.5), 90.0],
+		["wardrobe", Vector3(-11.0, y, 45.4), 180.0], ["dining_chair", Vector3(-8.5, y, 37.2), 180.0],
+		["dining_chair", Vector3(-8.5, y, 34.8), 0.0],
+		# ... and every workbench in the lab a stool.
 	]
+	for i: int in WORKBENCHES:
+		list.append(["stool", _workbench_pos(i) + Vector3(-1.1, 0, 0.4), 0.0])
 	for f: Array in list:
 		var path: String = "res://prefabs/interiors/%s.tscn" % f[0]
 		if not ResourceLoader.exists(path):
@@ -370,6 +385,7 @@ func _build_furniture() -> void:
 		n.position = f[1]
 		n.rotation.y = deg_to_rad(f[2])
 		holder.add_child(n)
+	_build_workbenches(holder)
 	# The lab's floor markings (where B's machines go): a yellow square per spot.
 	var b := MeshBuilder.new()
 	for i: int in 6:
@@ -448,6 +464,58 @@ func _build_generator_room() -> void:
 	sign.position = Vector3(-2.0, y + 3.25, 48.0 - 0.02)
 	sign.rotation.y = PI
 	add_child(sign)
+
+
+## Point 92: the workshop's six work places - benches along the lab's east wall (clear of the LabSpots in the
+## middle), each with a pegboard full of tools, a vice and a stool. Solid (one body "Workbenches" under Furniture).
+const WORKBENCHES: int = 6
+
+
+func _workbench_pos(i: int) -> Vector3:
+	return Vector3(23.45, -DEPTH, 22.0 + i * 3.3)
+
+
+func _build_workbenches(holder: Node3D) -> void:
+	var body := StaticBody3D.new()
+	body.name = "Workbenches"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	holder.add_child(body)
+	var b := MeshBuilder.new()
+	var wood := Color(0.55, 0.4, 0.26)
+	var steel := Color(0.35, 0.37, 0.4)
+	for i: int in WORKBENCHES:
+		var p: Vector3 = _workbench_pos(i)
+		b.color = wood
+		b.box(&"item_matte", p + Vector3(0, 0.92, 0), Vector3(0.9, 0.06, 2.0))  # top
+		b.box(&"item_matte", p + Vector3(0.05, 0.25, 0), Vector3(0.75, 0.04, 1.8))  # lower shelf
+		b.color = steel
+		for c: Vector2 in [Vector2(-0.38, -0.9), Vector2(-0.38, 0.9), Vector2(0.38, -0.9), Vector2(0.38, 0.9)]:
+			b.box(&"item_metal", p + Vector3(c.x, 0.45, c.y), Vector3(0.06, 0.9, 0.06))
+		# Pegboard on the wall + tools + a vice + a lamp bar.
+		b.color = Color(0.72, 0.6, 0.42)
+		b.box(&"item_matte", p + Vector3(0.48, 1.55, 0), Vector3(0.03, 1.0, 1.9))
+		for k: int in 5:
+			b.color = [Color(0.8, 0.2, 0.15), Color(0.2, 0.3, 0.75), Color(0.25, 0.25, 0.27), Color(0.85, 0.7, 0.1), Color(0.2, 0.55, 0.3)][k]
+			b.box(&"item_glossy", p + Vector3(0.44, 1.35 + (k % 2) * 0.35, -0.7 + k * 0.35), Vector3(0.04, 0.3, 0.06))
+		b.color = Color(0.2, 0.35, 0.6)
+		b.box(&"item_metal", p + Vector3(-0.2, 1.02, 0.7), Vector3(0.2, 0.14, 0.18))
+		b.color = Color(0.25, 0.25, 0.25)
+		b.box(&"item_metal", p + Vector3(0.1, 0.99, -0.5), Vector3(0.3, 0.08, 0.4))  # a toolbox
+		var cs := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = Vector3(0.95, 0.95, 2.0)
+		cs.shape = shape
+		cs.position = p + Vector3(0, 0.475, 0)
+		body.add_child(cs)
+		var m := Marker3D.new()
+		m.name = "Workbench%d" % (i + 1)
+		m.position = p + Vector3(-1.0, 0, 0)
+		holder.add_child(m)
+	var mi := MeshInstance3D.new()
+	mi.name = "WorkbenchMesh"
+	mi.mesh = b.build()
+	body.add_child(mi)
 
 
 func _lab_spot(i: int) -> Vector3:

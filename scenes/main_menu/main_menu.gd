@@ -168,7 +168,7 @@ func _apply_cmdline_args() -> void:
 			auto_join = true
 		elif arg.begins_with("--port="):
 			_port = arg.trim_prefix("--port=").to_int()
-		elif arg in ["--host", "--screenshot", "--selftest", "--vmpreview"]:
+		elif arg in ["--host", "--screenshot", "--selftest", "--vmpreview", "--perf"]:
 			auto_host = true
 	# Deferred so the menu is fully ready before switching scenes.
 	if scenario and Scenarios.SCENES.has(Scenarios.pending):
