@@ -65,6 +65,7 @@ func _exit_tree() -> void:
 
 
 static func scare_at(pos: Vector3, radius: float = GUNSHOT_RANGE) -> void:
+	Soundscape.heard_shot(pos)  # (user list item 2: gunfire near you -> tense music)
 	if current and current.ready_done:
 		current.scare(pos, radius)
 

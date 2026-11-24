@@ -29,6 +29,7 @@ Raids="*res://autoload/raids.gd"
 BulkDeals="*res://autoload/bulk_deals.gd"
 RangeClub="*res://autoload/range_club.gd"
 Ambience="*res://autoload/ambience.gd"
+Soundscape="*res://autoload/soundscape.gd"
 Zones="*res://autoload/zones.gd"
 Missions="*res://autoload/missions.gd"
 

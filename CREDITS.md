@@ -18,3 +18,9 @@ with author, link and license.
 | Pistol reload | "Handgun reload sound effect" by zer0_sol — https://opengameart.org/content/handgun-reload-sound-effect | CC0 1.0 | `assets/audio/weapons/` |
 | Dry-fire click | "Equipment clicks II" — https://opengameart.org/content/equipment-clicks-ii | CC0 1.0 | `assets/audio/weapons/` |
 | Casing and impact sounds | synthesized (`tools/generators/gen_weapon_sounds.py`) | CC0 1.0 | `assets/audio/weapons/` |
+| Footsteps on stone + sand/grass | "Fantozzi's Footsteps (Grass/Sand & Stone)" by Fantozzi — https://opengameart.org/content/fantozzis-footsteps-grasssand-stone (from https://freesound.org/people/Fantozzi/packs/10338/) | CC0 1.0 | `assets/audio/footsteps/` (stone_*, grass_*) |
+| Footsteps in snow | "42 Snow and Gravel Footsteps" recorded by Corsica_S, extracted by Iwan Gabovitch — https://opengameart.org/content/42-snow-and-gravel-footsteps | CC0 1.0 | `assets/audio/footsteps/` (snow_*) |
+| Footsteps on wood + metal, zone ambience loops (city, village day/night, docks, forest, bunker) | synthesized for this project (`tools/generators/gen_ambience.py`) | CC0 1.0 | `assets/audio/footsteps/` (wood_*, metal_*), `assets/audio/ambience/` |
+| Music by day: "Calm Ambient 1 (Synthwave 4k)" | cynicmusic — https://opengameart.org/content/calm-ambient-1-synthwave-4k | CC0 1.0 | `assets/audio/music/calm_day.ogg` |
+| Music at night: "EmptyCity: Background Music" | yd — https://opengameart.org/content/emptycity-background-music | CC0 1.0 | `assets/audio/music/calm_night.ogg` |
+| Tense music: "Chase in the Night" | samza — https://opengameart.org/content/chase-in-the-night | CC0 1.0 | `assets/audio/music/tense.ogg` |
