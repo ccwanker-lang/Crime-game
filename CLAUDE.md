@@ -380,7 +380,9 @@ Godot console exe:
   off, layer 0, hidden; wakes where it was), `pinned(npc)` (MissionNPC_*, meta mission, officer target/foe, Crow
   sent_target), `cap_override`, `update_now()`; traffic `Car.far`. Off in the self-test (check streaming drives it).
   `WorldLod` (World/WorldLod): visibility ranges + light fade + `Occluder` boxes in closed Building/Tower. F3 also
-  toggles `PerfOverlay`. Scenarios fps_docks / fps_city / fps_army.
+  toggles `PerfOverlay`. Scenarios fps_docks / fps_city / fps_army. Part 2: WorldLod shadow budget (`MAX_SHADOWS`,
+  `update_budget`) + far-process LOD (`FAR_PROCESS_CLASSES`), NetDoor shared NPC scan, Ragdoll process only while
+  falling, RoadTile mesh cache, `StaticBatcher` (off; `--batch`), perf probe draw census.
 - Zones (B part 18): `Zones` autoload (`zone_at`, army_on/npcs_on, `ARMY_RECT` = the whole fence incl. the airfield (part 23)), `Soldier` (PoliceOfficer subclass, group soldiers,
   `Zones.guard_posts`/`army_hostile`/`allow_army`/`alarm_on`), slum/city residents (`residents(zone)`,
   `make_zone_customer`, `PRICE`), bunker sale + door lock (`Zones.bunker`, `bunker_door()`, `BUNKER_PRICE`,

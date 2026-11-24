@@ -48,6 +48,9 @@ var asphalt_areas: Array[PackedVector2Array] = []
 var _mesh_instance: MeshInstance3D
 var _shape: CollisionShape3D
 var _pending: bool = false
+## Point 90: tiles with the same settings share one mesh + collision shape (208 straight tiles built the same mesh
+## 208 times; shared, StaticBatcher can draw them as MultiMeshes). key -> [mesh, shape, asphalt polygons]
+static var _cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -68,6 +71,13 @@ func _rebuild() -> void:
 		add_child(_mesh_instance)
 		_shape = CollisionShape3D.new()
 		add_child(_shape)
+	var key: String = "%d|%s|%s|%s" % [type, center_line, zebra, crossing]
+	if not Engine.is_editor_hint() and _cache.has(key):
+		var hit: Array = _cache[key]
+		_mesh_instance.mesh = hit[0]
+		_shape.shape = hit[1]
+		_build_obstacles(hit[2])
+		return
 	var b := MeshBuilder.new()
 	var sidewalks: Array[PackedVector2Array] = _sidewalk_polygons()
 
@@ -91,6 +101,8 @@ func _rebuild() -> void:
 	var mesh: ArrayMesh = b.build()
 	_mesh_instance.mesh = mesh
 	_shape.shape = mesh.create_trimesh_shape()
+	if not Engine.is_editor_hint():
+		_cache[key] = [mesh, _shape.shape, asphalt.duplicate()]
 
 
 ## Carves the road (minus zebra crossings) out of the navigation mesh, so

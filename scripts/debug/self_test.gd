@@ -1561,6 +1561,74 @@ func _check_growing(world: Node3D) -> void:
 ## nearer, hysteresis between spawn and despawn radius, mission NPCs always awake, deals first under the cap, and
 ## nobody wakes up in view right in front of a player.
 func _check_streaming(world: Node3D) -> void:
+	# Point 90 part 2: WorldLod's shadow budget + far-process LOD (headless runs no WorldLod, so drive one by hand).
+	var lod := WorldLod.new()
+	var holder := Node3D.new()
+	world.add_child(holder)
+	for i: int in 24:
+		var l := OmniLight3D.new()
+		l.shadow_enabled = true
+		holder.add_child(l)
+		l.global_position = Vector3(5000.0 + i * 5.0, 50, 5000)
+		lod.shadow_lights.append(l)
+	var near_node := Node3D.new()
+	var far_node := Node3D.new()
+	holder.add_child(near_node)
+	holder.add_child(far_node)
+	near_node.global_position = Vector3(5010, 50, 5000)
+	far_node.global_position = Vector3(5000, 50, 5600)
+	near_node.set_process(true)
+	far_node.set_process(true)
+	lod.far_nodes.append(near_node)
+	lod.far_nodes.append(far_node)
+	lod.update_budget(Vector3(5000, 50, 5000))
+	var on: Array[int] = []
+	for i: int in 24:
+		if (lod.shadow_lights[i] as Light3D).shadow_enabled:
+			on.append(i)
+	_report(lod.shadows_on == 16 and on.size() == 16 and on.max() == 15,
+			"shadow budget: only the 16 nearest of 24 shadowed lights in range cast shadows (%d on, farthest on = #%d)" % [lod.shadows_on, on.max() if on.size() else -1])
+	_report(near_node.is_processing() and not far_node.is_processing() and lod.far_off == 1,
+			"far-process LOD: a ticking prop 600 m away stops its per-frame code, one 10 m away keeps it")
+	lod.update_budget(Vector3(5000, 50, 5600))
+	_report(far_node.is_processing() and not near_node.is_processing() and lod.shadows_on == 0,
+			"walking over: the far prop ticks again, the old one stops; lights 600 m away cast no shadow (%d on)" % lod.shadows_on)
+	lod.free()
+	# StaticBatcher: 5 fence posts + 3 benches + 1 street lamp in one square -> one batch per fence/bench mesh, the
+	# originals hidden, the lamp (night glow per surface) left alone, collisions untouched.
+	var fence: PackedScene = load("res://prefabs/props/chainlink_fence.tscn")
+	var bench: PackedScene = load("res://prefabs/props/bench.tscn")
+	var lamp: PackedScene = load("res://prefabs/props/street_lamp.tscn")
+	var props := Node3D.new()
+	holder.add_child(props)
+	for i: int in 5:
+		var f: Node3D = fence.instantiate()
+		props.add_child(f)
+		f.global_position = Vector3(5000.0 + i * 2.0, 50, 5010)
+	for i: int in 3:
+		var b: Node3D = bench.instantiate()
+		props.add_child(b)
+		b.global_position = Vector3(5000.0 + i * 3.0, 50, 5014)
+	var lp: Node3D = lamp.instantiate()
+	props.add_child(lp)
+	lp.global_position = Vector3(5004, 50, 5016)
+	await get_tree().process_frame
+	var res: Array[int] = StaticBatcher.batch(props, holder)
+	var shown: int = 0
+	for mi: Node in props.find_children("*", "MeshInstance3D", true, false):
+		if (mi as MeshInstance3D).visible and not mi.has_meta(&"batched") and not lp.is_ancestor_of(mi):
+			shown += 1
+	var batches: Node = holder.get_node_or_null("StaticBatches")
+	var inst: int = 0
+	if batches:
+		for c: Node in batches.get_children():
+			inst += (c as MultiMeshInstance3D).multimesh.instance_count
+	var lamp_vis: bool = true
+	for mi: Node in lp.find_children("*", "MeshInstance3D", true, false):
+		lamp_vis = lamp_vis and (mi as MeshInstance3D).visible
+	_report(res[0] >= 1 and res[1] == inst and shown == 0 and lamp_vis and props.find_children("*", "CollisionShape3D", true, false).size() >= 9,
+			"StaticBatcher: %d batches draw %d fence/bench meshes (%d instances), none left visible twice, the street lamp untouched" % [res[0], res[1], inst])
+	holder.queue_free()
 	var st: NpcStreamer = world.get_node_or_null("NpcStreamer") as NpcStreamer
 	_report(st != null and st.config != null, "the NPC streamer + its config (data/npc/streaming.tres)")
 	if st == null:
@@ -4620,7 +4688,7 @@ func _check_grass_roads(world: Node3D) -> void:
 		if bad:
 			continue
 		var box: AABB = mi.global_transform * mi.get_aabb()
-		if box.size.y > 0.5 or box.end.y > 0.35 or box.end.y < -0.05 or box.size.x * box.size.z < 0.5:
+		if box.size.y > 0.5 or box.end.y > 0.35 or box.end.y < -0.05 or box.size.x < 0.4 or box.size.z < 0.4 				or box.size.x * box.size.z < 0.5:
 			continue
 		zones.append([Rect2(box.position.x + 0.15, box.position.z + 0.15, box.size.x - 0.3, box.size.z - 0.3), str(mi.get_path())])
 	var keys: Dictionary = {}

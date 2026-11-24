@@ -69,6 +69,7 @@ func _run() -> void:
 		_log("%s BASE: %s" % [spot[0], _fmt(base)])
 		_log("%s npcs by kind (all / within 250 m): %s" % [spot[0], _npc_histogram(me)])
 		_log("%s processing nodes: %s" % [spot[0], _process_census()])
+		_log("%s draw census (surfaces in view, by owner): %s" % [spot[0], _draw_census()])
 		if "--perf-spikes" in OS.get_cmdline_user_args():
 			await _spike_hunt()
 			continue
@@ -215,6 +216,61 @@ func _process_census() -> String:
 	for k: String in keys.slice(0, 25):
 		parts.append("%s %d" % [k, cnt[k]])
 	return ", ".join(parts)
+
+
+## Point 90: what the draw calls are - every visible mesh in the camera frustum within its draw distance, its
+## surface count added to the nearest ancestor with a class_name script or a scene file (top 20).
+func _draw_census() -> String:
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	if cam == null:
+		return "-"
+	var cnt: Dictionary = {}
+	var planes: Array[Plane] = cam.get_frustum()
+	for g: Node in get_tree().root.find_children("*", "GeometryInstance3D", true, false):
+		var gi := g as GeometryInstance3D
+		if not gi.is_visible_in_tree():
+			continue
+		var box: AABB = gi.global_transform * (gi as VisualInstance3D).get_aabb()
+		var d: float = box.get_center().distance_to(cam.global_position)
+		if gi.visibility_range_end > 0.0 and d > gi.visibility_range_end + gi.visibility_range_end_margin:
+			continue
+		var inside: bool = true
+		for pl: Plane in planes:
+			var c: Vector3 = box.get_center()
+			var r: float = box.size.length() / 2.0
+			if pl.distance_to(c) > r:
+				inside = false
+				break
+		if not inside:
+			continue
+		var surf: int = 1
+		var mi := gi as MeshInstance3D
+		if mi and mi.mesh:
+			surf = mi.mesh.get_surface_count()
+		var mmi := gi as MultiMeshInstance3D
+		if mmi and mmi.multimesh and mmi.multimesh.mesh:
+			surf = mmi.multimesh.mesh.get_surface_count()
+		var owner_n: Node = gi.get_parent()
+		var k: String = gi.get_class()
+		while owner_n and owner_n != get_tree().current_scene:
+			if owner_n.scene_file_path != "":
+				k = owner_n.scene_file_path.get_file().get_basename()
+				break
+			var sc: Script = owner_n.get_script()
+			if sc and sc.get_global_name() != &"":
+				k = str(sc.get_global_name())
+				break
+			owner_n = owner_n.get_parent()
+		cnt[k] = int(cnt.get(k, 0)) + surf
+	var keys: Array = cnt.keys()
+	keys.sort_custom(func(a: String, b: String) -> bool: return int(cnt[a]) > int(cnt[b]))
+	var parts: PackedStringArray = []
+	var total: int = 0
+	for k: String in keys:
+		total += int(cnt[k])
+	for k: String in keys.slice(0, 20):
+		parts.append("%s %d" % [k, cnt[k]])
+	return "total %d: %s" % [total, ", ".join(parts)]
 
 
 func _kind(n: Node) -> String:

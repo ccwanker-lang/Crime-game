@@ -46,6 +46,7 @@ var _time: float = 0.0
 
 func _ready() -> void:
 	active = false
+	set_process(false)  # point 90: only a falling ragdoll needs _process (73 living NPCs ran it for nothing)
 
 
 ## Builds the bodies from the current pose and lets go. `velocity`: start speed.
@@ -56,6 +57,7 @@ func start(velocity: Vector3 = Vector3.ZERO) -> void:
 	if sk == null or not is_inside_tree():
 		return
 	running = true
+	set_process(true)
 	_time = 0.0
 	_container = Node3D.new()
 	_container.name = "Ragdoll"
@@ -166,6 +168,7 @@ func _process(delta: float) -> void:
 			if not b.freeze:
 				b.freeze_mode = RigidBody3D.FREEZE_MODE_STATIC
 				b.freeze = true
+		set_process(false)  # settled: nothing left to do per frame
 
 
 func _process_modification() -> void:

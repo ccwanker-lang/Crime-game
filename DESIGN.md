@@ -539,7 +539,10 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       60 FPS on the user's PC (RTX 5060 Ti) - PART 1 DONE (WorldLod: visibility ranges props 80 / medium 160 /
       facade parts 220 / trees 250 / lamps 100 m, light distance fade 70-95 m, box occluders in every closed
       building/tower + occlusion culling on, sun shadows 2 splits to 90 m, far traffic cars think every 3rd tick and
-      are not drawn beyond 300 m); todo: chunks, threaded interiors, MultiMesh
+      are not drawn beyond 300 m); PART 2 DONE (doors share one NPC scan per tick, ragdolls only process when
+      falling, shadow budget = 16 nearest lights within 90 m, far-process LOD for watchtowers / traffic lights /
+      fire barrels beyond 220 m, road tiles share their mesh + collision; StaticBatcher built and measured - no gain,
+      off by default; perf probe draw census; chunks + threaded interiors decided against, see Decisions)
   91. Jets: 3D positional sound (audible only once you come over the mountain towards the base, louder closer); far
       fewer flights: about 1 take-off or landing per 3-5 minutes, configurable - DONE (Airfield.event_every 240 s,
       sound_range 650 m, muffled behind rock; scenario jet_sound)
@@ -1328,6 +1331,22 @@ Choices made while working autonomously (what + why).
   `net_skid` (0-1, computed by whoever simulates, synced + sent with `_drive`): handbrake at > 3 m/s, or sideways
   acceleration past `PlayerCar.GRIP` (14 m/s2, only a full-lock turn at speed); VehicleSound screeches only on that,
   traffic cars only on an emergency stop while panicking. The engine (gear, rpm, load) is unchanged.
+- Point 90 part 2 (2026-11-24): measured first, then fixed what the numbers showed. Census + ablations: no single
+  subsystem left above ~2 ms; the per-frame code that ran for nothing: 70 NetDoors each looped over ALL ~150 NPCs
+  every physics tick (~10,000 checks/tick) -> one shared scan per tick (`NetDoor._wanted`, sleeping NPCs skipped);
+  73 Ragdolls ran `_process` on living NPCs -> only while falling. Shadow budget in WorldLod (`MAX_SHADOWS` 16
+  nearest shadowed lights within 90 m; ceiling lamps all cast shadows and the prison/bunker added many) and
+  far-process LOD (`FAR_PROCESS_CLASSES` stop `_process` beyond 220 m). RoadTile caches mesh + trimesh shape per
+  settings (208 straight tiles built the same mesh 208 times). The perf probe got a draw census (surfaces in view by
+  owner prefab): roads, ProcBoxes and houses are the draw calls, not fences. MultiMesh: `StaticBatcher` (identical
+  meshes of static props per 64 m square, painted override materials baked in, never per-instance tinted meshes)
+  works (check streaming) but measured A/B/A at the docks and city it gave the same FPS and a few MORE draws (a
+  batch is culled as a whole), so it is off by default (`--batch`). Not done on purpose: 200 m chunks with
+  "nothing beyond 600 m" (the playable map is ~600 m across and visibility ranges + NPC streaming already drop
+  far detail) and interiors as separately loaded threaded scenes (interior props already vanish at 80 m and
+  their lamps fade at 70-95 m; splitting every building prefab is a large rewrite for no measured gain). Result
+  (quick probe, 1920x1080, vsync off): docks 70-72 -> 80-84 FPS, city 79-91 -> 97-102 (1% low 42-51); the original
+  start of this round was docks 14-23, city 21-27.
 - Point 93 (prison complex): the wall now rings 80 x 52 m (x -40..40, z -32..20 local) on the old concrete slab, so
   nothing outside moves (the pass road, the bus, LAST STOP FUEL across the road). Block A keeps its exact intro
   layout (CellDoor1-4, Cell1-4 markers, the yard exit at x 0, Marco, the desk, the gate guard) so the intro and its

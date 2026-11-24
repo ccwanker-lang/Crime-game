@@ -19,6 +19,8 @@ const DOOR_LAYER: int = 2  # physics layer 2 ("doors"), ignored by navmesh bakin
 const NPC_RANGE: float = 1.8  # an NPC (group "npc") whose target_door is this door opens it within this range
 
 var is_open: bool = false
+static var _wanted: Dictionary = {}  # door -> [Pedestrian] that want to go through it (rebuilt once per physics frame)
+static var _wanted_frame: int = -1
 var _npc_opened: bool = false  # opened automatically for an NPC: closes again by itself
 var _npc_clear_time: float = 0.0
 var _pivot: AnimatableBody3D  # the door leaf itself; rotating it moves the collision too
@@ -131,13 +133,26 @@ func get_outward() -> Vector3:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint() or not multiplayer.has_multiplayer_peer() or not multiplayer.is_server():
 		return
+	# Point 90: one pass over the NPCs per physics frame for ALL doors (was: every door looped over every NPC
+	# every tick, ~10,000 checks per tick); each door then only looks itself up.
+	var frame: int = Engine.get_physics_frames()
+	if frame != _wanted_frame:
+		_wanted_frame = frame
+		_wanted.clear()
+		for npc: Node in get_tree().get_nodes_in_group(&"npc"):
+			var ped := npc as Pedestrian
+			# Only NPCs that want to go through a door (not passers-by); sleeping (far) NPCs never do.
+			if ped and ped.target_door and ped.lod != Pedestrian.Lod.ASLEEP:
+				var list: Array = _wanted.get(ped.target_door, [])
+				list.append(ped)
+				_wanted[ped.target_door] = list
 	var near: bool = false
-	var c: Vector3 = get_center()
-	for npc: Node in get_tree().get_nodes_in_group(&"npc"):
-		# Only NPCs that want to go through this door (not passers-by).
-		if npc.get("target_door") == self and (npc as Node3D).global_position.distance_to(c) < NPC_RANGE:
-			near = true
-			break
+	if _wanted.has(self):
+		var c: Vector3 = get_center()
+		for ped: Pedestrian in _wanted[self]:
+			if is_instance_valid(ped) and ped.global_position.distance_to(c) < NPC_RANGE:
+				near = true
+				break
 	if near:
 		_npc_clear_time = 0.0
 		if not is_open:
