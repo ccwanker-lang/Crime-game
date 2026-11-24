@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm).
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1073,3 +1073,41 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   `DayRhythmConfig`), made by `World.spawn_pedestrians` (`--no-rhythm` = fixed crowd; never in the self-test); homes =
   residential Building front doors on the navmesh outside the Zones (`find_homes`); `Pedestrian.call_home` /
   `home_reached`; home deals `home_customer()`. Scenario day_rhythm, self-test check day_rhythm.
+
+
+# Part 26: Roadmap 89 - npc_bench (taken over from A, user 2026-11-24)
+
+## How it works
+- `NpcBench` (scripts/debug/npc_bench.gd), started by the F9 scenario `npc_bench` (`--bench-quit` quits at the end,
+  `--bench-step=S` changes the 20 s per step). Spots: city centre, slums, docks (SPOTS). Per spot it steers the number of
+  awake NPCs with A's `NpcStreamer.cap_override` (0 = baseline, then 20, 40 ... 160) and spawns extra plain
+  pedestrians 10-70 m round the player (they walk short straight legs, so FULL + MID levels like real ones). Each step:
+  mean FPS + 1% low (99th percentile frame) over 20 s; it stops a spot at the first step that fails. Pass = 1% low
+  >= 55, or >= 90% of the spot's own baseline when even the empty spot is below 55. Advice = lowest spot limit x 0.8.
+  On screen (label), [NpcBench] lines, screenshots/npc_bench.txt.
+
+## Result on this PC (RTX 5060 Ti, 1920x1080 window, vsync off; session A's self-test was running at the same time)
+| spot | 0 NPCs | 20 | 40 |
+|---|---|---|---|
+| city centre | 117 fps / 1% low 53 | 101 / 51 | 86 / 46 |
+| slums | 127 / 54 | 113 / 51 | 84 / 44 |
+| docks | 75 / 43 | 62 / 37 | - |
+- The 1% low is below 55 even WITHOUT NPCs (hitches from something else: streaming, GC, the other process); every 20
+  awake NPCs cost ~10-25 fps mean.
+
+## Decisions (what + why)
+- `max_active_npcs` (A's data/npc/streaming.tres, now 60) is NOT changed: the numbers were taken with a second Godot
+  self-test running and the 1% low is dominated by hitches that are not NPCs. The bench's advice under that load was
+  20. Run `npc_bench` (F9) with nothing else open and set the value it advises; A: your call for the release value.
+- Bench NPCs are plain pedestrians driven by the bench (no navmesh needed: the city has none).
+
+## Existing files changed (part 26)
+- scripts/debug/scenarios.gd (scenario npc_bench). New: scripts/debug/npc_bench.gd.
+
+## Te testen door Curry
+- `npc_bench` (F9), ~5-10 minuten, niets aanraken en niets anders open hebben. Stuur me de tabel die op het scherm
+  verschijnt (staat ook in screenshots/npc_bench.txt).
+
+## For CLAUDE.md (suggested lines)
+- NPC bench (Roadmap 89, B part 26): `NpcBench` (scripts/debug/npc_bench.gd), scenario npc_bench (window; `--bench-quit`,
+  `--bench-step=S`), steers `NpcStreamer.cap_override`, writes screenshots/npc_bench.txt.
