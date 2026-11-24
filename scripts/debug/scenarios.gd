@@ -109,6 +109,7 @@ const LIST: Array = [
 	["army_gate", "Fort Halden at noon: you stand on the pass road 25 m before the gate, a pistol + ammo", "Walk to the boom: a guard warns you (toast). Walk through the gate: ALARM, guards and 4 heavy reinforcements from the barracks shoot at you. Shoot a soldier from outside: they come for you too. Run far away: after a while it calms down."],
 	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
 	["day_rhythm", "The village at 11:45, across the street from a few houses", "Roadmap 88: the crowd lives by the clock. Four morning people stroll near the houses in front of you; at 12:00 (15 s) they walk to their own front doors and go in, and the afternoon people step out of those doors. Nobody pops out of a door you stand right in front of and look at (come closer than 35 m and look at a door: they wait until you look away). F7 speeds up time: at night (22:00-09:00) only a few people are out. Customers can be people at home: they step out of their door for the deal."],
+	["npc_bench", "Roadmap 89: NPC benchmark (takes ~10 minutes, don't touch anything)", "Measures how many active NPCs your PC carries: at the city centre, the slums and the docks it adds NPCs round you step by step (20, 40, 60 ...), 20 s per step, and shows the mean FPS + the 1% low on screen. At the end it shows the advice for max_active_npcs (the highest count with a 1% low above 55 FPS, minus 20% headroom) and saves screenshots/npc_bench.txt. Send me the table."],
 	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
 	["fps_docks", "Points 86-90: frame rate at the docks (F3 overlay on)", "You stand on the quay looking over the docks. Top left the F3 overlay: FPS, worst frame, active / sleeping NPCs, draw calls. Before the fixes this spot ran ~14-23 FPS; now ~85-110. Walk around: NPCs beyond 300 m sleep, they wake again within 250 m (never right in front of you). F3 hides the overlay."],
 	["fps_city", "Points 86-90: frame rate in the city centre (F3 overlay on)", "You stand on a city street between the towers, F3 overlay on. Before: ~21-32 FPS; now ~75-125. Look around and walk a block: the overlay shows FPS, NPCs active/asleep and draw calls."],
@@ -871,6 +872,10 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
 			_place(me, Zones.ARMY_GATE + Vector3(-25.0, 0.3, 0.0), Zones.ARMY_GATE + Vector3(0, 1.5, 0), dn, 12.0)
 			me.combat.host_set_mags([8])
+		"npc_bench":
+			_kit(me, 0, [])
+			_place(me, NpcBench.SPOTS[0][1], NpcBench.SPOTS[0][2], dn, 13.0)
+			world.add_child(NpcBench.new())
 		"day_rhythm":
 			_kit(me, 300, [["weed_bag", 3]])
 			var rhythm: DayRhythm = null
