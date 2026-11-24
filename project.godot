@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [autoload]
 
 Net="*res://autoload/net.gd"
+Settings="*res://autoload/settings.gd"
 ItemDB="*res://autoload/item_db.gd"
 GameState="*res://autoload/game_state.gd"
 SaveManager="*res://autoload/save_manager.gd"

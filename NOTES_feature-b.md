@@ -1111,3 +1111,46 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 ## For CLAUDE.md (suggested lines)
 - NPC bench (Roadmap 89, B part 26): `NpcBench` (scripts/debug/npc_bench.gd), scenario npc_bench (window; `--bench-quit`,
   `--bench-step=S`), steers `NpcStreamer.cap_override`, writes screenshots/npc_bench.txt.
+
+
+# Part 27: settings menu (user list 2026-11-24, item 1)
+
+## How it works
+- `Settings` (new autoload, autoload/settings.gd, right after Net): graphics (resolution, window mode windowed /
+  borderless fullscreen / fullscreen, quality Low/Medium/High/Ultra, FPS limit, VSync, field of view), audio (volume
+  per bus), controls (mouse sensitivity, invert Y, every action in `Settings.ACTIONS` rebindable: the first keyboard /
+  mouse event of the action; controller events stay). Saved in user://settings.cfg (own sections next to the menu's
+  player/network ones); key overrides only for keys that differ from project.godot. `changed` signal.
+- Quality presets: render scale (Low = FSR 75%), MSAA / FXAA, mesh LOD threshold, sun + lamp shadow atlas size and
+  soft-shadow quality; on every WorldEnvironment (group settings_environment): SSIL from High, SSAO + glow from Medium
+  (only what the level had on).
+- Audio buses made at start-up: Master, Music, SFX ("Effects"), Voice ("Voices"), Ambience. Every sound player that
+  is added on Master is moved to SFX (meta `keep_bus` = leave it); music/ambience players (item 2) set their own bus.
+  There are no voice lines yet: the Voices slider is ready for them.
+- `SettingsMenu` (scripts/ui/settings_menu.gd, built in code): tabs Graphics / Audio / Controls, every change applied +
+  saved at once, click a key button -> press a key or mouse button (Esc cancels), "also: X" warning when two actions
+  share a key, "Reset all keys". Esc / Close closes it (keys don't reach the game while it is open). Opened by
+  `Settings.open_menu()`: a Settings button in the main menu (above Quit) and in the in-game panel (above "Leave to menu").
+- Player: `camera.fov = Settings.fov` (`_base_fov` follows `changed`), mouse look x `Settings.look_scale()` (on foot
+  and in the car).
+- Test runs (headless, a fixed --resolution/--position, --selftest/--netcheck/--screenshot/--perf/--scenario-quit/
+  --style-shots/--vmpreview/--bench-quit) don't apply display/quality settings and use user://settings_test.cfg.
+
+## Decisions (what + why)
+- Default window = borderless fullscreen at the screen's resolution (what most games do; Alt-tab friendly).
+- One file for everything (user://settings.cfg): the main menu already kept the name + IP there.
+- The pause menu (item 3) will get the same Settings button; for now it sits in the existing Esc panel.
+
+## Existing files changed (part 27)
+- project.godot (autoload Settings), scenes/main_menu/main_menu.gd (Settings button), scenes/world/world.gd (Settings
+  button above Leave), scenes/player/player.gd (FOV + look scale), self_test.gd (check settings), scenarios.gd
+  (scenario settings_menu). New: autoload/settings.gd, scripts/ui/settings_menu.gd, scripts/debug/settings_test.gd.
+
+## Te testen door Curry
+- `settings_menu` (F9): het venster staat open. Probeer elk tabblad; klik een toets om hem te wijzigen (Esc = annuleren).
+  Sluit met Esc; start het spel opnieuw: je keuzes zijn bewaard. Ook in het hoofdmenu (knop Settings).
+
+## For CLAUDE.md (suggested lines)
+- Settings (B part 27): `Settings` autoload (user://settings.cfg; test runs use settings_test.cfg and skip display/
+  quality), `Settings.open_menu()` -> `SettingsMenu`; buses Master/Music/SFX/Voice/Ambience (new players on Master ->
+  SFX unless meta keep_bus); `Settings.fov`, `look_scale()`, `ACTIONS` (rebindable). Scenario settings_menu, check settings.

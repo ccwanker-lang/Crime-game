@@ -38,6 +38,12 @@ func _ready() -> void:
 	new_game_button.visible = date != ""
 	join_button.pressed.connect(_on_join_pressed)
 	quit_button.pressed.connect(func() -> void: get_tree().quit())
+	var settings_button := Button.new()
+	settings_button.name = "SettingsButton"
+	settings_button.text = "Settings"
+	settings_button.pressed.connect(Settings.open_menu)
+	quit_button.add_sibling(settings_button)
+	quit_button.get_parent().move_child(settings_button, quit_button.get_index())
 	Net.join_succeeded.connect(_on_join_succeeded)
 	Net.join_failed.connect(_on_join_failed)
 
