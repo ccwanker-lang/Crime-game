@@ -30,6 +30,7 @@ BulkDeals="*res://autoload/bulk_deals.gd"
 RangeClub="*res://autoload/range_club.gd"
 Ambience="*res://autoload/ambience.gd"
 Soundscape="*res://autoload/soundscape.gd"
+Loading="*res://autoload/loading.gd"
 Zones="*res://autoload/zones.gd"
 Missions="*res://autoload/missions.gd"
 

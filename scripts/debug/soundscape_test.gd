@@ -45,6 +45,7 @@ static func run(t: Node, world: Node3D) -> void:
 	world.get_node("Players").add_child(p)
 	for i: int in 5:
 		await tree.physics_frame
+	ss.set("_combat_until", 0.0)  # (an earlier check may have fired shots)
 	var calm: String = ss.call("music_key_for", p, 12.0)
 	var night: String = ss.call("music_key_for", p, 23.0)
 	p.wanted_stars = 2

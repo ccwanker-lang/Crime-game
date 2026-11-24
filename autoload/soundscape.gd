@@ -22,6 +22,9 @@ const MUSIC: Dictionary = {
 	"calm_night": ["res://assets/audio/music/calm_night.ogg", -3.0],
 	"tense": ["res://assets/audio/music/tense.ogg", -9.0],
 }
+## Title page music (user list item 3).
+const MENU_SCENE: String = "res://scenes/main_menu/main_menu.tscn"
+const MENU_MUSIC: String = "calm_night"
 const AMB_FADE: float = 3.0
 const MUSIC_FADE: float = 2.5
 const COMBAT_RANGE: float = 90.0
@@ -118,6 +121,12 @@ func music_key_for(me: Player, hours: float) -> String:
 func _process(delta: float) -> void:
 	var me: Player = _local_player()
 	if me == null:
+		var scene: Node = get_tree().current_scene
+		if enabled_music and scene and scene.scene_file_path == MENU_SCENE:
+			for p: AudioStreamPlayer in _amb:  # (title page: only the menu music)
+				p.volume_db = linear_to_db(maxf(move_toward(db_to_linear(p.volume_db), 0.0, delta / 1.5), 0.0005))
+			_drive(_mus, MUSIC, MENU_MUSIC, MUSIC_FADE, 0.0, delta, false)
+			return
 		_fade_all(delta)
 		return
 	if _last_health >= 0 and me.health < _last_health:
