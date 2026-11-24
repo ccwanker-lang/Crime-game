@@ -340,6 +340,7 @@ func open_menu() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 90
 	layer.name = "SettingsLayer"
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS  # (works over the paused game)
 	get_tree().root.add_child(layer)
 	_menu = SettingsMenu.new()
 	layer.add_child(_menu)

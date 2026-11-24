@@ -112,7 +112,9 @@ const LIST: Array = [
 	["soundscape", "Sound + atmosphere: the village at noon with a pistol (no police)", "Listen: birds + wind in the village, footsteps change from stone (road, pavement) to grass (walk onto the field) and wood (go into a house). Shoot (1 = pistol): the music turns tense and calms down again ~25 s later. Walk south-west to the harbour (gulls, waves) or press F7 for the night (crickets, night music). Volumes: Settings (Esc) > Audio."],
 	["sound_snow", "Sound: snow on the mountain pass", "You stand on the snowy mountain side above the pass road: wind, snow under your feet; step onto the road for stone."],
 	["sound_city", "Sound: the city centre at noon", "Traffic rumble, passing cars and far horns between the towers. Walk out of the city: it crossfades to the village."],
-	["settings_menu", "The settings window (graphics, audio, controls), opened in the village", "Try every tab: window mode / resolution / quality / FPS limit / VSync / field of view, the five volume sliders, mouse sensitivity + invert Y, and click a key to rebind it (Esc cancels; a key used twice shows a warning). Close it with Esc: your choices stay after a restart (user://settings.cfg). The same window opens from the main menu (Settings) and from the panel top left (Esc frees the mouse)."],
+	["settings_menu", "The settings window (graphics, audio, controls), opened in the village", "Try every tab: window mode / resolution / quality / FPS limit / VSync / field of view, the five volume sliders, mouse sensitivity + invert Y, and click a key to rebind it (Esc cancels; a key used twice shows a warning). Close it with Esc: your choices stay after a restart (user://settings.cfg). The same window opens from the main menu (Settings) and from the pause menu (Esc)."],
+	["title_menu", "Title page + save slots (demo slots, your real saves are untouched)", "You land on the title page with two made-up saves. Play shows the slots: slot 1 a crew of two at night, slot 2 a fresh game, slot 3 empty. Try Continue (loading screen with tips, then the game), New game on a full slot (asks 'Overwrite?' first), Delete (asks 'Sure?'), Join a friend (IP form) and Settings. The menu music plays. Restart the game to see your own saves again."],
+	["pause_menu", "The pause menu in the village (alone = the game pauses)", "Esc opens the pause menu: Resume, Settings, Save game, Leave to menu, Quit to desktop, and who is playing. Alone the world stops (watch the NPCs and the clock); with a friend joined it says 'Co-op: the game keeps running'. Esc or Resume goes back to the game."],
 	["npc_bench", "Roadmap 89: NPC benchmark (takes ~10 minutes, don't touch anything)", "Measures how many active NPCs your PC carries: at the city centre, the slums and the docks it adds NPCs round you step by step (20, 40, 60 ...), 20 s per step, and shows the mean FPS + the 1% low on screen. At the end it shows the advice for max_active_npcs (the highest count with a 1% low above 55 FPS, minus 20% headroom) and saves screenshots/npc_bench.txt. Send me the table."],
 	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
 	["fps_docks", "Points 86-90: frame rate at the docks (F3 overlay on)", "You stand on the quay looking over the docks. Top left the F3 overlay: FPS, worst frame, active / sleeping NPCs, draw calls. Before the fixes this spot ran ~14-23 FPS; now ~85-110. Walk around: NPCs beyond 300 m sleep, they wake again within 250 m (never right in front of you). F3 hides the overlay."],
@@ -172,7 +174,7 @@ static func restart_into(tree: SceneTree, id: String) -> void:
 		push_error("[Scenario] could not host again on port %d" % port)
 		tree.change_scene_to_file(Net.MAIN_MENU_SCENE)
 		return
-	tree.change_scene_to_file("res://scenes/world/world.tscn")
+	(tree.root.get_node("Loading")).call("go_to_world")  # (session B: loading screen with tips)
 
 
 # --- Setting up (host, World ready + navmesh) ---------------------------------------------
@@ -892,6 +894,29 @@ static func run(world: Node, id: String) -> bool:
 		"sound_city":
 			_kit(me, 200, [])
 			_place(me, Vector3(60.5, 0.3, 270.0), Vector3(36.0, 6.0, 210.0), dn, 12.0)
+		"title_menu":
+			DemoSlots.make()
+			SaveManager.slot_dir = DemoSlots.DIR
+			SaveManager.slot = 1
+			var tree: SceneTree = world.get_tree()
+			var infos: PackedStringArray = []
+			for n: int in range(1, SaveManager.SLOTS + 1):
+				var inf: Dictionary = SaveManager.slot_info(n)
+				infos.append("%d: %s" % [n, "%s %s" % [inf.get("players", []), inf.get("saved_at", "")] if inf.get("exists", false) else "empty"])
+			print("[ScenarioCheck] title_menu: demo slots in %s -> %s" % [SaveManager.slot_dir, "; ".join(infos)])
+			await tree.create_timer(1.0).timeout  # (let the world settle before it is freed again)
+			Net.leave_game()
+			tree.change_scene_to_file.call_deferred(Net.MAIN_MENU_SCENE)
+			if "--scenario-quit" in OS.get_cmdline_user_args():
+				await tree.create_timer(3.0).timeout
+				tree.quit()
+			return true
+		"pause_menu":
+			_kit(me, 200, [])
+			_place(me, Vector3(-8.0, 0.3, -4.6), Vector3(-40.0, 1.5, -4.6), dn, 13.0)
+			var pm := world.get_node_or_null(^"PauseMenu") as PauseMenu
+			if pm:
+				pm.open()
 		"settings_menu":
 			_kit(me, 200, [])
 			_place(me, Vector3(-8.0, 0.3, -4.6), Vector3(-40.0, 1.5, -4.6), dn, 13.0)

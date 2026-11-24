@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere).
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1198,3 +1198,68 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - Sound (B part 28): `Soundscape` autoload (`zone_key_at`, `music_key_for`, `heard_shot` from Wildlife.scare_at,
   buses Ambience/Music, assets/audio/ambience + music), `Footsteps` on every Player (`surface_of(hit)`, meta "surface").
   gen_ambience.py makes the loops. Scenarios soundscape / sound_snow / sound_city, self-test check soundscape.
+
+
+# Part 29: title page, save slots, loading screen, pause menu (user list 2026-11-24, item 3)
+
+## How it works
+- Title page (scenes/main_menu/main_menu.gd, the .tscn is now only the root; all built in code): background picture
+  `assets/ui/backgrounds/title_night.jpg` (own render of shot 43) with dark fades, logo (`TitleArt.logo`), Play /
+  Join a friend / Settings / Quit, "Playing as" name field, a side panel with the save slots or the join form (IP).
+  Menu music = Soundscape `MENU_MUSIC` (calm_night). Host/join/command line flow unchanged (`--host`, `--join=` ...).
+- Save slots (autoload/save_manager.gd): `SLOTS` 3, `slot_path(n)` (slot 1 = the old `savegame.json`, so existing saves
+  are slot 1; then savegame_2/3.json), `use_slot(n)`, `slot_info(n)` from a small header `<save>.info` written on every
+  save (`summary_of(state, saved_at)`: players, money dirty+clean, xp, play time, time of day; an old save without one
+  gets it on first read), `delete_slot(n)` (moves save + header to .bak), `slot_dir` (demo folder for tests).
+  New world field `GameState.world["play_time"]` (s, counted by SaveManager while hosting). Last slot used is kept in
+  settings.cfg [player] last_slot. Slot cards: Continue / New game ("Overwrite?") / Delete ("Sure?"), empty = New game.
+- Loading screen (new autoload `Loading`, autoload/loading.gd, after Soundscape): `Loading.go_to_world()` replaces
+  change_scene_to_file(world) in the menu (host, join) and in `Scenarios.restart_into`: threaded load with a progress
+  bar, background picture, a tip every 6 s (`TIPS`, 18), stays until the local player stands in the world (waits for
+  `scene_changed`, so an old world never counts), gives up after 120 s, closes when the menu comes back. Headless =
+  straight change_scene (tests keep their timing).
+- Pause menu (`PauseMenu`, scripts/ui/pause_menu.gd, World child "PauseMenu"): Esc while playing (mouse captured)
+  opens it: Resume, Settings, Save game (host), Leave to menu (host saves), Quit to desktop (host saves), players list.
+  Alone (host, no clients) `get_tree().paused = true`; in co-op it keeps running and unpauses itself when someone
+  joins. The old top-left panel (role, players, Leave) is hidden. Settings window works over the paused game.
+- `TitleArt` (scripts/ui/title_art.gd): logo, fades, big menu buttons, panel style, play time text.
+- Tools: `--menu-shots` (window) saves screenshots/menu_title/slots/join/settings/loading/pause.png (demo slots).
+  `DemoSlots.make(dir)` writes two made-up saves (user://demo_slots/).
+
+## Bug fixed from part 27
+- The menu saved user://settings.cfg with an EMPTY ConfigFile (only name / last IP) on every Host/Join, wiping the
+  Settings autoload's graphics / audio / keys. It now loads the file first.
+
+## Decisions (what + why)
+- Slot 1 = the existing save file: nobody loses a save after the update.
+- Header file next to each save: the title page never parses three full saves (they grow with the world).
+- Delete = rename to .bak (no undo button, but nothing is gone for good).
+- Pause only when alone: a host can't freeze friends' games.
+- Esc opens the pause menu only while the mouse is captured: Esc in a window (phone, shop...) still just closes it.
+
+## Existing files changed (part 29)
+- autoload/save_manager.gd (slots, header, play_time), scenes/main_menu/main_menu.gd + .tscn (rewritten, same
+  command line flow), scenes/world/world.gd (my Settings button from part 27 replaced by the PauseMenu, HUD/Panel
+  hidden), autoload/settings.gd (settings layer PROCESS_MODE_ALWAYS), autoload/soundscape.gd (menu music),
+  scripts/debug/scenarios.gd (restart_into -> Loading.go_to_world; scenarios title_menu, pause_menu), self_test.gd
+  (check menus), project.godot (autoload Loading).
+
+## For A (not fixed, your files)
+- Leaving a world very soon after it loads: `WorldLod._ready` (world_lod.gd:39) awaits two frames and then calls
+  get_tree() -> null if the world was freed meanwhile. `Sleep._update` (sleep.gd:71) runs from a player's exit while
+  the world is torn down (get_tree() null) -> SCRIPT ERROR on Leave to menu. Harmless, but an is_inside_tree() guard
+  would silence both.
+
+## Te testen door Curry
+- Start het spel normaal: nieuwe titelpagina. Play = je saves (jouw huidige save staat in slot 1). Probeer Continue
+  (laadscherm met tips), Esc in het spel (pauzemenu: alleen = gepauzeerd), Save game, Leave to menu.
+- `title_menu` (F9): titelpagina met twee nep-saves (je echte saves blijven onaangeroerd): Continue / New game
+  (vraagt "Overwrite?") / Delete (vraagt "Sure?"), Join a friend, Settings. Daarna het spel herstarten voor je eigen saves.
+- `pause_menu` (F9): het pauzemenu in het dorp.
+
+## For CLAUDE.md (suggested lines)
+- Menus (B part 29): title page in code (scenes/main_menu/main_menu.gd, `TitleArt`), save slots in SaveManager
+  (`SLOTS`, `slot_path`, `use_slot`, `slot_info` from `<save>.info`, `delete_slot`, `slot_dir`; slot 1 = savegame.json;
+  world["play_time"]), `Loading.go_to_world()` (loading screen with tips; use it instead of change_scene to the world),
+  `PauseMenu` (World/PauseMenu, Esc, pauses solo; HUD/Panel hidden). `--menu-shots`; scenarios title_menu / pause_menu,
+  self-test check menus.
