@@ -11,7 +11,10 @@ var _root: Control
 var _note: Label
 var _players: Label
 var _save_button: Button
+var _invite_button: Button
 var _toast: Label
+var _player_box: VBoxContainer
+var _friend_box: VBoxContainer
 
 
 func _ready() -> void:
@@ -76,6 +79,9 @@ func _refresh() -> void:
 		lines.append("%s%s%s" % [Net.get_player_name(peer_id), tag, me])
 	_players.text = "\n".join(lines)
 	_save_button.visible = multiplayer.is_server() and SaveManager.enabled
+	_invite_button.visible = SteamNet.in_steam_game()
+	if not _invite_button.visible:
+		_show_friends(false)
 
 
 func _build() -> void:
@@ -109,6 +115,7 @@ func _build() -> void:
 	var items: Array = [
 		["Resume", "Resume", close],
 		["Settings", "Settings", Settings.open_menu],
+		["Invite", "Invite friends (Steam)", _toggle_friends],
 		["SaveGame", "Save game", _save],
 		["Leave", "Leave to menu", _leave],
 		["Quit", "Quit to desktop", _quit],
@@ -120,6 +127,8 @@ func _build() -> void:
 		left.add_child(b)
 		if it[0] == "SaveGame":
 			_save_button = b
+		if it[0] == "Invite":
+			_invite_button = b
 	_toast = Label.new()
 	_toast.add_theme_color_override(&"font_color", Color(0.7, 1, 0.7))
 	left.add_child(_toast)
@@ -132,8 +141,15 @@ func _build() -> void:
 	side.offset_top = -80
 	side.offset_bottom = 80
 	_root.add_child(side)
+	var both := VBoxContainer.new()
+	side.add_child(both)
 	var box := VBoxContainer.new()
-	side.add_child(box)
+	_player_box = box
+	both.add_child(box)
+	_friend_box = VBoxContainer.new()
+	_friend_box.name = "Friends"
+	_friend_box.visible = false
+	both.add_child(_friend_box)
 	var h := Label.new()
 	h.text = "Players"
 	h.add_theme_font_size_override(&"font_size", 24)
@@ -167,3 +183,56 @@ func _quit() -> void:
 		SaveManager.save_game()
 	Net.leave_game()
 	get_tree().quit()
+
+
+# --- Steam invites (user list item 4) ---------------------------------------------------
+
+func _toggle_friends() -> void:
+	_show_friends(not _friend_box.visible)
+
+
+func _show_friends(on: bool) -> void:
+	_friend_box.visible = on
+	_player_box.visible = not on
+	if not on:
+		return
+	for c: Node in _friend_box.get_children():
+		c.queue_free()
+	var h := Label.new()
+	h.text = "Invite friends"
+	h.add_theme_font_size_override(&"font_size", 24)
+	h.add_theme_color_override(&"font_color", TitleArt.ACCENT)
+	_friend_box.add_child(h)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 260)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_friend_box.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+	var shown: int = 0
+	for f: Dictionary in SteamNet.friends():
+		if not f["online"]:
+			continue
+		var row := HBoxContainer.new()
+		var l := Label.new()
+		l.text = str(f["name"])
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		row.add_child(l)
+		var b := Button.new()
+		b.text = "Invite"
+		b.pressed.connect(func() -> void:
+			b.text = "Sent" if SteamNet.invite(int(f["id"])) else "Failed"
+			b.disabled = true)
+		row.add_child(b)
+		list.add_child(row)
+		shown += 1
+	if shown == 0:
+		var none := Label.new()
+		none.text = "None of your Steam friends is online."
+		list.add_child(none)
+	var overlay := Button.new()
+	overlay.text = "Steam overlay invite..."
+	overlay.pressed.connect(SteamNet.invite_overlay)
+	_friend_box.add_child(overlay)

@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu).
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1263,3 +1263,66 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   world["play_time"]), `Loading.go_to_world()` (loading screen with tips; use it instead of change_scene to the world),
   `PauseMenu` (World/PauseMenu, Esc, pauses solo; HUD/Panel hidden). `--menu-shots`; scenarios title_menu / pause_menu,
   self-test check menus.
+
+
+# Part 30: online co-op through Steam (GodotSteam, test app 480) (user list 2026-11-24, item 4)
+
+## How it works
+- GodotSteam GDExtension 4.23.2 in `addons/godotsteam/` (win64, linux64, macOS only; the updater editor plugin is not
+  enabled). Native libraries go through Git LFS (`*.dll/*.so/*.dylib` added to .gitattributes).
+- `SteamNet` (new autoload, autoload/steam_net.gd, after Loading): every Steam call goes through `steam` (Object), so
+  the game still runs where the extension can't load. `start()` (SteamAppId 480 via the environment, steamInitEx
+  with embedded callbacks) happens at game start when Steam is running, never in test runs (headless, --name=, test
+  flags, scenarios) unless `--steam`. Host: friends-only lobby (data game = LOBBY_KEY, name, owner), then a
+  SteamMultiplayerPeer `create_host(0)` -> `Net.host_with_peer(peer, name, "steam")`. Join: `joinLobby` ->
+  lobby_joined -> `create_client(owner, 0)` -> `Net.join_with_peer(...)`; from there the normal Net flow
+  (registration, join_succeeded, Loading). `find_lobbies()` lists friends' lobbies (lobbies_found), `invite(id)` /
+  `invite_overlay()`, `friends()`. Steam "Join game" / an accepted invite (join_requested) or `+connect_lobby <id>`
+  -> `pending_lobby` -> the title page joins it (from inside a world it saves, leaves and goes to the title page
+  first). Leaving the game leaves the lobby.
+- Net (autoload/net.gd): `host_with_peer(peer, name, via)`, `join_with_peer(peer, name, via)`, `transport` ("ip" /
+  "steam"); `host_game` / `join_game` (ENet) use them. `is_online()` = any real peer (was: ENet only);
+  SaveManager._hosting_world uses it.
+- Title page: Play has "Friends can join via Steam" (settings.cfg [network] steam_host, default on) + the Steam state;
+  hosting tries Steam first and falls back to IP hosting with a message when Steam fails. Join a friend shows
+  "Friends' games (Steam)" (invites first, Refresh) above the IP form.
+- Pause menu: "Invite friends (Steam)" (only in a Steam game) = online friends with Invite buttons (works without
+  the overlay) + "Steam overlay invite...".
+- Live check: `-- --steam-check` (headless is fine, Steam must run): start, friends, lobby + SteamMultiplayerPeer
+  host, friends' lobby search, leave. Result on this PC: started as the user, 27 friends, lobby made with
+  game=crime_coop_b1, peer SteamMultiplayerPeer, transport steam, lobby left afterwards.
+
+## Decisions (what + why)
+- GDExtension (not the GodotSteam editor builds): the project keeps the standard Godot 4.6.3.
+- 4.23.2 instead of the newest 4.24 (released 2026-11-07): a month in use, same Steamworks 1.65.
+- Lobby key "crime_coop_b1": app 480 is shared by every Steamworks test game; only lobbies with our key AND a friend
+  as owner are listed (a version bump of the key keeps incompatible builds apart).
+- Our own friends list for invites: the Steam overlay often doesn't hook into a game started from the editor.
+- Steam starts at game start (needed to receive invites / "Join game"), so you show as "Spacewar" while playing;
+  untick "Friends can join via Steam" to host by IP. (Steam itself keeps running regardless.)
+- Not tested here: a second Steam account actually joining (needs a friend / second PC). The host side, lobby data,
+  lobby search and leaving are tested live.
+
+## For A
+- Net: please use `Net.is_online()` / `Net.transport` instead of `multiplayer_peer is ENetMultiplayerPeer`.
+  `Net._set_peer_timeout` only applies to ENet (Steam's sockets keep the link alive on their own thread).
+- Pre-existing (also on main 3cbe701): `--selftest --only=selling` alone fails (SCRIPT ERROR at `npc.wants`): no
+  pedestrian exists yet when the check runs on its own; it passes after `pedestrians`. A wait for an NPC would fix it.
+
+## Existing files changed (part 30)
+- autoload/net.gd (host_with_peer / join_with_peer / transport / is_online), autoload/save_manager.gd (_hosting_world),
+  scenes/main_menu/main_menu.gd (Steam parts, check_pending_steam), scripts/ui/pause_menu.gd (invites),
+  scripts/debug/scenarios.gd (steam_host), self_test.gd (check steam), project.godot (autoload SteamNet),
+  .gitattributes (LFS for native libs), CREDITS.md.
+
+## Te testen door Curry
+- Steam moet draaien. `steam_host` (F9): het testspel wordt via Steam gehost en Esc > Invite friends (Steam) staat
+  open: druk Invite bij een online vriend. Je vriend start het spel en kiest Join a friend > Friends' games (Steam) >
+  Join (of accepteert je uitnodiging in Steam). Zonder vriend: kijk of Join a friend de Steam-lijst toont en of joinen
+  via IP nog werkt (2 vensters: Host + Join 127.0.0.1).
+
+## For CLAUDE.md (suggested lines)
+- Steam co-op (B part 30): GodotSteam GDExtension in addons/godotsteam (app 480), `SteamNet` autoload (`start`,
+  `host`, `join`, `find_lobbies`, `invite`, `friends`, `pending_lobby`, `in_steam_game`, never in test runs unless
+  `--steam`; `--steam-check` = live check), Net `host_with_peer` / `join_with_peer` / `transport`; IP (ENet) stays
+  the fallback. Scenario steam_host, self-test check steam.

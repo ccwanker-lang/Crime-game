@@ -22,6 +22,8 @@ var side: PanelContainer
 var slots_page: VBoxContainer
 var join_page: VBoxContainer
 var join_go: Button
+var steam_list: VBoxContainer
+var steam_check: CheckBox
 var _connect_timer: Timer
 var _busy: bool = false
 ## Inline "are you sure?": button -> time it was armed.
@@ -42,6 +44,9 @@ func _ready() -> void:
 	Net.connected_to_host.connect(_on_connected_to_host)
 	Net.join_succeeded.connect(_on_join_succeeded)
 	Net.join_failed.connect(_on_join_failed)
+	SteamNet.status.connect(_set_status)
+	SteamNet.lobbies_found.connect(_fill_steam_games)
+	SteamNet.invites_changed.connect(_refresh_steam_games)
 	_load_settings()
 	_fill_slots()
 	status_label.text = Net.last_message
@@ -53,6 +58,16 @@ func _ready() -> void:
 		shots.set("menu", self)
 		get_tree().root.add_child.call_deferred(shots)
 	_apply_cmdline_args()
+	check_pending_steam.call_deferred()
+
+
+## Steam "Join game" / an accepted invite / +connect_lobby: join that lobby now (SteamNet.pending_lobby).
+func check_pending_steam() -> void:
+	if SteamNet.pending_lobby == 0 or _busy:
+		return
+	var lobby: int = SteamNet.pending_lobby
+	SteamNet.pending_lobby = 0
+	_join_steam(lobby)
 
 
 # --- Layout ---------------------------------------------------------------------------
@@ -178,8 +193,26 @@ func _build() -> void:
 
 func _build_join_page() -> void:
 	join_page.add_child(_heading("Join a friend"))
+	if SteamNet.available():
+		var row := HBoxContainer.new()
+		var sl := Label.new()
+		sl.text = "Friends' games (Steam)"
+		sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sl.add_theme_font_size_override(&"font_size", 20)
+		row.add_child(sl)
+		var refresh := Button.new()
+		refresh.name = "SteamRefresh"
+		refresh.text = "Refresh"
+		refresh.pressed.connect(_refresh_steam_games)
+		row.add_child(refresh)
+		join_page.add_child(row)
+		steam_list = VBoxContainer.new()
+		steam_list.name = "SteamGames"
+		join_page.add_child(steam_list)
+		var sep := HSeparator.new()
+		join_page.add_child(sep)
 	var hint := Label.new()
-	hint.text = "Type the host's IP address. On the same network that is their local IP (192.168...); over the " \
+	hint.text = "Or type the host's IP address. On the same network that is their local IP (192.168...); over the " \
 			+ "internet the host needs port %d forwarded." % Net.DEFAULT_PORT
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_color_override(&"font_color", Color(0.75, 0.75, 0.8))
@@ -218,14 +251,28 @@ func _show_page(page: String) -> void:
 		_fill_slots()
 	elif side.visible:
 		ip_edit.grab_focus()
+		_refresh_steam_games()
 
 
 # --- Save slots -----------------------------------------------------------------------
 
 func _fill_slots() -> void:
 	for c: Node in slots_page.get_children():
+		slots_page.remove_child(c)  # (now, so the new nodes keep their names)
 		c.queue_free()
 	slots_page.add_child(_heading("Play"))
+	if SteamNet.available():
+		steam_check = CheckBox.new()
+		steam_check.name = "SteamHost"
+		steam_check.text = "Friends can join via Steam"
+		steam_check.button_pressed = SteamNet.host_via_steam
+		steam_check.toggled.connect(SteamNet.set_host_via_steam)
+		slots_page.add_child(steam_check)
+		var note := Label.new()
+		note.text = SteamNet.message if SteamNet.message != "" else "Steam starts when you host."
+		note.add_theme_font_size_override(&"font_size", 14)
+		note.add_theme_color_override(&"font_color", Color(0.65, 0.65, 0.7))
+		slots_page.add_child(note)
 	if not SaveManager.enabled and not SaveManager.scenario_mode:
 		var off := Label.new()
 		off.text = "Saving is off in this test run."
@@ -351,6 +398,31 @@ func _on_host_pressed(new_game: bool = false) -> void:
 	GameState.reset()
 	if not new_game and SaveManager.load_game():
 		print("[Menu] Continuing the saved game (slot %d)" % SaveManager.slot)
+	if SteamNet.should_host():
+		_set_busy(true)
+		SteamNet.host_ready.connect(_on_steam_host_ready, CONNECT_ONE_SHOT)
+		SteamNet.host_failed.connect(_on_steam_host_failed, CONNECT_ONE_SHOT)
+		SteamNet.host(name_edit.text)
+		return
+	_host_ip()
+
+
+func _on_steam_host_ready() -> void:
+	if SteamNet.host_failed.is_connected(_on_steam_host_failed):
+		SteamNet.host_failed.disconnect(_on_steam_host_failed)
+	Loading.go_to_world()
+
+
+## Steam didn't work: host by IP as before (friends can still join with the IP).
+func _on_steam_host_failed(reason: String) -> void:
+	if SteamNet.host_ready.is_connected(_on_steam_host_ready):
+		SteamNet.host_ready.disconnect(_on_steam_host_ready)
+	_set_busy(false)
+	_set_status("%s Hosting by IP instead." % reason)
+	_host_ip()
+
+
+func _host_ip() -> void:
 	var err: Error = Net.host_game(name_edit.text, _port)
 	if err != OK:
 		_set_status("Could not host on port %d (%s). Is another instance already hosting?" % [_port, error_string(err)])
@@ -372,6 +444,67 @@ func _on_join_pressed() -> void:
 	_set_status("Connecting to %s..." % address)
 	# Give up after a timeout (ENet can take long to notice an unreachable host).
 	_connect_timer.start(CONNECT_TIMEOUT_SEC)
+
+
+# --- Steam games ---
+
+func _refresh_steam_games() -> void:
+	if steam_list == null:
+		return
+	for c: Node in steam_list.get_children():
+		steam_list.remove_child(c)
+		c.queue_free()
+	if not SteamNet.start():
+		steam_list.add_child(_small(SteamNet.message + " Join by IP below."))
+		return
+	for inv: Dictionary in SteamNet.invites:
+		steam_list.add_child(_game_row("%s invited you" % inv["from"], int(inv["lobby"])))
+	steam_list.add_child(_small("Looking for friends' games..."))
+	SteamNet.find_lobbies()
+
+
+func _fill_steam_games(list: Array) -> void:
+	if steam_list == null:
+		return
+	for c: Node in steam_list.get_children():
+		if c is Label:
+			c.queue_free()
+	for g: Dictionary in list:
+		steam_list.add_child(_game_row("%s  (%d/%d)" % [g["name"], int(g["players"]), Net.MAX_PLAYERS], int(g["lobby"])))
+	if list.is_empty() and SteamNet.invites.is_empty():
+		steam_list.add_child(_small("No friends are hosting right now."))
+
+
+func _game_row(text: String, lobby: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	var l := Label.new()
+	l.text = text
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(l)
+	var b := Button.new()
+	b.text = "Join"
+	b.pressed.connect(_join_steam.bind(lobby))
+	row.add_child(b)
+	return row
+
+
+func _small(text: String) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override(&"font_size", 15)
+	l.add_theme_color_override(&"font_color", Color(0.65, 0.65, 0.7))
+	return l
+
+
+func _join_steam(lobby: int) -> void:
+	if _busy:
+		return
+	_save_settings()
+	_set_busy(true)
+	SteamNet.invites = SteamNet.invites.filter(func(d: Dictionary) -> bool: return int(d["lobby"]) != lobby)
+	SteamNet.join(lobby, name_edit.text)
+	_connect_timer.start(REGISTER_TIMEOUT_SEC)
 
 
 func _on_connected_to_host() -> void:
@@ -401,6 +534,11 @@ func _set_busy(busy: bool) -> void:
 	_busy = busy
 	for b: Button in [play_button, join_button, join_go]:
 		b.disabled = busy
+	if steam_list:
+		for row: Node in steam_list.get_children():
+			for b: Node in row.get_children():
+				if b is Button:
+					(b as Button).disabled = busy
 
 
 func _set_status(text: String) -> void:

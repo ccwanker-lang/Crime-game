@@ -161,7 +161,7 @@ func save_date() -> String:
 
 
 func _hosting_world() -> bool:
-	if not multiplayer.is_server() or not (multiplayer.multiplayer_peer is ENetMultiplayerPeer):
+	if not multiplayer.is_server() or not Net.is_online():
 		return false
 	var scene: Node = get_tree().current_scene
 	return scene != null and scene.has_method("capture_for_save")

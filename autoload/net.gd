@@ -47,6 +47,10 @@ func _ready() -> void:
 var port: int = DEFAULT_PORT
 
 
+## How this game is connected: "ip" (ENet, LAN / internet by IP) or "steam" (SteamNet, session B list item 4).
+var transport: String = "ip"
+
+
 func host_game(player_name: String, host_port: int = DEFAULT_PORT) -> Error:
 	leave_game()
 	var peer := ENetMultiplayerPeer.new()
@@ -54,13 +58,9 @@ func host_game(player_name: String, host_port: int = DEFAULT_PORT) -> Error:
 	if err != OK:
 		push_warning("[Net] create_server failed: %s" % error_string(err))
 		return err
-	multiplayer.multiplayer_peer = peer
 	port = host_port
-	local_name = sanitize_name(player_name)
-	players[1] = {"name": local_name}
-	_joined = true
+	host_with_peer(peer, player_name, "ip")
 	print("[Net] Hosting on port %d as '%s'" % [host_port, local_name])
-	players_changed.emit()
 	return OK
 
 
@@ -71,10 +71,26 @@ func join_game(address: String, player_name: String, port: int = DEFAULT_PORT) -
 	if err != OK:
 		push_warning("[Net] create_client failed: %s" % error_string(err))
 		return err
-	multiplayer.multiplayer_peer = peer
-	local_name = sanitize_name(player_name)
+	join_with_peer(peer, player_name, "ip")
 	print("[Net] Connecting to %s:%d as '%s'" % [address, port, local_name])
 	return OK
+
+
+## Host on a peer that is already set up (ENet above, or a SteamMultiplayerPeer from SteamNet).
+func host_with_peer(peer: MultiplayerPeer, player_name: String, via: String) -> void:
+	multiplayer.multiplayer_peer = peer
+	transport = via
+	local_name = sanitize_name(player_name)
+	players[1] = {"name": local_name}
+	_joined = true
+	players_changed.emit()
+
+
+## Join through a client peer that is already connecting (ENet above, or SteamNet).
+func join_with_peer(peer: MultiplayerPeer, player_name: String, via: String) -> void:
+	multiplayer.multiplayer_peer = peer
+	transport = via
+	local_name = sanitize_name(player_name)
 
 
 ## Closes any connection and goes back to offline mode.
@@ -110,7 +126,8 @@ func mark_peer_in_world(peer: int) -> void:
 
 
 func is_online() -> bool:
-	return multiplayer.multiplayer_peer is ENetMultiplayerPeer
+	var peer: MultiplayerPeer = multiplayer.multiplayer_peer
+	return peer != null and not (peer is OfflineMultiplayerPeer)
 
 
 func is_host() -> bool:
