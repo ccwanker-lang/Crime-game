@@ -129,3 +129,6 @@
   vsync off): docks 14-23 -> 84, city 21-27 -> 96 (125 steady), village 27 -> 76, army base 71 -> 142.
   NEXT in order: 88 (day rhythm), 89 (npc_bench), 90 part 2 (chunks / interiors / MultiMesh), 93 (prison complex),
   95 DONE (grass_roads), 96 DONE (gas_city/gas_docks/gas_prison). B part 23 (ARMY_RECT) merged locally with this push.
+- 2026-11-24: 96 DONE (3 gas stations), 93 DONE (prison complex), B part 24 merged. Session B took 88 (day rhythm) and
+  89 (npc_bench) - leave them. A's NEXT: 90 part 2 (world streaming: interiors / MultiMesh / process disable);
+  97 is documentation only (done). Then the full self-test + netcheck + the Dutch summary for the user.

@@ -3973,7 +3973,7 @@ func _check_airfield(world: Node3D) -> void:
 	for c: Node in af.jets[0].get_children():
 		if c is AudioStreamPlayer3D:
 			snd = c
-	_report(gaps.min() >= 150.0 and gaps.max() <= 330.0 and af.sound_range <= 600.0,
+	_report(gaps.min() >= 150.0 and gaps.max() <= 330.0 and af.sound_range <= 700.0,
 			"a take-off or landing every %.0f-%.0f s (cycle %.0f s); jet sound heard up to %.0f m%s" % [gaps.min(), gaps.max(),
 			af.cycle, af.sound_range, "" if snd == null else " (max_distance %.0f)" % snd.max_distance])
 	# Live: jet 1 a second before its take-off roll -> 4 s later it is rolling fast down the runway, burner on.

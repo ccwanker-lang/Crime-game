@@ -288,7 +288,9 @@ Godot console exe:
   `request_talk(role)` / `request_board` / `request_skip` (F2), `debug_start(p)`. Point 50: `host_on_spawn(p, new_player)`
   -> `_begin_late` (short intro after the intro is done), `debug_late_join(p)`, `--late-intro` / `late_join_in_tests`. Prefab `prefabs/buildings/prison.tscn`
   (gen_prefabs `prison()`, node Prison at gen_world PRISON_POS, markers Cell1-4/DeskSpot/BusSpot, `CellDoor`
-  NetDoor subclass, `IntroNPC` roles mentor/desk/guard, `ProcBus` boardable), marker Markers/BusStop. HUD
+  NetDoor subclass, `IntroNPC` roles mentor/desk/guard, `ProcBus` boardable), marker Markers/BusStop. Point 93:
+  complex (wall x -40..40, z -32..20 local; Block A = intro, Block B, canteen, visiting room, `PrisonBars` grilles,
+  `BoomGate` (scripts/world/boom_gate.gd, local visual), Watchtowers); scenario prison_complex, shots K0-K6. HUD
   `set_tutorial` / `say` / `fade`. Scenario prison_intro (`--yard` shot flag), self-test check intro.
 - Mountain pass (point 49b): `Mountain` (`scripts/procgen/mountain.gd`, node Mountain at the world root, StaticBody per
   part: Terrain heightmap / Road ribbon trimesh / Rails / Pines / Rocks) built from `data/mountain/mountain.json` +

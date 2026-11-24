@@ -548,7 +548,8 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       room); self-test: every room on foot from the stairs AND from the garage - DONE (LIFT x -6..0, pit 0.3 m, 6
       workbenches, cabinets, 6 beds; scenario bunker_rooms; check bunker_rooms)
   93. Prison: a real complex (cell blocks with bars + cell doors, corridors, a yard, watchtowers, canteen, visiting
-      room, gate with a boom) - the story's start - todo
+      room, gate with a boom) - the story's start - DONE (gen_prefabs prison(): blocks A/B, canteen, walkways,
+      yard + court, visiting room, gatehouse, BoomGate, 4 watchtowers; scenario prison_complex; shots K0-K6)
   94. Car sound: no tyre squeal in bends; only the engine (with throttle + rpm); squeal only on a real slide or the
       handbrake - DONE (PlayerCar.net_skid; scenario car_sounds / driving)
   95. No grass through roads and pavements anywhere on the map (slums now) + a self-test - DONE (gen_world cuts
@@ -1327,6 +1328,20 @@ Choices made while working autonomously (what + why).
   `net_skid` (0-1, computed by whoever simulates, synced + sent with `_drive`): handbrake at > 3 m/s, or sideways
   acceleration past `PlayerCar.GRIP` (14 m/s2, only a full-lock turn at speed); VehicleSound screeches only on that,
   traffic cars only on an emergency stop while panicking. The engine (gear, rpm, load) is unchanged.
+- Point 93 (prison complex): the wall now rings 80 x 52 m (x -40..40, z -32..20 local) on the old concrete slab, so
+  nothing outside moves (the pass road, the bus, LAST STOP FUEL across the road). Block A keeps its exact intro
+  layout (CellDoor1-4, Cell1-4 markers, the yard exit at x 0, Marco, the desk, the gate guard) so the intro and its
+  test are untouched; its cell fronts are now bars (`PrisonBars`, a new @tool grille: bars mesh + one thin
+  collision box, reusable) and two locked all-bar cells fill the ends. New: Block B (8 locked cells round a day room
+  with steel tables and a TV), the canteen (6 tables with benches, a serving hatch behind bars, kitchen shelves),
+  covered walkways (roofs on posts, open sides - they read as corridors but never block a walk route), a basketball
+  court, the visiting room (glass partition over a counter, 5 booths with dividers, inmate door from the yard and a
+  visitor door from the gate side), a gatehouse, razor wire on the north wall and the army's `Watchtower` prefab in
+  the four corners (grey tint). The gate's boom (`BoomGate`) is local and visual on every peer: it lifts for any
+  player / crew car / traffic car within 10 m and has no collision on the arm, so it can never trap someone on a
+  lagging peer (only the post is solid). Blocks are single storey on purpose: no stairwells for the intro walker,
+  cheap on the light budget (lamps fade with WorldLod). Also: the airfield check now allows the documented
+  sound_range 650 m (limit 700; it still said 600 from before the last tweak of point 91).
 - B part 24 (merged 2026-11-24): Zones skips resident orders for sleeping residents (NpcStreamer lod ASLEEP); the
   other B NPCs need nothing (mission NPCs/enemies are pinned, staff/dealers are local visuals). Points 88 (day
   rhythm) and 89 (npc_bench) are taken over by session B (user, 2026-11-24): A did not touch them.

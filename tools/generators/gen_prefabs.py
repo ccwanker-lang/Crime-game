@@ -757,12 +757,55 @@ building(B + "laundromat.tscn", {**FRONT, "width": "7.5", "shop_sign": q("LAUNDR
 
 
 # Point 49: the prison of the intro, far outside the village (gen_world puts it at PRISON_POS). Local layout,
-# +Z = south = the gate and the bus: own concrete ground, a 5 m wall round a 50 x 40 m compound, the cell block
-# (4 cells with sliding barred doors, a corridor, an exit to the yard) on the north side, the yard with Marco,
-# the release desk next to the gate, two guard towers, floodlights. Markers Cell1-4 = where players wake up.
+# +Z = south = the gate and the bus. Point 93: a real complex inside a 5 m wall round an 80 x 52 m compound
+# (x -40..40, z -32..20): cell block A (the intro: 4 cells with sliding barred CellDoors + 2 locked cells, barred
+# fronts, a corridor, the exit to the yard), cell block B in the north-west (10 locked cells along a day room),
+# the canteen in the north-east, covered walkways between the blocks, the yard (benches, pull-up bar, a hoop,
+# Marco), the visiting room by the gate (glass partition with booths), the release desk, a gatehouse, a boom
+# barrier outside the gate and four watchtowers in the corners. Markers Cell1-4 = where players wake up.
 S["cell_door"] = "res://scripts/interaction/cell_door.gd"
 S["intro_npc"] = "res://scripts/npc/intro_npc.gd"
 S["proc_bus"] = "res://scripts/procgen/proc_bus.gd"
+S["prison_bars"] = "res://scripts/procgen/prison_bars.gd"
+S["boom_gate"] = "res://scripts/world/boom_gate.gd"
+S["watchtower"] = "res://scripts/procgen/watchtower.gd"
+
+
+def bars(sc, name, pos, width, height, rot=0.0):
+    """A fixed barred grille, `pos` = its left bottom corner (bars run along local +X)."""
+    sc.node(name, "StaticBody3D", ".", props={"script": sc.script(S["prison_bars"]), "transform": xform(pos, rot),
+            "width": f"{width:g}", "height": f"{height:g}"})
+
+
+def hall(sc, prefix, x0, x1, z0, z1, h, doors, roof="roof_dark", floor="floor_tiles", wall="plaster"):
+    """A closed single-storey hall (walls 0.3 m, roof, floor). `doors` = [(side, centre, width)], side N/S/W/E;
+    a door gap is 2.3 m high with wall above."""
+    t = 0.3
+    sides = {"N": (z0, x0, x1, True), "S": (z1, x0, x1, True), "W": (x0, z0, z1, False), "E": (x1, z0, z1, False)}
+    for side, (fixed, a, b, along_x) in sides.items():
+        cuts = sorted([(c - w / 2, c + w / 2) for (sd, c, w) in doors if sd == side])
+        pos = a
+        pieces = []
+        for (c0, c1) in cuts:
+            pieces.append((pos, c0))
+            pieces.append(("top", c0, c1))
+            pos = c1
+        pieces.append((pos, b))
+        for i, pc in enumerate(pieces):
+            if pc[0] == "top":
+                _, c0, c1 = pc
+                mid, ln, y, hh = (c0 + c1) / 2, c1 - c0, 2.3, h - 2.3
+            else:
+                c0, c1 = pc
+                if c1 - c0 < 0.05:
+                    continue
+                mid, ln, y, hh = (c0 + c1) / 2, c1 - c0, 0, h
+            if along_x:
+                counter(sc, f"{prefix}Wall{side}{i}", (mid, y, fixed), (ln + (t if pc[0] != "top" else 0), hh, t), wall)
+            else:
+                counter(sc, f"{prefix}Wall{side}{i}", (fixed, y, mid), (t, hh, ln), wall)
+    counter(sc, f"{prefix}Roof", ((x0 + x1) / 2, h, (z0 + z1) / 2), (x1 - x0 + 0.6, 0.3, z1 - z0 + 0.6), roof)
+    counter(sc, f"{prefix}Floor", ((x0 + x1) / 2, 0, (z0 + z1) / 2), (x1 - x0, 0.05, z1 - z0), floor)
 
 
 def prison():
@@ -770,33 +813,44 @@ def prison():
     sc.node("Prison", "Node3D")
     wall_h = 5.0
     counter(sc, "Ground", (0, -0.3, 6), (90, 0.3, 80), "concrete")
-    # Outer wall with the gate gap (x -2.5..2.5) in the south side.
-    counter(sc, "WallN", (0, 0, -20.25), (50.5, wall_h, 0.5), "concrete")
-    counter(sc, "WallW", (-25, 0, 0), (0.5, wall_h, 40), "concrete")
-    counter(sc, "WallE", (25, 0, 0), (0.5, wall_h, 40), "concrete")
-    counter(sc, "WallS1", (-13.75, 0, 20.25), (22.5, wall_h, 0.5), "concrete")
-    counter(sc, "WallS2", (13.75, 0, 20.25), (22.5, wall_h, 0.5), "concrete")
-    counter(sc, "GateBeam", (0, wall_h - 0.8, 20.25), (5.0, 0.8, 0.6), "metal_dark")
+    # Outer wall (x -40..40, z -32..20.25) with the gate gap (x -3..3) in the south side.
+    counter(sc, "WallN", (0, 0, -32.25), (80.5, wall_h, 0.5), "concrete")
+    counter(sc, "WallW", (-40, 0, -6), (0.5, wall_h, 52.5), "concrete")
+    counter(sc, "WallE", (40, 0, -6), (0.5, wall_h, 52.5), "concrete")
+    counter(sc, "WallS1", (-21.5, 0, 20.25), (37.0, wall_h, 0.5), "concrete")
+    counter(sc, "WallS2", (21.5, 0, 20.25), (37.0, wall_h, 0.5), "concrete")
+    for i, x in enumerate(range(-36, 40, 8)):  # a strip of razor wire on the coping
+        counter(sc, f"Wire{i}", (x, wall_h, -32.25), (7.6, 0.35, 0.3), "metal_dark")
+    counter(sc, "GateBeam", (0, wall_h - 0.8, 20.25), (6.0, 0.8, 0.6), "metal_dark")
     sc.node("PrisonSign", "Label3D", ".", props={
         "transform": xform((0, wall_h - 0.4, 20.6)), "text": q("RIVERTON STATE PRISON"), "font_size": "90",
         "pixel_size": "0.006", "outline_size": "10", "modulate": col(0.95, 0.95, 0.9)})
-    # Cell block: x -14..14, z -20..-10, 3.6 m high. Cells (4 m wide) along the north wall, corridor in front.
+    sc.node("GateBoom", "Node3D", ".", props={"script": sc.script(S["boom_gate"]),
+            "transform": xform((3.6, 0, 22.2)), "length": "6.6"})
+    # Gatehouse just inside the gate (east), the gate guard stands at its door.
+    hall(sc, "Gatehouse", 5.0, 10.0, 15.0, 19.6, 3.0, [("W", 17.6, 1.2)])
+    bars(sc, "GatehouseWindow", (4.85, 1.1, 16.9), 1.2, 1.0, -90)
+
+    # --- Cell block A (the intro): x -14..14, z -20..-10, 3.6 m high, the exit to the yard at x 0.
     h = 3.6
     counter(sc, "BlockW", (-14, 0, -15), (0.3, h, 10), "plaster")
     counter(sc, "BlockE", (14, 0, -15), (0.3, h, 10), "plaster")
+    counter(sc, "BlockN", (0, 0, -20), (28.3, h, 0.3), "plaster")
     counter(sc, "BlockS1", (-7.6, 0, -10), (12.8, h, 0.3), "plaster")
     counter(sc, "BlockS2", (7.6, 0, -10), (12.8, h, 0.3), "plaster")
     counter(sc, "BlockSTop", (0, 2.6, -10), (2.4, h - 2.6, 0.3), "plaster")
     counter(sc, "BlockRoof", (0, h, -15), (28.6, 0.3, 10.6), "roof_dark")
     counter(sc, "BlockFloor", (0, 0, -15), (28, 0.05, 10), "floor_tiles")
+    sc.node("BlockASign", "Label3D", ".", props={"transform": xform((0, 3.0, -9.8)), "text": q("BLOCK A"),
+            "font_size": "64", "pixel_size": "0.006", "outline_size": "8", "modulate": col(0.95, 0.95, 0.9)})
     for i in range(4):
         x0 = -8.0 + 4.0 * i
         cx = x0 + 2.0
         counter(sc, f"CellWall{i}", (x0, 0, -17), (0.2, h, 6), "interior_plaster")
-        # Front wall with a 1.2 m door gap at the cell's middle.
-        counter(sc, f"CellFrontL{i}", (x0 + 0.7, 0, -14), (1.4, h, 0.2), "interior_plaster")
-        counter(sc, f"CellFrontR{i}", (x0 + 3.3, 0, -14), (1.4, h, 0.2), "interior_plaster")
-        counter(sc, f"CellFrontTop{i}", (cx, 2.3, -14), (1.2, h - 2.3, 0.2), "interior_plaster")
+        # Barred front with a 1.2 m door gap at the cell's middle (the sliding CellDoor).
+        bars(sc, f"CellFrontL{i}", (x0 + 0.1, 0, -14), 1.3, 2.3)
+        bars(sc, f"CellFrontR{i}", (x0 + 2.6, 0, -14), 1.3, 2.3)
+        counter(sc, f"CellFrontTop{i}", (cx, 2.3, -14), (4.0, h - 2.3, 0.2), "interior_plaster")
         sc.node(f"CellDoor{i + 1}", "Node3D", ".", props={
             "script": sc.script(S["cell_door"]), "transform": xform((cx - 0.6, 0, -13.85)),
             "width": "1.2", "height": "2.3"})
@@ -804,17 +858,94 @@ def prison():
         inst(sc, f"CellLamp{i + 1}", I + "ceiling_lamp.tscn", (cx, h - 0.02, -17.0))
         marker(sc, f"Cell{i + 1}", (cx + 0.6, 0.1, -17.0), 180)
     counter(sc, "CellWall4", (8.0, 0, -17), (0.2, h, 6), "interior_plaster")
+    # Two locked cells at the ends (no door, all bars).
+    for i, x0 in enumerate((-12.0, 8.0)):
+        if i == 0:
+            counter(sc, "CellWallA5", (-12.0, 0, -17), (0.2, h, 6), "interior_plaster")
+        else:
+            counter(sc, "CellWallA6", (12.0, 0, -17), (0.2, h, 6), "interior_plaster")
+        bars(sc, f"LockedFront{i}", (x0 + 0.1, 0, -14), 3.8, 2.3)
+        counter(sc, f"LockedFrontTop{i}", (x0 + 2.0, 2.3, -14), (4.0, h - 2.3, 0.2), "interior_plaster")
+        inst(sc, f"LockedBunk{i}", I + "bed.tscn", (x0 + 0.55, 0.05, -18.4), 90)
     for i, x in enumerate((-10, 0, 10)):
         inst(sc, f"CorridorLamp{i}", I + "ceiling_lamp.tscn", (x, h - 0.02, -12.0))
-    # Yard: benches, a pull-up bar, Marco by the east benches.
-    for i, (x, z, r) in enumerate([(9, -4, -90), (9, 0, -90), (-9, -2, 90)]):
+    for i, x in enumerate((-11.0, -3.0, 5.0)):  # barred windows high in the yard wall
+        bars(sc, f"BlockAWindow{i}", (x, 2.6, -9.82), 1.6, 0.7)
+
+    # --- Cell block B: x -34..-18, z -30..-12: four cells on each side of a day room, door east to the walkway.
+    hall(sc, "BlockB", -34.0, -18.0, -30.0, -12.0, h, [("E", -21.0, 1.6)])
+    sc.node("BlockBSign", "Label3D", ".", props={"transform": xform((-17.8, 2.9, -21.0), 90), "text": q("BLOCK B"),
+            "font_size": "64", "pixel_size": "0.006", "outline_size": "8", "modulate": col(0.95, 0.95, 0.9)})
+    for row, (zf, zb, rot_bed) in enumerate(((-26.0, -28.6, 90), (-16.0, -13.4, 90))):
+        for i in range(4):
+            x0 = -34.0 + 4.0 * i
+            if i > 0:
+                zc = (zf + (-30.0 if row == 0 else -12.0)) / 2
+                counter(sc, f"BCellWall{row}{i}", (x0, 0, zc), (0.2, h, 4.0), "interior_plaster")
+            bars(sc, f"BCellFront{row}{i}", (x0 + 0.15, 0, zf), 3.7, 2.4)
+            counter(sc, f"BCellTop{row}{i}", (x0 + 2.0, 2.4, zf), (4.0, h - 2.4, 0.2), "interior_plaster")
+            inst(sc, f"BBunk{row}{i}", I + "bed.tscn", (x0 + 0.6, 0.05, zb), rot_bed)
+    for i, x in enumerate((-30.0, -23.5)):  # day room: two steel tables with stools
+        counter(sc, f"BTable{i}", (x, 0, -21.0), (2.4, 0.78, 1.0), "metal_dark")
+        for j, dz in enumerate((-1.0, 1.0)):
+            inst(sc, f"BStool{i}{j}", I + "stool.tscn", (x, 0.05, -21.0 + dz), 0)
+    inst(sc, "BTV", I + "television.tscn", (-33.6, 1.6, -21.0), 90)
+    for i, x in enumerate((-30.0, -22.0)):
+        inst(sc, f"BLamp{i}", I + "ceiling_lamp.tscn", (x, h - 0.02, -21.0))
+
+    # --- Canteen: x 18..34, z -30..-12, door west to the walkway, a serving counter behind bars.
+    hall(sc, "Canteen", 18.0, 34.0, -30.0, -12.0, 4.0, [("W", -15.0, 1.8)], wall="brick_white")
+    sc.node("CanteenSign", "Label3D", ".", props={"transform": xform((17.8, 3.1, -15.0), -90), "text": q("CANTEEN"),
+            "font_size": "64", "pixel_size": "0.006", "outline_size": "8", "modulate": col(1.0, 0.85, 0.3)})
+    counter(sc, "ServeCounter", (26.0, 0, -27.4), (14.0, 1.0, 0.8), "metal_dark")
+    bars(sc, "ServeBars", (19.0, 1.0, -27.1), 14.0, 1.3)
+    counter(sc, "ServeTop", (26.0, 2.3, -27.1), (14.0, 1.7, 0.2), "interior_plaster")
+    inst(sc, "Kitchen1", I + "steel_shelves.tscn", (21.0, 0.05, -29.4), 0)
+    inst(sc, "Kitchen2", I + "steel_shelves.tscn", (31.0, 0.05, -29.4), 0)
+    for i, z in enumerate((-23.5, -19.5, -15.5)):
+        for j, x in enumerate((22.5, 29.5)):
+            counter(sc, f"Table{i}{j}", (x, 0, z), (5.0, 0.78, 1.1), "planks")
+            counter(sc, f"BenchN{i}{j}", (x, 0, z - 0.9), (5.0, 0.45, 0.35), "planks")
+            counter(sc, f"BenchS{i}{j}", (x, 0, z + 0.9), (5.0, 0.45, 0.35), "planks")
+    for i, (x, z) in enumerate([(22.5, -22), (29.5, -22), (22.5, -16), (29.5, -16)]):
+        inst(sc, f"CanteenLamp{i}", I + "ceiling_lamp.tscn", (x, 3.98, z))
+
+    # --- Covered walkways (the corridors between the blocks): roofs on posts, open sides.
+    for i, (x0, x1) in enumerate(((-18.0, -14.0), (14.0, 18.0))):
+        counter(sc, f"WalkRoof{i}", ((x0 + x1) / 2, 3.3, -20.0), (x1 - x0, 0.2, 20.0), "roof_dark")
+        for j, z in enumerate((-29.8, -22.0, -10.2)):
+            counter(sc, f"WalkPost{i}{j}", (x1 - 0.35 if i == 0 else x0 + 0.35, 0, z), (0.2, 3.3, 0.2), "metal_dark")
+
+    # --- The yard: benches, a pull-up bar, a basketball hoop, Marco by the east benches.
+    for i, (x, z, r) in enumerate([(9, -4, -90), (9, 0, -90), (-9, -2, 90), (-20, 9, 0)]):
         inst(sc, f"Bench{i}", P + "bench.tscn", (x, 0, z), r)
     counter(sc, "BarPostL", (-4, 0, 2), (0.15, 2.4, 0.15), "metal_dark")
     counter(sc, "BarPostR", (-2, 0, 2), (0.15, 2.4, 0.15), "metal_dark")
     counter(sc, "Bar", (-3, 2.3, 2), (2.2, 0.08, 0.08), "metal_dark")
+    counter(sc, "HoopPost", (-30, 0, -4), (0.2, 3.0, 0.2), "metal_dark")
+    counter(sc, "HoopBoard", (-30, 2.9, -3.8), (1.8, 1.1, 0.08), "trim_paint")
+    counter(sc, "HoopRing", (-30, 3.0, -3.4), (0.45, 0.04, 0.45), "metal_dark")
+    counter(sc, "Court", (-30, 0, 2), (12.0, 0.02, 10.0), "asphalt")
     shopkeeper(sc, "Marco", (8.2, 0, -2.0), "Marco", "fellow prisoner", "", [], 3, 49,
                {"script": sc.script(S["intro_npc"]), "role": q("mentor")})
-    # Release desk next to the gate (inside the wall, west): a booth with a counter.
+
+    # --- Visiting room: x 16..34, z 4..16, inmates come in from the yard (north door), visitors from the gate side
+    # (west door); a glass partition with five booths across the middle (z 10).
+    hall(sc, "Visit", 16.0, 34.0, 4.0, 16.0, 3.4, [("N", 25.0, 1.6), ("W", 13.5, 1.4)], wall="plaster")
+    sc.node("VisitSign", "Label3D", ".", props={"transform": xform((25.0, 2.9, 3.8), 180), "text": q("VISITING"),
+            "font_size": "64", "pixel_size": "0.006", "outline_size": "8", "modulate": col(1.0, 0.85, 0.3)})
+    counter(sc, "VisitCounter", (25.0, 0, 10.0), (17.4, 1.0, 0.6), "planks")
+    counter(sc, "VisitGlass", (25.0, 1.0, 10.0), (17.4, 1.6, 0.06), "glass_interior")
+    for i in range(5):
+        x = 18.6 + 3.2 * i
+        for j, (dz, r) in enumerate(((-0.9, 0), (0.9, 180))):
+            inst(sc, f"VisitChair{i}{j}", I + "dining_chair.tscn", (x, 0.05, 10.0 + dz), r)
+        if i < 4:
+            counter(sc, f"VisitDivider{i}", (x + 1.6, 0, 10.0), (0.08, 2.6, 2.2), "interior_plaster")
+    for i, x in enumerate((20.0, 30.0)):
+        inst(sc, f"VisitLamp{i}", I + "ceiling_lamp.tscn", (x, 3.38, 10.0))
+
+    # --- Release desk next to the gate (inside the wall, west): a booth with a counter.
     counter(sc, "DeskBoothBack", (-7, 0, 11), (6, 3, 0.2), "plaster")
     counter(sc, "DeskBoothSide", (-10, 0, 13), (0.2, 3, 4), "plaster")
     counter(sc, "DeskBoothRoof", (-7, 3, 13), (6.4, 0.2, 4.4), "roof_dark")
@@ -825,14 +956,14 @@ def prison():
     sc.node("DeskSign", "Label3D", ".", props={
         "transform": xform((-7, 2.6, 15.25)), "text": q("RELEASE"), "font_size": "64", "pixel_size": "0.006",
         "outline_size": "8", "modulate": col(1.0, 0.85, 0.3)})
-    # Guard towers in the north corners + a guard at the gate.
-    for i, x in enumerate((-22, 22)):
-        counter(sc, f"TowerBase{i}", (x, 0, -17), (2.4, 6.5, 2.4), "concrete")
-        counter(sc, f"TowerCab{i}", (x, 6.5, -17), (3.0, 2.2, 3.0), "plaster")
-        counter(sc, f"TowerRoof{i}", (x, 8.7, -17), (3.6, 0.25, 3.6), "roof_dark")
+
+    # --- Watchtowers in the four corners + a guard at the gate.
+    for i, (x, z, r) in enumerate([(-37, -29, 0), (37, -29, 0), (-37, 17, 180), (37, 17, 180)]):
+        sc.node(f"Watchtower{i + 1}", "StaticBody3D", ".", props={"script": sc.script(S["watchtower"]),
+                "transform": xform((x, 0, z), r), "height": "7.0", "tint": col(0.55, 0.55, 0.52)})
     shopkeeper(sc, "GateGuard", (3.6, 0, 18.6), "Guard", "gate", "", [], 5, 91,
                {"script": sc.script(S["intro_npc"]), "role": q("guard")})
-    for i, (x, z) in enumerate([(-20, 15), (20, 15), (-20, -6), (20, -6), (8, 35.5)]):  # (49b: last one off the road)
+    for i, (x, z) in enumerate([(-30, 12), (30, 0), (-30, -8), (-14, 6), (8, 35.5)]):  # (49b: last one off the road)
         inst(sc, f"Flood{i}", P + "floodlight_pole.tscn", (x, 0, z), 0)
     # Outside the gate: the road stub and the bus (door on its gate side).
     counter(sc, "BusRoad", (0, 0, 28), (60, 0.03, 7), "asphalt")
