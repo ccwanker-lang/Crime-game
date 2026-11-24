@@ -554,7 +554,9 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
   95. No grass through roads and pavements anywhere on the map (slums now) + a self-test - DONE (gen_world cuts
       holes in grass fields under roads/paving, GrassCover skips roads + paved areas from its own World; check
       grass_roads; scenario grass_roads)
-  96. Three more gas stations (city, by the prison, the docks): same as QuickFuel, reachable by car, on the roads - todo
+  96. Three more gas stations (city, by the prison, the docks): same as QuickFuel, reachable by car, on the roads - DONE
+      (gen_world `gas_station(...)`: CITYFUEL on the city plaza, DOCK FUEL on the quay, LAST STOP FUEL by the prison;
+      scenarios gas_city / gas_docks / gas_prison; self-test check fuel)
   97. LATER (not now): at 5 stars the army leaves the base and hunts the 5-star player - documented only
 Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
   - Zones: Fort Halden soldiers (gate warning, shot on sight inside, alarm + reinforcements, no police stars), slum
@@ -1325,6 +1327,17 @@ Choices made while working autonomously (what + why).
   `net_skid` (0-1, computed by whoever simulates, synced + sent with `_drive`): handbrake at > 3 m/s, or sideways
   acceleration past `PlayerCar.GRIP` (14 m/s2, only a full-lock turn at speed); VehicleSound screeches only on that,
   traffic cars only on an emergency stop while panicking. The engine (gear, rpm, load) is unchanged.
+- Point 96 (3 gas stations): one generator function `gas_station(tag, cx, cz, rot, parent, length, title,
+  kiosk_behind)` builds the QuickFuel kit (raised forecourt, 3 posts + canopy + 2 lamps, Pump1/Pump2 = FuelPump,
+  kiosk, marker Spot) inside one Node3D `GasStation<Tag>`; QuickFuel itself stays as it was (saves/tests use its
+  names). Spots, all with the forecourt's long side flush against the road so a car drives straight in:
+  CITYFUEL on the city plaza north of the first avenue (x 25..47, z 130..138; the two plaza trees there are dropped,
+  their random numbers still drawn so nothing else moves); DOCK FUEL on the quay apron east of the crane (x -92.5..
+  -74.5, z 90..98, 18 m long, kiosk behind the canopy because the quay is only 14 m deep) - the container yard and
+  the industrial lots were full; LAST STOP FUEL on the prison's concrete south of the pass road's last straight
+  (x -139..-117, z -350.9..-342.9), the last fuel before / first after the pass. Point 93 (prison complex) must keep
+  that plot free. The self-test checks per station: firm ground at forecourt height, both lanes free at bumper and
+  roof height along the pump run, an open road side, and pump 1 finds a parked car.
 - Point 95 (grass through the road): two causes. (1) Hand-placed GrassFields from the first village (verges north
   of North Road at z -52, by the contact's alley, at (67, 11)) were never cut when the slum road and later paving
   were laid over them - they draw their own grass over their whole rectangle. gen_world now records every road tile

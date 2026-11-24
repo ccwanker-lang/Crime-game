@@ -75,6 +75,9 @@ const LIST: Array = [
 	["mountain_pass", "Point 49b: the mountain pass behind the farm to the prison", "You stand on Country Lane south of the farm next to your own car (full tank). Drive north past the barn: the road turns east, then climbs the mountain in hairpin bends (guardrails, rocks, pines; snow near the top). Over the top it winds down to the prison on the far side (turn round in front of the gate). A traffic car also drives the pass. From the village and the farm you can't see the prison: the mountain is in the way. The prison intro bus now really drives this road (scenario prison_intro, or F2 skips the ride)."],
 	["traffic_lights", "Point 63: traffic lights, fewer cars, overtaking", "13:00 on Main Road. Traffic lights at the 3 busy junctions (Main Road x Mill Lane, x Station Road, x Industrial Road): cars stop at red (and at amber when they can), the cross street goes on green. A broken-down car stands in the lane in front of you: cars behind it wait a moment, then overtake on the left when nothing comes the other way, and pull back in. Fewer cars on the streets (5)."],
 	["harbour_road", "Point 60: South Street (the police station's street) now runs on to the harbour", "You stand on South Street next to your car, facing west. Drive (F, W) past the police station: where the road used to end at barriers it now bends south, down to the quay and into Quay Road (crane, ship). Traffic drives the same loop both ways; on the phone map (Tab > Map) the road is there too."],
+	["gas_city", "Point 96: CITYFUEL, the new gas station on the city plaza (first avenue), your sedan almost empty at pump 1", "Same as QuickFuel: E on the red pump fills the car (car panel bottom right shows the fuel). Drive off onto the avenue and back in: the forecourt is open to the road along its whole length. The two other new stations: F9 gas_docks and gas_prison."],
+	["gas_docks", "Point 96: DOCK FUEL on the quay (Quay Road, east of the crane), your sedan almost empty at pump 1", "E on the red pump fills up. Drive out north onto Quay Road and back in. The shop kiosk stands behind the canopy (the quay is narrow there)."],
+	["gas_prison", "Point 96: LAST STOP FUEL by the prison (the last straight of the pass road), your sedan almost empty at pump 1", "E on the red pump fills up. Drive back up the pass road or towards the army base gate; the forecourt sits on the prison's concrete south of the road."],
 	["gas_station", "QuickFuel on North Road: your Comet Sedan almost empty next to pump 1, €500", "The car panel (bottom right) shows fuel 6% when you sit in it (F). Get out, E on the red pump: 'Fill up: 43 L for €86' -> full, money gone (clean money first). Drive around town: the % drops (a full tank is about 3 km). Second car (Mule Van) at pump 2 is completely empty: get in, W = nothing, it only rolls. Below 15% you get a 'Low fuel' message."],
 	["turf_take", "15:00 in front of the Starter Room: this district is at 96% influence, a customer waits (green €)", "Phone (Tab) > Turf: every district with its meter (red = Crow turf). E on the customer > Confirm deal: the sale pushes the meter past 100% -> a text 'X is yours now', Turf shows it green. Walk into another district: a toast with its name and owner. Your turf: customers pay 15% more, no Crows roam there at night."],
 	["turf_danger", "13:00 in front of the Starter Room: Crow turf (30%), they already warned you, a customer waits", "E on the customer > Confirm deal: a text 'Told you. Look behind you.' and a Crow (black clothes) runs at you from 25-40 m, by day. Fight back (1 = pistol): a dead Crow pushes the district's meter up (+6%), dying to it pushes it down (-8%). Check phone > Turf before and after."],
@@ -593,6 +596,16 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 1, Vector3(-30, 0.2, 58.25), PI / 2.0, "", 1.0)
 			_place(me, Vector3(-27, 0.3, 61.5), Vector3(-70, 1.5, 62), dn, 13.0)
+		"gas_city", "gas_docks", "gas_prison":
+			_kit(me, 500, [])
+			var veh: Vehicles = Vehicles.current
+			var st: Node3D = world.find_child("GasStation" + id.trim_prefix("gas_").capitalize(), true, false) as Node3D
+			if veh and st:
+				var pump: Node3D = st.get_node("Pump1") as Node3D
+				var yaw: float = PI / 2.0 + st.global_rotation.y
+				veh.host_spawn("sedan", 2, pump.global_position - st.global_basis.z * 2.2 + Vector3.UP * 0.1, yaw, "", 0.06)
+				var spot: Node3D = st.get_node("Spot") as Node3D
+				_place(me, spot.global_position, pump.global_position + Vector3.UP * 1.0, dn, 13.0)
 		"gas_station":
 			_kit(me, 500, [])
 			var veh: Vehicles = Vehicles.current

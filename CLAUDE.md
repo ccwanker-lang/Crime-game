@@ -270,7 +270,8 @@ Godot console exe:
 - Fuel (point 48 rest): `PlayerCar.fuel` (0-1, synced, saved; `FUEL_RANGE` 3 km, `TANK_LITRES`, `FUEL_PRICE`,
   `host_use_fuel(m)`, `host_refuel()`, `litres_missing()`; empty = no throttle). `FuelPump` (`scripts/vehicles/fuel_pump.gd`,
   group `fuel_pumps`, `car_here()`, `_host_fill(peer)`), gas station QuickFuel in gen_world (FuelPump1/2, Markers/GasStation).
-  Scenario gas_station, self-test check fuel.
+  Scenario gas_station, self-test check fuel. Point 96: gen_world `gas_station(tag, ...)` -> nodes GasStationCity /
+  GasStationDocks / GasStationPrison (children Pump1/Pump2, Spot); scenarios gas_city/gas_docks/gas_prison; shots G0-G2.
 - Cover garage (point 52): `prefabs/buildings/cover_garage.tscn` (gen_prefabs `cover_garage_extra`, node CoverGarage on
   South Street, Property "cover_garage"; gen_world `SKIP_NODES` drops the row houses it replaced). `RepairBay` station
   (`scripts/stations/repair_bay.gd`, `new_job(i)`, JOBS, item `car_parts`), `HiddenShelfDoor` (NetDoor subclass, node

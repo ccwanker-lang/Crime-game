@@ -3705,14 +3705,63 @@ func _check_intro(world: Node3D) -> void:
 
 # --- Fuel + gas station (point 48, rest) ---------------------------------------------------
 
+## Point 96: every new station (city, docks, prison) stands on firm ground at forecourt height, both drive lanes under
+## the canopy are free for a car (rays at bumper and roof height), the road side is open (a car can drive straight
+## in from the road: ground at road height, nothing in the way), and a parked car is found + filled by pump 1.
+func _check_new_gas_stations(world: Node3D, veh: Vehicles) -> void:
+	await get_tree().physics_frame
+	var space := world.get_world_3d().direct_space_state
+	for tag: String in ["City", "Docks", "Prison"]:
+		var st: Node3D = world.find_child("GasStation" + tag, true, false) as Node3D
+		if st == null:
+			_report(false, "gas station %s exists" % tag)
+			continue
+		var fc: PavedArea = st.get_node("Forecourt") as PavedArea
+		var half: float = minf(fc.size.x / 2.0 - 0.5, 7.0)  # the pump island run (the kiosk closes the back lane at the far end, like QuickFuel)
+		var bx: Vector3 = st.global_basis.x
+		var bz: Vector3 = st.global_basis.z
+		var c: Vector3 = st.global_position
+		var probs: PackedStringArray = []
+		for lane: float in [-2.2, 2.2]:
+			for h: float in [0.5, 1.6]:
+				var from: Vector3 = c + bz * lane - bx * half + Vector3.UP * (0.15 + h)
+				var to: Vector3 = c + bz * lane + bx * half + Vector3.UP * (0.15 + h)
+				var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, 1 | 2))
+				if hit:
+					probs.append("lane %+.1f h %.1f blocked by %s" % [lane, h, (hit.collider as Node).name])
+			# Ground under the lane: the forecourt top (0.15 above the station origin).
+			for t: float in [-0.9, 0.0, 0.9]:
+				var top: Vector3 = c + bz * lane + bx * half * t + Vector3.UP * 3.5
+				var g: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(top, top + Vector3.DOWN * 8.0, 1))
+				if g.is_empty() or absf(g.position.y - (c.y + 0.15)) > 0.06:
+					probs.append("ground under lane %+.1f at %.1f: %s" % [lane, t, "none" if g.is_empty() else "y %.2f" % g.position.y])
+		# The road side: from the front lane 7 m out towards the road, at bumper height nothing; the ground stays low.
+		for t: float in [-0.6, 0.0, 0.6]:
+			var from: Vector3 = c + bz * 2.2 + bx * half * t + Vector3.UP * 0.65
+			var to: Vector3 = from + bz * 7.0
+			var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(from, to, 1 | 2))
+			if hit:
+				probs.append("road side blocked by %s" % (hit.collider as Node).name)
+			var g: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(to + Vector3.UP * 3.0, to + Vector3.DOWN * 3.0, 1))
+			if g.is_empty() or absf(g.position.y - c.y) > 0.35:
+				probs.append("no road surface in front (%s)" % ("none" if g.is_empty() else "y %.2f" % g.position.y))
+		_report(probs.is_empty(), "gas station %s: forecourt on firm ground, both lanes free, open to the road (%s)" % [tag, "; ".join(probs)])
+		var pump: FuelPump = st.get_node("Pump1") as FuelPump
+		var car: PlayerCar = veh.host_spawn("sedan", 1, pump.global_position - bz * 2.2 + Vector3.UP * 0.1, PI / 2.0 + st.global_rotation.y, "", 0.5)
+		await get_tree().physics_frame
+		_report(pump.car_here() == car and pump.get_interaction_prompt().contains("L"), "gas station %s: pump 1 sees the parked car ('%s')" % [tag, pump.get_interaction_prompt()])
+		veh.host_remove(car)
+		await get_tree().physics_frame
+
 func _check_fuel(world: Node3D) -> void:
 	var pumps: Array[Node] = get_tree().get_nodes_in_group(&"fuel_pumps")
 	var veh: Vehicles = Vehicles.current
-	_report(pumps.size() == 2 and veh != null and world.find_child("GasStation", true, false) != null,
-			"QuickFuel: 2 pumps and the GasStation marker")
+	_report(pumps.size() == 8 and veh != null and world.find_child("GasStation", true, false) != null,
+			"QuickFuel + the 3 new stations: %d pumps (want 8) and the GasStation marker" % pumps.size())
 	if pumps.size() < 2 or veh == null:
 		return
-	var pump := pumps[0] as FuelPump
+	await _check_new_gas_stations(world, veh)
+	var pump := world.find_child("FuelPump1", true, false) as FuelPump
 	var car: PlayerCar = veh.host_spawn("sedan", 1, pump.global_position + Vector3(0, 0, -2.2), PI / 2.0, "", 0.5)
 	await get_tree().physics_frame
 	for i: int in 12:

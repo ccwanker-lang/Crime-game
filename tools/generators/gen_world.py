@@ -600,6 +600,47 @@ sc.node("GasKiosk", "StaticBody3D", NAV, props={"script": sc.script(BOX), "trans
 sc.node("GasKioskSign", "Label3D", NAV, props={"transform": xform((53.6, 2.5, -54.36)), "text": q("SHOP  24/7"),
         "font_size": "48", "pixel_size": "0.008", "modulate": col(1.0, 0.85, 0.3), "outline_size": "8"})
 
+
+
+# Point 96: three more gas stations, the same kit as QuickFuel (raised forecourt, canopy + lamps, two FuelPumps,
+# kiosk). Local frame: the pump line runs along local X, the road lies at local +Z (rot turns it), the kiosk stands
+# at the +X end (or behind the canopy when `kiosk_behind`, for short plots). Everything sits in one Node3D
+# `GasStation<Tag>` (children: Pump1/Pump2 = FuelPump, marker Spot = where a scenario puts the player).
+def gas_station(tag, cx, cz, rot, parent, length=22.0, title="QUICKFUEL", kiosk_behind=False, y=0.0):
+    import math
+    root = f"GasStation{tag}"
+    sc.node(root, "Node3D", parent, props={"transform": xform((cx, y, cz), rot)})
+    path = (parent + "/" if parent != "." else "") + root
+    a = math.radians(rot)
+    hx, hz = length / 2, 4.0
+    ex = abs(hx * math.cos(a)) + abs(hz * math.sin(a))
+    ez = abs(hx * math.sin(a)) + abs(hz * math.cos(a))
+    PAVED_RECTS.append((cx - ex, cz - ez, cx + ex, cz + ez))
+    sc.node("Forecourt", "StaticBody3D", path, props={"script": sc.script("res://scripts/procgen/paved_area.gd"),
+            "size": f"Vector2({length:g}, 8)", "surface": q("concrete"), "height": "0.15", "edge": "false"})
+    post = 6.6 if length >= 20 else 5.6
+    for i, x in enumerate((-post, 0.0, post)):
+        sc.node(f"Post{i}", "StaticBody3D", path, props={"script": sc.script(BOX), "transform": xform((x, 0.15, 0)),
+                "size": "Vector3(0.3, 4.4, 0.3)", "material_key": q("metal_dark")})
+    sc.node("Canopy", "StaticBody3D", path, props={"script": sc.script(BOX), "transform": xform((0, 4.55, 0)),
+            "size": f"Vector3({post * 2 + 0.4:g}, 0.45, 7.2)", "material_key": q("trim_paint"), "tint": col(0.92, 0.92, 0.9)})
+    sc.node("Sign", "Label3D", path, props={"transform": xform((0, 4.78, 3.62)), "text": q(title),
+            "font_size": "96", "pixel_size": "0.012", "modulate": col(0.95, 0.25, 0.2), "outline_size": "14"})
+    for i, x in enumerate((-3.0, 3.0)):
+        sc.node(f"Lamp{i}", None, path, instance=PF + "interiors/ceiling_lamp.tscn", props={"transform": xform((x, 4.53, 0))})
+        sc.node(f"Pump{i + 1}", "StaticBody3D", path, props={
+            "script": sc.script("res://scripts/vehicles/fuel_pump.gd"), "transform": xform((x, 0.15, 0), 90)})
+    if kiosk_behind:
+        kpos, ksize, spos = (post - 1.0, 0.0, -6.2), "Vector3(5.6, 3.0, 4.0)", (post - 1.0, 2.5, -4.18)
+    else:
+        kpos, ksize, spos = (hx - 1.4, 0.15, -0.8), "Vector3(4.0, 3.0, 5.6)", (hx - 1.4, 2.5, 2.04)
+    sc.node("Kiosk", "StaticBody3D", path, props={"script": sc.script(BOX), "transform": xform(kpos),
+            "size": ksize, "material_key": q("plaster"), "tint": col(0.95, 0.9, 0.82)})
+    sc.node("KioskSign", "Label3D", path, props={"transform": xform(spos), "text": q("SHOP  24/7"),
+            "font_size": "48", "pixel_size": "0.008", "modulate": col(1.0, 0.85, 0.3), "outline_size": "8"})
+    sc.node("Spot", "Marker3D", path, props={"transform": xform((-1.4, 0.35, 1.6), 180)})
+
+
 # --------------------------------------------------------------------------- the west side (point 47)
 # Industrial edge (south of Main Road, x -180..-80), the harbour (Quay Road z 84, quay apron, the sea south of
 # z 104) and room for the countryside north of Main Road (47b). Own random stream: the town keeps its layout.
@@ -770,6 +811,8 @@ pbox("Breakwater", (-74, -2.0, 160), (4, 3.2, 112), "concrete", col(0.62, 0.6, 0
 for i, (x, z) in enumerate([(-196.5, 10), (-196.5, 26), (-196.5, 44), (-196.5, 62), (-84, 58), (-84, 72), (-100, 76)]):
     put("nature/tree_medium.tscn", (x + wrng.uniform(-1, 1), 0, z + wrng.uniform(-1, 1)), wrng.uniform(0, 360),
         props={"tree_seed": str(4700 + i)})
+
+gas_station("Docks", -83.5, 94.0, 180, NAV, length=18.0, title="DOCK FUEL", kiosk_behind=True)
 
 # --------------------------------------------------------------------------- the countryside (point 47b)
 # North of Main Road on the west side: Country Lane (x -150) up to Hollow Farm - the Barn (property), the
@@ -1015,8 +1058,11 @@ for i, (cx, cz, w, d, fl, st) in enumerate(SKYLINE):
     tower(cx, cz, w, d, fl, st, setback_from=fl - 2, antenna=fl >= 10, name=f"Skyscraper{i + 1}")
 # Plaza between the village and the city (z 114..138): trees and benches; a promenade along the coast (x -66).
 for i, x in enumerate(range(-40, 96, 16)):
-    put("nature/tree_medium.tscn", (x + crng.uniform(-2, 2), 0, 126 + crng.uniform(-3, 3)), crng.uniform(0, 360),
-        parent="City", props={"tree_seed": str(7100 + i)})
+    tx, tz, tr = x + crng.uniform(-2, 2), 126 + crng.uniform(-3, 3), crng.uniform(0, 360)
+    if 20 <= x <= 52:
+        continue  # point 96: the city gas station stands here
+    put("nature/tree_medium.tscn", (tx, 0, tz), tr, parent="City", props={"tree_seed": str(7100 + i)})
+gas_station("City", 36.0, 134.0, 0, "City", title="CITYFUEL")
 for z in range(150, 330, 18):
     put("nature/tree_medium.tscn", (-66, 0, z), crng.uniform(0, 360), parent="City", props={"tree_seed": str(7200 + z)})
     put("props/bench.tscn", (-64.5, 0.0, z + 9), 270, parent="City", name=uname("CityBench"))
@@ -1632,6 +1678,7 @@ for i in range(4):
 # and the bus stop on Main Road's west edge where the bus drops the released players (marker BusStop, facing east).
 PRISON_POS = (-150, 0, -385)  # point 49b: behind the mountain, at the end of the pass road
 put("buildings/prison.tscn", PRISON_POS, 0, parent=".", name="Prison")
+gas_station("Prison", -128.0, -346.85, 180, ".", title="LAST STOP FUEL")
 # Point 49b: the bus comes down Country Lane and drives east, so the stop is on the south side now (facing the road).
 sc.node("BusStop", "Marker3D", "Markers", props={"transform": xform((-60.0, 0.15, 4.7), 0)})
 # Session B's shooting range (RangeClub): out of the pass road's way, north of the centre.
