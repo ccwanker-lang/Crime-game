@@ -108,6 +108,7 @@ const LIST: Array = [
 	["staff_assign", "Rank 4, Starter Room: weed corner, a Staff Locker with supplies (empty wage box), a grower working from it and a packager; you face the grower", "E on the grower: their locker, their stations (tick = on the route, max 6), Show = yellow arrow over it, the route at the bottom. Tick one pot: they walk to it and only work that one. E on the Staff Locker: the wage box - put in EUR 100. Hold F7 for a game day: the wage comes out of the box. Empty box at day end = the grower stops and texts you (Tab); money in = back to work."],
 	["army_gate", "Fort Halden at noon: you stand on the pass road 25 m before the gate, a pistol + ammo", "Walk to the boom: a guard warns you (toast). Walk through the gate: ALARM, guards and 4 heavy reinforcements from the barracks shoot at you. Shoot a soldier from outside: they come for you too. Run far away: after a while it calms down."],
 	["slum_life", "Rosehill Park (the slums) at dusk, 6 Bags of Weed, by a fire barrel", "Poor residents stand round the fire barrels and chat. Soon one texts you (Tab): a cheap deal (60% prices). The shack (slum_shack, EUR 4000) is the cheap starter property at the estate agent."],
+	["day_rhythm", "The village at 11:45, across the street from a few houses", "Roadmap 88: the crowd lives by the clock. Four morning people stroll near the houses in front of you; at 12:00 (15 s) they walk to their own front doors and go in, and the afternoon people step out of those doors. Nobody pops out of a door you stand right in front of and look at (come closer than 35 m and look at a door: they wait until you look away). F7 speeds up time: at night (22:00-09:00) only a few people are out. Customers can be people at home: they step out of their door for the deal."],
 	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
 	["fps_docks", "Points 86-90: frame rate at the docks (F3 overlay on)", "You stand on the quay looking over the docks. Top left the F3 overlay: FPS, worst frame, active / sleeping NPCs, draw calls. Before the fixes this spot ran ~14-23 FPS; now ~85-110. Walk around: NPCs beyond 300 m sleep, they wake again within 250 m (never right in front of you). F3 hides the overlay."],
 	["fps_city", "Points 86-90: frame rate in the city centre (F3 overlay on)", "You stand on a city street between the towers, F3 overlay on. Before: ~21-32 FPS; now ~75-125. Look around and walk a block: the overlay shows FPS, NPCs active/asleep and draw calls."],
@@ -870,6 +871,38 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
 			_place(me, Zones.ARMY_GATE + Vector3(-25.0, 0.3, 0.0), Zones.ARMY_GATE + Vector3(0, 1.5, 0), dn, 12.0)
 			me.combat.host_set_mags([8])
+		"day_rhythm":
+			_kit(me, 300, [["weed_bag", 3]])
+			var rhythm: DayRhythm = null
+			for i: int in 600:
+				rhythm = DayRhythm.current
+				if rhythm and not rhythm.people.is_empty():
+					break
+				await world.get_tree().physics_frame
+			if rhythm == null or rhythm.homes.is_empty():
+				_place(me, Vector3(0, 0.3, -4.6), Vector3(-20, 1.2, -4.6), dn, 11.75)
+			else:
+				# The four homes nearest the village centre; four morning people out in front, four afternoon people inside.
+				var order: Array = range(rhythm.homes.size())
+				order.sort_custom(func(a: int, b: int) -> bool:
+					return (rhythm.homes[a]["door"] as Vector3).length() < (rhythm.homes[b]["door"] as Vector3).length())
+				var home0: Dictionary = rhythm.homes[order[0]]
+				var map: RID = (world.get("nav_region") as NavigationRegion3D).get_navigation_map()
+				# On the pavement in front of the houses, 30 m along the street, looking back at the doors.
+				var out0: Vector3 = home0["out"]
+				var side: Vector3 = out0.cross(Vector3.UP).normalized()
+				var spot: Vector3 = NavigationServer3D.map_get_closest_point(map, (home0["door"] as Vector3) + out0 * 2.5 + side * 30.0)
+				var morning: Array = rhythm.people.filter(func(r: Dictionary) -> bool: return int(r["block"]) == 0)
+				var noon: Array = rhythm.people.filter(func(r: Dictionary) -> bool: return int(r["block"]) == 1)
+				for k: int in 4:
+					morning[k]["home"] = order[k]
+					noon[k]["home"] = order[k]
+					var npc := morning[k]["npc"] as Pedestrian if is_instance_valid(morning[k]["npc"]) else null
+					var h: Dictionary = rhythm.homes[order[k]]
+					if npc:
+						npc.global_position = NavigationServer3D.map_get_closest_point(map, (h["door"] as Vector3) + (h["out"] as Vector3) * 5.0)
+						npc.net_pos = npc.global_position
+				_place(me, spot + Vector3.UP * 0.3, (home0["door"] as Vector3) + Vector3.UP * 1.2, dn, 11.75)
 		"city_life":
 			_kit(me, 200, [])
 			var corner := Vector3(CityLife.CX[1] + CityLife.SIDE, 0.3, CityLife.CZ[1] + CityLife.SIDE)

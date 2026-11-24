@@ -119,6 +119,10 @@ var stats: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0,
 ## anywhere (people) or cut straight across it (police, Crows) they walk a straight line
 ## without the navmesh. Host only. Cars brake for them like for anyone in their lane.
 var crossing_road: bool = false
+## Roadmap 88 (DayRhythm, host): walk to this front door and stop wandering there (INF = not going home).
+var home_call: Vector3 = Vector3.INF
+## Set once it reached `home_call` (DayRhythm then takes it inside).
+var home_reached: bool = false
 ## Point 30: an officer is talking to this pedestrian (host): stand still, face them.
 var _talk_with: Node3D = null
 var _talk_until: float = 0.0
@@ -727,7 +731,15 @@ func face(p: Vector3) -> void:
 ## Host (point 30): could an officer stop this one for a chat?
 ## Host (point 46): may World.make_customer pick this NPC? (ParkGoer: only the smokers.)
 func can_be_customer() -> bool:
-	return ambient
+	return ambient and home_call == Vector3.INF
+
+
+## Host (Roadmap 88): go home to `door` (INF = never mind). Breaks off the walk it is on.
+func call_home(door: Vector3) -> void:
+	home_call = door
+	home_reached = false
+	if door != Vector3.INF and _moving and not is_fleeing() and wants <= 0:
+		_finish_move(false)
 
 
 func free_for_talk() -> bool:
@@ -872,6 +884,8 @@ func _die(from: Vector3 = Vector3.INF) -> void:
 
 ## Host: after the death (a new pedestrian turns up later; not for car drivers).
 func _on_died(world: Node) -> void:
+	if has_meta(&"rhythm"):
+		return  # DayRhythm sends its slot out of the door again later
 	if world and world.has_method("respawn_pedestrian_later") and not has_meta(&"driver"):
 		world.call("respawn_pedestrian_later", respawn_time)
 
@@ -953,6 +967,13 @@ func _wander() -> void:
 				face(_talk_with.global_position)
 			elif not is_fleeing() and not _moving and not dead and not _sitting:
 				anim_state = Anim.IDLE
+			continue
+		if home_call != Vector3.INF:
+			if await walk_to(home_call):
+				home_reached = true
+				anim_state = Anim.IDLE
+				return
+			await idle(1.0)
 			continue
 		if _backoff != Vector3.INF:
 			var back: Vector3 = _backoff

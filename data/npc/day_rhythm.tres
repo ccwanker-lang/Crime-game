@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="DayRhythmConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/npc/day_rhythm_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+block_names = PackedStringArray("morning", "afternoon", "evening", "night")
+block_start = PackedFloat32Array(9, 12, 16, 22)
+block_share = PackedFloat32Array(0.3, 0.3, 0.3, 0.1)
+outside_busiest = 10
+interval = 2.0
+no_pop_radius = 35.0
+view_half_angle = 70.0
+go_home_timeout = 150.0
+home_deal_chance = 0.35
+home_deal_range = 160.0
+respawn_time = 60.0
