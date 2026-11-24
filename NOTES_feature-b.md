@@ -7,6 +7,8 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm).
+
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
 Part 23 MERGED (A, 2026-11-16): in DESIGN/CHANGELOG/CLAUDE.md.
@@ -1024,3 +1026,50 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 
 ## Te testen door Curry
 - Niets nieuws om te zien (alleen een interne besparing); `city_life` (F9) moet er hetzelfde uitzien als voorheen.
+
+
+# Part 25: Roadmap 88 - NPC day rhythm (taken over from A, user 2026-11-24)
+
+## How it works
+- `DayRhythm` (scripts/npc/day_rhythm.gd, node World/DayRhythm, host, `DayRhythm.current`), config `DayRhythmConfig`
+  in data/npc/day_rhythm.tres: blocks morning 09-12 30%, afternoon 12-16 30%, evening 16-22 30%, night 22-09 10%
+  (`block_start` / `block_share`, all editable). `World.spawn_pedestrians(count)` makes it instead of a fixed crowd
+  (`count` = `outside_busiest`, so the busiest block has the old 10 out); `--no-rhythm` = the old fixed crowd, never in
+  the self-test. Population = outside_busiest / biggest share = 33 people, each with a block and a house.
+- Homes = every residential `Building` with a front door (`door_bay`) whose step has a navmesh point, outside the
+  Zones areas (army base, slums, city and bunker keep their own people): 67 on the current map (`find_homes`).
+- Records (data only): INSIDE / OUT / HOMEWARD / DEAL. At its block's start a record steps out of its own front door
+  (never while a player within 35 m looks at that door, or stands within 4 m); at the end `Pedestrian.call_home(door)`
+  (breaks off the current walk; the wander loop walks to the door, `home_reached`) and the node is freed at the step
+  (or after `go_home_timeout` out of sight; asleep in A's NpcStreamer = straight inside). The first tick puts the
+  current block's people on random sidewalks as before.
+- Home deliveries: `World.make_customer` asks `DayRhythm.home_customer()` with `home_deal_chance` (35%): someone at
+  home whose door is 8-160 m from a player steps out (non-wandering), deals, then walks back in.
+- Death: no World respawn for them (`Pedestrian._on_died` skips meta "rhythm"); the slot comes out of its door again
+  after `respawn_time` (60 s). `Pedestrian.can_be_customer()` is false while going home.
+- Fixed NPCs (shopkeepers, Marco / Old Joe, soldiers, mission NPCs, police, Crows, park goers, zone residents) are not
+  part of it: they are never spawned by spawn_pedestrians.
+
+## Decisions (what + why)
+- "Same total" read as: the busiest block looks like the old crowd (10 out); the night is quieter (3). Literally
+  splitting 10 people over the day would leave 3 people in the village by day - too empty.
+- Spawn/despawn at the door instead of walking into the house: inside is data only, like the roadmap asks; no
+  interior navmesh needed and no NPCs stuck behind closed doors.
+- Village homes only: the zones already have their own clock (`CityLife.in_hours`) and residents.
+
+## Existing files changed (part 25)
+- scripts/npc/pedestrian.gd (`home_call`, `home_reached`, `call_home`, wander loop goes home, `can_be_customer`,
+  `_on_died` skips rhythm people), scenes/world/world.gd (`spawn_pedestrians` makes DayRhythm, `make_customer` home
+  deals), self_test.gd (check day_rhythm), scenarios.gd (scenario day_rhythm). New: scripts/npc/day_rhythm.gd,
+  day_rhythm_config.gd, data/npc/day_rhythm.tres, scripts/debug/day_rhythm_test.gd.
+
+## Te testen door Curry
+- `day_rhythm` (F9): 11:45 op de stoep in het dorp. Om 12:00 (na 15 s) lopen de ochtendmensen naar hun eigen voordeur
+  en gaan naar binnen; de middagmensen komen uit die deuren. Kom dichter dan 35 m bij een deur en kijk ernaar: er komt
+  niemand uit tot je wegkijkt. F7 = tijd sneller: 's nachts maar een paar mensen buiten.
+
+## For CLAUDE.md (suggested lines)
+- Day rhythm (Roadmap 88, B part 25): `DayRhythm` (World/DayRhythm, host, `current`, config data/npc/day_rhythm.tres
+  `DayRhythmConfig`), made by `World.spawn_pedestrians` (`--no-rhythm` = fixed crowd; never in the self-test); homes =
+  residential Building front doors on the navmesh outside the Zones (`find_homes`); `Pedestrian.call_home` /
+  `home_reached`; home deals `home_customer()`. Scenario day_rhythm, self-test check day_rhythm.
