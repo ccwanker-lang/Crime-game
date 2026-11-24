@@ -1,0 +1,7 @@
+All files in this folder are CC0 1.0 (public domain): https://creativecommons.org/publicdomain/zero/1.0/
+calm_day.ogg   = "Calm Ambient 1 (Synthwave 4k)" by cynicmusic (converted from MP3)
+                 https://opengameart.org/content/calm-ambient-1-synthwave-4k
+calm_night.ogg = "EmptyCity: Background Music" by yd
+                 https://opengameart.org/content/emptycity-background-music
+tense.ogg      = "Chase in the Night" by samza
+                 https://opengameart.org/content/chase-in-the-night

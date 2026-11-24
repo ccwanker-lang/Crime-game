@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu).
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1154,3 +1154,47 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - Settings (B part 27): `Settings` autoload (user://settings.cfg; test runs use settings_test.cfg and skip display/
   quality), `Settings.open_menu()` -> `SettingsMenu`; buses Master/Music/SFX/Voice/Ambience (new players on Master ->
   SFX unless meta keep_bus); `Settings.fov`, `look_scale()`, `ACTIONS` (rebindable). Scenario settings_menu, check settings.
+
+
+# Part 28: sound + atmosphere (user list 2026-11-24, item 2)
+
+## How it works
+- `Soundscape` (new autoload, autoload/soundscape.gd, after Ambience), local per peer, off in headless:
+  - Zone ambience on bus Ambience (two players, 3 s crossfade): `zone_key_at(pos, hours)` = city (Zones city), bunker,
+    docks (DOCKS_RECT x -200..-105, z 70..130), village day / village night (06-21; also the slums), forest (the army
+    base, the mountains, everything outside the village rect). -9 dB indoors (anything solid within 25 m above you).
+  - Music on bus Music (2.5 s crossfade): calm_day / calm_night, "tense" while you have wanted stars, lost health, or a
+    shot was fired within 90 m (`heard_shot`, called from `Wildlife.scare_at` = every shot on every peer); it stays
+    tense 25 s after the last one.
+  - Per-track gain in AMBIENCE / MUSIC; prints "[Soundscape] ambience -> x" on a change. `--no-music`, `--no-ambience`.
+- `Footsteps` (scripts/player/footsteps.gd): a child of every Player on every peer. Steps by distance walked on the
+  ground (stride 1.45 m walk / 2.1 m sprint / 1.0 m crouch, quieter crouched, louder sprinting), never in a car, on the
+  bus, flying (noclip), asleep or dead. Surface from a ray: stone (RoadTile, PavedArea, GreyboxBlock, tiled/concrete
+  floors, rocks, roads), grass (GroundArea with grass, Ground* slabs, the mountain below the snow line), snow (mountain
+  TerrainBody above Mountain.SNOW_LINE), wood (Building wood_floor), metal (Car / PlayerCar roofs); meta "surface" on a
+  collider overrides it. 3D (others hear you, 28 m).
+- Assets: CC0 recordings (Fantozzi stone + sand, Corsica_S snow) and CC0 music (cynicmusic, yd, samza) from
+  OpenGameArt; wood/metal steps + all six ambience loops synthesized by tools/generators/gen_ambience.py. CREDITS.md +
+  LICENSE.txt per folder.
+
+## Decisions (what + why)
+- Ambience loops synthesized: no CC0 zone loops could be fetched automatically (Kenney needs the browser); the generator
+  makes seamless 32 s loops and can be tuned.
+- Army base + prison use the forest wind (open land); slums use the village sounds (no own loop yet).
+- Combat = shots heard + damage + stars, not "enemies near": works the same on every peer without extra network traffic.
+- No music in the main menu yet: comes with the title screen (item 3).
+
+## Existing files changed (part 28)
+- project.godot (autoload Soundscape), scripts/ambient/wildlife.gd (scare_at -> Soundscape.heard_shot), CREDITS.md,
+  self_test.gd (check soundscape), scenarios.gd (soundscape, sound_snow, sound_city). New: autoload/soundscape.gd,
+  scripts/player/footsteps.gd, tools/generators/gen_ambience.py, assets/audio/{ambience,footsteps,music}/.
+
+## Te testen door Curry
+- `soundscape` (F9): dorp 12:00 met een pistool, geen politie. Luister naar vogels/wind, loop van de weg het gras op
+  (andere stappen) en een huis in (hout). Schiet (1): de muziek wordt spannend en na ~25 s weer rustig. F7 = nacht.
+- `sound_snow` (F9): sneeuw op de berg. `sound_city` (F9): de stad. Volume: Esc > Settings > Audio.
+
+## For CLAUDE.md (suggested lines)
+- Sound (B part 28): `Soundscape` autoload (`zone_key_at`, `music_key_for`, `heard_shot` from Wildlife.scare_at,
+  buses Ambience/Music, assets/audio/ambience + music), `Footsteps` on every Player (`surface_of(hit)`, meta "surface").
+  gen_ambience.py makes the loops. Scenarios soundscape / sound_snow / sound_city, self-test check soundscape.
