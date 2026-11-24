@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op).
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op), part 31 (controller support).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1326,3 +1326,52 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   `host`, `join`, `find_lobbies`, `invite`, `friends`, `pending_lobby`, `in_steam_game`, never in test runs unless
   `--steam`; `--steam-check` = live check), Net `host_with_peer` / `join_with_peer` / `transport`; IP (ENet) stays
   the fallback. Scenario steam_host, self-test check steam.
+
+
+# Part 31: controller support (Xbox / PlayStation) (user list 2026-11-24, item 5)
+
+## How it works
+- project.godot: every action got its controller event next to the key (left stick move, A jump, B crouch, X
+  interact, Y reload, RT shoot, LT aim, LB/RB previous/next slot, D-pad up car / down holster / left build mode /
+  right last weapon, R3 first/third person, L3 horn, View/Touchpad phone, Start/Options = release_mouse = pause menu).
+  Settings only replaces the key/mouse event of an action, so rebinding and "Reset all keys" keep the pad events.
+- `Gamepad` (new autoload, autoload/gamepad.gd, after SteamNet):
+  - Right stick while playing (mouse captured) -> synthetic InputEventMouseMotion (LOOK_SPEED 1500 px/s x
+    Settings.stick_sensitivity, dead zone 0.18, squared curve). So looking on foot, the car camera, slower aiming
+    when zoomed, weapon sway, mouse sensitivity and invert Y all work without new player code.
+  - L3 toggles sprint (`Input.action_press("sprint")`), off when the left stick returns to the centre.
+  - Pointer visible (menus, phone, shops, any window): left stick moves the pointer (warp_mouse), A = left click at
+    the pointer (the joypad event is marked handled, so a focused button never fires twice), B = release_mouse
+    (back), right stick = mouse wheel.
+  - Rumble (Settings.vibration): own shot (Soundscape.heard_shot within 3 m of the camera), health lost.
+  - `pad_kind()` "playstation" / "xbox" by the controller name, `layout(kind)` = button names for Settings.
+- Settings: `stick_sensitivity`, `vibration` ([controls]); new tab "Controller" (name, look speed, vibration, the
+  layout in Xbox or PlayStation names). The settings window also closes on the release_mouse action (Start / B).
+
+## Decisions (what + why)
+- Look via synthetic mouse motion instead of new code in player.gd: one path for mouse and stick, nothing in A's
+  player code changed.
+- Virtual pointer in menus instead of focus navigation: every window (phone, shops, crew, storage drag & drop) is
+  usable at once; focus code for each window would be a lot of work in many files.
+- Sprint as a toggle on L3: holding a stick click while pushing it is tiring.
+- Number slots 1-8 stay keyboard-only (LB/RB cycle the slots); drop / lights have no pad button (rarely used).
+- Controller buttons are not rebindable in this round (only shown); keys stay rebindable.
+
+## Existing files changed (part 31)
+- project.godot (pad events, autoload Gamepad), autoload/settings.gd (stick_sensitivity, vibration),
+  scripts/ui/settings_menu.gd (Controller tab, close on release_mouse), autoload/soundscape.gd (rumble hook),
+  scripts/debug/settings_test.gd (4 tabs), scenarios.gd (controller), self_test.gd (check gamepad).
+
+## For A
+- The scenario banner (scenario_menu.gd) still says "Leave -> Host - continue"; since part 29 that is
+  "Esc > Leave to menu > Play > Continue".
+
+## Te testen door Curry
+- `controller` (F9): sluit een Xbox- of PlayStation-controller aan. Settings > Controller toont de naam en de
+  indeling; sluit met B / Circle. Daarna lopen, kijken (rechterstick), L3 = sprinten aan/uit, schieten (RT), Start =
+  pauzemenu, in menu's beweegt de linkerstick de muis en klikt A. Trilt bij schieten en geraakt worden.
+
+## For CLAUDE.md (suggested lines)
+- Controller (B part 31): pad events in project.godot next to every key, `Gamepad` autoload (right stick = synthetic
+  mouse motion, L3 sprint toggle, pointer + A click / B back in menus, `rumble`, `pad_kind`, `layout`), Settings
+  `stick_sensitivity` / `vibration` + tab Controller. Scenario controller, self-test check gamepad.

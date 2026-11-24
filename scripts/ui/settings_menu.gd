@@ -43,6 +43,7 @@ func _ready() -> void:
 	tabs.add_child(_graphics_tab())
 	tabs.add_child(_audio_tab())
 	tabs.add_child(_controls_tab())
+	tabs.add_child(_controller_tab())
 	var bottom := HBoxContainer.new()
 	bottom.alignment = BoxContainer.ALIGNMENT_END
 	box.add_child(bottom)
@@ -90,6 +91,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).keycode == KEY_ESCAPE:
 		close_menu()
+		get_viewport().set_input_as_handled()
+	elif (event is InputEventAction or event is InputEventJoypadButton) and event.is_action_pressed(&"release_mouse"):
+		close_menu()  # (controller: Start, or B through Gamepad)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventKey:
 		get_viewport().set_input_as_handled()  # no walking / shooting / phone while the window is open
@@ -200,6 +204,36 @@ func _controls_tab() -> Control:
 	grid.add_child(reset)
 	_refresh_keys()
 	return grid.get_parent().get_parent()  # (the ScrollContainer = the tab)
+
+
+# --- Controller (user list item 5) ----------------------------------------------------------
+
+func _controller_tab() -> Control:
+	var grid := _grid("Controller")
+	var pad := Label.new()
+	pad.name = "PadName"
+	pad.text = Gamepad.pad_name() if Gamepad.connected() else "No controller connected (Xbox, PlayStation and most others work)."
+	pad.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_row(grid, "Controller", pad)
+	_row(grid, "Look speed", _slider(0.3, 3.0, 0.05, Settings.stick_sensitivity, "%.2fx", func(v: float) -> void:
+		Settings.stick_sensitivity = v
+		Settings.save_settings()))
+	_row(grid, "Vibration", _check(Settings.vibration, func(on: bool) -> void:
+		Settings.vibration = on
+		Settings.save_settings()))
+	var kind: String = Gamepad.pad_kind()
+	for line: Array in Gamepad.layout(kind):
+		var l := Label.new()
+		l.text = line[1]
+		l.add_theme_color_override(&"font_color", Color(0.85, 0.85, 0.9))
+		_row(grid, line[0], l)
+	var note := Label.new()
+	note.text = "Invert Y (Controls tab) works for the stick too. In menus and windows the left stick moves the " 			+ "pointer, A / Cross clicks, B / Circle goes back, the right stick scrolls."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override(&"font_color", Color(0.65, 0.65, 0.7))
+	grid.add_child(Control.new())
+	grid.add_child(note)
+	return grid.get_parent().get_parent()
 
 
 func _start_rebind(action: String, b: Button) -> void:
