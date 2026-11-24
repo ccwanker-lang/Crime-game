@@ -24,3 +24,4 @@ with author, link and license.
 | Music by day: "Calm Ambient 1 (Synthwave 4k)" | cynicmusic — https://opengameart.org/content/calm-ambient-1-synthwave-4k | CC0 1.0 | `assets/audio/music/calm_day.ogg` |
 | Music at night: "EmptyCity: Background Music" | yd — https://opengameart.org/content/emptycity-background-music | CC0 1.0 | `assets/audio/music/calm_night.ogg` |
 | Tense music: "Chase in the Night" | samza — https://opengameart.org/content/chase-in-the-night | CC0 1.0 | `assets/audio/music/tense.ogg` |
+| GodotSteam GDExtension 4.23.2 (Steamworks 1.65) + Steamworks API redistributables | GP Garcia, Chris Ridenour and contributors — https://godotsteam.com (Codeberg release v4.23.2-gde); steam_api64.dll / libsteam_api by Valve (Steamworks SDK redistributable) | MIT (GodotSteam), Steamworks SDK license (Valve) | `addons/godotsteam/` |

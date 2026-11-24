@@ -114,6 +114,7 @@ const LIST: Array = [
 	["sound_city", "Sound: the city centre at noon", "Traffic rumble, passing cars and far horns between the towers. Walk out of the city: it crossfades to the village."],
 	["settings_menu", "The settings window (graphics, audio, controls), opened in the village", "Try every tab: window mode / resolution / quality / FPS limit / VSync / field of view, the five volume sliders, mouse sensitivity + invert Y, and click a key to rebind it (Esc cancels; a key used twice shows a warning). Close it with Esc: your choices stay after a restart (user://settings.cfg). The same window opens from the main menu (Settings) and from the pause menu (Esc)."],
 	["title_menu", "Title page + save slots (demo slots, your real saves are untouched)", "You land on the title page with two made-up saves. Play shows the slots: slot 1 a crew of two at night, slot 2 a fresh game, slot 3 empty. Try Continue (loading screen with tips, then the game), New game on a full slot (asks 'Overwrite?' first), Delete (asks 'Sure?'), Join a friend (IP form) and Settings. The menu music plays. Restart the game to see your own saves again."],
+	["steam_host", "Steam co-op: this test game is hosted through Steam (app 480) and the invite list opens", "Needs Steam running. The scenario re-hosts through Steam (you show as playing Spacewar) and opens Esc > Invite friends (Steam): press Invite next to an online friend. Your friend starts the game, Play is not needed: Join a friend > Friends' games (Steam) > Join (or accepts your invite in Steam). Without a friend: check the title page (Join a friend lists Steam games) and that IP joining still works."],
 	["pause_menu", "The pause menu in the village (alone = the game pauses)", "Esc opens the pause menu: Resume, Settings, Save game, Leave to menu, Quit to desktop, and who is playing. Alone the world stops (watch the NPCs and the clock); with a friend joined it says 'Co-op: the game keeps running'. Esc or Resume goes back to the game."],
 	["npc_bench", "Roadmap 89: NPC benchmark (takes ~10 minutes, don't touch anything)", "Measures how many active NPCs your PC carries: at the city centre, the slums and the docks it adds NPCs round you step by step (20, 40, 60 ...), 20 s per step, and shows the mean FPS + the 1% low on screen. At the end it shows the advice for max_active_npcs (the highest count with a 1% low above 55 FPS, minus 20% headroom) and saves screenshots/npc_bench.txt. Send me the table."],
 	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
@@ -911,6 +912,35 @@ static func run(world: Node, id: String) -> bool:
 				await tree.create_timer(3.0).timeout
 				tree.quit()
 			return true
+		"steam_host":
+			var sn: Node = world.get_tree().root.get_node("SteamNet")
+			if sn.call("in_steam_game"):
+				_kit(me, 200, [])
+				_place(me, Vector3(-8.0, 0.3, -4.6), Vector3(-40.0, 1.5, -4.6), dn, 13.0)
+				var spm := world.get_node_or_null(^"PauseMenu") as PauseMenu
+				if spm:
+					spm.open()
+					spm.call("_show_friends", true)
+				print("[ScenarioCheck] steam_host: hosting through Steam, lobby %d, transport %s, peer %s" % [
+						sn.get("lobby_id"), Net.transport, world.multiplayer.multiplayer_peer.get_class()])
+				if "--scenario-quit" in OS.get_cmdline_user_args():
+					await world.get_tree().create_timer(3.0).timeout
+					world.get_tree().paused = false
+					Net.leave_game()
+					await world.get_tree().create_timer(1.0).timeout
+					world.get_tree().quit()
+				return true
+			if not sn.call("start"):
+				me.show_message("STEAM: %s" % sn.get("message"))
+				print("[ScenarioCheck] steam_host: no Steam (%s)" % sn.get("message"))
+			else:
+				pending = "steam_host"
+				var tree: SceneTree = world.get_tree()
+				sn.connect("host_ready", func() -> void:
+					GameState.reset()
+					tree.root.get_node("Loading").call("go_to_world"), CONNECT_ONE_SHOT)
+				sn.call("host", Net.get_player_name(1))
+				return true
 		"pause_menu":
 			_kit(me, 200, [])
 			_place(me, Vector3(-8.0, 0.3, -4.6), Vector3(-40.0, 1.5, -4.6), dn, 13.0)
