@@ -86,6 +86,6 @@ static func run(t: Node, _world: Node3D) -> void:
 		menu.call("_input", esc)
 	await tree.process_frame
 	await tree.process_frame
-	report.call(tab_names == PackedStringArray(["Graphics", "Audio", "Controls"]) and keys >= 25 and not s.call("is_menu_open"),
+	report.call(tab_names == PackedStringArray(["Graphics", "Audio", "Controls", "Controller"]) and keys >= 25 and not s.call("is_menu_open"),
 			"settings window: tabs %s, %d rebindable keys, Esc closes it" % [", ".join(tab_names), keys])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(str(s.get("path"))))

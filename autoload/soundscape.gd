@@ -88,6 +88,8 @@ func heard_shot(pos: Vector3) -> void:
 	var cam: Camera3D = get_viewport().get_camera_3d()
 	if cam and cam.global_position.distance_to(pos) < COMBAT_RANGE:
 		_combat_until = _now() + COMBAT_HOLD
+	if cam:
+		Gamepad.heard_shot(cam.global_position.distance_to(pos))  # (controller rumble on your own shot)
 
 
 # --- Decisions (also used by the self-test) ------------------------------------------

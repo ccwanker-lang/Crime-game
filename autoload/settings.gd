@@ -42,6 +42,9 @@ var fov: float = 75.0
 var volumes: Dictionary = {"Master": 0.9, "Music": 0.6, "SFX": 0.9, "Voice": 1.0, "Ambience": 0.8}
 var mouse_sensitivity: float = 1.0
 var invert_y: bool = false
+## Controller (user list item 5): right stick look speed (x) and rumble.
+var stick_sensitivity: float = 1.0
+var vibration: bool = true
 
 ## The project's own bindings (for "Reset"), per action: Array[InputEvent].
 var _defaults: Dictionary = {}
@@ -92,6 +95,8 @@ func load_settings() -> void:
 		volumes[bus] = float(cfg.get_value("audio", bus, volumes[bus]))
 	mouse_sensitivity = cfg.get_value("controls", "mouse_sensitivity", mouse_sensitivity)
 	invert_y = cfg.get_value("controls", "invert_y", invert_y)
+	stick_sensitivity = cfg.get_value("controls", "stick_sensitivity", stick_sensitivity)
+	vibration = cfg.get_value("controls", "vibration", vibration)
 	if cfg.has_section("keys"):
 		for action: String in cfg.get_section_keys("keys"):
 			if not InputMap.has_action(action):
@@ -114,6 +119,8 @@ func save_settings() -> void:
 		cfg.set_value("audio", bus, volumes[bus])
 	cfg.set_value("controls", "mouse_sensitivity", mouse_sensitivity)
 	cfg.set_value("controls", "invert_y", invert_y)
+	cfg.set_value("controls", "stick_sensitivity", stick_sensitivity)
+	cfg.set_value("controls", "vibration", vibration)
 	if cfg.has_section("keys"):
 		cfg.erase_section("keys")
 	for a: Array in ACTIONS:
