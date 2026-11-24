@@ -7,6 +7,8 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op), part 31 (controller support).
+
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
 Part 23 MERGED (A, 2026-11-16): in DESIGN/CHANGELOG/CLAUDE.md.
@@ -1024,3 +1026,352 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 
 ## Te testen door Curry
 - Niets nieuws om te zien (alleen een interne besparing); `city_life` (F9) moet er hetzelfde uitzien als voorheen.
+
+
+# Part 25: Roadmap 88 - NPC day rhythm (taken over from A, user 2026-11-24)
+
+## How it works
+- `DayRhythm` (scripts/npc/day_rhythm.gd, node World/DayRhythm, host, `DayRhythm.current`), config `DayRhythmConfig`
+  in data/npc/day_rhythm.tres: blocks morning 09-12 30%, afternoon 12-16 30%, evening 16-22 30%, night 22-09 10%
+  (`block_start` / `block_share`, all editable). `World.spawn_pedestrians(count)` makes it instead of a fixed crowd
+  (`count` = `outside_busiest`, so the busiest block has the old 10 out); `--no-rhythm` = the old fixed crowd, never in
+  the self-test. Population = outside_busiest / biggest share = 33 people, each with a block and a house.
+- Homes = every residential `Building` with a front door (`door_bay`) whose step has a navmesh point, outside the
+  Zones areas (army base, slums, city and bunker keep their own people): 67 on the current map (`find_homes`).
+- Records (data only): INSIDE / OUT / HOMEWARD / DEAL. At its block's start a record steps out of its own front door
+  (never while a player within 35 m looks at that door, or stands within 4 m); at the end `Pedestrian.call_home(door)`
+  (breaks off the current walk; the wander loop walks to the door, `home_reached`) and the node is freed at the step
+  (or after `go_home_timeout` out of sight; asleep in A's NpcStreamer = straight inside). The first tick puts the
+  current block's people on random sidewalks as before.
+- Home deliveries: `World.make_customer` asks `DayRhythm.home_customer()` with `home_deal_chance` (35%): someone at
+  home whose door is 8-160 m from a player steps out (non-wandering), deals, then walks back in.
+- Death: no World respawn for them (`Pedestrian._on_died` skips meta "rhythm"); the slot comes out of its door again
+  after `respawn_time` (60 s). `Pedestrian.can_be_customer()` is false while going home.
+- Fixed NPCs (shopkeepers, Marco / Old Joe, soldiers, mission NPCs, police, Crows, park goers, zone residents) are not
+  part of it: they are never spawned by spawn_pedestrians.
+
+## Decisions (what + why)
+- "Same total" read as: the busiest block looks like the old crowd (10 out); the night is quieter (3). Literally
+  splitting 10 people over the day would leave 3 people in the village by day - too empty.
+- Spawn/despawn at the door instead of walking into the house: inside is data only, like the roadmap asks; no
+  interior navmesh needed and no NPCs stuck behind closed doors.
+- Village homes only: the zones already have their own clock (`CityLife.in_hours`) and residents.
+
+## Existing files changed (part 25)
+- scripts/npc/pedestrian.gd (`home_call`, `home_reached`, `call_home`, wander loop goes home, `can_be_customer`,
+  `_on_died` skips rhythm people), scenes/world/world.gd (`spawn_pedestrians` makes DayRhythm, `make_customer` home
+  deals), self_test.gd (check day_rhythm), scenarios.gd (scenario day_rhythm). New: scripts/npc/day_rhythm.gd,
+  day_rhythm_config.gd, data/npc/day_rhythm.tres, scripts/debug/day_rhythm_test.gd.
+
+## Te testen door Curry
+- `day_rhythm` (F9): 11:45 op de stoep in het dorp. Om 12:00 (na 15 s) lopen de ochtendmensen naar hun eigen voordeur
+  en gaan naar binnen; de middagmensen komen uit die deuren. Kom dichter dan 35 m bij een deur en kijk ernaar: er komt
+  niemand uit tot je wegkijkt. F7 = tijd sneller: 's nachts maar een paar mensen buiten.
+
+## For CLAUDE.md (suggested lines)
+- Day rhythm (Roadmap 88, B part 25): `DayRhythm` (World/DayRhythm, host, `current`, config data/npc/day_rhythm.tres
+  `DayRhythmConfig`), made by `World.spawn_pedestrians` (`--no-rhythm` = fixed crowd; never in the self-test); homes =
+  residential Building front doors on the navmesh outside the Zones (`find_homes`); `Pedestrian.call_home` /
+  `home_reached`; home deals `home_customer()`. Scenario day_rhythm, self-test check day_rhythm.
+
+
+# Part 26: Roadmap 89 - npc_bench (taken over from A, user 2026-11-24)
+
+## How it works
+- `NpcBench` (scripts/debug/npc_bench.gd), started by the F9 scenario `npc_bench` (`--bench-quit` quits at the end,
+  `--bench-step=S` changes the 20 s per step). Spots: city centre, slums, docks (SPOTS). Per spot it steers the number of
+  awake NPCs with A's `NpcStreamer.cap_override` (0 = baseline, then 20, 40 ... 160) and spawns extra plain
+  pedestrians 10-70 m round the player (they walk short straight legs, so FULL + MID levels like real ones). Each step:
+  mean FPS + 1% low (99th percentile frame) over 20 s; it stops a spot at the first step that fails. Pass = 1% low
+  >= 55, or >= 90% of the spot's own baseline when even the empty spot is below 55. Advice = lowest spot limit x 0.8.
+  On screen (label), [NpcBench] lines, screenshots/npc_bench.txt.
+
+## Result on this PC (RTX 5060 Ti, 1920x1080 window, vsync off; session A's self-test was running at the same time)
+| spot | 0 NPCs | 20 | 40 |
+|---|---|---|---|
+| city centre | 117 fps / 1% low 53 | 101 / 51 | 86 / 46 |
+| slums | 127 / 54 | 113 / 51 | 84 / 44 |
+| docks | 75 / 43 | 62 / 37 | - |
+- The 1% low is below 55 even WITHOUT NPCs (hitches from something else: streaming, GC, the other process); every 20
+  awake NPCs cost ~10-25 fps mean.
+
+## Decisions (what + why)
+- `max_active_npcs` (A's data/npc/streaming.tres, now 60) is NOT changed: the numbers were taken with a second Godot
+  self-test running and the 1% low is dominated by hitches that are not NPCs. The bench's advice under that load was
+  20. Run `npc_bench` (F9) with nothing else open and set the value it advises; A: your call for the release value.
+- Bench NPCs are plain pedestrians driven by the bench (no navmesh needed: the city has none).
+
+## Existing files changed (part 26)
+- scripts/debug/scenarios.gd (scenario npc_bench). New: scripts/debug/npc_bench.gd.
+
+## Te testen door Curry
+- `npc_bench` (F9), ~5-10 minuten, niets aanraken en niets anders open hebben. Stuur me de tabel die op het scherm
+  verschijnt (staat ook in screenshots/npc_bench.txt).
+
+## For CLAUDE.md (suggested lines)
+- NPC bench (Roadmap 89, B part 26): `NpcBench` (scripts/debug/npc_bench.gd), scenario npc_bench (window; `--bench-quit`,
+  `--bench-step=S`), steers `NpcStreamer.cap_override`, writes screenshots/npc_bench.txt.
+
+
+# Part 27: settings menu (user list 2026-11-24, item 1)
+
+## How it works
+- `Settings` (new autoload, autoload/settings.gd, right after Net): graphics (resolution, window mode windowed /
+  borderless fullscreen / fullscreen, quality Low/Medium/High/Ultra, FPS limit, VSync, field of view), audio (volume
+  per bus), controls (mouse sensitivity, invert Y, every action in `Settings.ACTIONS` rebindable: the first keyboard /
+  mouse event of the action; controller events stay). Saved in user://settings.cfg (own sections next to the menu's
+  player/network ones); key overrides only for keys that differ from project.godot. `changed` signal.
+- Quality presets: render scale (Low = FSR 75%), MSAA / FXAA, mesh LOD threshold, sun + lamp shadow atlas size and
+  soft-shadow quality; on every WorldEnvironment (group settings_environment): SSIL from High, SSAO + glow from Medium
+  (only what the level had on).
+- Audio buses made at start-up: Master, Music, SFX ("Effects"), Voice ("Voices"), Ambience. Every sound player that
+  is added on Master is moved to SFX (meta `keep_bus` = leave it); music/ambience players (item 2) set their own bus.
+  There are no voice lines yet: the Voices slider is ready for them.
+- `SettingsMenu` (scripts/ui/settings_menu.gd, built in code): tabs Graphics / Audio / Controls, every change applied +
+  saved at once, click a key button -> press a key or mouse button (Esc cancels), "also: X" warning when two actions
+  share a key, "Reset all keys". Esc / Close closes it (keys don't reach the game while it is open). Opened by
+  `Settings.open_menu()`: a Settings button in the main menu (above Quit) and in the in-game panel (above "Leave to menu").
+- Player: `camera.fov = Settings.fov` (`_base_fov` follows `changed`), mouse look x `Settings.look_scale()` (on foot
+  and in the car).
+- Test runs (headless, a fixed --resolution/--position, --selftest/--netcheck/--screenshot/--perf/--scenario-quit/
+  --style-shots/--vmpreview/--bench-quit) don't apply display/quality settings and use user://settings_test.cfg.
+
+## Decisions (what + why)
+- Default window = borderless fullscreen at the screen's resolution (what most games do; Alt-tab friendly).
+- One file for everything (user://settings.cfg): the main menu already kept the name + IP there.
+- The pause menu (item 3) will get the same Settings button; for now it sits in the existing Esc panel.
+
+## Existing files changed (part 27)
+- project.godot (autoload Settings), scenes/main_menu/main_menu.gd (Settings button), scenes/world/world.gd (Settings
+  button above Leave), scenes/player/player.gd (FOV + look scale), self_test.gd (check settings), scenarios.gd
+  (scenario settings_menu). New: autoload/settings.gd, scripts/ui/settings_menu.gd, scripts/debug/settings_test.gd.
+
+## Te testen door Curry
+- `settings_menu` (F9): het venster staat open. Probeer elk tabblad; klik een toets om hem te wijzigen (Esc = annuleren).
+  Sluit met Esc; start het spel opnieuw: je keuzes zijn bewaard. Ook in het hoofdmenu (knop Settings).
+
+## For CLAUDE.md (suggested lines)
+- Settings (B part 27): `Settings` autoload (user://settings.cfg; test runs use settings_test.cfg and skip display/
+  quality), `Settings.open_menu()` -> `SettingsMenu`; buses Master/Music/SFX/Voice/Ambience (new players on Master ->
+  SFX unless meta keep_bus); `Settings.fov`, `look_scale()`, `ACTIONS` (rebindable). Scenario settings_menu, check settings.
+
+
+# Part 28: sound + atmosphere (user list 2026-11-24, item 2)
+
+## How it works
+- `Soundscape` (new autoload, autoload/soundscape.gd, after Ambience), local per peer, off in headless:
+  - Zone ambience on bus Ambience (two players, 3 s crossfade): `zone_key_at(pos, hours)` = city (Zones city), bunker,
+    docks (DOCKS_RECT x -200..-105, z 70..130), village day / village night (06-21; also the slums), forest (the army
+    base, the mountains, everything outside the village rect). -9 dB indoors (anything solid within 25 m above you).
+  - Music on bus Music (2.5 s crossfade): calm_day / calm_night, "tense" while you have wanted stars, lost health, or a
+    shot was fired within 90 m (`heard_shot`, called from `Wildlife.scare_at` = every shot on every peer); it stays
+    tense 25 s after the last one.
+  - Per-track gain in AMBIENCE / MUSIC; prints "[Soundscape] ambience -> x" on a change. `--no-music`, `--no-ambience`.
+- `Footsteps` (scripts/player/footsteps.gd): a child of every Player on every peer. Steps by distance walked on the
+  ground (stride 1.45 m walk / 2.1 m sprint / 1.0 m crouch, quieter crouched, louder sprinting), never in a car, on the
+  bus, flying (noclip), asleep or dead. Surface from a ray: stone (RoadTile, PavedArea, GreyboxBlock, tiled/concrete
+  floors, rocks, roads), grass (GroundArea with grass, Ground* slabs, the mountain below the snow line), snow (mountain
+  TerrainBody above Mountain.SNOW_LINE), wood (Building wood_floor), metal (Car / PlayerCar roofs); meta "surface" on a
+  collider overrides it. 3D (others hear you, 28 m).
+- Assets: CC0 recordings (Fantozzi stone + sand, Corsica_S snow) and CC0 music (cynicmusic, yd, samza) from
+  OpenGameArt; wood/metal steps + all six ambience loops synthesized by tools/generators/gen_ambience.py. CREDITS.md +
+  LICENSE.txt per folder.
+
+## Decisions (what + why)
+- Ambience loops synthesized: no CC0 zone loops could be fetched automatically (Kenney needs the browser); the generator
+  makes seamless 32 s loops and can be tuned.
+- Army base + prison use the forest wind (open land); slums use the village sounds (no own loop yet).
+- Combat = shots heard + damage + stars, not "enemies near": works the same on every peer without extra network traffic.
+- No music in the main menu yet: comes with the title screen (item 3).
+
+## Existing files changed (part 28)
+- project.godot (autoload Soundscape), scripts/ambient/wildlife.gd (scare_at -> Soundscape.heard_shot), CREDITS.md,
+  self_test.gd (check soundscape), scenarios.gd (soundscape, sound_snow, sound_city). New: autoload/soundscape.gd,
+  scripts/player/footsteps.gd, tools/generators/gen_ambience.py, assets/audio/{ambience,footsteps,music}/.
+
+## Te testen door Curry
+- `soundscape` (F9): dorp 12:00 met een pistool, geen politie. Luister naar vogels/wind, loop van de weg het gras op
+  (andere stappen) en een huis in (hout). Schiet (1): de muziek wordt spannend en na ~25 s weer rustig. F7 = nacht.
+- `sound_snow` (F9): sneeuw op de berg. `sound_city` (F9): de stad. Volume: Esc > Settings > Audio.
+
+## For CLAUDE.md (suggested lines)
+- Sound (B part 28): `Soundscape` autoload (`zone_key_at`, `music_key_for`, `heard_shot` from Wildlife.scare_at,
+  buses Ambience/Music, assets/audio/ambience + music), `Footsteps` on every Player (`surface_of(hit)`, meta "surface").
+  gen_ambience.py makes the loops. Scenarios soundscape / sound_snow / sound_city, self-test check soundscape.
+
+
+# Part 29: title page, save slots, loading screen, pause menu (user list 2026-11-24, item 3)
+
+## How it works
+- Title page (scenes/main_menu/main_menu.gd, the .tscn is now only the root; all built in code): background picture
+  `assets/ui/backgrounds/title_night.jpg` (own render of shot 43) with dark fades, logo (`TitleArt.logo`), Play /
+  Join a friend / Settings / Quit, "Playing as" name field, a side panel with the save slots or the join form (IP).
+  Menu music = Soundscape `MENU_MUSIC` (calm_night). Host/join/command line flow unchanged (`--host`, `--join=` ...).
+- Save slots (autoload/save_manager.gd): `SLOTS` 3, `slot_path(n)` (slot 1 = the old `savegame.json`, so existing saves
+  are slot 1; then savegame_2/3.json), `use_slot(n)`, `slot_info(n)` from a small header `<save>.info` written on every
+  save (`summary_of(state, saved_at)`: players, money dirty+clean, xp, play time, time of day; an old save without one
+  gets it on first read), `delete_slot(n)` (moves save + header to .bak), `slot_dir` (demo folder for tests).
+  New world field `GameState.world["play_time"]` (s, counted by SaveManager while hosting). Last slot used is kept in
+  settings.cfg [player] last_slot. Slot cards: Continue / New game ("Overwrite?") / Delete ("Sure?"), empty = New game.
+- Loading screen (new autoload `Loading`, autoload/loading.gd, after Soundscape): `Loading.go_to_world()` replaces
+  change_scene_to_file(world) in the menu (host, join) and in `Scenarios.restart_into`: threaded load with a progress
+  bar, background picture, a tip every 6 s (`TIPS`, 18), stays until the local player stands in the world (waits for
+  `scene_changed`, so an old world never counts), gives up after 120 s, closes when the menu comes back. Headless =
+  straight change_scene (tests keep their timing).
+- Pause menu (`PauseMenu`, scripts/ui/pause_menu.gd, World child "PauseMenu"): Esc while playing (mouse captured)
+  opens it: Resume, Settings, Save game (host), Leave to menu (host saves), Quit to desktop (host saves), players list.
+  Alone (host, no clients) `get_tree().paused = true`; in co-op it keeps running and unpauses itself when someone
+  joins. The old top-left panel (role, players, Leave) is hidden. Settings window works over the paused game.
+- `TitleArt` (scripts/ui/title_art.gd): logo, fades, big menu buttons, panel style, play time text.
+- Tools: `--menu-shots` (window) saves screenshots/menu_title/slots/join/settings/loading/pause.png (demo slots).
+  `DemoSlots.make(dir)` writes two made-up saves (user://demo_slots/).
+
+## Bug fixed from part 27
+- The menu saved user://settings.cfg with an EMPTY ConfigFile (only name / last IP) on every Host/Join, wiping the
+  Settings autoload's graphics / audio / keys. It now loads the file first.
+
+## Decisions (what + why)
+- Slot 1 = the existing save file: nobody loses a save after the update.
+- Header file next to each save: the title page never parses three full saves (they grow with the world).
+- Delete = rename to .bak (no undo button, but nothing is gone for good).
+- Pause only when alone: a host can't freeze friends' games.
+- Esc opens the pause menu only while the mouse is captured: Esc in a window (phone, shop...) still just closes it.
+
+## Existing files changed (part 29)
+- autoload/save_manager.gd (slots, header, play_time), scenes/main_menu/main_menu.gd + .tscn (rewritten, same
+  command line flow), scenes/world/world.gd (my Settings button from part 27 replaced by the PauseMenu, HUD/Panel
+  hidden), autoload/settings.gd (settings layer PROCESS_MODE_ALWAYS), autoload/soundscape.gd (menu music),
+  scripts/debug/scenarios.gd (restart_into -> Loading.go_to_world; scenarios title_menu, pause_menu), self_test.gd
+  (check menus), project.godot (autoload Loading).
+
+## For A (not fixed, your files)
+- Leaving a world very soon after it loads: `WorldLod._ready` (world_lod.gd:39) awaits two frames and then calls
+  get_tree() -> null if the world was freed meanwhile. `Sleep._update` (sleep.gd:71) runs from a player's exit while
+  the world is torn down (get_tree() null) -> SCRIPT ERROR on Leave to menu. Harmless, but an is_inside_tree() guard
+  would silence both.
+
+## Te testen door Curry
+- Start het spel normaal: nieuwe titelpagina. Play = je saves (jouw huidige save staat in slot 1). Probeer Continue
+  (laadscherm met tips), Esc in het spel (pauzemenu: alleen = gepauzeerd), Save game, Leave to menu.
+- `title_menu` (F9): titelpagina met twee nep-saves (je echte saves blijven onaangeroerd): Continue / New game
+  (vraagt "Overwrite?") / Delete (vraagt "Sure?"), Join a friend, Settings. Daarna het spel herstarten voor je eigen saves.
+- `pause_menu` (F9): het pauzemenu in het dorp.
+
+## For CLAUDE.md (suggested lines)
+- Menus (B part 29): title page in code (scenes/main_menu/main_menu.gd, `TitleArt`), save slots in SaveManager
+  (`SLOTS`, `slot_path`, `use_slot`, `slot_info` from `<save>.info`, `delete_slot`, `slot_dir`; slot 1 = savegame.json;
+  world["play_time"]), `Loading.go_to_world()` (loading screen with tips; use it instead of change_scene to the world),
+  `PauseMenu` (World/PauseMenu, Esc, pauses solo; HUD/Panel hidden). `--menu-shots`; scenarios title_menu / pause_menu,
+  self-test check menus.
+
+
+# Part 30: online co-op through Steam (GodotSteam, test app 480) (user list 2026-11-24, item 4)
+
+## How it works
+- GodotSteam GDExtension 4.23.2 in `addons/godotsteam/` (win64, linux64, macOS only; the updater editor plugin is not
+  enabled). Native libraries go through Git LFS (`*.dll/*.so/*.dylib` added to .gitattributes).
+- `SteamNet` (new autoload, autoload/steam_net.gd, after Loading): every Steam call goes through `steam` (Object), so
+  the game still runs where the extension can't load. `start()` (SteamAppId 480 via the environment, steamInitEx
+  with embedded callbacks) happens at game start when Steam is running, never in test runs (headless, --name=, test
+  flags, scenarios) unless `--steam`. Host: friends-only lobby (data game = LOBBY_KEY, name, owner), then a
+  SteamMultiplayerPeer `create_host(0)` -> `Net.host_with_peer(peer, name, "steam")`. Join: `joinLobby` ->
+  lobby_joined -> `create_client(owner, 0)` -> `Net.join_with_peer(...)`; from there the normal Net flow
+  (registration, join_succeeded, Loading). `find_lobbies()` lists friends' lobbies (lobbies_found), `invite(id)` /
+  `invite_overlay()`, `friends()`. Steam "Join game" / an accepted invite (join_requested) or `+connect_lobby <id>`
+  -> `pending_lobby` -> the title page joins it (from inside a world it saves, leaves and goes to the title page
+  first). Leaving the game leaves the lobby.
+- Net (autoload/net.gd): `host_with_peer(peer, name, via)`, `join_with_peer(peer, name, via)`, `transport` ("ip" /
+  "steam"); `host_game` / `join_game` (ENet) use them. `is_online()` = any real peer (was: ENet only);
+  SaveManager._hosting_world uses it.
+- Title page: Play has "Friends can join via Steam" (settings.cfg [network] steam_host, default on) + the Steam state;
+  hosting tries Steam first and falls back to IP hosting with a message when Steam fails. Join a friend shows
+  "Friends' games (Steam)" (invites first, Refresh) above the IP form.
+- Pause menu: "Invite friends (Steam)" (only in a Steam game) = online friends with Invite buttons (works without
+  the overlay) + "Steam overlay invite...".
+- Live check: `-- --steam-check` (headless is fine, Steam must run): start, friends, lobby + SteamMultiplayerPeer
+  host, friends' lobby search, leave. Result on this PC: started as the user, 27 friends, lobby made with
+  game=crime_coop_b1, peer SteamMultiplayerPeer, transport steam, lobby left afterwards.
+
+## Decisions (what + why)
+- GDExtension (not the GodotSteam editor builds): the project keeps the standard Godot 4.6.3.
+- 4.23.2 instead of the newest 4.24 (released 2026-11-07): a month in use, same Steamworks 1.65.
+- Lobby key "crime_coop_b1": app 480 is shared by every Steamworks test game; only lobbies with our key AND a friend
+  as owner are listed (a version bump of the key keeps incompatible builds apart).
+- Our own friends list for invites: the Steam overlay often doesn't hook into a game started from the editor.
+- Steam starts at game start (needed to receive invites / "Join game"), so you show as "Spacewar" while playing;
+  untick "Friends can join via Steam" to host by IP. (Steam itself keeps running regardless.)
+- Not tested here: a second Steam account actually joining (needs a friend / second PC). The host side, lobby data,
+  lobby search and leaving are tested live.
+
+## For A
+- Net: please use `Net.is_online()` / `Net.transport` instead of `multiplayer_peer is ENetMultiplayerPeer`.
+  `Net._set_peer_timeout` only applies to ENet (Steam's sockets keep the link alive on their own thread).
+- Pre-existing (also on main 3cbe701): `--selftest --only=selling` alone fails (SCRIPT ERROR at `npc.wants`): no
+  pedestrian exists yet when the check runs on its own; it passes after `pedestrians`. A wait for an NPC would fix it.
+
+## Existing files changed (part 30)
+- autoload/net.gd (host_with_peer / join_with_peer / transport / is_online), autoload/save_manager.gd (_hosting_world),
+  scenes/main_menu/main_menu.gd (Steam parts, check_pending_steam), scripts/ui/pause_menu.gd (invites),
+  scripts/debug/scenarios.gd (steam_host), self_test.gd (check steam), project.godot (autoload SteamNet),
+  .gitattributes (LFS for native libs), CREDITS.md.
+
+## Te testen door Curry
+- Steam moet draaien. `steam_host` (F9): het testspel wordt via Steam gehost en Esc > Invite friends (Steam) staat
+  open: druk Invite bij een online vriend. Je vriend start het spel en kiest Join a friend > Friends' games (Steam) >
+  Join (of accepteert je uitnodiging in Steam). Zonder vriend: kijk of Join a friend de Steam-lijst toont en of joinen
+  via IP nog werkt (2 vensters: Host + Join 127.0.0.1).
+
+## For CLAUDE.md (suggested lines)
+- Steam co-op (B part 30): GodotSteam GDExtension in addons/godotsteam (app 480), `SteamNet` autoload (`start`,
+  `host`, `join`, `find_lobbies`, `invite`, `friends`, `pending_lobby`, `in_steam_game`, never in test runs unless
+  `--steam`; `--steam-check` = live check), Net `host_with_peer` / `join_with_peer` / `transport`; IP (ENet) stays
+  the fallback. Scenario steam_host, self-test check steam.
+
+
+# Part 31: controller support (Xbox / PlayStation) (user list 2026-11-24, item 5)
+
+## How it works
+- project.godot: every action got its controller event next to the key (left stick move, A jump, B crouch, X
+  interact, Y reload, RT shoot, LT aim, LB/RB previous/next slot, D-pad up car / down holster / left build mode /
+  right last weapon, R3 first/third person, L3 horn, View/Touchpad phone, Start/Options = release_mouse = pause menu).
+  Settings only replaces the key/mouse event of an action, so rebinding and "Reset all keys" keep the pad events.
+- `Gamepad` (new autoload, autoload/gamepad.gd, after SteamNet):
+  - Right stick while playing (mouse captured) -> synthetic InputEventMouseMotion (LOOK_SPEED 1500 px/s x
+    Settings.stick_sensitivity, dead zone 0.18, squared curve). So looking on foot, the car camera, slower aiming
+    when zoomed, weapon sway, mouse sensitivity and invert Y all work without new player code.
+  - L3 toggles sprint (`Input.action_press("sprint")`), off when the left stick returns to the centre.
+  - Pointer visible (menus, phone, shops, any window): left stick moves the pointer (warp_mouse), A = left click at
+    the pointer (the joypad event is marked handled, so a focused button never fires twice), B = release_mouse
+    (back), right stick = mouse wheel.
+  - Rumble (Settings.vibration): own shot (Soundscape.heard_shot within 3 m of the camera), health lost.
+  - `pad_kind()` "playstation" / "xbox" by the controller name, `layout(kind)` = button names for Settings.
+- Settings: `stick_sensitivity`, `vibration` ([controls]); new tab "Controller" (name, look speed, vibration, the
+  layout in Xbox or PlayStation names). The settings window also closes on the release_mouse action (Start / B).
+
+## Decisions (what + why)
+- Look via synthetic mouse motion instead of new code in player.gd: one path for mouse and stick, nothing in A's
+  player code changed.
+- Virtual pointer in menus instead of focus navigation: every window (phone, shops, crew, storage drag & drop) is
+  usable at once; focus code for each window would be a lot of work in many files.
+- Sprint as a toggle on L3: holding a stick click while pushing it is tiring.
+- Number slots 1-8 stay keyboard-only (LB/RB cycle the slots); drop / lights have no pad button (rarely used).
+- Controller buttons are not rebindable in this round (only shown); keys stay rebindable.
+
+## Existing files changed (part 31)
+- project.godot (pad events, autoload Gamepad), autoload/settings.gd (stick_sensitivity, vibration),
+  scripts/ui/settings_menu.gd (Controller tab, close on release_mouse), autoload/soundscape.gd (rumble hook),
+  scripts/debug/settings_test.gd (4 tabs), scenarios.gd (controller), self_test.gd (check gamepad).
+
+## For A
+- The scenario banner (scenario_menu.gd) still says "Leave -> Host - continue"; since part 29 that is
+  "Esc > Leave to menu > Play > Continue".
+
+## Te testen door Curry
+- `controller` (F9): sluit een Xbox- of PlayStation-controller aan. Settings > Controller toont de naam en de
+  indeling; sluit met B / Circle. Daarna lopen, kijken (rechterstick), L3 = sprinten aan/uit, schieten (RT), Start =
+  pauzemenu, in menu's beweegt de linkerstick de muis en klikt A. Trilt bij schieten en geraakt worden.
+
+## For CLAUDE.md (suggested lines)
+- Controller (B part 31): pad events in project.godot next to every key, `Gamepad` autoload (right stick = synthetic
+  mouse motion, L3 sprint toggle, pointer + A click / B back in menus, `rumble`, `pad_kind`, `layout`), Settings
+  `stick_sensitivity` / `vibration` + tab Controller. Scenario controller, self-test check gamepad.

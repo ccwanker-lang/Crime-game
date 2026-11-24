@@ -194,7 +194,9 @@ func _ready() -> void:
 		net_yaw = rotation.y
 		nametag.visible = false
 		spring.add_excluded_object(get_rid())
+		camera.fov = Settings.fov
 		_base_fov = camera.fov
+		Settings.changed.connect(func() -> void: _base_fov = Settings.fov)
 		var vm := Viewmodel.new()
 		vm.name = "Viewmodel"
 		camera.add_child(vm)
@@ -478,8 +480,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var motion := event as InputEventMouseMotion
 		# Slower turning while zoomed in (same feel on screen).
 		var sens: float = MOUSE_SENSITIVITY * camera.fov / _base_fov
-		rotate_y(-motion.relative.x * sens)
-		head.rotation.x = clampf(head.rotation.x - motion.relative.y * sens, -1.45, 1.45)
+		var look: Vector2 = Settings.look_scale()  # (settings menu: sensitivity, invert Y)
+		rotate_y(-motion.relative.x * sens * look.x)
+		head.rotation.x = clampf(head.rotation.x - motion.relative.y * sens * look.y, -1.45, 1.45)
 		if combat.viewmodel:
 			combat.viewmodel.add_mouse(motion.relative)
 	elif event is InputEventMouseButton and event.pressed and not captured:
@@ -943,8 +946,9 @@ func _try_enter_car() -> void:
 func _car_input(event: InputEvent, captured: bool) -> void:
 	if event is InputEventMouseMotion and captured:
 		var motion := event as InputEventMouseMotion
-		head.rotation.y = wrapf(head.rotation.y - motion.relative.x * MOUSE_SENSITIVITY, -PI, PI)
-		head.rotation.x = clampf(head.rotation.x - motion.relative.y * MOUSE_SENSITIVITY, -1.2, 0.35)
+		var look: Vector2 = Settings.look_scale()
+		head.rotation.y = wrapf(head.rotation.y - motion.relative.x * MOUSE_SENSITIVITY * look.x, -PI, PI)
+		head.rotation.x = clampf(head.rotation.x - motion.relative.y * MOUSE_SENSITIVITY * look.y, -1.2, 0.35)
 		_orbit_idle = 0.0
 	elif event is InputEventMouseButton and event.pressed and not captured:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

@@ -1,0 +1,6 @@
+All files in this folder are CC0 1.0 (public domain): https://creativecommons.org/publicdomain/zero/1.0/
+stone_1-6, grass_1-6: "Fantozzi's Footsteps (Grass/Sand & Stone)" by Fantozzi
+  https://opengameart.org/content/fantozzis-footsteps-grasssand-stone (Stone L1/R1/L2/R2/L3/R3, Sand L1..R3)
+snow_1-6: "42 Snow and Gravel Footsteps", recorded by Corsica_S, extracted by Iwan Gabovitch (snow covered gravel 01-11 odd)
+  https://opengameart.org/content/42-snow-and-gravel-footsteps
+wood_1-4, metal_1-4: synthesized for this project (tools/generators/gen_ambience.py)

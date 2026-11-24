@@ -36,6 +36,12 @@ func _ready() -> void:
 	loot_spawner.spawn_function = _create_loot_bag
 	placed_spawner.spawn_function = _create_placed
 	leave_button.pressed.connect(_on_leave_pressed)
+	# Session B (user list item 3): Esc opens the pause menu (resume, settings, save, leave, players); it replaces the
+	# old top-left panel (kept in the scene for the labels, hidden).
+	$HUD/Panel.visible = false
+	var pause := PauseMenu.new()
+	pause.name = "PauseMenu"
+	add_child(pause)
 
 	# Only the host runs NPC AI; clients skip the (slow) bake, which would also
 	# stall their connection right after joining.
@@ -761,6 +767,13 @@ func _after_navmesh() -> void:
 
 ## Host only: ambient pedestrians on random sidewalk spots (synced by NPCSpawner).
 func spawn_pedestrians(count: int) -> void:
+	# Roadmap 88 (session B): the crowd lives by the clock (DayRhythm); `count` = how many walk in the busiest block.
+	if DayRhythm.wanted() and get_node_or_null(^"DayRhythm") == null:
+		var rhythm := DayRhythm.new()
+		rhythm.name = "DayRhythm"
+		rhythm.outside_busiest = count
+		add_child(rhythm)
+		return
 	var player_spawn: Vector3 = (spawn_points.get_child(0) as Node3D).global_position
 	for i: int in count:
 		var p: Vector3 = Vector3.INF
@@ -1097,6 +1110,9 @@ func _customer_loop() -> void:
 
 ## Host: turns `npc` (or a random free pedestrian) into a customer for 1-3 bags.
 func make_customer(npc: Pedestrian = null) -> Pedestrian:
+	# Roadmap 88: sometimes it is someone at home (steps out of their door for the deal).
+	if npc == null and DayRhythm.current and randf() < DayRhythm.current.config.home_deal_chance:
+		npc = DayRhythm.current.home_customer()
 	if npc == null:
 		var free: Array[Pedestrian] = []
 		for n: Node in get_tree().get_nodes_in_group(&"npc"):
