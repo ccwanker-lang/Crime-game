@@ -36,6 +36,13 @@ func _ready() -> void:
 	loot_spawner.spawn_function = _create_loot_bag
 	placed_spawner.spawn_function = _create_placed
 	leave_button.pressed.connect(_on_leave_pressed)
+	# Session B (settings menu): a Settings button above "Leave to menu".
+	var settings_button := Button.new()
+	settings_button.name = "SettingsButton"
+	settings_button.text = "Settings"
+	settings_button.pressed.connect(Settings.open_menu)
+	leave_button.add_sibling(settings_button)
+	leave_button.get_parent().move_child(settings_button, leave_button.get_index())
 
 	# Only the host runs NPC AI; clients skip the (slow) bake, which would also
 	# stall their connection right after joining.
