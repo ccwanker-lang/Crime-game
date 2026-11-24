@@ -1327,6 +1327,9 @@ Choices made while working autonomously (what + why).
   `net_skid` (0-1, computed by whoever simulates, synced + sent with `_drive`): handbrake at > 3 m/s, or sideways
   acceleration past `PlayerCar.GRIP` (14 m/s2, only a full-lock turn at speed); VehicleSound screeches only on that,
   traffic cars only on an emergency stop while panicking. The engine (gear, rpm, load) is unchanged.
+- B part 24 (merged 2026-11-24): Zones skips resident orders for sleeping residents (NpcStreamer lod ASLEEP); the
+  other B NPCs need nothing (mission NPCs/enemies are pinned, staff/dealers are local visuals). Points 88 (day
+  rhythm) and 89 (npc_bench) are taken over by session B (user, 2026-11-24): A did not touch them.
 - Point 96 (3 gas stations): one generator function `gas_station(tag, cx, cz, rot, parent, length, title,
   kiosk_behind)` builds the QuickFuel kit (raised forecourt, 3 posts + canopy + 2 lamps, Pump1/Pump2 = FuelPump,
   kiosk, marker Spot) inside one Node3D `GasStation<Tag>`; QuickFuel itself stays as it was (saves/tests use its

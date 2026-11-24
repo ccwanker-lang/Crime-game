@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: Part 24 (Zones residents and A's NpcStreamer).
+Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
 Part 23 MERGED (A, 2026-11-16): in DESIGN/CHANGELOG/CLAUDE.md.
 
