@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/army_prop.gd" id="1_r"]
+
+[node name="Sandbags" type="StaticBody3D"]
+script = ExtResource("1_r")
+kind = 2
+length = 3
+rows = 4

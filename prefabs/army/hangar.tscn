@@ -1,0 +1,110 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/proc_box.gd" id="1_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/army_truck.tscn" id="2_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/tool_cart.tscn" id="3_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/steel_shelves.tscn" id="4_r"]
+[ext_resource type="PackedScene" path="res://prefabs/props/barrel.tscn" id="5_r"]
+[ext_resource type="Script" path="res://scripts/procgen/army_prop.gd" id="6_r"]
+[ext_resource type="PackedScene" path="res://prefabs/interiors/hanging_lamp.tscn" id="7_r"]
+
+[node name="ArmyHangar" type="Node3D"]
+
+[node name="HWallN0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -14)
+script = ExtResource("1_r")
+size = Vector3(20.3, 7.5, 0.3)
+material_key = "corrugated"
+
+[node name="HWallS0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -8, 0, 0)
+script = ExtResource("1_r")
+size = Vector3(4.3, 7.5, 0.3)
+material_key = "corrugated"
+
+[node name="HWallS1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 6, 0)
+script = ExtResource("1_r")
+size = Vector3(12, 1.5, 0.3)
+material_key = "corrugated"
+
+[node name="HWallS2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8, 0, 0)
+script = ExtResource("1_r")
+size = Vector3(4.3, 7.5, 0.3)
+material_key = "corrugated"
+
+[node name="HWallW0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -10, 0, -7)
+script = ExtResource("1_r")
+size = Vector3(0.3, 7.5, 14)
+material_key = "corrugated"
+
+[node name="HWallE0" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -12.3)
+script = ExtResource("1_r")
+size = Vector3(0.3, 7.5, 3.4)
+material_key = "corrugated"
+
+[node name="HWallE1" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 2.3, -10)
+script = ExtResource("1_r")
+size = Vector3(0.3, 5.2, 1.2)
+material_key = "corrugated"
+
+[node name="HWallE2" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 10, 0, -4.7)
+script = ExtResource("1_r")
+size = Vector3(0.3, 7.5, 9.4)
+material_key = "corrugated"
+
+[node name="HRoof" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 7.5, -7)
+script = ExtResource("1_r")
+size = Vector3(20.6, 0.3, 14.6)
+material_key = "roof_dark"
+
+[node name="HFloor" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 0, 0, -7)
+script = ExtResource("1_r")
+size = Vector3(20, 0.05, 14)
+material_key = "concrete"
+
+[node name="Truck" parent="." instance=ExtResource("2_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -3, 0.02, -7.5)
+kind = "truck"
+
+[node name="Workbench" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 6.5, 0, -13.3)
+script = ExtResource("1_r")
+size = Vector3(4, 0.9, 0.9)
+material_key = "metal_dark"
+
+[node name="ToolCart" parent="." instance=ExtResource("3_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 4.2, 0.02, -12.2)
+
+[node name="Shelves1" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -9.4, 0.02, -11)
+
+[node name="Shelves2" parent="." instance=ExtResource("4_r")]
+transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -9.4, 0.02, -8.5)
+
+[node name="Drum0" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8.8, 0.02, -9)
+
+[node name="Drum1" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8.8, 0.02, -8.2)
+
+[node name="Drum2" parent="." instance=ExtResource("5_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 8, 0.02, -8.6)
+
+[node name="Ammo" type="StaticBody3D" parent="."]
+script = ExtResource("6_r")
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5, 0.02, -9)
+kind = 5
+
+[node name="Lamp0" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -5, 6, -7)
+
+[node name="Lamp1" parent="." instance=ExtResource("7_r")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 5, 6, -7)

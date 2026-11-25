@@ -68,13 +68,18 @@ const LIST: Array = [
 	["airfield", "Point 85: Fort Halden is bigger - an airfield with jets", "You stand on the apron by the control tower (the soldiers let you be: you have a pass). In front of you the taxiway and the runway (east-west, 250 m); behind you three arched hangars with a jet each. In a few seconds the first jet starts its take-off run from the west end (afterburner, gear up) and climbs out east over the mountains; a little later another one comes in from the west and lands, taxis back, turns and backs into its hangar. The vehicle hangars of the old base moved west. Point 91: a take-off or a landing every 3-5 minutes (Airfield.event_every, 240 s). Walk into a hangar: the jet is solid."],
 	["bunker_garage", "Bunker: no invisible wall in the garage", "You stand in the underground garage, west side. There used to be an invisible slanted wall through the garage (the mountain's ground reached into it next to the lift). Walk across to the lift pit and into the corridor: nothing stops you. A test walker checks every room in the self-test (check bunker_rooms)."],
 	["bunker_inside", "The bunker complex: lift, stairs, lab, garage", "You stand in the bunker's entrance hall, the blast door open, your car on the vehicle lift. Drive onto / stay on the lift and press E on the platform (or the call panel left of it) to go 14 m down to the underground garage. Or walk down the stairwell (right of the lift, four flights). Below: the garage, a corridor, the big lab hall (yellow squares = machine spots), storage and the bunk room. Buying it and the lab come later (session B)."],
-	["army_base", "Map zone 2: Fort Halden, the army base behind the mountain", "You stand on the pass road at the gate of the army base (east of the prison, out of sight of the village), next to your car. The base is closed: fence all round, the gate shut, a boom, a guard booth. Look through the fence: barracks, two hangars, army trucks and jeeps, a helipad, four watchtowers (their searchlights sweep at night - F7 to speed up time). Guards and missions come later. Drive back over the pass to the farm."],
+	["army_inside", "Point 100: inside Fort Halden with a pass - walk into every building", "You have a pass (the soldiers leave you alone for an hour) and stand inside the gate. Walk out and back: the steel gate slides open for you and the boom lifts with it (without a pass it stays shut). Then: the two hangars are open at the front (a truck, a workbench, shelves, oil drums); the three barracks are dormitories (8 bunk beds, lockers, a table); behind them the ARMOURY (weapon racks with rifles, a caged issue counter, ammo crates) and the COMMAND POST (map table, desks with screens, radio cabinets). Sandbags at the gate and a machine-gun nest at the east end of the parade ground."],
+	["army_base", "Map zone 2: Fort Halden, the army base behind the mountain", "You stand on the pass road at the gate of the army base (east of the prison, out of sight of the village), next to your car. The base is closed: fence all round with razor wire, the steel gate shut (only cars, soldiers and pass holders open it), a boom, a guard booth, sandbags. Look through the fence: barracks, two hangars, army trucks and jeeps, a helipad, four watchtowers (their searchlights sweep at night - F7 to speed up time). Guards and missions come later. Drive back over the pass to the farm."],
 	["slums", "Map zone 3: the slums north of the centre (Rosehill Park)", "Evening (19:00) in the yard in the middle of the shanty town: shacks of tin and planks, rubbish, fire barrels burning. North: the caravan park; east: the junkyard and container homes; west by the road: the Rosehill Shack, FOR SALE for €4,000 (the cheapest property; E on the door, buy it at the estate agent). A car drives round the loop road. Turn north from North Road at the barber's corner to get here."],
 	["city", "Map zone 7: the city + the highway", "You stand on the plaza between the village and the city next to your car. Drive into the city: a grid of avenues with office towers and skyscrapers, traffic lights at the 4 inner crossings, city traffic. Drive up a multi-storey car park (blue P; the ramp lane is at the right-hand side, entrance from the avenue). Back to the village over the highway: from the city's north-east corner north along the east side to Main Road. Phone map (Tab > Map) shows the city too. Rough layout: no shops or people in the city yet."],
 	["border_mountains", "Map zone 9: snowy mountains round the whole map", "You stand on the empty strip east of the village (where the highway will come) next to your car, facing the border mountains. Walk or drive east: no invisible wall, you get onto the grassy foot and then the slope is too steep. Look round: snowy peaks with pines on every side; at the sea the mountains rise out of the water. F10 (fly) to see it from above."],
 	["mountain_pass", "Point 49b: the mountain pass behind the farm to the prison", "You stand on Country Lane south of the farm next to your own car (full tank). Drive north past the barn: the road turns east, then climbs the mountain in hairpin bends (guardrails, rocks, pines; snow near the top). Over the top it winds down to the prison on the far side (turn round in front of the gate). A traffic car also drives the pass. From the village and the farm you can't see the prison: the mountain is in the way. The prison intro bus now really drives this road (scenario prison_intro, or F2 skips the ride)."],
 	["traffic_lights", "Point 63: traffic lights, fewer cars, overtaking", "13:00 on Main Road. Traffic lights at the 3 busy junctions (Main Road x Mill Lane, x Station Road, x Industrial Road): cars stop at red (and at amber when they can), the cross street goes on green. A broken-down car stands in the lane in front of you: cars behind it wait a moment, then overtake on the left when nothing comes the other way, and pull back in. Fewer cars on the streets (5)."],
 	["harbour_road", "Point 60: South Street (the police station's street) now runs on to the harbour", "You stand on South Street next to your car, facing west. Drive (F, W) past the police station: where the road used to end at barriers it now bends south, down to the quay and into Quay Road (crane, ship). Traffic drives the same loop both ways; on the phone map (Tab > Map) the road is there too."],
+	["building_site", "Point 102: a building site in the city", "You stand on the pavement at one of the city's three building sites: a half-built concrete skeleton behind a site fence, scaffolding with plank decks along the street side, a tower crane whose jib slowly turns, containers (site office + store), pallets of bricks, rebar, concrete pipes, a sand heap and a concrete mixer. Walk in through the gate gap in the fence and climb the stairs inside the skeleton (switchback, east end) up to the bare top floor - a quiet spot to deal. The builders come later (session B)."],
+	["city_shops", "Point 101: the city's shopping street - shops on every ground floor", "You stand on the avenue in front of a row of shops (city, north edge). Every ground floor in the city is now shops: cafés with striped awnings and a terrace, restaurants with a menu board, bakeries, florists with buckets of flowers, boutiques, barbers (striped pole), pharmacies (green cross), supermarkets, phone shops and chip shops - each with a sign, a shop window and a door. The shop right in front of you is open: walk in through the door on the right (counter, tables / shelves of its kind; the shopkeeper comes from session B). One such walk-in shop per block. At night (F7) the shop windows glow."],
+	["prison_gate", "Point 99: outside the prison gate at night - the steel gate slides open by itself", "Walk to the gate: the steel sliding gate rolls open behind the wall when you are ~10 m away and shuts behind you (yellow-black edge). Razor wire coils on every wall top. It is night: the four watchtowers' searchlights sweep with a visible beam. Inside left: the gatehouse is now the GUARD POST (camera screens on a desk, chair, locker)."],
+	["prison_block_b", "Point 99: in cell block B - two tiers of cells with galleries", "You stand in Block B's day room. Up the steel stair along the west wall to the upper gallery (railings), walk along the cells (barred fronts, bunks), cross the bridge at the east end to the south gallery. The TV hangs under the north gallery. Upstairs is 3.8 m up: look down over the railing."],
 	["prison_complex", "Point 93: the prison is a real complex - you stand in the yard (no intro running)", "Walk round: Block A (the intro cells, barred fronts + sliding cell doors) right in front of you, Block B in the north-west (locked cells round a day room), the canteen in the north-east (serving hatch behind bars), covered walkways between them, the basketball court, the visiting room by the gate (glass partition, booths), the release desk, the gatehouse, four watchtowers in the corners. Walk out of the gate: the red-and-white boom lifts for you and drops behind you. LAST STOP FUEL is right across the road."],
 	["gas_city", "Point 96: CITYFUEL, the new gas station on the city plaza (first avenue), your sedan almost empty at pump 1", "Same as QuickFuel: E on the red pump fills the car (car panel bottom right shows the fuel). Drive off onto the avenue and back in: the forecourt is open to the road along its whole length. The two other new stations: F9 gas_docks and gas_prison."],
 	["gas_docks", "Point 96: DOCK FUEL on the quay (Quay Road, east of the crane), your sedan almost empty at pump 1", "E on the red pump fills up. Drive out north onto Quay Road and back in. The shop kiosk stands behind the canopy (the quay is narrow there)."],
@@ -564,6 +569,15 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 3, bt * Vector3(BunkerComplex.LIFT.get_center().x, 0.4, 6.5), bt.basis.get_euler().y + PI, "", 1.0)
 			_place(me, bt * Vector3(-6, 0.3, 1.0), bt * Vector3(-2, 0.5, 8), dn, 15.0)
+		"army_inside":
+			_kit(me, 200, [])
+			Zones.allow_army(me, 3600.0)
+			for wait: float in [0.5, 2.0]:  # (Zones._on_world clears passes when the new World is announced)
+				world.get_tree().create_timer(wait).timeout.connect(func() -> void:
+					if is_instance_valid(me):
+						Zones.allow_army(me, 3600.0))
+			_place(me, Vector3(-96, 0.3, -357.5), Vector3(-70, 2.0, -400), dn, 11.0)
+			me.admin_god = true  # (until B's Soldier.spot_intruder honours passes - asked in A.md)
 		"army_base":
 			_kit(me, 200, [])
 			var veh: Vehicles = Vehicles.current
@@ -607,6 +621,33 @@ static func run(world: Node, id: String) -> bool:
 			if veh:
 				veh.host_spawn("sedan", 1, Vector3(-30, 0.2, 58.25), PI / 2.0, "", 1.0)
 			_place(me, Vector3(-27, 0.3, 61.5), Vector3(-70, 1.5, 62), dn, 13.0)
+		"building_site":
+			_kit(me, 200, [])
+			var sites: Array[Node] = world.get_tree().get_nodes_in_group(&"building_sites")
+			if not sites.is_empty():
+				var site := sites[0] as BuildingSite
+				var g: Vector3 = (site.find_child("SiteGate", false, false) as Node3D).position
+				_place(me, site.to_global(g + Vector3(-4.0, 0.3, -5.0)), site.to_global(Vector3(0, 6.0, 0)), dn, 10.0)
+		"city_shops":
+			_kit(me, 200, [])
+			var shop_t: Tower = null
+			for n: Node in world.find_child("City", false, false).find_children("ShopTower*", "Tower", false, false):
+				if (n as Tower).has_open_shop():
+					shop_t = n as Tower
+					break
+			if shop_t:
+				_place(me, shop_t.to_global(Vector3(-3.0, 0.3, -shop_t.depth / 2.0 - 4.5)),
+						shop_t.to_global(Vector3(0, 2.0, -shop_t.depth / 2.0)), dn, 11.0)
+		"prison_gate":
+			_kit(me, 200, [])
+			var prison_g: Node3D = world.find_child("Prison", true, false) as Node3D
+			if prison_g:
+				_place(me, prison_g.to_global(Vector3(-12, 0.2, 25)), prison_g.to_global(Vector3(2, 3.0, 19)), dn, 21.0)
+		"prison_block_b":
+			_kit(me, 200, [])
+			var prison_b: Node3D = world.find_child("Prison", true, false) as Node3D
+			if prison_b:
+				_place(me, prison_b.to_global(Vector3(-28, 0.2, -19.5)), prison_b.to_global(Vector3(-33.3, 2.0, -22)), dn, 12.0)
 		"prison_complex":
 			_kit(me, 200, [])
 			var prison: Node3D = world.find_child("Prison", true, false) as Node3D

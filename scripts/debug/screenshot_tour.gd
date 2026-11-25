@@ -130,6 +130,11 @@ const SHOTS: Array[Array] = [
 	["E0_army_top", Vector3(-20, 60, -330), Vector3(-72, 0, -395)],
 	["E1_army_gate", Vector3(-118, 1.8, -353.5), Vector3(-80, 3, -362)],
 	["E2_army_night", Vector3(-30, 14, -345), Vector3(-75, 2, -390)],
+	["E3_army_back", Vector3(-60, 9, -410), Vector3(-63, 1, -432)],
+	["E4_army_hangar", Vector3(-92, 2.2, -384), Vector3(-92, 1.5, -400)],
+	["E5_army_dorm", Vector3(-90, 1.7, -413), Vector3(-94, 1.0, -419)],
+	["E6_army_armoury", Vector3(-72, 1.7, -429.5), Vector3(-72, 1.0, -436)],
+	["E7_army_command", Vector3(-53, 1.7, -430), Vector3(-53, 0.8, -435)],
 	["J0_airfield_top", Vector3(60, 110, -300), Vector3(80, 0, -405)],
 	["J1_airfield_apron", Vector3(40, 6, -392), Vector3(100, 3, -372)],
 	["J2_airfield_runway", Vector3(-30, 4, -432), Vector3(120, 2, -420)],
@@ -172,6 +177,13 @@ const SHOTS: Array[Array] = [
 	["D0_slums_top", Vector3(-40, 70, -20), Vector3(-40, 0, -100)],
 	["D1_slums_yard", Vector3(-38, 1.7, -74), Vector3(-60, 2, -86)],
 	["D2_caravans", Vector3(-20, 2.5, -100), Vector3(-60, 1, -116)],
+	["S0_shops_street", Vector3(12, 1.7, 148.6), Vector3(30, 1.8, 153.5)],
+	["S1_shop_front", Vector3(25.4, 1.7, 147.2), Vector3(25.4, 2.0, 153)],
+	["S2_shop_inside", Vector3(25.4, 1.6, 153.4), Vector3(25.4, 1.1, 160)],
+	["S3_shops_night", Vector3(-24, 1.8, 208.6), Vector3(-6, 2.0, 213)],
+	["T0_site_street", Vector3(-27, 1.7, 263), Vector3(-12, 5, 246)],
+	["T1_site_top", Vector3(-45, 35, 285), Vector3(-13, 6, 245)],
+	["T2_site_inside", Vector3(-18.5, 11.5, 247), Vector3(-8, 10.5, 240)],
 	["C0_city_top", Vector3(150, 190, 60), Vector3(30, 0, 250)],
 	["C1_city_avenue", Vector3(-46, 1.8, 206.5), Vector3(60, 22, 206.5)],
 	["C2_highway", Vector3(97, 5, 18), Vector3(102, 2, 140)],
@@ -205,6 +217,11 @@ func _run() -> void:
 
 	for item: CanvasItem in hide_nodes:
 		item.visible = false
+	# Session B's loading screen waits for a local player the tour never has: close it at once.
+	var loading: Node = get_tree().root.get_node_or_null(^"Loading")
+	if loading and bool(loading.get(&"active")):
+		loading.call(&"finish")
+		await get_tree().create_timer(0.6).timeout
 	_camera = Camera3D.new()
 	_camera.fov = 75.0
 	_camera.near = 0.05

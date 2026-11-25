@@ -36,6 +36,12 @@ extends StaticBody3D
 ## Point 76: an apartment block you can walk into (lobby, stairs + lift to the roof). Needs style "apartment".
 @export var enterable: bool = false:
 	set(v): enterable = v; _queue_rebuild()
+## Point 101: shops on the ground floor of these faces (bit 1 = -Z, 2 = +X, 4 = +Z, 8 = -X; see ShopFront).
+@export_flags("Front -Z", "Right +X", "Back +Z", "Left -X") var shop_faces: int = 0:
+	set(v): shop_faces = v; _queue_rebuild()
+## Point 101: the middle shop on the -Z face is a real shop you can walk into (not for apartment blocks).
+@export var open_shop: bool = false:
+	set(v): open_shop = v; _queue_rebuild()
 
 const MULLION: float = 1.6  # metres between vertical mullions
 const APT_CELL: float = 3.2  # apartment window bay width
@@ -49,6 +55,7 @@ var _generated: Array[Node] = []
 var _pending: bool = false
 var _apt_wall: StringName = &"plaster"
 var _ent: bool = false
+var _room: Rect2 = Rect2()  # point 101: the walk-in shop cut out of the ground floor (local x, z)
 
 
 func _ready() -> void:
@@ -77,24 +84,47 @@ func _rebuild() -> void:
 	_apt_wall = &"plaster" if rng.randf() < 0.55 else &"brick_mixed"
 	_ent = enterable and style == "apartment" and width >= 14.0 and depth >= 12.0 and floors >= 3
 	var lower: int = floors if setback_from <= 0 or setback_from >= floors or _ent else setback_from
+	_room = Rect2()
+	if has_open_shop():
+		_room = ShopFront.room_rect(width, depth)
 	_volume(b, Vector2(width, depth), 0, lower, true, rng)
 	var top_size := Vector2(width, depth)
 	if lower < floors:
 		top_size = Vector2(maxf(6.0, width - 2.0 * setback), maxf(6.0, depth - 2.0 * setback))
 		_volume(b, top_size, lower, floors, false, rng)
 	_roof(b, top_size, height(), rng)
+	var shop_nodes: Array[Node] = []
+	if shop_faces != 0 and not _ent:
+		var srng := RandomNumberGenerator.new()
+		srng.seed = variation_seed * 31 + 101
+		shop_nodes = ShopFront.build(self, b, _faces(Vector2(width, depth)), shop_faces, srng, _room.has_area(),
+				style == "apartment")
 	var mi := MeshInstance3D.new()
 	mi.mesh = b.build()
 	add_child(mi)
 	_generated.append(mi)
 	if _ent:
 		_build_inside(rng)
-	# Collision: one box per volume.
+	# Collision: one box per volume (point 101: round the walk-in shop's room on the ground floor).
+	elif _room.has_area():
+		var fh: float = floor_height
+		if lower > 1:
+			_box_shape(Vector3(width, (lower - 1) * fh, depth), Vector3(0, fh + (lower - 1) * fh / 2.0, 0))
+		var hw: float = width / 2.0
+		var hd: float = depth / 2.0
+		var r: Rect2 = _room
+		for box: Rect2 in [Rect2(-hw, -hd, r.position.x + hw, depth), Rect2(r.end.x, -hd, hw - r.end.x, depth),
+				Rect2(r.position.x, r.end.y, r.size.x, hd - r.end.y)]:
+			if box.size.x > 0.05 and box.size.y > 0.05:
+				_box_shape(Vector3(box.size.x, fh, box.size.y), Vector3(box.get_center().x, fh / 2.0, box.get_center().y))
 	else:
 		_box_shape(Vector3(width, lower * floor_height, depth), Vector3(0, lower * floor_height / 2.0, 0))
 	if lower < floors:
 		var h: float = (floors - lower) * floor_height
 		_box_shape(Vector3(top_size.x, h, top_size.y), Vector3(0, lower * floor_height + h / 2.0, 0))
+	for n: Node in shop_nodes:
+		add_child(n)
+		_generated.append(n)
 	if sign_text != "":
 		var lbl := Label3D.new()
 		lbl.text = sign_text
@@ -107,6 +137,11 @@ func _rebuild() -> void:
 		lbl.double_sided = false
 		add_child(lbl)
 		_generated.append(lbl)
+
+
+## Point 101: a walk-in shop is built (needs a street face at -Z, a deep enough block, not an apartment block).
+func has_open_shop() -> bool:
+	return open_shop and shop_faces & 1 and style != "apartment" and not _ent and depth >= ShopFront.ROOM_DEPTH + 4.0 			and width >= ShopFront.UNIT
 
 
 func _box_shape(size: Vector3, at: Vector3, basis: Basis = Basis.IDENTITY) -> void:
@@ -128,13 +163,24 @@ func _volume(b: MeshBuilder, size: Vector2, f0: int, f1: int, lobby: bool, rng: 
 	var y1: float = f1 * floor_height
 	var wall_key: StringName = &"concrete" if style != "brick" else &"brick_mixed"
 	var core: Color = tint if style != "glass" else tint.darkened(0.35)
-	# The solid core (a little inside the glass).
+	# The solid core (a little inside the glass). Point 101: round the walk-in shop's room on the ground floor.
 	b.color = core
-	b.box(wall_key, Vector3(0, (y0 + y1) / 2.0, 0), Vector3(size.x - 0.3, y1 - y0, size.y - 0.3))
+	if lobby and f0 == 0 and _room.has_area():
+		var hx: float = size.x / 2.0 - 0.15
+		var hz: float = size.y / 2.0 - 0.15
+		var fh: float = floor_height
+		b.box_mm(wall_key, Vector3(-hx, fh, -hz), Vector3(hx, y1, hz))
+		b.box_mm(wall_key, Vector3(-hx, 0, -hz), Vector3(_room.position.x - 0.05, fh, hz))
+		b.box_mm(wall_key, Vector3(_room.end.x + 0.05, 0, -hz), Vector3(hx, fh, hz))
+		b.box_mm(wall_key, Vector3(_room.position.x - 0.05, 0, _room.end.y + 0.05), Vector3(_room.end.x + 0.05, fh, hz))
+	else:
+		b.box(wall_key, Vector3(0, (y0 + y1) / 2.0, 0), Vector3(size.x - 0.3, y1 - y0, size.y - 0.3))
 	var glass_h: float = floor_height * (0.78 if style == "glass" else 0.48)
 	for f: int in range(f0, f1):
 		var fy: float = f * floor_height
 		if lobby and f == 0:
+			if shop_faces != 0:
+				continue  # point 101: ShopFront draws the ground floor
 			# Lobby: tall shop glass, a dark band and a canopy over the entrance.
 			b.color = Color.WHITE
 			_band(b, size, fy + 0.2, fy + floor_height - 0.5, &"glass_shop", 0.02)
@@ -175,7 +221,7 @@ func _volume(b: MeshBuilder, size: Vector2, f0: int, f1: int, lobby: bool, rng: 
 	for cx: float in [-size.x / 2.0, size.x / 2.0]:
 		for cz: float in [-size.y / 2.0, size.y / 2.0]:
 			b.box(wall_key, Vector3(cx, (y0 + y1) / 2.0, cz), Vector3(0.5, y1 - y0, 0.5))
-	if lobby:
+	if lobby and shop_faces == 0:
 		b.color = tint.darkened(0.3)
 		b.box(&"trim_paint", Vector3(0, floor_height - 0.35, -size.y / 2.0 - 1.4), Vector3(minf(8.0, size.x * 0.5), 0.25, 2.8))
 

@@ -348,6 +348,19 @@ Godot console exe:
 - Bunker fixes (82-84): lamps in `_build_lights` ([top pos, range, wall normal]), `EXTRA_LAMPS`/`EXTRA_LEGS`, room
   "generator" (`_build_generator_room`, body Machines, marker GeneratorSpot); terrain collision hole under the hall
   (`Mountain._collision_heights`, NaN = no collision). Check bunker_rooms; scenarios bunker_lamps/generator/garage.
+- Detail round (points 98-101): quality hooks `WorldLod.max_shadows` / `set_range_scale(tree, f)`, `GrassCover.density_scale`
+  / `radius_scale` / `rebuild()` (group grass_cover), `Traffic.count_scale` (B's `QualityProfile` drives them). Prison 99:
+  `SlidingGate` (scripts/world/sliding_gate.gd, local; `needs_army_pass` = host-driven), `ProcStairs` (scripts/procgen/,
+  gen_prefabs `stairs(...)`), `RazorWire` (`razor(...)`), Watchtower night beam, Block B two tiers, markers
+  PrisonGuardPost1-4 / PrisonPatrol1-4; scenarios prison_gate / prison_block_b, check prison. Army 100: prefabs/army/
+  barracks|armoury|command_post|hangar|sandbags (gen_prefabs `army_*`, `aprop(...)` = `ArmyProp` kinds), `hall()` takes
+  (side, centre, width[, top[, sill]]) (sill > 0 = window), ArmyBase/BaseGate (SlidingGate) + BaseBoom (`follow_gate`),
+  Armoury / CommandPost nodes; scenario army_inside, shots E3-E7. Shops 101: `ShopFront` (scripts/procgen/shop_front.gd,
+  KINDS/INFO, `units`, `room_rect`), `Tower.shop_faces` / `open_shop` / `has_open_shop()`, markers ShopCounterSpot (meta
+  shop_kind/shop_name) + TerraceSeat, gen_world BlockPave; scenario city_shops, check city_shops, shots S0-S3. Sites 102:
+  `BuildingSite` (scripts/procgen/building_site.gd, group building_sites, `flight(k)`, `slab_top(k)`, `skeleton_rect()`),
+  gen_world `block_towers(..., site=True)`, nodes City/BuildingSite1-3, markers BuilderSpot1-6 / SiteGate / SiteDealSpot;
+  scenario building_site, check building_sites, shots T0-T2.
 - Mountains one style (point 73): `BorderRange.terrain_color` (both terrains), snow line 48; gen_border.py reads
   data/mountain (run it AFTER gen_mountain.py) and extrudes/pins the pass mountain's edges into the range.
 - Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from

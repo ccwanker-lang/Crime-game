@@ -569,19 +569,35 @@ fps_army / fps_busy) with the numbers in CHANGELOG; below the performance target
   98. Performance rules + quality levels (comes first, the other points build on it): Low / Medium / High / Ultra
       scale shadows, SSAO/SSIL, fog, reflections, grass density, NPC + traffic count, view distance, interior detail;
       chosen automatically from the hardware on first start; new fps_busy scenario (many NPCs + traffic at once);
-      weak-PC simulation (Low + render scale 0.5 / compatibility driver); load time + RAM watched - todo
+      weak-PC simulation (Low + render scale 0.5 / compatibility driver); load time + RAM watched - IN PROGRESS:
+      split with session B (B: QualityProfile table, Settings auto-level on first start, fps_busy, measuring suite,
+      weak-PC run); A: the world hooks DONE (WorldLod.max_shadows / set_range_scale, GrassCover.density_scale /
+      radius_scale / rebuild, Traffic.count_scale; check streaming)
   99. Prison: more detail and enterable - an automatic gate (slides open when you come, or a guard opens it), yard,
       cell blocks with cells on several floors, canteen, visiting room, guard post, fences with barbed wire,
-      watchtowers with searchlights, prison guards - todo
+      watchtowers with searchlights, prison guards - DONE (A: SlidingGate at the gate, Block B two tiers with
+      galleries + ProcStairs + bridge, the gatehouse = guard post, RazorWire on every wall, a visible searchlight beam
+      on every Watchtower at night, yard tables + weights, markers PrisonGuardPost1-4 / PrisonPatrol1-4 for B's
+      guards; scenarios prison_gate, prison_block_b; check prison)
   100. Army base: more detail, partly enterable - automatic barrier/gate, barracks with dormitories, armoury,
-      command post, hangars you can walk into, sandbags, army vehicles, watchtowers - todo
+      command post, hangars you can walk into, sandbags, army vehicles, watchtowers - DONE (prefabs/army/
+      barracks / armoury / command_post / hangar / sandbags, ArmyProp (one mesh per piece), the gate = SlidingGate
+      `needs_army_pass` (host decides, RPC + net_state) + BoomGate `follow_gate`, RazorWire on the fence, 2 more
+      jeeps; scenario army_inside; check army; shots E3-E7)
   101. City full of shops: ground floors in the city (and the centre) become shops with windows, signs and awnings
       (restaurants, cafés with terraces, bakery, florist, boutiques, barber, pharmacy, supermarket, phone shop, chip
       shop); some enterable with an interior (counter, racks, tables) and an NPC behind the counter (B: shop NPCs +
-      life) - todo
+      life) - DONE for A (ShopFront: shop units drawn into every city Tower's own mesh on its street faces, 10 kinds,
+      signs, awnings, terraces with TerraceSeat markers; one walk-in shop per block (Tower.open_shop, 7 in all) with
+      a ShopCounterSpot marker for B's shopkeeper; blocks paved; scenario city_shops; check city_shops; shots S0-S3).
+      B: the shopkeepers + shop life (asked in A.md)
   102. Building sites: a few buildings become sites - half-built concrete skeleton, scaffolding, tower crane, site
       fences with mesh, containers, materials, concrete mixer; builders by day (B), empty at night; climbable, a
-      place to deal - todo
+      place to deal - DONE for A (`BuildingSite`: 3 city sites (BuildingSite1-3, in place of a tower in blocks
+      (0,1), (1,2) and the east strip), skeleton 2-3 floors + bare columns with rebar, switchback ProcStairs to the top
+      slab, scaffold with plank decks, tower crane with a turning jib, hoarding fence with a gate gap, site office
+      container, bricks / rebar / pipes / sand / mixer / toilet, site board; markers BuilderSpot1-6 (meta task),
+      SiteGate, SiteDealSpot; scenario building_site; check building_sites; shots T0-T2). B: the builders
   103. Better graphics within the stylized low-poly style: light + shadows, soft AO, volumetric fog at dawn/dusk,
       wet road after rain, reflections on windows + water, better sky + clouds, more street detail (signs, flower
       boxes, bikes, bins, lanterns, kerbs, manholes); a quality setting Low/Medium/High/Ultra in B's settings menu
@@ -603,6 +619,47 @@ Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
+- Point 98 split (2026-11-25): session B had already started `QualityProfile` (scripts/perf/) with the Settings
+  quality levels, so B owns the table, the auto-level on first start, fps_busy and the measuring suite; A only adds
+  the world hooks in A's files with B's names (WorldLod.max_shadows / set_range_scale, GrassCover.density_scale /
+  radius_scale / rebuild, Traffic.count_scale). 1.0 / 16 = today's numbers, so tests and measurements stay
+  comparable. Traffic is scaled once at load (cars already driving are not removed).
+- Point 99 (prison detail): the gate is a `SlidingGate` (new, reusable): a steel panel that rolls behind the wall
+  when a player, a car or a WALKING NPC is within 11 m - local on every peer like the boom (it opens long before
+  anyone reaches it, so a lagging peer never traps a player); its panel is on layer 2 (not baked). Standing NPCs
+  don't count (the gate guard stands next to it). Block B became two tiers (upper cells, galleries with
+  PrisonBars railings, a steel `ProcStairs` flight up the west wall, a bridge at the east end) instead of a new
+  block: Block A must stay exactly as the intro expects it. `ProcStairs` = visible solid steps + one invisible ramp
+  (players + navmesh), reusable for the army and building sites. Razor wire = `RazorWire` (coils on Y-arms, one
+  cached mesh per length, drawn up to 140 m). Searchlights already existed on the Watchtower; they got a visible
+  additive beam cone (no extra light cost). Prison guards are session B's (markers PrisonGuardPost1-4 + a yard
+  loop PrisonPatrol1-4).
+- Point 100 (army base detail): the warehouse Buildings (barracks, hangars) are replaced by walk-in prefabs in the
+  SAME footprints and names (Barracks1-3, Hangar1-2), so B's soldier posts, patrols and alarm spots stay right. All
+  army furniture is `ArmyProp` (bunk bed, weapon rack, sandbags, map table, radio, ammo stack, lockers): one mesh +
+  one box per piece, cached per kind (30 bunks = one mesh). `hall()` in gen_prefabs got windows (sill > 0) and tall
+  openings (the hangar's 12 x 6 m front). The base gate only opens for cars, walking soldiers and players with a
+  pass: only the host knows the passes (Zones), so that gate is host-driven (`needs_army_pass`, RPC + net_state);
+  the boom follows it. Found: B's `Soldier.spot_intruder` shoots pass holders too (asked in A.md; the army_inside
+  scenario uses god mode until then).
+- Point 102 (building sites): one procedural `BuildingSite` (like Tower: all static geometry in two meshes - the
+  big parts drawn far, the small props up to 110 m without shadows - plus plain boxes) instead of hand-placed
+  prefabs, so a site costs ~5 draw calls. It replaces the LAST building of a block (gen_world `block_towers(...,
+  site=True)`; the random sequence stays the same so the rest of the city does not move), the gate faces the
+  block's street. Climbing = a switchback of ProcStairs flights in two lanes at the east end; each slab has a hole
+  over the flight that comes up through it (from its top edge to 0.3 m past its foot). The crane's jib turns
+  locally on every peer (pure visual). No navmesh in the city, so B's builders stand at / walk between the
+  BuilderSpot markers. Day/night (builders by day, empty at night) is B's.
+- Point 101 (city shops): the shops are drawn INTO each Tower's own mesh by `ShopFront` (no extra draw calls; only
+  the sign Label3Ds, drawn up to 75 m), on the faces that face a street (`shop_faces`, computed by block_towers
+  from the cell position). Kinds rolled per unit from the tower's seed. Walk-in shops: one office tower per block
+  on its north street (`open_shop`, not apartment blocks - their core is built differently) gets the middle unit as
+  a real room: the core + collision are cut round it, the glass front has a door gap, the room has a counter, the
+  kind's furniture (interior prefabs: WorldLod gives them the 80 m prop range), an emissive ceiling panel + one
+  small light WITHOUT shadows, and a `ShopCounterSpot` marker (meta shop_kind / shop_name) where B's shopkeeper
+  stands; WorldLod gives such a tower no occluder (it would hide the room). The city blocks are now paved at
+  pavement height (no grass in front of / inside shops); shop floors, terraces and their markers sit on it.
+  The "centre" = the city centre blocks (the village's own shops were already shops).
 - Performance rules (user, 2026-11-24, hard rule): at least 60 FPS on Medium on a mid-range PC (GTX 1660 / RX 6600,
   16 GB), 30+ on Low with integrated graphics, never below 90 on High on the user's RTX 5060 Ti. Measured after
   every point with fps_docks / fps_city / fps_army / fps_busy (numbers in CHANGELOG); below target = optimise first.

@@ -55,6 +55,9 @@ const LIGHT_CORNER: float = 4.8
 var light_clock: float = 0.0
 var _light_sync_t: float = 0.0
 
+## Point 98: share of the ambient village + city cars the host spawns (QualityProfile "traffic"; read once at load,
+## `--cars=N` wins). Police cars are not scaled (gameplay).
+static var count_scale: float = 1.0
 var routes: Array[TrafficRoute] = []
 var _junction_owner: Dictionary = {}  # junction index -> Car (host)
 
@@ -63,12 +66,14 @@ func _ready() -> void:
 	_build_routes()
 	_build_lights()
 	if multiplayer.is_server() and not "--selftest" in OS.get_cmdline_user_args():
-		var count: int = CAR_COUNT
+		var count: int = roundi(CAR_COUNT * count_scale)
+		var city_count: int = roundi(int(_city.get("cars", 0)) * count_scale)
 		for arg: String in OS.get_cmdline_user_args():
 			if arg.begins_with("--cars="):
 				count = arg.trim_prefix("--cars=").to_int()
+				city_count = int(_city.get("cars", 0))
 		spawn_cars.call_deferred(count)
-		spawn_cars.call_deferred(int(_city.get("cars", 0)) if count > 0 else 0, true)
+		spawn_cars.call_deferred(city_count if count > 0 else 0, true)
 		# (The network check stays deterministic: no patrols that arrest its client mid-walk.)
 		var police_cars: int = 0 if "--netcheck" in OS.get_cmdline_user_args() else 2
 		for arg: String in OS.get_cmdline_user_args():

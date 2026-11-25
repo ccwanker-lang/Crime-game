@@ -36,6 +36,12 @@ const FAR_PROCESS_CLASSES: Array[String] = ["Watchtower", "TrafficLight", "FireB
 const BUDGET_EVERY: float = 0.5
 
 static var enabled: bool = true
+## Point 98: quality hooks (QualityProfile "shadows" / "range"). `max_shadows` = shadowed lights at once;
+## `range_scale` multiplies every draw distance WorldLod sets + the light fade (1.0 = the constants above).
+static var max_shadows: int = MAX_SHADOWS
+static var range_scale: float = 1.0
+var _ranged: Array = []  # [GeometryInstance3D, base range end]
+var _faded: Array[Light3D] = []
 var done: int = 0
 var shadow_lights: Array[Light3D] = []  # lights that had shadows on (the budget hands them out)
 var far_nodes: Array[Node] = []
@@ -46,6 +52,7 @@ var _budget_t: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group(&"world_lod")
 	if DisplayServer.get_name() == "headless" or not enabled:
 		return
 	for i: int in 2:
@@ -118,9 +125,10 @@ func _one(n: Node, ctx: String) -> void:
 	if light and not light is DirectionalLight3D:
 		if not light.distance_fade_enabled:
 			light.distance_fade_enabled = true
-			light.distance_fade_begin = LIGHT_FADE_BEGIN
+			light.distance_fade_begin = LIGHT_FADE_BEGIN * range_scale
 			light.distance_fade_length = LIGHT_FADE_LENGTH
 			light.distance_fade_shadow = 30.0
+			_faded.append(light)
 		if light.shadow_enabled and not light in shadow_lights:
 			shadow_lights.append(light)
 		return
@@ -143,7 +151,8 @@ func _one(n: Node, ctx: String) -> void:
 	elif size < MEDIUM:
 		end = MEDIUM_RANGE
 	if end > 0.0:
-		g.visibility_range_end = end
+		_ranged.append([g, end])
+		g.visibility_range_end = end * range_scale
 		g.visibility_range_end_margin = 6.0
 		done += 1
 	if size < TINY and ctx != "lamp":
@@ -161,7 +170,32 @@ func _process(delta: float) -> void:
 	update_budget(cam.global_position)
 
 
-## Shadows to the MAX_SHADOWS nearest lights within SHADOW_RANGE; per-frame code off for far FAR_PROCESS_CLASSES.
+## Point 98: new draw-distance scale for every WorldLod in `tree` (ranges it set before are rescaled at once).
+static func set_range_scale(tree: SceneTree, f: float) -> void:
+	range_scale = maxf(f, 0.1)
+	for n: Node in tree.get_nodes_in_group(&"world_lod"):
+		(n as WorldLod).rescale()
+
+
+func rescale() -> void:
+	var i: int = _ranged.size() - 1
+	while i >= 0:
+		var g: GeometryInstance3D = _ranged[i][0]
+		if not is_instance_valid(g):
+			_ranged.remove_at(i)
+		else:
+			g.visibility_range_end = float(_ranged[i][1]) * range_scale
+		i -= 1
+	i = _faded.size() - 1
+	while i >= 0:
+		if not is_instance_valid(_faded[i]):
+			_faded.remove_at(i)
+		else:
+			_faded[i].distance_fade_begin = LIGHT_FADE_BEGIN * range_scale
+		i -= 1
+
+
+## Shadows to the max_shadows nearest lights within SHADOW_RANGE; per-frame code off for far FAR_PROCESS_CLASSES.
 func update_budget(at: Vector3) -> void:
 	var near: Array = []
 	var i: int = shadow_lights.size() - 1
@@ -175,7 +209,7 @@ func update_budget(at: Vector3) -> void:
 	near.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	shadows_on = 0
 	for k: int in near.size():
-		var on: bool = k < MAX_SHADOWS and near[k][0] < SHADOW_RANGE * SHADOW_RANGE
+		var on: bool = k < max_shadows and near[k][0] < SHADOW_RANGE * SHADOW_RANGE
 		(near[k][1] as Light3D).shadow_enabled = on
 		if on:
 			shadows_on += 1
@@ -197,7 +231,7 @@ func update_budget(at: Vector3) -> void:
 ## Occlusion culling: a box a bit inside the shell of every closed (non-enterable) building or tower, so what
 ## stands behind it is not drawn. Enterable ones get none (you would stand inside the box).
 func _add_occluder(b: Node3D) -> void:
-	if b == null or bool(b.get(&"enterable")) or b.get_node_or_null("Occluder"):
+	if b == null or bool(b.get(&"enterable")) or b.get_node_or_null("Occluder") 			or (b.has_method(&"has_open_shop") and bool(b.call(&"has_open_shop"))):  # (point 101: the walk-in shop)
 		return
 	var box := AABB()
 	var first: bool = true

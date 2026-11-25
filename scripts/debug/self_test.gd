@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "pass", "city", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads", "day_rhythm", "settings", "soundscape", "menus", "steam", "gamepad"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "prison", "pass", "city", "city_shops", "building_sites", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads", "day_rhythm", "settings", "soundscape", "menus", "steam", "gamepad"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -1623,7 +1623,30 @@ func _check_streaming(world: Node3D) -> void:
 	lod.update_budget(Vector3(5000, 50, 5600))
 	_report(far_node.is_processing() and not near_node.is_processing() and lod.shadows_on == 0,
 			"walking over: the far prop ticks again, the old one stops; lights 600 m away cast no shadow (%d on)" % lod.shadows_on)
-	lod.free()
+	# Point 98: quality hooks - fewer shadowed lights, shorter draw distances (rescaled after the fact), less grass.
+	WorldLod.max_shadows = 4
+	lod.update_budget(Vector3(5000, 50, 5000))
+	var low_on: int = lod.shadows_on
+	WorldLod.max_shadows = WorldLod.MAX_SHADOWS
+	holder.add_child(lod)  # (headless: _ready only joins the group)
+	var prop := MeshInstance3D.new()
+	var pm := BoxMesh.new()
+	pm.size = Vector3(0.8, 0.8, 0.8)
+	prop.mesh = pm
+	holder.add_child(prop)
+	lod._one(prop, "")
+	var before: float = prop.visibility_range_end
+	WorldLod.set_range_scale(get_tree(), 0.6)
+	var low_range: float = prop.visibility_range_end
+	WorldLod.set_range_scale(get_tree(), 1.0)
+	var dense: int = GrassCover.tuft_points(world.get_world_3d().direct_space_state, Vector2i(11, -6)).size()
+	GrassCover.density_scale = 0.35
+	var thin: int = GrassCover.tuft_points(world.get_world_3d().direct_space_state, Vector2i(11, -6)).size()
+	GrassCover.density_scale = 1.0
+	_report(low_on == 4 and is_equal_approx(before, WorldLod.PROP_RANGE) and is_equal_approx(low_range, WorldLod.PROP_RANGE * 0.6)
+			and is_equal_approx(prop.visibility_range_end, WorldLod.PROP_RANGE) and dense > 20 and thin < dense * 0.6,
+			"quality hooks: max_shadows 4 -> %d shadowed lights, range scale 0.6 -> a prop at %.0f m (was %.0f), grass %d -> %d tufts per chunk" % [low_on, low_range, before, dense, thin])
+	lod.queue_free()
 	# StaticBatcher: 5 fence posts + 3 benches + 1 street lamp in one square -> one batch per fence/bench mesh, the
 	# originals hidden, the lamp (night glow per surface) left alone, collisions untouched.
 	var fence: PackedScene = load("res://prefabs/props/chainlink_fence.tscn")
@@ -1768,6 +1791,16 @@ func _check_pedestrians(world: Node3D) -> void:
 					if on_road <= 5:
 						print("[SelfTest]   %s on the road at %s" % [n.name, p])
 					break
+	# A visit picks a public door anywhere on the (big) map, so in 90 s nobody may have finished one yet: wait up to
+	# 90 game-seconds more for the first sit / visit (it is the behaviour that is checked, not the dice).
+	for extra: int in 150:
+		var done_any: int = 0
+		for n: Node in npcs:
+			if is_instance_valid(n):
+				done_any += int(n.get("stats")["sit"]) + int(n.get("stats")["visit"])
+		if done_any > 0:
+			break
+		await get_tree().create_timer(0.2).timeout
 	Engine.time_scale = 1.0
 	_report(on_road == 0, "pedestrians only walk on the road while crossing it (%d of %d samples on road)" % [on_road, samples])
 	var totals: Dictionary = {"walk": 0, "idle": 0, "sit": 0, "visit": 0, "stuck": 0, "cross": 0}
@@ -3173,6 +3206,9 @@ func _check_selling(world: Node3D) -> void:
 		# An ordinary passer-by (an officer or Crow as "customer" made the run-off flaky).
 		if not (n as Pedestrian).dead and not (n is PoliceOfficer or n is Shopkeeper or n is ParkGoer):
 			npc = n as Pedestrian
+	if npc == null:  # (--only=selling: no pedestrians spawned yet)
+		npc = world.call("_add_pedestrian", front + Vector3(3, 0, 3), 0)
+		await get_tree().physics_frame
 	world.call("make_customer", npc)
 	_report(npc.wants > 0 and npc.is_in_group(&"interactable") and npc.is_in_group(&"customer"),
 			"pedestrian becomes a customer (wants %d for €%d)" % [npc.wants, npc.offer])
@@ -3689,6 +3725,147 @@ func _other_district(all: Dictionary, not_id: String) -> String:
 	return not_id
 
 
+## Point 102: building sites - each has its skeleton, crane, fence and builder markers; a walker comes in through the
+## gate and climbs every flight of the switchback stair to the top slab (the deal spot).
+func _check_building_sites(world: Node3D) -> void:
+	var sites: Array[Node] = get_tree().get_nodes_in_group(&"building_sites")
+	var ok_parts: int = 0
+	for n: Node in sites:
+		var st := n as BuildingSite
+		if st.find_child("CraneJib", false, false) != null and st.find_child("SiteDealSpot", false, false) != null 				and st.find_child("BuilderSpot6", false, false) != null and st.find_child("Flight1", false, false) != null:
+			ok_parts += 1
+	_report(sites.size() >= 3 and ok_parts == sites.size(),
+			"%d building sites, %d with crane + stair + builder / deal markers" % [sites.size(), ok_parts])
+	if sites.is_empty():
+		return
+	var site := sites[0] as BuildingSite
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Climber"
+	world.get_node("Players").add_child(p)
+	var gate: Vector3 = (site.find_child("SiteGate", false, false) as Node3D).global_position
+	p.global_position = site.to_global(site.to_local(gate) + Vector3(0, 0.3, -3.0))
+	p.auto_target = p.global_position
+	await get_tree().create_timer(0.5).timeout
+	var path: Array[Vector3] = [gate + site.global_basis * Vector3(0, 0, 1.5)]
+	# Round the stair lanes on their west side (the walker goes straight; the flights are solid).
+	var r: Rect2 = site.skeleton_rect()
+	var west_x: float = r.end.x - 0.9 - BuildingSite.STAIR_W * 2.0 - 0.9
+	var foot0: Vector3 = site.flight(0)[0]
+	var gl: Vector3 = site.to_local(gate)
+	path.append(site.to_global(Vector3(west_x, foot0.y, gl.z + 2.0)))
+	path.append(site.to_global(Vector3(west_x, foot0.y, foot0.z + 0.8)))
+	for k: int in site.top_floor():
+		var f: Array = site.flight(k)
+		var foot: Vector3 = f[0]
+		var dir: float = -1.0 if f[1] == 0.0 else 1.0
+		path.append(site.to_global(foot + Vector3(0, 0, -dir * 0.8)))
+		path.append(site.to_global(foot + Vector3(0, BuildingSite.FH, dir * (BuildingSite.STAIR_RUN + 0.7))))
+	var reached: int = 0
+	for t: Vector3 in path:
+		if not await _walk_to(p, t, 12.0):
+			print("[SelfTest]   site walker stuck at local %s, target local %s" % [site.to_local(p.global_position), site.to_local(t)])
+			break
+		reached += 1
+	var top_y: float = site.to_global(Vector3(0, site.slab_top(site.top_floor()), 0)).y
+	_report(reached == path.size() and p.global_position.y > top_y - 0.4,
+			"climbed %s from the gate to the top slab (%d of %d legs, y %.1f, top %.1f)" % [site.name, reached,
+			path.size(), p.global_position.y, top_y])
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+## Point 101: shops on the city's ground floors - signs on every street face, a walk-in shop per block with a counter
+## spot for session B's shopkeeper, café terraces with TerraceSeat markers, paved blocks without grass.
+func _check_city_shops(world: Node3D) -> void:
+	var city: Node = world.find_child("City", false, false)
+	var signs: int = 0
+	var open: Array[Tower] = []
+	for n: Node in city.find_children("*", "Tower", true, false):
+		var t := n as Tower
+		for c: Node in t.get_children():
+			if c is Label3D and (c as Label3D).visibility_range_end == ShopFront.SIGN_RANGE:
+				signs += 1
+		if t.has_open_shop():
+			open.append(t)
+	var spots: int = city.find_children("ShopCounterSpot*", "Marker3D", true, false).size()
+	var seats: int = city.find_children("TerraceSeat*", "Marker3D", true, false).size()
+	_report(signs >= 100 and open.size() >= 5 and spots == open.size() and seats >= 8,
+			"city shops: %d shop signs, %d walk-in shops (%d counter spots), %d terrace seats" % [signs, open.size(), spots, seats])
+	if open.is_empty():
+		return
+	var t: Tower = open[0]
+	var hx: float = t.width / 2.0 - 0.15
+	var u: Array = ShopFront.open_unit(hx * 2.0)
+	var door_x: float = -hx + float(u[1]) - 1.2
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Shopper"
+	world.get_node("Players").add_child(p)
+	p.global_position = t.to_global(Vector3(door_x, 0.45, -t.depth / 2.0 - 2.5))
+	p.auto_target = p.global_position
+	await get_tree().create_timer(0.5).timeout
+	var r: Rect2 = ShopFront.room_rect(t.width, t.depth)
+	var inside: Vector3 = t.to_global(Vector3(door_x, 0, r.position.y + 2.5))
+	var counter: Vector3 = t.to_global(Vector3(r.get_center().x, 0, r.end.y - 3.4))
+	var in_ok: bool = await _walk_to(p, inside, 8.0)
+	var to_counter: bool = await _walk_to(p, counter, 8.0)
+	var blocked_glass: bool = not await _walk_to(p, t.to_global(Vector3(r.position.x + 0.8, 0, -t.depth / 2.0 - 2.0)), 3.0)
+	var space: PhysicsDirectSpaceState3D = world.get_world_3d().direct_space_state
+	var bare: int = GrassCover.tuft_points(space, Vector2i(floori(t.global_position.x / GrassCover.CHUNK),
+			floori((t.global_position.z - t.depth / 2.0 - 1.0) / GrassCover.CHUNK)),
+			GrassCover.field_rects(get_tree(), world)).size()
+	_report(in_ok and to_counter and blocked_glass and bare == 0,
+			"a walk-in shop (%s): in through the door, up to the counter, the shop window stops you; no grass at its front (%d tufts)" % [t.name, bare])
+	p.queue_free()
+	await get_tree().physics_frame
+
+
+## Point 99: the prison's sliding gate opens for a walker and shuts behind them, Block B's stair reaches the upper
+## gallery, razor wire on every wall, the guard markers for session B.
+func _check_prison(world: Node3D) -> void:
+	var prison: Node3D = world.find_child("Prison", true, false) as Node3D
+	var gate: SlidingGate = prison.find_child("MainGate", true, false) as SlidingGate if prison else null
+	var wires: int = prison.find_children("Wire*", "RazorWire", true, false).size() if prison else 0
+	var marks: int = 0
+	for nm: String in ["PrisonGuardPost1", "PrisonGuardPost2", "PrisonGuardPost3", "PrisonGuardPost4",
+			"PrisonPatrol1", "PrisonPatrol2", "PrisonPatrol3", "PrisonPatrol4"]:
+		if prison and prison.find_child(nm, true, false):
+			marks += 1
+	_report(gate != null and wires == 5 and marks == 8 and prison.find_child("BStairs", true, false) is ProcStairs,
+			"prison: sliding gate, razor wire on all %d wall runs, Block B stair, %d/8 guard markers" % [wires, marks])
+	if gate == null:
+		return
+	for i: int in 30:
+		await get_tree().physics_frame
+	var shut: bool = gate.openness < 0.01
+	var p: Player = WALKER.instantiate()
+	p.auto_walk = true
+	p.name = "1"
+	p.player_name = "Visitor"
+	world.get_node("Players").add_child(p)
+	p.global_position = prison.to_global(Vector3(0, 0.3, 25.0))  # (between the bus and the gate)
+	p.auto_target = p.global_position
+	await get_tree().create_timer(4.0).timeout
+	var opened: float = gate.openness
+	var through: bool = await _walk_to(p, prison.to_global(Vector3(0, 0, 12)), 10.0)
+	_report(shut and opened > 0.99 and through,
+			"the gate is shut with nobody near, rolls open for a player by the bus (%.2f) and lets them walk in" % opened)
+	p.global_position = prison.to_global(Vector3(-33.3, 0.3, -17.0))
+	p.auto_target = p.global_position
+	await get_tree().create_timer(4.0).timeout
+	var closed: bool = gate.openness < 0.01
+	var up: bool = await _walk_to(p, prison.to_global(Vector3(-33.3, 0, -25.2)), 10.0)
+	var along: bool = await _walk_to(p, prison.to_global(Vector3(-26.0, 0, -25.3)), 8.0)
+	var y: float = prison.to_local(p.global_position).y
+	_report(closed and up and along and y > 3.6,
+			"the gate shuts behind them; the Block B stair leads to the upper gallery (%.1f m up)" % y)
+	p.queue_free()
+	await get_tree().physics_frame
+
+
 # --- Prison intro (point 49) ----------------------------------------------------------------
 
 func _check_intro(world: Node3D) -> void:
@@ -3986,6 +4163,35 @@ func _check_army(world: Node3D) -> void:
 	p.auto_target = Vector3(-80, 0, -355.65)
 	await get_tree().create_timer(5.0).timeout
 	_report(p.global_position.x < -103.0, "walking at the gate: stopped outside (x %.1f)" % p.global_position.x)
+	# Point 100: walk-in buildings, sandbags, the gate opens for a pass holder, the hangar and a dormitory can be entered.
+	var bunks: int = 0
+	for b: Node in base.find_children("Barracks*", "", false, false):
+		bunks += b.find_children("Bunk*", "ArmyProp", true, false).size()
+	var racks: int = base.find_child("Armoury", false, false).find_children("Rack*", "ArmyProp", true, false).size() \
+			if base.find_child("Armoury", false, false) else 0
+	var cp: Node = base.find_child("CommandPost", false, false)
+	var bags: int = base.find_children("Sandbags*", "", false, false).size()
+	var gate := base.find_child("BaseGate", false, false) as SlidingGate
+	_report(bunks >= 24 and racks == 3 and cp != null and cp.find_child("MapTable", true, false) != null and bags >= 5 and gate != null
+			and gate.needs_army_pass and not gate.is_open,
+			"Fort Halden: %d bunks in 3 barracks, armoury with %d racks, command post with a map table, %d sandbag walls, the gate shut for a stranger" % [bunks, racks, bags])
+	Zones.allow_army(p, 120.0)
+	var route: Array[Vector3] = [Vector3(-98, 0, -356.5), Vector3(-98, 0, -380), Vector3(-88, 0, -380), Vector3(-88, 0, -398)]
+	var walked: int = 0
+	for t: Vector3 in route:
+		if not await _walk_to(p, t, 14.0):
+			break
+		walked += 1
+	_report(walked == route.size(), "with a pass the gate opens: walked in and into the open hangar (%d/%d legs)" % [walked, route.size()])
+	var route2: Array[Vector3] = [Vector3(-88, 0, -388), Vector3(-80.5, 0, -388), Vector3(-80.5, 0, -408), Vector3(-90, 0, -408),
+			Vector3(-90, 0, -414.2)]
+	walked = 0
+	for t: Vector3 in route2:
+		if not await _walk_to(p, t, 12.0):
+			break
+		walked += 1
+	_report(walked == route2.size(), "...and through the door into a dormitory between the bunks (%d/%d legs)" % [walked, route2.size()])
+	Zones.allow_army(p, 0.0)
 	p.queue_free()
 	GameState.player_data.erase("Recruit")
 	await get_tree().physics_frame
