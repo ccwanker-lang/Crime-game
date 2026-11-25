@@ -120,12 +120,24 @@ static func run(t: Node, world: Node3D) -> void:
 	var ducks: Array[AmbientBird] = wl.of_kind(AmbientBird.Kind.DUCK)
 	if not ducks.is_empty():
 		var duck: AmbientBird = ducks[0]
+		# Robust under load (A, 2026-11-24): compare every frame with the wave height the duck should have there and
+		# then (Wildlife.water_y_at), for 4 s of real time and at least 60 frames; a near-flat stretch of the waves
+		# then only lowers the expected range too.
 		var ys: Array[float] = []
-		for i: int in 40:
-			await tree.create_timer(0.05).timeout
-			ys.append(duck.global_position.y - wl.sea_y)
-		report.call(ys.max() - ys.min() > 0.01 and absf(ys.max()) < 0.2 and absf(ys.min()) < 0.2,
-				"a duck bobs on the waves (%.2f .. %.2f m)" % [ys.min(), ys.max()])
+		var want: Array[float] = []
+		var off: float = 0.0
+		var t0: int = Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t0 < 4000 or ys.size() < 60:
+			await tree.process_frame
+			var p: Vector3 = duck.global_position
+			ys.append(p.y)
+			want.append(wl.water_y_at(p))
+			off = maxf(off, absf(p.y - want[-1]))
+		var got_range: float = ys.max() - ys.min()
+		var want_range: float = want.max() - want.min()
+		report.call(off < 0.08 and got_range >= want_range * 0.5 and want_range > 0.0 and absf(ys.max() - wl.sea_y) < 0.2,
+				"a duck bobs on the waves: rises and falls %.3f m (waves there %.3f m), at most %.3f m off the surface, %d frames"
+				% [got_range, want_range, off, ys.size()])
 		var d_from: Vector3 = duck.global_position
 		var muzzle := Node3D.new()
 		world.add_child(muzzle)

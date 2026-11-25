@@ -21,6 +21,22 @@
   items, money, time of day, a place or NPCs themselves. Check every new scenario with
   `-- --scenario=<name> --scenario-quit --port=7790 --name=Tester` (headless; prints a `[ScenarioCheck]` line).
 
+## Performance rules (HARD RULE, user 2026-11-24)
+The game must run smoothly on an average / weaker PC too, not only on the user's RTX 5060 Ti.
+- Target: at least 60 FPS on "medium" on a mid-range PC (GTX 1660 / RX 6600, 16 GB RAM), playable (30+ FPS) on "low"
+  on a laptop with integrated graphics. On the user's PC: never below 90 FPS on "high".
+- Measure after EVERY point with fps_docks, fps_city, fps_army and fps_busy (many NPCs + traffic at once). Below the
+  target: optimise first, then continue. Measurements go in CHANGELOG.md (session B: in NOTES_feature-b.md, A copies).
+- Quality levels low / medium / high / ultra: everything heavy (shadows, SSAO, fog, reflections, grass density, NPC
+  and traffic count, view distance, interior detail) scales with it. Default: picked automatically from the
+  hardware on first start.
+- Techniques: LOD + visibility ranges on everything, interiors only when near/inside, MultiMesh for repeated props,
+  shared materials/textures (atlas), occlusion culling in the city, NPC streaming (point 87), few real lights with
+  shadows (emissive where possible).
+- Load time (host) at most ~20 s, no memory leaks in long sessions.
+- Simulate a weak PC with "low" + a limited measurement (e.g. render scale 0.5 or the compatibility renderer) and note
+  the result. Rather a bit less detail than a game that stutters.
+
 ## Parallel sessions (from 2026-11-13)
 - Session A = main in `C:\Users\alexc\game`; session B = branch `feature-b` in the worktree `C:\Users\alexc\game-b`.
 - Split: A does Roadmap points 34-42, the map (world.tscn, gen_world.py), DESIGN.md and CHANGELOG.md. B does ranks + XP
@@ -32,19 +48,6 @@
 - Never touch files the other session lists as "busy"; write what you need in your own .md instead.
 - Merging: when B.md says feature-b is done and rebased on main, A merges it into main, copies
   NOTES_feature-b.md into DESIGN.md (Roadmap + Decisions) and CHANGELOG.md, and runs the full self-test + netcheck.
-
-## Performance rules (user, 2026-11-24 - hard rule)
-- Targets: 60+ FPS on "Medium" on a mid-range PC (GTX 1660 / RX 6600, 16 GB RAM); 30+ on "Low" on integrated graphics;
-  never below 90 on "High" on the user's RTX 5060 Ti (1080p).
-- Measure after EVERY point with fps_docks, fps_city, fps_army and fps_busy (many NPCs + traffic); below target =
-  optimise first, then continue. Put the numbers in CHANGELOG.md.
-- Quality levels Low/Medium/High/Ultra scale everything heavy (shadows, SSAO, fog, reflections, grass density, NPC +
-  traffic count, view distance, interior detail); default picked automatically from the hardware on first start.
-- Techniques: LOD + visibility ranges on everything, interiors only near/inside, MultiMesh for repeated props (only
-  where measured to help), shared materials/atlases, occlusion culling in the city, NPC streaming, few real shadowed
-  lights (emissive where possible). Host load <= ~20 s, no memory leaks in long sessions. Simulate a weak PC with
-  "Low" + a smaller render scale / the compatibility driver and write the result down.
-- Less detail rather than a game that stutters.
 
 ## Conventions
 - Godot 4.6 (standard, not .NET), GDScript with static typing, Forward+, Jolt physics.
