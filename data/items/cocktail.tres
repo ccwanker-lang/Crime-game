@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"cocktail"
+display_name = "Cocktail"
+max_stack = 1
+is_legal = true
+base_price = 11
+description = "Something with an umbrella in it (+6 health)."
+category = "meal"

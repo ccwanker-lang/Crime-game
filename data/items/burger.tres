@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"burger"
+display_name = "Burger"
+max_stack = 1
+is_legal = true
+base_price = 9
+description = "Double patty (+28 health)."
+category = "meal"

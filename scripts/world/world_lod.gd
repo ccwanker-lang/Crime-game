@@ -36,6 +36,10 @@ const FAR_PROCESS_CLASSES: Array[String] = ["Watchtower", "TrafficLight", "FireB
 const BUDGET_EVERY: float = 0.5
 
 static var enabled: bool = true
+## Quality level (session B, QualityProfile): draw distances as a share of the ranges above, and how many lights may
+## cast shadows at once (MAX_SHADOWS on High).
+static var range_scale: float = 1.0
+static var max_shadows: int = MAX_SHADOWS
 var done: int = 0
 var shadow_lights: Array[Light3D] = []  # lights that had shadows on (the budget hands them out)
 var far_nodes: Array[Node] = []
@@ -141,7 +145,8 @@ func _one(n: Node, ctx: String) -> void:
 	elif size < MEDIUM:
 		end = MEDIUM_RANGE
 	if end > 0.0:
-		g.visibility_range_end = end
+		g.set_meta(&"lod_end", end)
+		g.visibility_range_end = end * range_scale
 		g.visibility_range_end_margin = 6.0
 		done += 1
 	if size < TINY and ctx != "lamp":
@@ -173,7 +178,7 @@ func update_budget(at: Vector3) -> void:
 	near.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	shadows_on = 0
 	for k: int in near.size():
-		var on: bool = k < MAX_SHADOWS and near[k][0] < SHADOW_RANGE * SHADOW_RANGE
+		var on: bool = k < max_shadows and near[k][0] < SHADOW_RANGE * SHADOW_RANGE
 		(near[k][1] as Light3D).shadow_enabled = on
 		if on:
 			shadows_on += 1
@@ -190,6 +195,19 @@ func update_budget(at: Vector3) -> void:
 			if not on:
 				far_off += 1
 		i -= 1
+
+
+## Quality change (session B): scales the draw distances this node already set (meta lod_end) and the light fade.
+static func set_range_scale(tree: SceneTree, s: float) -> void:
+	if is_equal_approx(s, range_scale):
+		return
+	range_scale = s
+	var scene: Node = tree.current_scene
+	if scene == null:
+		return
+	for n: Node in scene.find_children("*", "GeometryInstance3D", true, false):
+		if n.has_meta(&"lod_end"):
+			(n as GeometryInstance3D).visibility_range_end = float(n.get_meta(&"lod_end")) * s
 
 
 ## Occlusion culling: a box a bit inside the shell of every closed (non-enterable) building or tower, so what

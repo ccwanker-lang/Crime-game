@@ -121,6 +121,8 @@ const LIST: Array = [
 	["city_life", "The city at noon on a street corner in the middle of the towers, nothing in your pockets", "Busy streets: office people and business people walk the sidewalks and cross at the junctions, small groups chat in front of the towers, people wait at the bus stops and sit on the benches, more cars on the city roads. Press F7 to speed up time: after 22:00 the offices and benches empty and only a few walkers stay."],
 	["fps_docks", "Points 86-90: frame rate at the docks (F3 overlay on)", "You stand on the quay looking over the docks. Top left the F3 overlay: FPS, worst frame, active / sleeping NPCs, draw calls. Before the fixes this spot ran ~14-23 FPS; now ~85-110. Walk around: NPCs beyond 300 m sleep, they wake again within 250 m (never right in front of you). F3 hides the overlay."],
 	["fps_city", "Points 86-90: frame rate in the city centre (F3 overlay on)", "You stand on a city street between the towers, F3 overlay on. Before: ~21-32 FPS; now ~75-125. Look around and walk a block: the overlay shows FPS, NPCs active/asleep and draw calls."],
+	["fps_busy", "Performance: the busiest spot - the city centre at 13:00 with 40 extra walkers and 12 extra cars (F3 overlay on)", "You stand on a city street at lunchtime, with far more people and traffic than normal on top of the usual crowd. The F3 overlay shows FPS, NPCs awake / asleep and draw calls. Target: 90+ FPS on High on your PC; Settings > Graphics > Quality changes it live (people / traffic counts after a reload)."],
+	["shop_sellers", "City life 1: a seller behind every shop till - you stand hurt (35 health) with €300 at the snack bar", "Fatima stands behind the till of the Snack Bar (every enterable shop of the map gets a seller; the Bakery next door has one too). Press E: the shop window. Food and drinks are eaten on the spot and heal you (a burger +28, fries +16); watch the health bar go up. Florists sell flowers and clothing shops clothes (worn by your character in a later update) - those go in your pockets."],
 	["fps_army", "Points 86-90: frame rate at the army base (F3 overlay on)", "You stand west of Fort Halden's apron with an army pass, F3 overlay on. Before: ~70 FPS; now ~120-140."],
 	["bunker_rooms", "Point 92: the bunker's lower level - free way from the stairs, every room furnished", "You stand at the foot of the bunker stairs (lower level, -14 m). Turn right: the lift moved 1 m west, so a 2 m lane runs past the shaft into the garage (the lift pit is only a 0.3 m step now). Walk on: the corridor leads to the workshop (lab hall: 6 workbenches with stools along the east wall, the 6 yellow machine spots in the middle), storage (shelves + cabinets on every wall), the bunk room (6 beds, lockers, a table) and the generator room at the end."],
 	["grass_roads", "Point 95: no grass through roads or pavements (the slums)", "You stand on the pavement of the slum loop road (Rosehill Park), right after loading. Look round: the road, the pavements and the paved yards are bare; grass only grows on the green verges and fields. Before, the first grass patches round where you spawned were made before the paving existed and grew straight through the concrete. The same holds on the whole map (self-test check grass_roads)."],
@@ -513,6 +515,29 @@ static func run(world: Node, id: String) -> bool:
 			if af and not af.jets.is_empty():
 				af.set_phase(0, af.event_time(0, "line_up") - 4.0)  # jet 1 rolls in ~9 s
 			_place(me, Vector3(30, 0.3, -393), Vector3(-10, 2, -425), dn, 13.0)
+		"shop_sellers":
+			_kit(me, 300, [])
+			for i: int in 60:
+				if not ShopStaff.sellers.is_empty():
+					break
+				await world.get_tree().physics_frame
+			var sel: ShopSeller = null
+			for x: ShopSeller in ShopStaff.sellers:
+				if is_instance_valid(x) and (sel == null or x.shop_type == "snack_bar"):
+					sel = x
+			if sel:
+				var fwd: Vector3 = -sel.global_basis.z
+				_place(me, sel.global_position + fwd * 2.7 + Vector3.UP * 0.1, sel.global_position + Vector3.UP * 1.5, dn, 13.0)
+			me.health = 35
+		"fps_busy":
+			_kit(me, 200, [])
+			_place(me, Vector3(60.5, 0.3, 270), Vector3(36, 6, 210), dn, 13.0)
+			me.admin_god = true
+			_no_police(world)
+			_busy_city(world, 40, 12)
+			var ov2: Node = world.get_node_or_null("PerfOverlay")
+			if ov2:
+				ov2.set("visible", true)
 		"fps_docks", "fps_city", "fps_army":
 			_kit(me, 200, [])
 			Zones.allow_army(me, 3600.0)
@@ -1152,6 +1177,9 @@ static func run(world: Node, id: String) -> bool:
 	me.combat.host_send_all_ammo()
 	print("[Scenario] %s ready" % id)
 	me.show_message("SCENARIO '%s': %s" % [id, check_text(id)])
+	if "--fps-measure" in OS.get_cmdline_user_args():
+		await FpsMeter.run(world, id, me)
+		return true
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
 		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "army_life"] else 4.0).timeout
@@ -1352,3 +1380,21 @@ static func _progress_near(route: TrafficRoute, p: Vector3) -> float:
 
 static func get_tree_timer(world: Node, seconds: float) -> SceneTreeTimer:
 	return world.get_tree().create_timer(seconds)
+
+
+## fps_busy: `walkers` extra city walkers on the sidewalk graph (Zones residents, walk like CityLife's) + `cars` extra
+## cars on the city routes.
+static func _busy_city(world: Node, walkers: int, cars: int) -> void:
+	var nodes: Array[Vector3] = CityLife.graph()
+	var res: Dictionary = Zones.get("_residents")
+	for i: int in walkers:
+		if nodes.is_empty():
+			break
+		var n: int = (i * 4973 + 11) % nodes.size()
+		var npc: Pedestrian = Zones.add_resident(nodes[n], randf() * TAU, &"city")
+		res["BusyWalker_%d" % i] = {"key": "BusyWalker_%d" % i, "pos": nodes[n], "yaw": 0.0, "zone": &"city",
+				"kind": "walk", "node": n, "hours": Vector2(0.0, 24.0), "npc": npc}
+	var traffic: Node = world.get_node_or_null("Traffic")
+	if traffic and Traffic.city_first_route >= 0:
+		traffic.call("spawn_cars", cars, true)
+	print("[Scenario] fps_busy: +%d walkers, +%d cars" % [walkers, cars])

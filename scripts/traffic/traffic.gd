@@ -11,6 +11,8 @@ extends Node3D
 const CAR := preload("res://prefabs/vehicles/car.tscn")
 ## Point 63: fewer cars (was 8): calmer streets, no queues. Point 49b: 6 = one per route, the 6th on the pass.
 const CAR_COUNT: int = 6
+## Quality level of the host (session B, QualityProfile): share of the ambient cars (--cars=N is taken as given).
+static var count_scale: float = 1.0
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time. The village + pass ones here; the
 ## city's (map zone 7) come from data/city/city.json: `JUNCTIONS` = both, rebuilt by `load_city()`.
@@ -63,12 +65,14 @@ func _ready() -> void:
 	_build_routes()
 	_build_lights()
 	if multiplayer.is_server() and not "--selftest" in OS.get_cmdline_user_args():
-		var count: int = CAR_COUNT
+		var count: int = roundi(CAR_COUNT * count_scale)
+		var city_count: int = roundi(int(_city.get("cars", 0)) * count_scale)
 		for arg: String in OS.get_cmdline_user_args():
 			if arg.begins_with("--cars="):
 				count = arg.trim_prefix("--cars=").to_int()
+				city_count = int(_city.get("cars", 0))
 		spawn_cars.call_deferred(count)
-		spawn_cars.call_deferred(int(_city.get("cars", 0)) if count > 0 else 0, true)
+		spawn_cars.call_deferred(city_count if count > 0 else 0, true)
 		# (The network check stays deterministic: no patrols that arrest its client mid-walk.)
 		var police_cars: int = 0 if "--netcheck" in OS.get_cmdline_user_args() else 2
 		for arg: String in OS.get_cmdline_user_args():

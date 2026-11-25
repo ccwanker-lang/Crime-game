@@ -14,6 +14,9 @@ const FADE_END: float = 45.0
 const DENSITY: float = 4.2
 ## Chunks built per frame (each = up to ~420 rays).
 const BUILD_PER_FRAME: int = 2
+## Quality level (session B, QualityProfile): tufts per m2 and the radius as a share of DENSITY / RADIUS.
+static var density_scale: float = 1.0
+static var radius_scale: float = 1.0
 
 var _chunks: Dictionary = {}  # Vector2i -> MultiMeshInstance3D (or null = no grass in it)
 var _skip: Array[Rect2] = []  # world-space rects of GrassFields
@@ -23,6 +26,7 @@ var _ready_done: bool = false
 
 func _ready() -> void:
 	name = "GrassCover"
+	add_to_group(&"grass_cover")
 	_material = load("res://prefabs/materials/grass_blades.tres")
 	_collect_fields.call_deferred()
 
@@ -65,9 +69,19 @@ static func field_rects(tree: SceneTree, world: Node = null) -> Array[Rect2]:
 const PAVE_MARGIN: float = 0.25
 
 
+## Drops every chunk (QualityProfile.apply after a quality change): they are built again with the new numbers.
+func rebuild() -> void:
+	for key: Vector2i in _chunks.keys():
+		var mmi: Node = _chunks[key]
+		if mmi:
+			mmi.queue_free()
+	_chunks.clear()
+
+
 func _process(_delta: float) -> void:
 	if not _ready_done:
 		return
+	var radius: float = RADIUS * radius_scale
 	var cam: Camera3D = get_viewport().get_camera_3d()
 	if cam == null:
 		return
@@ -76,15 +90,15 @@ func _process(_delta: float) -> void:
 		at = Vector2(INF, INF)  # far above (screenshot top views): no grass
 	# Drop chunks that are out of range.
 	for key: Vector2i in _chunks.keys():
-		if _chunk_centre(key).distance_to(at) > RADIUS + CHUNK:
+		if _chunk_centre(key).distance_to(at) > radius + CHUNK:
 			var mmi: Node = _chunks[key]
 			if mmi:
 				mmi.queue_free()
 			_chunks.erase(key)
-	if at.x == INF:
+	if at.x == INF or density_scale <= 0.0:
 		return
 	# Build the nearest missing chunks first.
-	var r: int = ceili(RADIUS / CHUNK)
+	var r: int = ceili(radius / CHUNK)
 	var c0 := Vector2i(floori(at.x / CHUNK), floori(at.y / CHUNK))
 	var todo: Array = []
 	for ix: int in range(-r, r + 1):
@@ -93,7 +107,7 @@ func _process(_delta: float) -> void:
 			if _chunks.has(key):
 				continue
 			var d: float = _chunk_centre(key).distance_to(at)
-			if d <= RADIUS:
+			if d <= radius:
 				todo.append([d, key])
 	todo.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for i: int in mini(BUILD_PER_FRAME, todo.size()):
@@ -123,7 +137,7 @@ func _build(key: Vector2i) -> MultiMeshInstance3D:
 	mmi.multimesh = mm
 	mmi.material_override = _material
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mmi.visibility_range_end = FADE_END
+	mmi.visibility_range_end = FADE_END * radius_scale
 	mmi.visibility_range_end_margin = 8.0
 	mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	add_child(mmi)
@@ -136,7 +150,7 @@ static func tuft_points(space: PhysicsDirectSpaceState3D, key: Vector2i, skip: A
 	var out := PackedVector3Array()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(key)
-	var step: float = 1.0 / sqrt(DENSITY)
+	var step: float = 1.0 / sqrt(DENSITY * maxf(density_scale, 0.05))
 	var n: int = int(CHUNK / step)
 	var x0: float = key.x * CHUNK
 	var z0: float = key.y * CHUNK

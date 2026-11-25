@@ -123,10 +123,22 @@ func _graphics_tab() -> Control:
 	_res_option.disabled = Settings.window_mode != 0
 	_res_option.tooltip_text = "Only for windowed mode (fullscreen uses your screen's own resolution)."
 	_row(grid, "Resolution", _res_option)
-	_row(grid, "Quality", _option(Settings.QUALITY, Settings.quality, func(i: int) -> void:
+	var qopt: OptionButton = _option(Settings.QUALITY, Settings.quality, func(i: int) -> void:
 		Settings.quality = i
+		Settings.auto_reason = ""
 		Settings.apply_quality()
-		Settings.save_settings()))
+		Settings.save_settings())
+	qopt.name = "QualityOption"
+	qopt.tooltip_text = "Low: for laptops with built-in graphics. Medium: average PCs. High: fast PCs. Ultra: very " 			+ "fast PCs.
+Scales render detail, shadows, screen effects, grass, draw distance, people and traffic.
+" 			+ "People and traffic counts change after the next load."
+	_row(grid, "Quality", qopt)
+	if Settings.auto_reason != "":
+		var why := Label.new()
+		why.text = "Picked for your PC: %s" % Settings.auto_reason
+		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		why.add_theme_color_override(&"font_color", Color(0.65, 0.65, 0.7))
+		_row(grid, "", why)
 	var fps_names: PackedStringArray = []
 	var fps_index: int = Settings.FPS_LIMITS.size() - 1
 	for i: int in Settings.FPS_LIMITS.size():

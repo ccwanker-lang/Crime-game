@@ -46,6 +46,11 @@ var invert_y: bool = false
 var stick_sensitivity: float = 1.0
 var vibration: bool = true
 
+## Quality chosen from the hardware on the first start (empty = the player picked it): shown in the menu.
+var auto_reason: String = ""
+## `--quality=low|medium|high|ultra|0-3`: forces a level, also in test runs (FPS measurements per level).
+var forced_quality: int = -1
+
 ## The project's own bindings (for "Reset"), per action: Array[InputEvent].
 var _defaults: Dictionary = {}
 var _menu: Control = null
@@ -59,7 +64,13 @@ func _ready() -> void:
 	_ensure_buses()
 	if test_run():
 		path = TEST_PATH
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--quality="):
+			var v: String = a.get_slice("=", 1).to_lower()
+			forced_quality = v.to_int() if v.is_valid_int() else ["low", "medium", "high", "ultra"].find(v)
 	load_settings()
+	if forced_quality >= 0:
+		quality = forced_quality
 	apply_all()
 	get_tree().node_added.connect(_on_node_added)
 
@@ -82,8 +93,15 @@ static func test_run() -> bool:
 
 func load_settings() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(path) != OK:
+	if cfg.load(path) != OK or not cfg.has_section_key("graphics", "quality"):
 		resolution = DisplayServer.screen_get_size() if DisplayServer.get_name() != "headless" else resolution
+		if not test_run():
+			# First start: a level that fits the hardware (performance rules 2026-11-24).
+			var pick: Array = QualityProfile.auto_level()
+			quality = int(pick[0])
+			auto_reason = str(pick[1])
+			print("[Settings] first start: quality %s - %s" % [QUALITY[quality], auto_reason])
+			save_settings.call_deferred()
 		return
 	resolution = cfg.get_value("graphics", "resolution", resolution)
 	window_mode = cfg.get_value("graphics", "window_mode", window_mode)
@@ -160,12 +178,17 @@ func apply_display() -> void:
 
 ## Quality presets: render scale, anti-aliasing, shadows, screen-space effects, LOD and draw distance.
 func apply_quality() -> void:
-	if test_run():
+	if test_run() and forced_quality < 0:
 		return
 	var vp: Viewport = get_tree().root
 	var q: int = clampi(quality, 0, QUALITY.size() - 1)
 	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR if q == 0 else Viewport.SCALING_3D_MODE_BILINEAR
 	vp.scaling_3d_scale = [0.75, 1.0, 1.0, 1.0][q]
+	for a: String in OS.get_cmdline_user_args():
+		if a.begins_with("--render-scale="):
+			# Measurements: > 1 renders more pixels = a slower graphics card (1.5 on High ~ 2.25x the GPU work).
+			vp.scaling_3d_scale = a.get_slice("=", 1).to_float()
+			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][q]
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if q <= 1 else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.mesh_lod_threshold = [4.0, 2.0, 1.0, 0.5][q]
@@ -179,10 +202,11 @@ func apply_quality() -> void:
 	vp.positional_shadow_atlas_size = [1024, 2048, 4096, 8192][q]
 	for n: Node in get_tree().get_nodes_in_group(&"settings_environment"):
 		_apply_environment(n as WorldEnvironment)
+	QualityProfile.apply(get_tree(), q)
 
 
 func _apply_environment(we: WorldEnvironment) -> void:
-	if we == null or we.environment == null or test_run():
+	if we == null or we.environment == null or test_run() and forced_quality < 0:
 		return
 	var env: Environment = we.environment
 	if not we.has_meta(&"orig_ssil"):
@@ -221,6 +245,9 @@ func _on_node_added(n: Node) -> void:
 	if n is WorldEnvironment:
 		n.add_to_group(&"settings_environment")
 		_apply_environment.call_deferred(n)
+		return
+	if n is DirectionalLight3D:
+		QualityProfile.apply_sun.call_deferred(n)
 		return
 	if n.has_meta(&"keep_bus"):
 		return

@@ -38,6 +38,8 @@ func _ready() -> void:
 		config = DayRhythmConfig.new()
 	if outside_busiest < 0:
 		outside_busiest = config.outside_busiest
+	if not QualityProfile._cmdline_has("--npcs="):
+		outside_busiest = roundi(outside_busiest * float(QualityProfile.value("crowd")))  # (quality level)
 
 
 func _exit_tree() -> void:
