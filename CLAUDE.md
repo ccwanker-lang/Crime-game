@@ -33,6 +33,19 @@
 - Merging: when B.md says feature-b is done and rebased on main, A merges it into main, copies
   NOTES_feature-b.md into DESIGN.md (Roadmap + Decisions) and CHANGELOG.md, and runs the full self-test + netcheck.
 
+## Performance rules (user, 2026-11-24 - hard rule)
+- Targets: 60+ FPS on "Medium" on a mid-range PC (GTX 1660 / RX 6600, 16 GB RAM); 30+ on "Low" on integrated graphics;
+  never below 90 on "High" on the user's RTX 5060 Ti (1080p).
+- Measure after EVERY point with fps_docks, fps_city, fps_army and fps_busy (many NPCs + traffic); below target =
+  optimise first, then continue. Put the numbers in CHANGELOG.md.
+- Quality levels Low/Medium/High/Ultra scale everything heavy (shadows, SSAO, fog, reflections, grass density, NPC +
+  traffic count, view distance, interior detail); default picked automatically from the hardware on first start.
+- Techniques: LOD + visibility ranges on everything, interiors only near/inside, MultiMesh for repeated props (only
+  where measured to help), shared materials/atlases, occlusion culling in the city, NPC streaming, few real shadowed
+  lights (emissive where possible). Host load <= ~20 s, no memory leaks in long sessions. Simulate a weak PC with
+  "Low" + a smaller render scale / the compatibility driver and write the result down.
+- Less detail rather than a game that stutters.
+
 ## Conventions
 - Godot 4.6 (standard, not .NET), GDScript with static typing, Forward+, Jolt physics.
 - Code, comments, UI and NPC text in English. Files in snake_case; a scene's script sits next to it.
@@ -399,6 +412,30 @@ Godot console exe:
 - City/army life (B 21): `CityLife` (sidewalk graph, `spots`, WALKERS_DAY/NIGHT, EXTRA_CARS), `Soldier.route` / `chatty` /
   MARKSMAN_PROFILE, `Zones.ARMY_MAN_RANGE` (220 m). Scenarios city_life, army_life.
 - `Territory.spot_near(who, near, far, detour=1.35)`: only spots whose navmesh walk is short (sent Crows).
+- Day rhythm (Roadmap 88, B part 25): `DayRhythm` (World/DayRhythm, host, `current`, config data/npc/day_rhythm.tres
+  `DayRhythmConfig`), made by `World.spawn_pedestrians` (`--no-rhythm` = fixed crowd; never in the self-test); homes =
+  residential Building front doors on the navmesh outside the Zones (`find_homes`); `Pedestrian.call_home` /
+  `home_reached`; home deals `home_customer()`. Scenario day_rhythm, self-test check day_rhythm.
+- NPC bench (Roadmap 89, B part 26): `NpcBench` (scripts/debug/npc_bench.gd), scenario npc_bench (window; `--bench-quit`,
+  `--bench-step=S`), steers `NpcStreamer.cap_override`, writes screenshots/npc_bench.txt.
+- Settings (B part 27): `Settings` autoload (user://settings.cfg; test runs use settings_test.cfg and skip display/
+  quality), `Settings.open_menu()` -> `SettingsMenu`; buses Master/Music/SFX/Voice/Ambience (new players on Master ->
+  SFX unless meta keep_bus); `Settings.fov`, `look_scale()`, `ACTIONS` (rebindable). Scenario settings_menu, check settings.
+- Sound (B part 28): `Soundscape` autoload (`zone_key_at`, `music_key_for`, `heard_shot` from Wildlife.scare_at,
+  buses Ambience/Music, assets/audio/ambience + music), `Footsteps` on every Player (`surface_of(hit)`, meta "surface").
+  gen_ambience.py makes the loops. Scenarios soundscape / sound_snow / sound_city, self-test check soundscape.
+- Menus (B part 29): title page in code (scenes/main_menu/main_menu.gd, `TitleArt`), save slots in SaveManager
+  (`SLOTS`, `slot_path`, `use_slot`, `slot_info` from `<save>.info`, `delete_slot`, `slot_dir`; slot 1 = savegame.json;
+  world["play_time"]), `Loading.go_to_world()` (loading screen with tips; use it instead of change_scene to the world),
+  `PauseMenu` (World/PauseMenu, Esc, pauses solo; HUD/Panel hidden). `--menu-shots`; scenarios title_menu / pause_menu,
+  self-test check menus.
+- Steam co-op (B part 30): GodotSteam GDExtension in addons/godotsteam (app 480), `SteamNet` autoload (`start`,
+  `host`, `join`, `find_lobbies`, `invite`, `friends`, `pending_lobby`, `in_steam_game`, never in test runs unless
+  `--steam`; `--steam-check` = live check), Net `host_with_peer` / `join_with_peer` / `transport`; IP (ENet) stays
+  the fallback (use `Net.is_online()` / `Net.transport`, never `is ENetMultiplayerPeer`). Scenario steam_host, check steam.
+- Controller (B part 31): pad events in project.godot next to every key, `Gamepad` autoload (right stick = synthetic
+  mouse motion, L3 sprint toggle, pointer + A click / B back in menus, `rumble`, `pad_kind`, `layout`), Settings
+  `stick_sensitivity` / `vibration` + tab Controller. Scenario controller, self-test check gamepad.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

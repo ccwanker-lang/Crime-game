@@ -525,10 +525,12 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       evening 16-22 30%, night 22-09 10%; configurable); outside its block it is "inside" its own house (data only):
       walks to its front door at the end of its block and comes out of it at the start; home deliveries (a customer
       inside can still deal: at the door it spawns, steps out, deals, goes back in); fixed NPCs (shopkeepers, Marco,
-      Old Joe, soldiers on post, mission NPCs) keep their own role; host decides, clients get the state - todo
+      Old Joe, soldiers on post, mission NPCs) keep their own role; host decides, clients get the state - DONE
+      (session B part 25: DayRhythm, scenario day_rhythm)
   89. `npc_bench` scenario (F9): raises the number of active NPCs step by step (20, 40, 60, 80 ...) at city centre,
       slums and docks, 20 s per step, mean FPS + 1% low; highest count with 1% low > 55 FPS (with margin) =
-      `max_active_npcs`; report the table - todo
+      `max_active_npcs`; report the table - DONE (session B part 26: scenario npc_bench, table in NOTES part 26;
+      max_active_npcs stays 60)
   90. World streaming: visibility_range_end on small props (~80 m), trees (~250 m), lamps (~100 m), big buildings
       stay as silhouettes; occlusion culling (OccluderInstance3D for buildings + mountains); repeated objects (trees,
       lamp posts, fences, grass) as MultiMeshInstance3D; lights: only the nearest ~16 cast shadows, the rest without or
@@ -562,6 +564,31 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       (gen_world `gas_station(...)`: CITYFUEL on the city plaza, DOCK FUEL on the quay, LAST STOP FUEL by the prison;
       scenarios gas_city / gas_docks / gas_prison; self-test check fuel)
   97. LATER (not now): at 5 stars the army leaves the base and hunts the 5-star player - documented only
+Detail round (user, 2026-11-24, second list) - every point: F9 scenario, push, FPS measured (fps_docks / fps_city /
+fps_army / fps_busy) with the numbers in CHANGELOG; below the performance targets = optimise first:
+  98. Performance rules + quality levels (comes first, the other points build on it): Low / Medium / High / Ultra
+      scale shadows, SSAO/SSIL, fog, reflections, grass density, NPC + traffic count, view distance, interior detail;
+      chosen automatically from the hardware on first start; new fps_busy scenario (many NPCs + traffic at once);
+      weak-PC simulation (Low + render scale 0.5 / compatibility driver); load time + RAM watched - todo
+  99. Prison: more detail and enterable - an automatic gate (slides open when you come, or a guard opens it), yard,
+      cell blocks with cells on several floors, canteen, visiting room, guard post, fences with barbed wire,
+      watchtowers with searchlights, prison guards - todo
+  100. Army base: more detail, partly enterable - automatic barrier/gate, barracks with dormitories, armoury,
+      command post, hangars you can walk into, sandbags, army vehicles, watchtowers - todo
+  101. City full of shops: ground floors in the city (and the centre) become shops with windows, signs and awnings
+      (restaurants, cafés with terraces, bakery, florist, boutiques, barber, pharmacy, supermarket, phone shop, chip
+      shop); some enterable with an interior (counter, racks, tables) and an NPC behind the counter (B: shop NPCs +
+      life) - todo
+  102. Building sites: a few buildings become sites - half-built concrete skeleton, scaffolding, tower crane, site
+      fences with mesh, containers, materials, concrete mixer; builders by day (B), empty at night; climbable, a
+      place to deal - todo
+  103. Better graphics within the stylized low-poly style: light + shadows, soft AO, volumetric fog at dawn/dusk,
+      wet road after rain, reflections on windows + water, better sky + clouds, more street detail (signs, flower
+      boxes, bikes, bins, lanterns, kerbs, manholes); a quality setting Low/Medium/High/Ultra in B's settings menu
+      (with 98) - todo
+Session B, merged 2026-11-24 (parts 25-31, NOTES_feature-b.md) - DONE: 88 day rhythm, 89 npc_bench, settings
+menu (graphics/audio/controls, user://settings.cfg), sound + atmosphere (zone ambience, music, footsteps), title
+page + save slots + loading screen + pause menu, Steam co-op (GodotSteam, app 480; IP stays), controller support.
 Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
   - Zones: Fort Halden soldiers (gate warning, shot on sight inside, alarm + reinforcements, no police stars), slum
     residents (cheap customers), city office workers (rich customers), the bunker for sale (EUR 250,000, rank 5,
@@ -576,6 +603,14 @@ Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
+- Performance rules (user, 2026-11-24, hard rule): at least 60 FPS on Medium on a mid-range PC (GTX 1660 / RX 6600,
+  16 GB), 30+ on Low with integrated graphics, never below 90 on High on the user's RTX 5060 Ti. Measured after
+  every point with fps_docks / fps_city / fps_army / fps_busy (numbers in CHANGELOG); below target = optimise first.
+  Quality levels scale everything heavy; auto-picked from the hardware on first start. Host load <= ~20 s, no leaks.
+  Less detail rather than a game that stutters.
+- Merge B parts 25-31 (2026-11-24): see NOTES_feature-b.md parts 25-31 for B's own decisions (day rhythm only for
+  village pedestrians, max_active_npcs stays 60, slot 1 = the old save, Steam via the GDExtension so Godot stays
+  standard, right stick as synthetic mouse look, ...).
 Choices made while working autonomously (what + why).
 - Point 6 (corrected after point 7): production stations are illegal (core rules), so ONLY Rook's black market
   sells them (at night). The Store and QuickShip sell the storage locker and (QuickShip) all furniture: legal.

@@ -48,8 +48,10 @@ var _budget_t: float = 0.0
 func _ready() -> void:
 	if DisplayServer.get_name() == "headless" or not enabled:
 		return
-	await get_tree().process_frame
-	await get_tree().process_frame
+	for i: int in 2:
+		await get_tree().process_frame
+		if not is_inside_tree():  # (the world was left during loading: B NOTES part 29)
+			return
 	apply(get_parent())
 	# StaticBatcher measured no gain (A/B/A at the docks + city: same FPS, a few MORE draws - a MultiMesh per 64 m
 	# square is never culled per prop), so it stays off; `--batch` switches it on for experiments.

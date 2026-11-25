@@ -13,7 +13,7 @@ func _ready() -> void:
 	layer = 50
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_banner = Label.new()
-	_banner.text = "TEST SCENARIO - not your real save (Leave -> Host - continue = your own game)   F9 = scenarios"
+	_banner.text = "TEST SCENARIO - not your real save (Esc > Leave to menu > Play > Continue = your own game)   F9 = scenarios"
 	_banner.add_theme_color_override("font_color", Color(1, 0.8, 0.3))
 	_banner.add_theme_color_override("font_outline_color", Color.BLACK)
 	_banner.add_theme_constant_override("outline_size", 6)

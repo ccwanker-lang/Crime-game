@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op), part 31 (controller support).
+Parts 25-31 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG/CLAUDE.md.
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
