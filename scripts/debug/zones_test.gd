@@ -99,6 +99,17 @@ static func run(t: Node, world: Node3D) -> void:
 		p.teleport(Zones.ARMY_GATE + Vector3(4, 0.3, 0))
 		await tree.create_timer(1.0).timeout
 		report.call(not Zones.is_army_hostile(p) and not Zones.alarm_on(), "with a pass (missions) you may go in")
+		# A's bug report 2026-11-25: a soldier on patrol must not take a pass holder inside the fence for an intruder.
+		var spotted: int = 0
+		for s: Node in tree.get_nodes_in_group(&"soldiers"):
+			var sol := s as Soldier
+			var was: Vector3 = sol.global_position
+			sol.global_position = p.global_position + Vector3(0, 0, 6)
+			if sol.spot_intruder() == p:
+				spotted += 1
+			sol.global_position = was
+			break
+		report.call(spotted == 0 and Zones.has_pass(p), "a soldier next to a pass holder inside the base doesn't see an intruder")
 		Zones._passes.clear()
 		Zones.army_on = false
 		for s: Soldier in Zones.guards() + Zones.reinforcements():

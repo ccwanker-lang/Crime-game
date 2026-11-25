@@ -155,7 +155,9 @@ func _process(delta: float) -> void:
 func _on_world() -> void:
 	_hostile.clear()
 	_warned.clear()
-	_passes.clear()
+	for k: Variant in _passes.keys():
+		if not is_instance_valid(k):
+			_passes.erase(k)  # (old world's players; a pass a scenario just gave in the new world stays - A, 2026-11-25)
 	_guards.clear()
 	_reinforcements.clear()
 	_residents.clear()
@@ -392,6 +394,11 @@ func alarm_on() -> bool:
 
 
 ## Missions: let `p` in for `seconds` without the soldiers shooting.
+## Has `p` a valid army pass right now (missions / scenarios)? A's SlidingGate asks this too.
+func has_pass(p: Player) -> bool:
+	return p != null and float(_passes.get(p, 0.0)) > _now()
+
+
 func allow_army(p: Player, seconds: float) -> void:
 	_passes[p] = _now() + seconds
 	_hostile.erase(p)

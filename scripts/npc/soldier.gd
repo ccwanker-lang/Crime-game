@@ -103,8 +103,8 @@ func spot_intruder() -> Player:
 		var d: float = global_position.distance_to(p.global_position)
 		if d >= best_d:
 			continue
-		if not (Zones.in_army_base(p.global_position) or Zones.is_army_hostile(p)):
-			continue
+		if not Zones.is_army_hostile(p) and (not Zones.in_army_base(p.global_position) or Zones.has_pass(p)):
+			continue  # (A, 2026-11-25: someone with a pass inside the fence is no intruder)
 		if not can_see(p):
 			continue
 		best = p
