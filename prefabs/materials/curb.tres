@@ -12,3 +12,4 @@ shader_parameter/cell = Vector2(1.0, 4.0)
 shader_parameter/line_width = 0.015
 shader_parameter/line_amount = 0.5
 shader_parameter/odd_amount = 0.04
+shader_parameter/wet_receiver = 0.8

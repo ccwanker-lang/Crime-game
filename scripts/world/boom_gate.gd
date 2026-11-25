@@ -9,6 +9,8 @@ extends Node3D
 @export var length: float = 6.5:
 	set(v): length = v; _queue_rebuild()
 @export var reach: float = 10.0
+## Point 100: lift together with this SlidingGate instead of for everyone near (the army base's boom).
+@export var follow_gate: NodePath
 
 const CHECK_EVERY: float = 0.2
 const OPEN_ANGLE: float = deg_to_rad(84.0)
@@ -78,7 +80,8 @@ func _process(delta: float) -> void:
 	_t -= delta
 	if _t <= 0.0:
 		_t = CHECK_EVERY
-		is_open = _someone_near()
+		var gate := get_node_or_null(follow_gate) as SlidingGate if not follow_gate.is_empty() else null
+		is_open = gate.is_open if gate else _someone_near()
 	var target: float = -OPEN_ANGLE if is_open else 0.0
 	_arm.rotation.z = move_toward(_arm.rotation.z, target, SPEED * delta)
 

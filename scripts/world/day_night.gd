@@ -47,6 +47,19 @@ var _sky_timer: float = 0.0
 var _lights_on: bool = false
 var _lights_known: bool = false
 var _glow_cache: Dictionary = {}  # source material -> glowing copy
+var _base_fog: float = 0.0012
+var _cloud_drift: Vector2 = Vector2.ZERO
+var _vol_on: bool = false
+
+## Point 103: 0..1 rain cover (set by Weather): a dimmer sun, greyer sky + clouds, thicker haze.
+static var overcast: float = 0.0
+## Point 103 quality hook (B's QualityProfile: High / Ultra): real volumetric mist at dawn / dusk and in the rain.
+## Off = the same mist as plain depth fog (cheaper).
+static var volumetric: bool = true
+## Ground mist at dawn (strongest) and dusk: extra fog density at full twilight.
+const MIST_DENSITY: float = 0.006
+const VOL_MIST: float = 0.035
+const CLOUD_SPEED: Vector2 = Vector2(0.004, 0.0015)  # cloud-plane units per real second
 
 const DAY_SUN_COLOR := Color(1.0, 0.95, 0.87)
 const LOW_SUN_COLOR := Color(1.0, 0.56, 0.3)
@@ -63,6 +76,7 @@ func _ready() -> void:
 	add_to_group("day_night")
 	add_to_group("net_state")
 	_env = world_env.environment
+	_base_fog = _env.fog_density
 	_sky_mat = _env.sky.sky_material as ShaderMaterial
 	if _sky_mat:
 		_sky_mat.set_shader_parameter("stylized", ArtStyle.stylized)
@@ -87,6 +101,7 @@ func _process(delta: float) -> void:
 		rate = FAST_HOURS_PER_SECOND
 	hours = fposmod(hours + delta * rate, 24.0)
 	_sky_timer -= delta
+	_cloud_drift += CLOUD_SPEED * delta
 	var sky_due: bool = _sky_timer <= 0.0
 	if sky_due:
 		_sky_timer = 0.1 if fast_forward else 0.5
@@ -185,7 +200,7 @@ func _apply(update_sky: bool) -> void:
 	if e > -0.04:
 		light_dir = sun_dir
 		sun.light_color = LOW_SUN_COLOR.lerp(STYLIZED_SUN if ArtStyle.stylized else DAY_SUN_COLOR, smoothstep(0.0, 0.35, e))
-		sun.light_energy = 1.25 * smoothstep(-0.04, 0.12, e)
+		sun.light_energy = 1.25 * smoothstep(-0.04, 0.12, e) * lerpf(1.0, 0.35, overcast)
 	else:
 		light_dir = moon_dir
 		sun.light_color = MOON_COLOR
@@ -205,12 +220,40 @@ func _apply(update_sky: bool) -> void:
 	_env.fog_light_color = fog
 	_env.fog_light_energy = lerpf(0.5, 1.0, day)
 	_env.fog_sun_scatter = 0.05 + 0.25 * twilight
+	# Point 103: rain cover greys the haze; mist hangs low at dawn (and a little at dusk).
+	var grey := Color(0.55, 0.58, 0.62) * lerpf(0.15, 1.0, day)
+	_env.fog_light_color = fog.lerp(grey, overcast * 0.7)
+	_env.ambient_light_energy *= lerpf(1.0, 0.8, overcast)
+	var mist: float = twilight * (1.0 if hours < 12.0 else 0.5)
+	# Ground mist on every quality level: depth fog that thickens below a few metres (cheap height fog).
+	_env.fog_height = 4.0
+	_env.fog_height_density = 0.05 * mist + 0.015 * overcast
+	# (Low / Medium quality = depth-fog mist; QualityProfile.active -1 = tests = High.)
+	if volumetric and (QualityProfile.active < 0 or QualityProfile.active >= 2):
+		_env.fog_density = _base_fog * (1.0 + 1.5 * overcast) + MIST_DENSITY * 0.5 * mist
+		var want: bool = mist > 0.05 or overcast > 0.2
+		if want != _vol_on:  # (switched only twice a day: a full re-setup of the froxel buffer)
+			_vol_on = want
+			_env.volumetric_fog_enabled = want
+		if want:
+			_env.volumetric_fog_density = VOL_MIST * mist + 0.012 * overcast
+			_env.volumetric_fog_albedo = _env.fog_light_color
+			_env.volumetric_fog_length = 90.0
+			_env.volumetric_fog_detail_spread = 2.0
+			_env.volumetric_fog_sky_affect = 0.2
+	else:
+		if _vol_on:
+			_vol_on = false
+			_env.volumetric_fog_enabled = false
+		_env.fog_density = _base_fog * (1.0 + 2.5 * overcast) + MIST_DENSITY * mist
 
 	if update_sky and _sky_mat:
 		_sky_mat.set_shader_parameter("sun_dir", sun_dir)
 		_sky_mat.set_shader_parameter("moon_dir", moon_dir)
 		_sky_mat.set_shader_parameter("day", day)
 		_sky_mat.set_shader_parameter("twilight", twilight)
+		_sky_mat.set_shader_parameter("overcast", overcast)
+		_sky_mat.set_shader_parameter("cloud_offset", _cloud_drift)
 
 	# Lamps and windows.
 	var on: bool = _hour_between(hours, lights_on_hour, lights_off_hour)

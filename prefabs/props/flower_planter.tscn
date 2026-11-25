@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/procgen/street_prop.gd" id="1_r"]
+
+[node name="FlowerPlanter" type="StaticBody3D"]
+script = ExtResource("1_r")
+kind = 5
+flowers = true
+prop_seed = 5

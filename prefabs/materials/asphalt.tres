@@ -13,3 +13,4 @@ shader_parameter/odd_amount = 0.04
 shader_parameter/patch_scale = 0.05
 shader_parameter/roughness_v = 0.95
 shader_parameter/specular_v = 0.2
+shader_parameter/wet_receiver = 1.0

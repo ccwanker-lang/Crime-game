@@ -67,6 +67,8 @@ static func attach(world: Node) -> void:
 
 func _ready() -> void:
 	current = self
+	if "--diner-debug" in OS.get_cmdline_user_args():
+		debug = true
 	add_to_group(&"net_state")
 	_setup.call_deferred()
 
@@ -91,7 +93,8 @@ func _setup() -> void:
 		var b: Node = ShopStaff._building_of(n)
 		if b == null:
 			continue
-		var type: String = ShopTypes.type_for(b)
+		var sel: ShopSeller = _seller_near(b, (n as Node3D).global_position)
+		var type: String = sel.shop_type if sel else ShopTypes.type_for(b)
 		if not type in FOOD_TYPES:
 			continue
 		if (n as Node3D).global_position.y - (b as Node3D).global_position.y > 1.2:
@@ -99,20 +102,26 @@ func _setup() -> void:
 		var seat: Dictionary = _seat_of(n as Node3D, marker)
 		if seat.is_empty():
 			continue
-		if not found.has(b):
-			found[b] = {"building": b, "type": type, "door": _door_of(b), "seats": [], "stands": []}
-		(found[b]["seats"] as Array).append(seat)
+		var key: Node = sel if sel else b  # (a tower holds several shops: one place per seller)
+		if not found.has(key):
+			found[key] = _place_for(b, sel, type)
+		var dup: bool = false
+		for other: Dictionary in found[key]["seats"]:
+			if (other["pos"] as Vector3).distance_to(seat["pos"]) < 0.45:
+				dup = true  # (A's DinerSeat marker on a chair: one seat)
+		if not dup:
+			(found[key]["seats"] as Array).append(seat)
 	# Bars / snack bars without tables still get guests standing at the counter.
 	for sel: ShopSeller in ShopStaff.sellers:
-		if is_instance_valid(sel) and sel.shop_type in ["bar", "snack_bar"] and not found.has(sel.get_parent()):
-			found[sel.get_parent()] = {"building": sel.get_parent(), "type": sel.shop_type, "door": _door_of(sel.get_parent()),
-					"seats": [], "stands": []}
+		if is_instance_valid(sel) and sel.shop_type in ["bar", "snack_bar"] and not found.has(sel) \
+				and not found.has(sel.get_parent()):
+			found[sel] = _place_for(sel.get_parent(), sel, sel.shop_type)
 	var keys: Array = found.keys()
 	keys.sort_custom(func(a: Node, c: Node) -> bool: return str(a.get_path()) < str(c.get_path()))
 	for b: Node in keys:
 		var pl: Dictionary = found[b]
 		if pl["type"] in ["bar", "snack_bar"]:
-			pl["stands"] = _stands_of(b)
+			pl["stands"] = _stands_of(pl["building"], pl.get("seller"))
 		if (pl["seats"] as Array).is_empty() and (pl["stands"] as Array).is_empty():
 			continue
 		var vis := Node3D.new()
@@ -172,20 +181,43 @@ func _seat_of(n: Node3D, marker: bool) -> Dictionary:
 	return {"pos": pos, "yaw": atan2(-look.x, -look.z), "stand": stand, "top": top}
 
 
-func _door_of(b: Node) -> NetDoor:
+## The seller of the shop that holds `pos` (same building, within 14 m), else null.
+func _seller_near(b: Node, pos: Vector3) -> ShopSeller:
+	var best: ShopSeller = null
+	for s: ShopSeller in ShopStaff.sellers:
+		if is_instance_valid(s) and s.get_parent() == b and s.global_position.distance_to(pos) < 14.0:
+			if best == null or s.global_position.distance_to(pos) < best.global_position.distance_to(pos):
+				best = s
+	return best
+
+
+## A place record: the door (village buildings) or, without one, the gap in the shop front (A's city shops).
+func _place_for(b: Node, sel: ShopSeller, type: String) -> Dictionary:
+	var door: NetDoor = _door_of(b, sel.global_position if sel else Vector3.INF)
+	var gap: Dictionary = ShopStaff.entrance(sel) if door == null and sel else {}
+	return {"building": b, "seller": sel, "type": type, "door": door, "gap": gap, "seats": [], "stands": []}
+
+
+func _door_of(b: Node, near: Vector3 = Vector3.INF) -> NetDoor:
+	var best: NetDoor = null
 	for c: Node in b.find_children("*", "Node3D", true, false):
 		if c is NetDoor:
-			return c as NetDoor
-	return null
+			if near == Vector3.INF:
+				return c as NetDoor
+			if best == null or (c as Node3D).global_position.distance_to(near) < best.global_position.distance_to(near):
+				best = c as NetDoor
+	if best and near != Vector3.INF and best.global_position.distance_to(near) > 16.0:
+		return null  # (a door of another part of the tower)
+	return best
 
 
 ## Bars / snack bars: two pairs of guests stand and chat in front of the counter (from the seller there, if any).
-func _stands_of(b: Node) -> Array:
+func _stands_of(b: Node, seller: ShopSeller = null) -> Array:
 	var out: Array = []
-	var seller: ShopSeller = null
-	for c: Node in b.get_children():
-		if c is ShopSeller:
-			seller = c as ShopSeller
+	if seller == null:
+		for c: Node in b.get_children():
+			if c is ShopSeller:
+				seller = c as ShopSeller
 	if seller == null:
 		return out
 	var fwd: Vector3 = -seller.global_basis.z
@@ -244,7 +276,9 @@ func _process(delta: float) -> void:
 			if not free.is_empty():
 				var pick: int = free[randi() % free.size()]
 				# Nobody looking (a player just came near / is outside): they are simply already sitting there.
-				_guest(i, pick, not _seen((pl["seats"][pick] as Dictionary)["pos"]) and not _seen(b.global_position))
+				var unseen: bool = not _seen((pl["seats"][pick] as Dictionary)["pos"]) and not _seen(b.global_position)
+				if unseen or int((pl["seats"][pick] as Dictionary).get("fails", 0)) < 2:
+					_guest(i, pick, unseen)
 		var standing: int = 0
 		for s: int in (pl["stands"] as Array).size():
 			if taken.has("%d:s%d" % [i, s]):
@@ -273,8 +307,13 @@ static func busy(type: String, h: float) -> float:
 func _street_spot(pl: Dictionary) -> Vector3:
 	var door: NetDoor = pl["door"]
 	var b := pl["building"] as Node3D
-	var front: Vector3 = (door.get_center() + door.get_outward() * 1.6) if door else b.global_position + b.global_basis.z * 2.0
+	var gap: Dictionary = pl.get("gap", {})
+	var front: Vector3 = (door.get_center() + door.get_outward() * 1.6) if door else \
+			(gap["front"] as Vector3 if not gap.is_empty() else b.global_position + b.global_basis.z * 2.0)
 	var along: Vector3 = (door.global_basis.x if door else b.global_basis.x).normalized()
+	if door == null and not gap.is_empty():
+		var outv: Vector3 = (gap["front"] as Vector3) - (gap["gap"] as Vector3)
+		along = Vector3(-outv.z, 0, outv.x).normalized()
 	var best: Vector3 = front
 	for k: int in 6:
 		var p: Vector3 = front + along * (1.0 if k % 2 == 0 else -1.0) * randf_range(8.0, 16.0)
@@ -314,13 +353,72 @@ func _walk(npc: Pedestrian, to: Vector3) -> bool:
 		print("[DinerLife]   %s walk %s -> %s (snap %.2f, clear %s)" % [npc.name, npc.global_position.snapped(Vector3.ONE * 0.1),
 				to.snapped(Vector3.ONE * 0.1), snap.distance_to(to), npc.straight_way_clear(to, 40.0)])
 	if snap.distance_to(to) < 0.9:
-		return await npc.walk_to(snap)
+		return await _go_timed(npc, snap, true)
 	if npc.straight_way_clear(to, 40.0):
-		return await npc._go_direct(to, Pedestrian.Anim.WALK)
-	return false
+		return await _go_timed(npc, to, false)
+	# No navmesh (city) and something in the way (a table, a counter end): one detour point round `to`.
+	var from: Vector3 = npc.global_position
+	var best: Vector3 = Vector3.INF
+	for r: float in [1.1, 1.8]:
+		for k: int in 12:
+			var a: float = TAU * k / 12.0
+			var mid: Vector3 = to + Vector3(cos(a), 0, sin(a)) * r
+			if best != Vector3.INF and from.distance_to(mid) + mid.distance_to(to) >= from.distance_to(best) + best.distance_to(to):
+				continue
+			if npc.straight_way_clear(mid, 40.0) and _clear_between(npc, mid, to):
+				best = mid
+		if best != Vector3.INF:
+			break
+	if best == Vector3.INF:
+		return false
+	if not await _go_timed(npc, best, false) or not is_instance_valid(npc):
+		return false
+	return await _go_timed(npc, to, false)
 
 
-func _in_through(npc: Pedestrian, door: NetDoor, to: Vector3) -> bool:
+## One move that always ends: when the NPC streamer puts the guest to sleep (far from every player: no physics, the
+## move would never arrive) or it takes far too long, the guest is put at `to` where nobody sees it.
+func _go_timed(npc: Pedestrian, to: Vector3, nav: bool) -> bool:
+	var state: Array = [false, false]  # [done, ok]
+	var run := func() -> void:
+		if nav:
+			state[1] = await npc.walk_to(to)
+		else:
+			state[1] = await npc._go_direct(to, Pedestrian.Anim.WALK)
+		state[0] = true
+	run.call()
+	var limit: float = Time.get_ticks_msec() / 1000.0 + npc.global_position.distance_to(to) / Pedestrian.WALK_SPEED * 2.0 + 4.0
+	while not state[0]:
+		await get_tree().create_timer(0.25).timeout
+		if not is_instance_valid(npc) or npc.dead:
+			return false
+		var asleep: bool = npc.lod == Pedestrian.Lod.ASLEEP
+		if asleep or Time.get_ticks_msec() / 1000.0 > limit:
+			if asleep or not _seen(npc.global_position):
+				npc.global_position = to
+				npc.net_pos = to
+				npc._finish_move(true)
+				return true
+			npc._finish_move(false)
+			return false
+	return state[1]
+
+
+## Free straight line from `a` to `b` at knee and chest height (the npc itself excluded).
+func _clear_between(npc: Pedestrian, a: Vector3, b: Vector3) -> bool:
+	var space: PhysicsDirectSpaceState3D = npc.get_world_3d().direct_space_state
+	for h: float in [0.5, 1.1]:
+		var q := PhysicsRayQueryParameters3D.create(Vector3(a.x, npc.global_position.y + h, a.z),
+				Vector3(b.x, npc.global_position.y + h, b.z), 1 | 2, [npc.get_rid()])
+		if not space.intersect_ray(q).is_empty():
+			return false
+	return true
+
+
+func _in_through(npc: Pedestrian, door: NetDoor, to: Vector3, gap: Dictionary = {}) -> bool:
+	if door == null and not gap.is_empty():
+		if not await _walk(npc, gap["front"]) or not await _walk(npc, gap["inside"]):
+			return false
 	if door:
 		var front: Vector3 = door.get_center() + door.get_outward() * 1.4
 		if not await _walk(npc, front):
@@ -334,7 +432,11 @@ func _in_through(npc: Pedestrian, door: NetDoor, to: Vector3) -> bool:
 	return ok
 
 
-func _out_through(npc: Pedestrian, door: NetDoor) -> void:
+func _out_through(npc: Pedestrian, door: NetDoor, gap: Dictionary = {}) -> void:
+	if door == null and not gap.is_empty() and is_instance_valid(npc):
+		await _walk(npc, gap["inside"])
+		await _walk(npc, gap["front"])
+		return
 	if door and is_instance_valid(npc):
 		npc.target_door = door
 		await _walk(npc, door.get_center() - door.get_outward() * 0.8)
@@ -377,10 +479,12 @@ func _guest(i: int, s: int, already: bool = false) -> void:
 		guests += 1
 	taken[key] = npc
 	await get_tree().physics_frame
-	var ok: bool = true if already else await _in_through(npc, pl["door"], seat["stand"])
+	var ok: bool = true if already else await _in_through(npc, pl["door"], seat["stand"], pl.get("gap", {}))
 	if debug:
 		print("[DinerLife] %s -> seat %s: %s at %s (stand %s)" % [npc.name if is_instance_valid(npc) else "?", key, ok,
 				npc.global_position if is_instance_valid(npc) else Vector3.ZERO, seat["stand"]])
+	if not ok and not already and is_instance_valid(npc) and not npc.is_fleeing():
+		seat["fails"] = int(seat.get("fails", 0)) + 1  # (2 misses: only "already seated" guests use it from now on)
 	if ok and is_instance_valid(npc) and not npc.dead and not npc.is_fleeing():
 		_sit(npc, seat)
 		var stay: float = randf_range(STAY.x, STAY.y) / speed
@@ -399,7 +503,7 @@ func _guest(i: int, s: int, already: bool = false) -> void:
 		if _still_sitting(npc):
 			npc._stand_up()
 			npc.anim_state = Pedestrian.Anim.IDLE
-			await _out_through(npc, pl["door"])
+			await _out_through(npc, pl["door"], pl.get("gap", {}))
 	else:
 		_set_dish(key, "")
 	taken.erase(key)
@@ -417,7 +521,7 @@ func _stander(i: int, s: int) -> void:
 		return
 	taken[key] = npc
 	await get_tree().physics_frame
-	if await _in_through(npc, pl["door"], spot["pos"]) and is_instance_valid(npc):
+	if await _in_through(npc, pl["door"], spot["pos"], pl.get("gap", {})) and is_instance_valid(npc):
 		npc.rotation.y = spot["yaw"]
 		npc.net_yaw = spot["yaw"]
 		var until: float = Time.get_ticks_msec() / 1000.0 + randf_range(STAY.x, STAY.y) / speed
@@ -426,7 +530,7 @@ func _stander(i: int, s: int) -> void:
 			await get_tree().create_timer(randf_range(2.0, 5.0) / speed).timeout
 		if is_instance_valid(npc) and not npc.dead and not npc.is_fleeing():
 			npc.anim_state = Pedestrian.Anim.IDLE
-			await _out_through(npc, pl["door"])
+			await _out_through(npc, pl["door"], pl.get("gap", {}))
 	taken.erase(key)
 	if is_instance_valid(npc) and not npc.dead:
 		await _leave(npc, pl)
@@ -445,14 +549,31 @@ func _sit(npc: Pedestrian, seat: Dictionary) -> void:
 
 
 ## Waits `seconds`, but stops at once when the guest is no longer sitting (a gunshot, killed).
-func _sit_for(npc: Pedestrian, seconds: float) -> void:
+func _sit_for(npc: Variant, seconds: float) -> void:  # (untyped: the guest may be freed meanwhile)
 	var until: float = Time.get_ticks_msec() / 1000.0 + seconds
 	while Time.get_ticks_msec() / 1000.0 < until and _still_sitting(npc):
 		await get_tree().create_timer(minf(0.25, seconds)).timeout
 
 
-func _still_sitting(npc: Pedestrian) -> bool:
-	return is_instance_valid(npc) and not npc.dead and npc._sitting and not npc.is_fleeing()
+## Host (tests): every guest gone at once, tables cleared.
+func clear_all() -> void:
+	for k: String in taken.keys():
+		var npc := taken[k] as Node
+		if is_instance_valid(npc):
+			npc.queue_free()
+	for n: Node in get_tree().get_nodes_in_group(&"npc"):
+		if n.has_meta(&"diner") and not n.is_queued_for_deletion():
+			n.queue_free()
+	taken.clear()
+	for k: String in dishes.keys():
+		_set_dish(k, "")
+
+
+func _still_sitting(npc: Variant) -> bool:  # (untyped: the guest may be freed meanwhile)
+	if not is_instance_valid(npc):
+		return false
+	var p := npc as Pedestrian
+	return p != null and not p.dead and p._sitting and not p.is_fleeing()
 
 
 # --- Dishes (every peer) ------------------------------------------------------------------------

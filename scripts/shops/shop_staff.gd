@@ -113,3 +113,48 @@ static func _make(world: Node, till: Node3D, b: Node3D, type: String, marker: bo
 	seller.global_position = pos
 	seller.global_rotation = Vector3(0, atan2(-look.x, -look.z), 0)  # (the model looks along -Z)
 	return seller
+
+
+## The way into a shop without a door node (A's walk-in city shops: a gap in the glass front): from the seller look
+## towards the front (rays at 1.3 m, above the counter), find the glass, then the widest free gap along it.
+## Returns {"front": outside the gap, "inside": just inside it, "gap": the gap itself} or {} (cached per seller).
+static var _entrances: Dictionary = {}
+
+
+static func entrance(seller: Node3D) -> Dictionary:
+	if seller == null or not is_instance_valid(seller):
+		return {}
+	var key: int = seller.get_instance_id()
+	if _entrances.has(key):
+		return _entrances[key]
+	var out: Dictionary = {}
+	var look: Vector3 = -seller.global_basis.z
+	look.y = 0.0
+	look = look.normalized()
+	var side := Vector3(-look.z, 0, look.x)
+	var space: PhysicsDirectSpaceState3D = seller.get_world_3d().direct_space_state
+	var o: Vector3 = seller.global_position + Vector3.UP * 1.3
+	var hit: Dictionary = space.intersect_ray(PhysicsRayQueryParameters3D.create(o, o + look * 16.0, 1))
+	if not hit.is_empty():
+		var d: float = o.distance_to(hit["position"])
+		var best_run: Array[float] = []
+		var run: Array[float] = []
+		var t: float = -7.0
+		while t <= 7.01:
+			var a: Vector3 = o + look * (d - 0.7) + side * t
+			var b: Vector3 = o + look * (d + 0.7) + side * t
+			var free_in: bool = space.intersect_ray(PhysicsRayQueryParameters3D.create(o + look * (d - 0.7), a, 1)).is_empty()
+			var free: bool = free_in and space.intersect_ray(PhysicsRayQueryParameters3D.create(a, b, 1)).is_empty()
+			if free:
+				run.append(t)
+				if run.size() > best_run.size():
+					best_run = run.duplicate()
+			else:
+				run.clear()
+			t += 0.2
+		if best_run.size() >= 4:  # (>= 0.6 m wide)
+			var mid: float = (best_run[0] + best_run[-1]) / 2.0
+			var g: Vector3 = Vector3(o.x, seller.global_position.y + 0.05, o.z) + look * d + side * mid
+			out = {"gap": g, "front": g + look * 1.4, "inside": g - look * 0.9}
+	_entrances[key] = out
+	return out

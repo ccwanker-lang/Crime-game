@@ -67,6 +67,8 @@ func host_set(p: Player, on: bool) -> void:
 
 ## Host: tell every sleeper how many are in bed; everyone asleep -> morning.
 func _update() -> void:
+	if not is_inside_tree():  # (a player leaving while the world is torn down: B NOTES part 29)
+		return
 	var everyone: Array[Player] = []
 	for n: Node in get_tree().get_nodes_in_group(&"players"):
 		var pl := n as Player

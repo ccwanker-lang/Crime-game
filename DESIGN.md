@@ -525,10 +525,12 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       evening 16-22 30%, night 22-09 10%; configurable); outside its block it is "inside" its own house (data only):
       walks to its front door at the end of its block and comes out of it at the start; home deliveries (a customer
       inside can still deal: at the door it spawns, steps out, deals, goes back in); fixed NPCs (shopkeepers, Marco,
-      Old Joe, soldiers on post, mission NPCs) keep their own role; host decides, clients get the state - todo
+      Old Joe, soldiers on post, mission NPCs) keep their own role; host decides, clients get the state - DONE
+      (session B part 25: DayRhythm, scenario day_rhythm)
   89. `npc_bench` scenario (F9): raises the number of active NPCs step by step (20, 40, 60, 80 ...) at city centre,
       slums and docks, 20 s per step, mean FPS + 1% low; highest count with 1% low > 55 FPS (with margin) =
-      `max_active_npcs`; report the table - todo
+      `max_active_npcs`; report the table - DONE (session B part 26: scenario npc_bench, table in NOTES part 26;
+      max_active_npcs stays 60)
   90. World streaming: visibility_range_end on small props (~80 m), trees (~250 m), lamps (~100 m), big buildings
       stay as silhouettes; occlusion culling (OccluderInstance3D for buildings + mountains); repeated objects (trees,
       lamp posts, fences, grass) as MultiMeshInstance3D; lights: only the nearest ~16 cast shadows, the rest without or
@@ -562,6 +564,53 @@ Playtest feedback round 2026-11-16 (user: "fix alles, zet me na elke fix klaar m
       (gen_world `gas_station(...)`: CITYFUEL on the city plaza, DOCK FUEL on the quay, LAST STOP FUEL by the prison;
       scenarios gas_city / gas_docks / gas_prison; self-test check fuel)
   97. LATER (not now): at 5 stars the army leaves the base and hunts the 5-star player - documented only
+Detail round (user, 2026-11-24, second list) - every point: F9 scenario, push, FPS measured (fps_docks / fps_city /
+fps_army / fps_busy) with the numbers in CHANGELOG; below the performance targets = optimise first:
+  98. Performance rules + quality levels (comes first, the other points build on it): Low / Medium / High / Ultra
+      scale shadows, SSAO/SSIL, fog, reflections, grass density, NPC + traffic count, view distance, interior detail;
+      chosen automatically from the hardware on first start; new fps_busy scenario (many NPCs + traffic at once);
+      weak-PC simulation (Low + render scale 0.5 / compatibility driver); load time + RAM watched - DONE (B part 32:
+      `QualityProfile` (scripts/perf/) per level: NPC cap, traffic + crowd share, grass, draw distance, shadowed lights,
+      sun shadow distance; `auto_level()` on first start; `--quality=` / `--render-scale=`; scenario fps_busy +
+      `--fps-measure` (FpsMeter); check quality_levels. A: the world hooks + staggered car ticks)
+  99. Prison: more detail and enterable - an automatic gate (slides open when you come, or a guard opens it), yard,
+      cell blocks with cells on several floors, canteen, visiting room, guard post, fences with barbed wire,
+      watchtowers with searchlights, prison guards - DONE (A: SlidingGate at the gate, Block B two tiers with
+      galleries + ProcStairs + bridge, the gatehouse = guard post, RazorWire on every wall, a visible searchlight beam
+      on every Watchtower at night, yard tables + weights, markers PrisonGuardPost1-4 / PrisonPatrol1-4 for B's
+      guards; scenarios prison_gate, prison_block_b; check prison)
+  100. Army base: more detail, partly enterable - automatic barrier/gate, barracks with dormitories, armoury,
+      command post, hangars you can walk into, sandbags, army vehicles, watchtowers - DONE (prefabs/army/
+      barracks / armoury / command_post / hangar / sandbags, ArmyProp (one mesh per piece), the gate = SlidingGate
+      `needs_army_pass` (host decides, RPC + net_state) + BoomGate `follow_gate`, RazorWire on the fence, 2 more
+      jeeps; scenario army_inside; check army; shots E3-E7)
+  101. City full of shops: ground floors in the city (and the centre) become shops with windows, signs and awnings
+      (restaurants, cafés with terraces, bakery, florist, boutiques, barber, pharmacy, supermarket, phone shop, chip
+      shop); some enterable with an interior (counter, racks, tables) and an NPC behind the counter (B: shop NPCs +
+      life) - DONE for A (ShopFront: shop units drawn into every city Tower's own mesh on its street faces, 10 kinds,
+      signs, awnings, terraces with TerraceSeat markers; one walk-in shop per block (Tower.open_shop, 7 in all) with
+      a ShopkeeperSpot marker for B's shopkeeper; blocks paved; scenario city_shops; check city_shops; shots S0-S3).
+      B: the shopkeepers + shop life (asked in A.md)
+  102. Building sites: a few buildings become sites - half-built concrete skeleton, scaffolding, tower crane, site
+      fences with mesh, containers, materials, concrete mixer; builders by day (B), empty at night; climbable, a
+      place to deal - DONE for A (`BuildingSite`: 3 city sites (BuildingSite1-3, in place of a tower in blocks
+      (0,1), (1,2) and the east strip), skeleton 2-3 floors + bare columns with rebar, switchback ProcStairs to the top
+      slab, scaffold with plank decks, tower crane with a turning jib, hoarding fence with a gate gap, site office
+      container, bricks / rebar / pipes / sand / mixer / toilet, site board; markers BuilderSpot1-6 (meta task),
+      SiteGate, SiteDealSpot; scenario building_site; check building_sites; shots T0-T2). B: the builders
+  103. Better graphics within the stylized low-poly style: light + shadows, soft AO, volumetric fog at dawn/dusk,
+      wet road after rain, reflections on windows + water, better sky + clouds, more street detail (signs, flower
+      boxes, bikes, bins, lanterns, kerbs, manholes); a quality setting Low/Medium/High/Ultra in B's settings menu
+      (with 98) - DONE (A: `Weather` (World/Weather: host rolls showers, synced; rain streaks round the camera,
+      none indoors; global shader parameter `wetness` -> stylized shader darkens + shines roads / paving / roofs
+      with puddles = SSR reflections on High), `DayNight.overcast` (dimmer sun, grey haze + clouds), dawn / dusk
+      mist (height fog on every level, volumetric fog on High / Ultra), drifting clouds lit from the sun's side,
+      `PropScatter` street detail (flower planters, bike racks with bikes, bins, bollards, post boxes, manholes:
+      262 props in 8 MultiMeshes); scenarios rain, dawn_mist, street_detail; checks weather, street_detail.
+      B: the quality setting in the Settings menu (part 32))
+Session B, merged 2026-11-24 (parts 25-31, NOTES_feature-b.md) - DONE: 88 day rhythm, 89 npc_bench, settings
+menu (graphics/audio/controls, user://settings.cfg), sound + atmosphere (zone ambience, music, footsteps), title
+page + save slots + loading screen + pause menu, Steam co-op (GodotSteam, app 480; IP stays), controller support.
 Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
   - Zones: Fort Halden soldiers (gate warning, shot on sight inside, alarm + reinforcements, no police stars), slum
     residents (cheap customers), city office workers (rich customers), the bunker for sale (EUR 250,000, rank 5,
@@ -576,6 +625,79 @@ Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
+- Point 103 (graphics): everything new is cheap or gated by quality. Rain = one GPUParticles3D that follows the
+  camera (amount by QualityProfile level: 35/60/100/130 %), hidden while a ray up from the camera hits a roof (no
+  rain indoors without particle collision). Wet streets are a shader change only (`wet_receiver` per material in
+  gen_materials.py, one global `wetness`), so no extra draw calls; the reflections come from SSR / the sky on the
+  levels that have it. Weather is host-rolled real time (dry 10-25 min, rain 3-6 min), off in tests and
+  measurements (`--weather=rain|dry` forces it). Mist: plain height fog on every level (cheap); real volumetric fog
+  only on High / Ultra (`DayNight.volumetric`, reads `QualityProfile.active`), switched on only around dawn / dusk
+  and in rain (its froxel buffer is set up twice a day). Clouds drift by a uniform updated with the other sky
+  uniforms (no TIME in the sky shader: that would re-render the radiance every frame). Street detail uses
+  `PropScatter` (a prop prefab harvested once -> MultiMesh per mesh + collision shapes per copy) instead of ~260
+  prefab instances: the city's draw calls did not go up. "Lanterns" = the existing lamps; no new lights (each light
+  costs). The quality setting itself is B's (Settings > Graphics, part 32).
+- B part 32 (quality levels): one table (`QualityProfile`) drives A's systems through one static scale each
+  (GrassCover, WorldLod, Traffic; defaults = old behaviour). NPC / traffic counts follow the HOST's level (host
+  spawned), the NPC cap is per peer. The auto pick never picks Ultra and errs low (Medium for GTX / RX 66xx). Both
+  sessions had written the same hooks; at the merge B's versions were kept (meta `lod_end` instead of A's list) plus
+  A's walk-in-shop occluder skip. Car `_far_tick` / `_sense_tick` now start staggered (B measured all far cars
+  thinking on the same tick -> spikes).
+- B part 33 (shop sellers): `ShopStaff.populate` finds every till (a cash register or a `ShopkeeperSpot` marker,
+  meta shop_type) and puts a `ShopSeller` there on every peer; meals heal at the counter, flowers / clothes are
+  items. A's walk-in city shops therefore name their marker `ShopkeeperSpot` (was ShopCounterSpot) with
+  `ShopFront.SELLER_TYPE` mapping (boutique -> clothing, chips -> snack_bar, supermarket / phone / pharmacy -> kiosk,
+  barber -> none), and the walk-in cafés / restaurants have `DinerSeat` markers at their chairs (terraces keep
+  TerraceSeat, both with -Z looking at the table).
+- Point 98 split (2026-11-25): session B had already started `QualityProfile` (scripts/perf/) with the Settings
+  quality levels, so B owns the table, the auto-level on first start, fps_busy and the measuring suite; A only adds
+  the world hooks in A's files with B's names (WorldLod.max_shadows / set_range_scale, GrassCover.density_scale /
+  radius_scale / rebuild, Traffic.count_scale). 1.0 / 16 = today's numbers, so tests and measurements stay
+  comparable. Traffic is scaled once at load (cars already driving are not removed).
+- Point 99 (prison detail): the gate is a `SlidingGate` (new, reusable): a steel panel that rolls behind the wall
+  when a player, a car or a WALKING NPC is within 11 m - local on every peer like the boom (it opens long before
+  anyone reaches it, so a lagging peer never traps a player); its panel is on layer 2 (not baked). Standing NPCs
+  don't count (the gate guard stands next to it). Block B became two tiers (upper cells, galleries with
+  PrisonBars railings, a steel `ProcStairs` flight up the west wall, a bridge at the east end) instead of a new
+  block: Block A must stay exactly as the intro expects it. `ProcStairs` = visible solid steps + one invisible ramp
+  (players + navmesh), reusable for the army and building sites. Razor wire = `RazorWire` (coils on Y-arms, one
+  cached mesh per length, drawn up to 140 m). Searchlights already existed on the Watchtower; they got a visible
+  additive beam cone (no extra light cost). Prison guards are session B's (markers PrisonGuardPost1-4 + a yard
+  loop PrisonPatrol1-4).
+- Point 100 (army base detail): the warehouse Buildings (barracks, hangars) are replaced by walk-in prefabs in the
+  SAME footprints and names (Barracks1-3, Hangar1-2), so B's soldier posts, patrols and alarm spots stay right. All
+  army furniture is `ArmyProp` (bunk bed, weapon rack, sandbags, map table, radio, ammo stack, lockers): one mesh +
+  one box per piece, cached per kind (30 bunks = one mesh). `hall()` in gen_prefabs got windows (sill > 0) and tall
+  openings (the hangar's 12 x 6 m front). The base gate only opens for cars, walking soldiers and players with a
+  pass: only the host knows the passes (Zones), so that gate is host-driven (`needs_army_pass`, RPC + net_state);
+  the boom follows it. Found: B's `Soldier.spot_intruder` shoots pass holders too (asked in A.md; the army_inside
+  scenario uses god mode until then).
+- Point 102 (building sites): one procedural `BuildingSite` (like Tower: all static geometry in two meshes - the
+  big parts drawn far, the small props up to 110 m without shadows - plus plain boxes) instead of hand-placed
+  prefabs, so a site costs ~5 draw calls. It replaces the LAST building of a block (gen_world `block_towers(...,
+  site=True)`; the random sequence stays the same so the rest of the city does not move), the gate faces the
+  block's street. Climbing = a switchback of ProcStairs flights in two lanes at the east end; each slab has a hole
+  over the flight that comes up through it (from its top edge to 0.3 m past its foot). The crane's jib turns
+  locally on every peer (pure visual). No navmesh in the city, so B's builders stand at / walk between the
+  BuilderSpot markers. Day/night (builders by day, empty at night) is B's.
+- Point 101 (city shops): the shops are drawn INTO each Tower's own mesh by `ShopFront` (no extra draw calls; only
+  the sign Label3Ds, drawn up to 75 m), on the faces that face a street (`shop_faces`, computed by block_towers
+  from the cell position). Kinds rolled per unit from the tower's seed. Walk-in shops: one office tower per block
+  on its north street (`open_shop`, not apartment blocks - their core is built differently) gets the middle unit as
+  a real room: the core + collision are cut round it, the glass front has a door gap, the room has a counter, the
+  kind's furniture (interior prefabs: WorldLod gives them the 80 m prop range), an emissive ceiling panel + one
+  small light WITHOUT shadows, and a `ShopkeeperSpot` marker (meta shop_kind / shop_name) where B's shopkeeper
+  stands; WorldLod gives such a tower no occluder (it would hide the room). The city blocks are now paved at
+  pavement height (no grass in front of / inside shops); shop floors, terraces and their markers sit on it.
+  The "centre" = the city centre blocks (the village's own shops were already shops).
+- Performance rules (user, 2026-11-24, hard rule): at least 60 FPS on Medium on a mid-range PC (GTX 1660 / RX 6600,
+  16 GB), 30+ on Low with integrated graphics, never below 90 on High on the user's RTX 5060 Ti. Measured after
+  every point with fps_docks / fps_city / fps_army / fps_busy (numbers in CHANGELOG); below target = optimise first.
+  Quality levels scale everything heavy; auto-picked from the hardware on first start. Host load <= ~20 s, no leaks.
+  Less detail rather than a game that stutters.
+- Merge B parts 25-31 (2026-11-24): see NOTES_feature-b.md parts 25-31 for B's own decisions (day rhythm only for
+  village pedestrians, max_active_npcs stays 60, slot 1 = the old save, Steam via the GDExtension so Godot stays
+  standard, right stick as synthetic mouse look, ...).
 Choices made while working autonomously (what + why).
 - Point 6 (corrected after point 7): production stations are illegal (core rules), so ONLY Rook's black market
   sells them (at night). The Store and QuickShip sell the storage locker and (QuickShip) all furniture: legal.

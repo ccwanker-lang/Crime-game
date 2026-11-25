@@ -980,7 +980,7 @@ APT_TINTS = [col(0.92, 0.88, 0.78), col(0.86, 0.8, 0.72), col(0.9, 0.84, 0.8), c
 
 
 def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sign_text="", name=None, setback=3.0,
-          enterable=False):
+          enterable=False, shop_faces=0, open_shop=False):
     tint = crng.choice(TOWER_TINTS if style == "glass" else BAND_TINTS if style == "bands" else
                        APT_TINTS if style == "apartment" else BRICK_TINTS)
     props = {"width": f"{w:g}", "depth": f"{d:g}", "floors": str(floors), "style": q(style), "tint": tint,
@@ -995,12 +995,24 @@ def tower(cx, cz, w, d, floors, style, rot=0, setback_from=0, antenna=False, sig
         props["sign_text"] = q(sign_text)
     if enterable:
         props["enterable"] = "true"
+    if shop_faces:  # point 101: shops on the ground floor of the street faces
+        props["shop_faces"] = str(shop_faces)
+    if open_shop:
+        props["open_shop"] = "true"
     return put("city/tower.tscn", (cx, 0, cz), rot, parent="City", name=name or uname("Tower"), props=props)
 
 
-def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split, enter=0):
+SITE = "res://scripts/procgen/building_site.gd"
+
+
+def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split, enter=0, site=False):
     """Fill a block with 1-4 buildings (1.5 m in from the sidewalk edge), each its own style (from `styles`),
-    height, and shape: plain, a setback crown, or a 2-3 floor podium with a narrower tower on it."""
+    height, and shape: plain, a setback crown, or a 2-3 floor podium with a narrower tower on it.
+    Point 101: every street face gets shops on the ground floor; one office tower per block (on the north street)
+    gets a walk-in shop. The block is paved (a shop street has no grass between the pavement and the shops).
+    Point 102: `site` = the block's last building is a building site (BuildingSite) instead, its gate on a street."""
+    opened = False
+    paved(uname("BlockPave"), (x0 + x1) / 2, (z0 + z1) / 2, x1 - x0, z1 - z0, "sidewalk", 0.15, parent="City")
     m = 1.5
     x0, x1, z0, z1 = x0 + m, x1 - m, z0 + m, z1 - m
     w, d = x1 - x0, z1 - z0
@@ -1025,8 +1037,19 @@ def block_towers(x0, x1, z0, z1, styles, fmin, fmax, split, enter=0):
         elif shape < 0.55 and fl >= 6:
             setback_from = fl - crng.randint(1, 2)  # stepped crown
         cx, cz = x0 + w * (a + c) / 2, z0 + d * (b + e) / 2
+        faces = (1 if b == 0 else 0) | (2 if c == 1 else 0) | (4 if e == 1 else 0) | (8 if a == 0 else 0)
+        op = not opened and not ent and style != "apartment" and b == 0 and cd >= 12.5 and cw >= 8
+        opened = opened or op
+        if site and (a, b, c, e) == cells[-1] and not op and not ent:
+            sw, sd = round(cw, 1), round(cd, 1)
+            sc.node(uname("BuildingSite"), "StaticBody3D", "City", props={"script": sc.script(SITE),
+                    "transform": xform((cx, 0.0, cz), 0 if faces & 1 or not faces & 4 else 180),
+                    "width": f"{sw:g}", "depth": f"{sd:g}", "floors_built": str(max(2, min(4, fl - 2))),
+                    "site_seed": str(len(sc.nodes) % 97)})
+            continue
         tower(cx, cz, round(cw, 1), round(cd, 1), fl, style, setback_from=setback_from, antenna=fl >= 10 and not ent,
-              setback=setback, enterable=ent, name=uname("ApartmentBlock") if ent else None)
+              setback=setback, enterable=ent, name=uname("ApartmentBlock") if ent else uname("ShopTower") if op else None,
+              shop_faces=0 if ent else faces, open_shop=op)
 
 
 XB = [(-48, 0), (12, 60), (72, 96)]
@@ -1034,10 +1057,10 @@ ZB = [(150, 198), (210, 258), (270, 318)]
 PLAN = {  # (bx, bz) -> (styles, floors min, max, split) or "garage"; the middle block holds the landmarks
     # Point 75 (user, second round): lower again so the city fits the village - 3-8 floors, the landmarks 8-11.
     # Point 76: apartment blocks in the outer blocks, one enterable (stairs + lift to the roof) per marked block.
-    (0, 0): (["apartment", "apartment", "brick"], 4, 6, 3, 1), (0, 1): (["apartment", "glass", "bands"], 4, 7, 4),
+    (0, 0): (["apartment", "apartment", "brick"], 4, 6, 3, 1), (0, 1): (["apartment", "glass", "bands"], 4, 7, 4, 0, True),
     (0, 2): "garage",
     (1, 0): (["glass", "bands"], 5, 8, 3), (1, 1): (["glass", "bands"], 8, 11, 2),
-    (1, 2): (["apartment", "bands", "brick"], 4, 8, 4),
+    (1, 2): (["apartment", "bands", "brick"], 4, 8, 4, 0, True),
     (2, 0): "garage", (2, 1): (["apartment"], 4, 6, 2, 1), (2, 2): (["apartment", "bands", "glass"], 4, 7, 3, 1),
 }
 for (bx, bz), plan in PLAN.items():
@@ -1051,11 +1074,12 @@ for (bx, bz), plan in PLAN.items():
         block_towers(x0, x1, z0, z1, *plan)
 # The east strip along the highway boulevard (x 108..140) and the skyline south of the last avenue.
 for z0, z1 in ZB:
-    block_towers(110, 138, z0, z1, ["apartment", "glass", "bands", "brick"], 3, 7, 2, 1 if z0 == ZB[0][0] else 0)
+    block_towers(110, 138, z0, z1, ["apartment", "glass", "bands", "brick"], 3, 7, 2, 1 if z0 == ZB[0][0] else 0,
+                 z0 == ZB[2][0])
 SKYLINE = [(-36, 360, 30, 28, 7, "bands"), (6, 352, 24, 22, 9, "glass"), (40, 362, 26, 26, 11, "glass"),
            (78, 352, 26, 22, 6, "brick"), (118, 362, 28, 28, 8, "glass")]
 for i, (cx, cz, w, d, fl, st) in enumerate(SKYLINE):
-    tower(cx, cz, w, d, fl, st, setback_from=fl - 2, antenna=fl >= 10, name=f"Skyscraper{i + 1}")
+    tower(cx, cz, w, d, fl, st, setback_from=fl - 2, antenna=fl >= 10, name=f"Skyscraper{i + 1}", shop_faces=1)
 # Plaza between the village and the city (z 114..138): trees and benches; a promenade along the coast (x -66).
 for i, x in enumerate(range(-40, 96, 16)):
     tx, tz, tr = x + crng.uniform(-2, 2), 126 + crng.uniform(-3, 3), crng.uniform(0, 360)
@@ -1063,6 +1087,57 @@ for i, x in enumerate(range(-40, 96, 16)):
         continue  # point 96: the city gas station stands here
     put("nature/tree_medium.tscn", (tx, 0, tz), tr, parent="City", props={"tree_seed": str(7100 + i)})
 gas_station("City", 36.0, 134.0, 0, "City", title="CITYFUEL")
+
+# Point 103: street detail along the city's straight roads - bins, bike racks, planters, bollards, post boxes on the
+# pavement near the kerb, manholes in the lanes. Each kind is ONE PropScatter (MultiMesh: one draw call per mesh).
+drng = random.Random(103)
+SCATTER = "res://scripts/procgen/prop_scatter.gd"
+GARAGE_RECTS = [(XB[bx][0] - 3, XB[bx][1] + 3, ZB[bz][0] - 3, ZB[bz][1] + 3) for (bx, bz), pl in PLAN.items()
+                if pl == "garage"]
+street = {k: [] for k in ["trash_can", "bike_rack_bikes", "flower_planter", "bollard", "post_box"]}
+holes = []
+KIND_CYCLE = ["trash_can", "bike_rack_bikes", "flower_planter", "bollard", "flower_planter", "trash_can",
+              "bike_rack_bikes", "post_box"]
+
+
+def _free_spot(x, z):
+    return not any(x0 <= x <= x1 and z0 <= z <= z1 for x0, x1, z0, z1 in GARAGE_RECTS)
+
+
+for a_, b_ in sorted(links):
+    horiz = a_[1] == b_[1]
+    lo, hi = (a_[0], b_[0]) if horiz else (a_[1], b_[1])
+    for side in (-1, 1):
+        t = lo + 9.0 + drng.uniform(0, 3)
+        while t < hi - 9.0:
+            x, z = (t, a_[1] + side * 4.1) if horiz else (a_[0] + side * 4.1, t)
+            if _free_spot(x, z):
+                kind = drng.choice(KIND_CYCLE)
+                yaw = (0 if side > 0 else 180) if horiz else (90 if side > 0 else 270)
+                if kind == "bollard":
+                    for k in (-0.8, 0.0, 0.8):
+                        street[kind].append((x + (k if horiz else 0), 0.15, z + (0 if horiz else k), yaw))
+                else:
+                    street[kind].append((x, 0.15, z, yaw))
+            t += drng.uniform(7.0, 11.0)
+    for t in range(lo + 12, hi, 12):
+        if drng.random() < 0.4:
+            off = drng.choice((-1.75, 1.75))
+            holes.append((t + 2.0, 0.0, a_[1] + off, 0) if horiz else (a_[0] + off, 0.0, t + 2.0, 0))
+
+
+def scatter(name, prefab, pts, collide=True, rng_end=90):
+    if not pts:
+        return
+    flat = ", ".join(f"{v:g}" for pt in pts for v in pt)
+    sc.node(name, "Node3D", "City", props={"script": sc.script(SCATTER), "prefab_path": q(prefab),
+            "spots": f"PackedFloat32Array({flat})", "range_end": f"{rng_end:g}",
+            "collide": "true" if collide else "false"})
+
+
+for kind, pts in street.items():
+    scatter("Street" + "".join(w.capitalize() for w in kind.split("_")), f"res://prefabs/props/{kind}.tscn", pts)
+scatter("StreetManholes", "res://prefabs/props/manhole.tscn", holes, collide=False, rng_end=60)
 for z in range(150, 330, 18):
     put("nature/tree_medium.tscn", (-66, 0, z), crng.uniform(0, 360), parent="City", props={"tree_seed": str(7200 + z)})
     put("props/bench.tscn", (-64.5, 0.0, z + 9), 270, parent="City", name=uname("CityBench"))
@@ -1216,16 +1291,35 @@ ab_fence(AB[0], AB[1], AB[2], AB[1])
 ab_fence(AB[0], AB[3], AB[2], AB[3])
 ab_fence(AB[2], AB[1], AB[2], AB[3])
 ab_fence(AB[0], AB[1], AB[0], AB[3], gaps=range(-360, -350))
-# Barbed wire on top: a thin dark strip along each side (visual only).
-for name, pos, size in [("WireN", ((AB[0] + AB[2]) / 2, 2.5, AB[1]), (AB[2] - AB[0], 0.25, 0.25)),
-                        ("WireS", ((AB[0] + AB[2]) / 2, 2.5, AB[3]), (AB[2] - AB[0], 0.25, 0.25)),
-                        ("WireE", (AB[2], 2.5, (AB[1] + AB[3]) / 2), (0.25, 0.25, AB[3] - AB[1])),
-                        ("WireW", (AB[0], 2.5, (AB[1] - 360) / 2), (0.25, 0.25, -360 - AB[1]))]:
-    pbox("Barbed" + name, pos, size, "metal_dark", col(0.25, 0.25, 0.25), parent="ArmyBase", collision=False)
-# The gate: a closed sliding gate (solid, 3 m high), a red-and-white boom in front, the guard booth.
-pbox("BaseGate", (AB[0] + 0.3, 0.0, -355.0), (0.3, 3.0, 10.0), "metal_dark", col(0.3, 0.32, 0.3), parent="ArmyBase")
-pbox("BaseBoom", (AB[0] - 2.5, 1.0, -355.65), (0.2, 0.2, 7.0), "trim_paint", col(0.85, 0.12, 0.1), parent="ArmyBase")
-pbox("BaseBoomPost", (AB[0] - 2.5, 0.0, -359.6), (0.5, 1.2, 0.5), "concrete", col(0.85, 0.85, 0.82), parent="ArmyBase")
+# Point 100: razor wire on the fence top (RazorWire, in 40 m runs so each run's draw distance works per stretch).
+RAZOR = "res://scripts/procgen/razor_wire.gd"
+
+
+def razor_run(prefix, x0, z0, x1, z1):
+    along_x = z0 == z1
+    a, b = (min(x0, x1), max(x0, x1)) if along_x else (min(z0, z1), max(z0, z1))
+    k = 0
+    while a < b - 0.5:
+        ln = min(40.0, b - a)
+        pos = (a, 2.35, z0) if along_x else (x0, 2.35, a)
+        sc.node(f"{prefix}{k}", "Node3D", "ArmyBase", props={"script": sc.script(RAZOR),
+                "transform": xform(pos, 0 if along_x else -90), "length": f"{ln:g}"})
+        a += ln
+        k += 1
+
+
+razor_run("WireN", AB[0], AB[1], AB[2], AB[1])
+razor_run("WireS", AB[0], AB[3], AB[2], AB[3])
+razor_run("WireE", AB[2], AB[1], AB[2], AB[3])
+razor_run("WireW", AB[0], AB[1], AB[0], -360.0)
+# The gate (point 100): an automatic sliding gate - only cars, walking soldiers and players with a pass open it (the
+# host decides) - and the red-and-white boom outside lifts with it.
+sc.node("BaseGate", "Node3D", "ArmyBase", props={"script": sc.script("res://scripts/world/sliding_gate.gd"),
+        "transform": xform((AB[0] + 0.3, 0.0, -355.0), 90), "width": "10.0", "height": "3.0",
+        "needs_army_pass": "true"})
+sc.node("BaseBoom", "Node3D", "ArmyBase", props={"script": sc.script("res://scripts/world/boom_gate.gd"),
+        "transform": xform((AB[0] - 2.5, 0.0, -359.6), 90), "length": "7.0",
+        "follow_gate": 'NodePath("../BaseGate")'})
 pbox("GuardBooth", (AB[0] - 4.0, 0.0, -362.5), (3.0, 2.8, 3.0), "concrete", SAND, parent="ArmyBase")
 pbox("GuardBoothRoof", (AB[0] - 4.0, 2.8, -362.5), (3.6, 0.2, 3.6), "metal_dark", OLIVE, parent="ArmyBase")
 sign = put("props/sign_post.tscn", (AB[0] - 6.5, 0.0, -350.6), 270, parent="ArmyBase", name="BaseSign")
@@ -1243,20 +1337,25 @@ for name, pos, size in [("HelipadH1", (-47.5, 0.1, -393), (0.8, 0.02, 7)), ("Hel
 for i, (x, z) in enumerate([(AB[0] + 3, AB[1] + 3), (AB[2] - 3, AB[1] + 3), (AB[2] - 3, AB[3] - 3), (AB[0] + 3, AB[3] - 14),
                             (80.0, AB[1] + 3), (-34.0, AB[3] - 3)]):
     put("army/watchtower.tscn", (x, 0.0, z), 0, parent="ArmyBase", name=f"Watchtower{i + 1}")
-# Barracks along the north fence, two hangars facing the parade ground.
+# Barracks along the north fence, two hangars facing the parade ground. Point 100: walk-in prefabs (dormitories
+# with bunks + lockers, open-front vehicle hangars) in the same footprints as the warehouses they replace; behind the
+# barracks the armoury and the command post.
 for i, x in enumerate([-90, -70, -50]):
-    put("buildings/warehouse.tscn", (x, 0.04, -412), 0, parent="ArmyBase", name=f"Barracks{i + 1}", props={
-        "width": "16", "depth": "8", "floor_height": "3.4", "bays": "4", "door_bay": "1", "variation_seed": str(2030 + i),
-        "wall_material": q("plaster"), "wall_tint": SAND, "roof_material": q("roof_dark"), "roof_type": q("gable"),
-        "roof_pitch": "22", "lit_windows": "0.3"})
+    put("army/barracks.tscn", (x, 0.04, -412), 0, parent="ArmyBase", name=f"Barracks{i + 1}")
 for i, x in enumerate([-92, -69]):  # (point 85: moved west from -90 / -64 to make room for the airfield)
-    put("buildings/warehouse.tscn", (x, 0.04, -391), 0, parent="ArmyBase", name=f"Hangar{i + 1}", props={
-        "width": "20", "depth": "14", "floor_height": "8", "bays": "2", "door_bay": "0", "variation_seed": str(2040 + i),
-        "wall_material": q("corrugated"), "wall_tint": OLIVE, "roof_material": q("roof_dark"), "roof_type": q("gable"),
-        "roof_pitch": "20", "lit_windows": "0.0"})
+    put("army/hangar.tscn", (x, 0.04, -391), 0, parent="ArmyBase", name=f"Hangar{i + 1}")
+put("army/armoury.tscn", (-72, 0.04, -428), 0, parent="ArmyBase", name="Armoury")
+put("army/command_post.tscn", (-53, 0.04, -428), 0, parent="ArmyBase", name="CommandPost")
+paved("ArmyBackRoad", -66, -424, 44, 6, "concrete", 0.04, parent="ArmyBase")
+# Sandbags: the gate post inside, the post outside the boom, a machine-gun nest at the parade ground's east end.
+for i, (x, z, rot, ln) in enumerate([(-102.0, -362.0, 90, 3.0), (-108.5, -349.6, 90, 3.0),
+                                     (-36.0, -368.4, 0, 3.6), (-37.8, -370.0, 90, 3.0), (-34.2, -370.0, 90, 3.0)]):
+    put("army/sandbags.tscn", (x, 0.04, z), rot, parent="ArmyBase", name=f"Sandbags{i + 1}",
+        props={"length": f"{ln:g}", "rows": "4"})
 # Vehicles on the parade ground.
 for i, (x, z, kind, rot) in enumerate([(-92, -370, "truck", 0), (-86, -370, "truck", 0), (-80, -370, "truck", 0),
-                                       (-72, -368, "jeep", 0), (-67, -368, "jeep", 0), (-52, -380, "truck", 90)]):
+                                       (-72, -368, "jeep", 0), (-67, -368, "jeep", 0), (-52, -380, "truck", 90),
+                                       (-48, -368, "jeep", 0), (-44, -372, "jeep", 20)]):
     put("army/army_truck.tscn", (x, 0.04, z), rot + arng.uniform(-3, 3), parent="ArmyBase", name=f"ArmyTruck{i + 1}",
         props={"kind": q(kind)})
 # Flagpole + crates.

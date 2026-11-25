@@ -348,6 +348,29 @@ Godot console exe:
 - Bunker fixes (82-84): lamps in `_build_lights` ([top pos, range, wall normal]), `EXTRA_LAMPS`/`EXTRA_LEGS`, room
   "generator" (`_build_generator_room`, body Machines, marker GeneratorSpot); terrain collision hole under the hall
   (`Mountain._collision_heights`, NaN = no collision). Check bunker_rooms; scenarios bunker_lamps/generator/garage.
+- Detail round (points 98-101): quality hooks `WorldLod.max_shadows` / `set_range_scale(tree, f)`, `GrassCover.density_scale`
+  / `radius_scale` / `rebuild()` (group grass_cover), `Traffic.count_scale` (B's `QualityProfile` drives them). Prison 99:
+  `SlidingGate` (scripts/world/sliding_gate.gd, local; `needs_army_pass` = host-driven), `ProcStairs` (scripts/procgen/,
+  gen_prefabs `stairs(...)`), `RazorWire` (`razor(...)`), Watchtower night beam, Block B two tiers, markers
+  PrisonGuardPost1-4 / PrisonPatrol1-4; scenarios prison_gate / prison_block_b, check prison. Army 100: prefabs/army/
+  barracks|armoury|command_post|hangar|sandbags (gen_prefabs `army_*`, `aprop(...)` = `ArmyProp` kinds), `hall()` takes
+  (side, centre, width[, top[, sill]]) (sill > 0 = window), ArmyBase/BaseGate (SlidingGate) + BaseBoom (`follow_gate`),
+  Armoury / CommandPost nodes; scenario army_inside, shots E3-E7. Shops 101: `ShopFront` (scripts/procgen/shop_front.gd,
+  KINDS/INFO, `units`, `room_rect`), `Tower.shop_faces` / `open_shop` / `has_open_shop()`, markers ShopkeeperSpot (meta
+  shop_kind/shop_name) + TerraceSeat, gen_world BlockPave; scenario city_shops, check city_shops, shots S0-S3. Sites 102:
+  `BuildingSite` (scripts/procgen/building_site.gd, group building_sites, `flight(k)`, `slab_top(k)`, `skeleton_rect()`),
+  gen_world `block_towers(..., site=True)`, nodes City/BuildingSite1-3, markers BuilderSpot1-6 / SiteGate / SiteDealSpot;
+  scenario building_site, check building_sites, shots T0-T2.
+- Graphics (point 103): `Weather` (scripts/world/weather.gd, World/Weather, `current`, `host_set`, `debug_set(on, wet)`,
+  `drops_scale`, net_state; `--weather=rain|dry`), global shader param `wetness` + stylized `wet_receiver` (gen_materials),
+  `DayNight.overcast` / `DayNight.volumetric` (High+ only) / height-fog mist / sky `overcast` + `cloud_offset`. Street detail:
+  `PropScatter` (scripts/procgen/prop_scatter.gd, `prefab_path`, `spots` x,y,z,yaw; MultiMesh + collision), gen_world nodes
+  City/Street* (drng), StreetProp `bikes` / `flowers` (prefabs bike_rack_bikes / flower_planter). Scenarios rain,
+  dawn_mist, street_detail; checks weather, street_detail.
+- Quality (B part 32): `QualityProfile` (scripts/perf/quality_profile.gd, `apply`, `auto_level()`), `--quality=low|medium|
+  high|ultra`, `--render-scale=X`, scenario fps_busy, `--fps-measure` (FpsMeter -> screenshots/fps_log.txt), check
+  quality_levels. Shop sellers (B part 33): `ShopStaff.populate` (till = cash_register or Marker3D `ShopkeeperSpot*` +
+  meta shop_type), `ShopTypes` (TYPES, WORDS, MEAL_HEAL), `ShopSeller`; scenario shop_sellers, check shop_sellers.
 - Mountains one style (point 73): `BorderRange.terrain_color` (both terrains), snow line 48; gen_border.py reads
   data/mountain (run it AFTER gen_mountain.py) and extrudes/pins the pass mountain's edges into the range.
 - Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from
@@ -415,6 +438,30 @@ Godot console exe:
 - City/army life (B 21): `CityLife` (sidewalk graph, `spots`, WALKERS_DAY/NIGHT, EXTRA_CARS), `Soldier.route` / `chatty` /
   MARKSMAN_PROFILE, `Zones.ARMY_MAN_RANGE` (220 m). Scenarios city_life, army_life.
 - `Territory.spot_near(who, near, far, detour=1.35)`: only spots whose navmesh walk is short (sent Crows).
+- Day rhythm (Roadmap 88, B part 25): `DayRhythm` (World/DayRhythm, host, `current`, config data/npc/day_rhythm.tres
+  `DayRhythmConfig`), made by `World.spawn_pedestrians` (`--no-rhythm` = fixed crowd; never in the self-test); homes =
+  residential Building front doors on the navmesh outside the Zones (`find_homes`); `Pedestrian.call_home` /
+  `home_reached`; home deals `home_customer()`. Scenario day_rhythm, self-test check day_rhythm.
+- NPC bench (Roadmap 89, B part 26): `NpcBench` (scripts/debug/npc_bench.gd), scenario npc_bench (window; `--bench-quit`,
+  `--bench-step=S`), steers `NpcStreamer.cap_override`, writes screenshots/npc_bench.txt.
+- Settings (B part 27): `Settings` autoload (user://settings.cfg; test runs use settings_test.cfg and skip display/
+  quality), `Settings.open_menu()` -> `SettingsMenu`; buses Master/Music/SFX/Voice/Ambience (new players on Master ->
+  SFX unless meta keep_bus); `Settings.fov`, `look_scale()`, `ACTIONS` (rebindable). Scenario settings_menu, check settings.
+- Sound (B part 28): `Soundscape` autoload (`zone_key_at`, `music_key_for`, `heard_shot` from Wildlife.scare_at,
+  buses Ambience/Music, assets/audio/ambience + music), `Footsteps` on every Player (`surface_of(hit)`, meta "surface").
+  gen_ambience.py makes the loops. Scenarios soundscape / sound_snow / sound_city, self-test check soundscape.
+- Menus (B part 29): title page in code (scenes/main_menu/main_menu.gd, `TitleArt`), save slots in SaveManager
+  (`SLOTS`, `slot_path`, `use_slot`, `slot_info` from `<save>.info`, `delete_slot`, `slot_dir`; slot 1 = savegame.json;
+  world["play_time"]), `Loading.go_to_world()` (loading screen with tips; use it instead of change_scene to the world),
+  `PauseMenu` (World/PauseMenu, Esc, pauses solo; HUD/Panel hidden). `--menu-shots`; scenarios title_menu / pause_menu,
+  self-test check menus.
+- Steam co-op (B part 30): GodotSteam GDExtension in addons/godotsteam (app 480), `SteamNet` autoload (`start`,
+  `host`, `join`, `find_lobbies`, `invite`, `friends`, `pending_lobby`, `in_steam_game`, never in test runs unless
+  `--steam`; `--steam-check` = live check), Net `host_with_peer` / `join_with_peer` / `transport`; IP (ENet) stays
+  the fallback (use `Net.is_online()` / `Net.transport`, never `is ENetMultiplayerPeer`). Scenario steam_host, check steam.
+- Controller (B part 31): pad events in project.godot next to every key, `Gamepad` autoload (right stick = synthetic
+  mouse motion, L3 sprint toggle, pointer + A click / B back in menus, `rumble`, `pad_kind`, `layout`), Settings
+  `stick_sensitivity` / `vibration` + tab Controller. Scenario controller, self-test check gamepad.
 - Ranks (milestone 3): `Progression` autoload (crew XP in GameState.world["progress"], host_add/host_sale/host_kill,
   item_lock/property_lock gates, off in selftest/scenarios unless `force_gates`), `RankConfig` in
   `data/progression/ranks.tres`, HUD `RankPanel`. F8 = +100 XP, `--xp=N`. Scenario ranks, self-test check ranks.

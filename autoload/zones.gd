@@ -530,6 +530,10 @@ func _residents_tick() -> void:
 			_residents[key] = {"back": _now() + 120.0}
 			continue
 		var gone: bool = not keep[r["zone"]] or not CityLife.in_hours(r.get("hours", Vector2(0, 24)), h)
+		if gone and npc is CityWalker and (npc as CityWalker).inside:
+			npc.queue_free()  # (out of hours while hidden in a shop: simply gone)
+			_residents.erase(key)
+			continue
 		if gone and npc.wants <= 0 and not (npc is CityWalker and (npc as CityWalker).shopping):
 			npc.queue_free()
 			_residents.erase(key)

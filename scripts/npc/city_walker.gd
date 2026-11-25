@@ -118,8 +118,13 @@ static func shops() -> Array:
 			if c is NetDoor and (door == null or (c as Node3D).global_position.distance_to(s.global_position)
 					< door.global_position.distance_to(s.global_position)):
 				door = c as NetDoor
-		var front: Vector3 = (door.get_center() + door.get_outward() * 1.4) if door else s.global_position - s.global_basis.z * 4.0
-		out.append({"seller": s, "door": door, "front": front, "type": s.shop_type})
+		if door and door.global_position.distance_to(s.global_position) > 16.0:
+			door = null  # (a tower: that door belongs to another part)
+		var gap: Dictionary = ShopStaff.entrance(s) if door == null else {}
+		if door == null and gap.is_empty():
+			continue
+		var front: Vector3 = (door.get_center() + door.get_outward() * 1.4) if door else gap["front"]
+		out.append({"seller": s, "door": door, "gap": gap, "front": front, "type": s.shop_type})
 	return out
 
 

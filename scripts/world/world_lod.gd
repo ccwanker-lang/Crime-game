@@ -213,7 +213,8 @@ static func set_range_scale(tree: SceneTree, s: float) -> void:
 ## Occlusion culling: a box a bit inside the shell of every closed (non-enterable) building or tower, so what
 ## stands behind it is not drawn. Enterable ones get none (you would stand inside the box).
 func _add_occluder(b: Node3D) -> void:
-	if b == null or bool(b.get(&"enterable")) or b.get_node_or_null("Occluder"):
+	if b == null or bool(b.get(&"enterable")) or b.get_node_or_null("Occluder") \
+			or (b.has_method(&"has_open_shop") and bool(b.call(&"has_open_shop"))):  # (point 101: the walk-in shop)
 		return
 	var box := AABB()
 	var first: bool = true

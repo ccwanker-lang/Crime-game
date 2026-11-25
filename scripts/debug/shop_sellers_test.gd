@@ -21,6 +21,9 @@ static func run(t: Node, world: Node3D) -> void:
 		var b := s.get_parent() as Node3D
 		var front: Vector3 = b.global_basis.z
 		var looks: Vector3 = -s.global_basis.z
+		for m: Node in b.find_children("ShopkeeperSpot*", "Marker3D", true, false):
+			if (m as Node3D).global_position.distance_to(s.global_position) < 0.5:
+				front = -(m as Node3D).global_basis.z  # (A's walk-in city shops: the marker says where the door is)
 		# On a floor, inside the building, looking at the front, with free room in front of it (the counter is
 		# at most ~1.2 m away, then the shop floor).
 		var q := PhysicsRayQueryParameters3D.create(s.global_position + Vector3.UP * 0.5, s.global_position + Vector3.DOWN * 0.4, 1)

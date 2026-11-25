@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op), part 31 (controller support), part 32 (quality levels + FPS measuring), part 33 (shop sellers), part 34 (diners), part 35 (city crowd).
+Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1493,7 +1493,15 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   at the latest).
 - Today on the map: Bakery (2 chairs at its table) and Snack Bar (4 counter spots). A's walk-in cafes / restaurants with
   DinerSeat markers join by themselves after the merge.
-- Scenario diners (Bakery, 12:30, 4x faster), self-test check diners, flags `--diner-debug`, `--no-diners` (A-B).
+- After merging main 458049a: A's walk-in city shops join by themselves. One place per SELLER (a tower holds several
+  shops; seats belong to the nearest seller in the same building), A's DinerSeat markers on chairs count once. City
+  shops have no door node: `ShopStaff.entrance(seller)` finds the gap in the glass front with rays (cached) and guests
+  / shoppers walk street -> gap -> inside. No navmesh in the city: `_walk` tries one detour point round the target
+  (tables), a seat that fails twice is only used for "already seated" guests, and `_go_timed` ends every move (an NPC
+  put to sleep by the streamer would never arrive). Now: ShopTower7 cafe (4 seats), ShopTower3 snack bar (counter),
+  Bakery, Snack Bar.
+- Scenarios diners (Bakery, 12:30, 4x faster) and city_cafe (A's walk-in cafe), self-test check diners
+  (`DinerLife.clear_all()` first), flags `--diner-debug`, `--no-diners` (A-B).
 
 ## Decisions (what + why)
 - Guests are normal host NPCs (Zones.add_resident): synced like every resident, counted by the NPC streamer's cap,
@@ -1546,5 +1554,7 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - `diners` (F9): je staat in de bakkerij om 12:30, alles 4x sneller. Gasten komen binnen, gaan aan tafel zitten, krijgen
   koffie en gebak, en gaan weer weg. Schiet een keer: ze rennen weg. In de snackbar staan mensen aan de toonbank te
   praten.
+- `city_cafe` (F9): je staat in een stadscafe (A's winkeltorens) om 12:30, 4x sneller: gasten komen door de opening in
+  de pui binnen, zitten aan de twee tafels met koffie en eten.
 - `city_crowd` (F9): een stadshoek om 10:00. Drie mensen lopen recht op je af: een met twee tasjes, een met een
   kinderwagen en een met een hond. Druk F7 om de tijd te versnellen: 's avonds is het rustiger op straat.

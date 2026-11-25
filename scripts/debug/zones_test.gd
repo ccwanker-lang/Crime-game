@@ -186,7 +186,7 @@ static func run(t: Node, world: Node3D) -> void:
 		var night_kinds: Dictionary = {}
 		for r: Dictionary in Zones._residents.values():
 			if r.get("zone") == &"city" and is_instance_valid(r.get("npc")) and not (r["npc"] as Node).is_queued_for_deletion() \
-					and (r["npc"] as Pedestrian).wants <= 0:
+					and (r["npc"] as Pedestrian).wants <= 0 and not (r["npc"] is CityWalker and (r["npc"] as CityWalker).shopping):
 				var kind: String = "office" if str(r.get("key", "")).begins_with("Tower") else str(r.get("kind", "stand"))
 				night_kinds[kind] = int(night_kinds.get(kind, 0)) + 1
 		report.call(not night_kinds.has("office") and int(night_kinds.get("walk", 0)) == _walkers_at(Zones._hours()) and not night_kinds.has("sit"),

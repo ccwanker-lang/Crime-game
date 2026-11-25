@@ -37,6 +37,8 @@ static func run(t: Node, world: Node3D) -> void:
 	report.call(wrong.is_empty(), "busy hours: bars full at night, restaurants at dinner, the bakery closed at 22 h%s"
 			% ("" if wrong.is_empty() else ": " + ", ".join(wrong)))
 
+	dl.clear_all()  # (guests of earlier checks at normal speed)
+	await tree.physics_frame
 	# Guests (20x faster, every place open).
 	DinerLife.force = true
 	DinerLife.always_open = true
@@ -70,10 +72,12 @@ static func run(t: Node, world: Node3D) -> void:
 	# A shot inside: the sitters run, their seats and tables clear.
 	var first := dl.taken.get("%d:0" % bi) as Pedestrian
 	if first and is_instance_valid(first):
+		dl.set_process(false)  # (no new guest takes the seat during this second)
 		for n: Node in tree.get_nodes_in_group(&"npc"):
 			if n.has_meta(&"diner"):
 				(n as Pedestrian).hear_gunshot(first.global_position + Vector3(1, 0, 1))
 		await tree.create_timer(1.0).timeout
+		dl.set_process(true)
 		var cleared: bool = not dl.dishes.has("%d:0" % bi)
 		var ran: bool = not is_instance_valid(first) or not first._sitting
 		report.call(cleared and ran, "a gunshot: the guest jumps up and runs, the table is cleared (%s, %s)" % [ran, cleared])
@@ -81,6 +85,10 @@ static func run(t: Node, world: Node3D) -> void:
 	# Closing time: nobody new comes, the place empties.
 	DinerLife.always_open = false
 	DinerLife.force = false
+	var dn := tree.get_first_node_in_group(&"day_night") as DayNight
+	var old_h: float = dn.hours if dn else 12.0
+	if dn:
+		dn.set_hours(4.5)  # (every place closed, also where a player of another check stands near)
 	var empty: bool = false
 	var stuck: PackedStringArray = []
 	t0 = Time.get_ticks_msec()
@@ -101,3 +109,5 @@ static func run(t: Node, world: Node3D) -> void:
 			+ "left after %.1f s (%d guests, %d served)%s" % [(Time.get_ticks_msec() - t0) / 1000.0, dl.guests, dl.served,
 			"" if empty else " - still there: " + "; ".join(stuck) + " taken " + str(dl.taken.keys())])
 	DinerLife.speed = 1.0
+	if dn:
+		dn.set_hours(old_h)

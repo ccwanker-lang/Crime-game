@@ -91,8 +91,44 @@ func _rebuild() -> void:
 	spot.position = Vector3(0, height + 3.0, HALF + 0.9)
 	spot.rotation = Vector3(deg_to_rad(-28.0), PI, 0)
 	spot.add_to_group(&"night_spots")
+	# Point 99: a visible beam (an additive cone, unshaded, no light cost) so the sweep reads from afar at night.
+	var beam := MeshInstance3D.new()
+	var cone := CylinderMesh.new()
+	cone.bottom_radius = 0.3  # (the bottom ends up at the lamp, the top far out along -Z)
+	cone.top_radius = tan(deg_to_rad(spot.spot_angle)) * BEAM_LENGTH
+	cone.height = BEAM_LENGTH
+	cone.radial_segments = 12
+	cone.rings = 1
+	cone.cap_top = false
+	cone.cap_bottom = false
+	beam.mesh = cone
+	beam.material_override = _beam_material()
+	beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	beam.rotation.x = -PI / 2.0  # the cylinder's +Y along the light's -Z
+	beam.position = Vector3(0, 0, -BEAM_LENGTH / 2.0)
+	beam.visible = false
+	beam.name = "Beam"
+	spot.add_child(beam)
 	add_child(spot)
 	_generated.append(spot)
+
+
+const BEAM_LENGTH: float = 30.0
+static var _beam_mat: Material
+
+
+static func _beam_material() -> Material:
+	if _beam_mat == null:
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.albedo_color = Color(1.0, 0.95, 0.8, 0.07)
+		m.proximity_fade_enabled = true
+		m.proximity_fade_distance = 1.5
+		_beam_mat = m
+	return _beam_mat
 
 
 func _process(_delta: float) -> void:
@@ -104,4 +140,7 @@ func _process(_delta: float) -> void:
 	var dn := get_tree().get_first_node_in_group(&"day_night") as DayNight
 	var night: bool = dn != null and dn.is_night()
 	spot.light_energy = 6.0 if night else 0.0
+	var beam: Node3D = spot.get_node_or_null(^"Beam")
+	if beam:
+		beam.visible = night
 	spot.rotation.y = PI + sin(Time.get_ticks_msec() / 2600.0 + position.x) * 0.9

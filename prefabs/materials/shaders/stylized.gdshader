@@ -28,6 +28,9 @@ uniform float roughness_v = 0.85;
 uniform float specular_v = 0.3;
 uniform float metallic_v = 0.0;
 uniform float ground_shade = 0.0;  // slightly darker near the ground (walls)
+// Point 103: how much rain wets this surface (roads 1, paving ~0.85, roofs 0.5; 0 = never: interiors).
+uniform float wet_receiver = 0.0;
+global uniform float wetness;
 instance uniform vec4 wall_tint : source_color, instance_index(0) = vec4(1.0);
 instance uniform vec4 roof_tint : source_color, instance_index(1) = vec4(1.0);
 instance uniform vec4 trim_tint : source_color, instance_index(2) = vec4(1.0);
@@ -102,8 +105,20 @@ void fragment() {
 		c = mix(c, joint, line * line_amount * fade);
 	}
 	if (ground_shade > 0.0) c *= mix(1.0 - ground_shade, 1.0, clamp(world_pos.y / 1.5, 0.0, 1.0));
+	float rough = roughness_v;
+	float spec = specular_v;
+	float w = wetness * wet_receiver;
+	if (w > 0.001) {
+		// Wet: darker and glossier; on flat ground puddles (noise) go almost mirror-like.
+		vec3 wn = (INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz;
+		float flat_up = smoothstep(0.75, 0.95, wn.y);
+		float puddle = smoothstep(0.58, 0.7, vnoise(world_pos.xz * 0.3) * 0.7 + vnoise(world_pos.xz * 1.1) * 0.3) * flat_up;
+		c *= mix(1.0, 0.6, w) * mix(1.0, 0.85, puddle * w);
+		rough = mix(rough, mix(0.3, 0.06, puddle), w);
+		spec = mix(spec, 0.6, w);
+	}
 	ALBEDO = c;
-	ROUGHNESS = roughness_v;
-	SPECULAR = specular_v;
+	ROUGHNESS = rough;
+	SPECULAR = spec;
 	METALLIC = metallic_v;
 }
