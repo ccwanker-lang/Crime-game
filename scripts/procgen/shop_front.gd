@@ -7,10 +7,14 @@ extends RefCounted
 ## pharmacy cross, florist buckets, café terrace with TerraceSeat markers for session B's CityLife, menu board). The
 ## name is a Label3D on the fascia (drawn up to SIGN_RANGE m).
 ## `open_shop`: one unit on the -Z face is a real shop you walk into (Tower cuts the room out of its ground floor):
-## lining, a counter, the furniture of its kind and a ShopCounterSpot marker (meta shop_kind / shop_name) where
+## lining, a counter, the furniture of its kind and a ShopkeeperSpot marker (meta shop_kind / shop_name) where
 ## session B's shopkeeper stands.
 
 const UNIT: float = 7.5  # target width of one shop
+## Our shop kinds -> session B's ShopTypes (the seller's stock); "-" = no seller (a trade of its own).
+const SELLER_TYPE: Dictionary = {"cafe": "cafe", "restaurant": "restaurant", "bakery": "bakery", "florist": "florist",
+		"boutique": "clothing", "chips": "snack_bar", "supermarket": "kiosk", "phone": "kiosk", "pharmacy": "kiosk",
+		"barber": "-"}
 const FLOOR: float = 0.15  # the paved block (= pavement height) the shops and terraces stand on
 const ROOM_DEPTH: float = 8.0
 const SIGN_RANGE: float = 75.0
@@ -283,11 +287,12 @@ static func _room(t: Tower, b: MeshBuilder, face: Array, t0: float, t1: float, f
 	nodes.append(counter_shape)
 	nodes.append(_furn("cash_register.tscn", Vector3(cx + 1.5, FLOOR + 1.0, cz), 0.0))
 	var spot := Marker3D.new()
-	spot.name = "ShopCounterSpot"
+	spot.name = "ShopkeeperSpot"  # (session B's ShopStaff puts a seller here)
 	spot.position = Vector3(cx + 0.6, FLOOR + 0.05, cz + 1.0)
 	spot.rotation.y = 0.0  # (looks -Z: at the door)
 	spot.set_meta(&"shop_kind", kind)
 	spot.set_meta(&"shop_name", shop_name)
+	spot.set_meta(&"shop_type", SELLER_TYPE.get(kind, "-"))
 	nodes.append(spot)
 	# Shelves on the back wall + the kind's own furniture in the front part.
 	for k: int in 2:
@@ -300,6 +305,12 @@ static func _room(t: Tower, b: MeshBuilder, face: Array, t0: float, t1: float, f
 				nodes.append(_furn("dining_table.tscn", Vector3(tx, 0.04, front_z), 0.0))
 				nodes.append(_furn("dining_chair.tscn", Vector3(tx, 0.04, front_z - 0.8), 0.0))
 				nodes.append(_furn("dining_chair.tscn", Vector3(tx, 0.04, front_z + 0.8), PI))
+				for side: float in [-1.0, 1.0]:  # session B's diners: -Z of the marker looks at the table
+					var seat := Marker3D.new()
+					seat.name = "DinerSeat"
+					seat.position = Vector3(tx, FLOOR + 0.05, front_z + side * 0.8)
+					seat.rotation.y = PI if side < 0.0 else 0.0
+					nodes.append(seat)
 		"barber":
 			for k: int in 2:
 				nodes.append(_furn("barber_chair.tscn", Vector3(x0 + 1.2 + k * 1.8, 0.04, front_z + 1.2), PI))

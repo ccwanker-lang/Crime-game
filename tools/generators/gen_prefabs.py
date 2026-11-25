@@ -176,6 +176,9 @@ model_prefab(P + "chainlink_gate_frame.tscn", "modular_chainlink_fence", ["modul
 
 for kind, name in [(0, "bollard"), (1, "post_box"), (2, "bike_rack"), (3, "sign_post"), (4, "manhole")]:
     script_prefab(P + f"{name}.tscn", "StaticBody3D", "street_prop", {"kind": str(kind)})
+# Point 103 (street detail): a rack with bikes, a planter with flowers (StreetProp kind 5).
+script_prefab(P + "bike_rack_bikes.tscn", "StaticBody3D", "street_prop", {"kind": "2", "bikes": "2", "prop_seed": "3"})
+script_prefab(P + "flower_planter.tscn", "StaticBody3D", "street_prop", {"kind": "5", "flowers": "true", "prop_seed": "5"})
 script_prefab(P + "container_6m.tscn", "StaticBody3D", "container", {"length_type": '"6m"'})
 script_prefab(P + "container_12m.tscn", "StaticBody3D", "container", {"length_type": '"12m"'})
 script_prefab(P + "garden_fence.tscn", "StaticBody3D", "fence")

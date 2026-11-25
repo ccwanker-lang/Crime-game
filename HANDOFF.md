@@ -134,5 +134,7 @@
   97 is documentation only (done). Then the full self-test + netcheck + the Dutch summary for the user.
 - 2026-11-25: merged B parts 25-31 (+ duck test). Detail round (user 2026-11-24): 98 split with B (B = quality table,
   auto-level, fps_busy, suite; A's hooks DONE), 99 prison DONE, 100 army base DONE, 101 city shops DONE (A part).
-  102 building sites DONE (A part). A's NEXT: 103 graphics + street detail + the quality setting with B. Waiting on B: shopkeepers (ShopCounterSpot),
+  102 building sites DONE (A part). 103 graphics + street detail DONE. B parts 32-33 merged. The detail round
+  (98-103) is finished for A; waiting on B: builders, prison guards, Soldier pass bug, shop_sellers test (towers
+  face -Z), rain sound. Waiting on B: shopkeepers (ShopkeeperSpot),
   prison guards (PrisonGuardPost/Patrol), Soldier.spot_intruder honouring passes, builders (102).

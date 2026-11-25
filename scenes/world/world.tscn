@@ -79,23 +79,24 @@
 [ext_resource type="PackedScene" path="res://prefabs/city/tower.tscn" id="77_r"]
 [ext_resource type="Script" path="res://scripts/procgen/building_site.gd" id="78_r"]
 [ext_resource type="PackedScene" path="res://prefabs/city/parking_garage.tscn" id="79_r"]
-[ext_resource type="PackedScene" path="res://prefabs/slums/shack.tscn" id="80_r"]
-[ext_resource type="PackedScene" path="res://prefabs/slums/fire_barrel.tscn" id="81_r"]
-[ext_resource type="PackedScene" path="res://prefabs/slums/caravan.tscn" id="82_r"]
-[ext_resource type="Script" path="res://scripts/procgen/razor_wire.gd" id="83_r"]
-[ext_resource type="Script" path="res://scripts/world/sliding_gate.gd" id="84_r"]
-[ext_resource type="Script" path="res://scripts/world/boom_gate.gd" id="85_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/watchtower.tscn" id="86_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/barracks.tscn" id="87_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/hangar.tscn" id="88_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/armoury.tscn" id="89_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/command_post.tscn" id="90_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/sandbags.tscn" id="91_r"]
-[ext_resource type="PackedScene" path="res://prefabs/army/army_truck.tscn" id="92_r"]
-[ext_resource type="Script" path="res://scripts/procgen/jet_hangar.gd" id="93_r"]
-[ext_resource type="Script" path="res://scripts/world/airfield.gd" id="94_r"]
-[ext_resource type="PackedScene" path="res://prefabs/buildings/prison.tscn" id="95_r"]
-[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="96_r"]
+[ext_resource type="Script" path="res://scripts/procgen/prop_scatter.gd" id="80_r"]
+[ext_resource type="PackedScene" path="res://prefabs/slums/shack.tscn" id="81_r"]
+[ext_resource type="PackedScene" path="res://prefabs/slums/fire_barrel.tscn" id="82_r"]
+[ext_resource type="PackedScene" path="res://prefabs/slums/caravan.tscn" id="83_r"]
+[ext_resource type="Script" path="res://scripts/procgen/razor_wire.gd" id="84_r"]
+[ext_resource type="Script" path="res://scripts/world/sliding_gate.gd" id="85_r"]
+[ext_resource type="Script" path="res://scripts/world/boom_gate.gd" id="86_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/watchtower.tscn" id="87_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/barracks.tscn" id="88_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/hangar.tscn" id="89_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/armoury.tscn" id="90_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/command_post.tscn" id="91_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/sandbags.tscn" id="92_r"]
+[ext_resource type="PackedScene" path="res://prefabs/army/army_truck.tscn" id="93_r"]
+[ext_resource type="Script" path="res://scripts/procgen/jet_hangar.gd" id="94_r"]
+[ext_resource type="Script" path="res://scripts/world/airfield.gd" id="95_r"]
+[ext_resource type="PackedScene" path="res://prefabs/buildings/prison.tscn" id="96_r"]
+[ext_resource type="Script" path="res://scripts/traffic/traffic.gd" id="97_r"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_1"]
 geometry_parsed_geometry_type = 1
@@ -5011,6 +5012,48 @@ outline_size = 8
 [node name="Spot" type="Marker3D" parent="City/GasStationCity"]
 transform = Transform3D(-1, 0, 1.22465e-16, 0, 1, 0, -1.22465e-16, 0, -1, -1.4, 0.35, 1.6)
 
+[node name="StreetTrashCan" type="Node3D" parent="City"]
+script = ExtResource("80_r")
+prefab_path = "res://prefabs/props/trash_can.tscn"
+spots = PackedFloat32Array(-49.9, 0.15, 172.463, 90, -49.9, 0.15, 224.447, 90, -35.0291, 0.15, 199.9, 180, -43.9097, 0.15, 208.1, 0, -25.7304, 0.15, 208.1, 0, -58.1, 0.15, 274.791, 270, -7.43948, 0.15, 328.1, 0, 1.9, 0.15, 154.82, 270, 1.9, 0.15, 178.73, 270, 10.1, 0.15, 155.634, 90, 16.9233, 0.15, 139.9, 180, 53.3354, 0.15, 139.9, 180, 34.4523, 0.15, 148.1, 0, 26.1659, 0.15, 199.9, 180, 33.5198, 0.15, 199.9, 180, 43.3372, 0.15, 199.9, 180, 10.1, 0.15, 282.308, 90, 10.1, 0.15, 311.155, 90, 23.8635, 0.15, 259.9, 180, 49.689, 0.15, 268.1, 0, 53.9105, 0.15, 319.9, 180, 61.9, 0.15, 154.129, 270, 61.9, 0.15, 164.387, 270, 86.1846, 0.15, 139.9, 180, 61.9, 0.15, 213.043, 270, 70.1, 0.15, 214.716, 90, 87.7286, 0.15, 208.1, 0, 61.9, 0.15, 273.427, 270, 61.9, 0.15, 282.064, 270, 70.1, 0.15, 314.264, 90, 75.093, 0.15, 259.9, 180, 84.1798, 0.15, 268.1, 0, 106.1, 0.15, 153.41, 90, 97.9, 0.15, 215.263, 270, 97.9, 0.15, 224.324, 270, 97.9, 0.15, 252.569, 270, 106.1, 0.15, 233.575, 90, 106.1, 0.15, 286.069, 90, 106.1, 0.15, 296.061, 90, 106.1, 0.15, 305.805, 90)
+range_end = 90
+collide = true
+
+[node name="StreetBikeRackBikes" type="Node3D" parent="City"]
+script = ExtResource("80_r")
+prefab_path = "res://prefabs/props/bike_rack_bikes.tscn"
+spots = PackedFloat32Array(-58.1, 0.15, 176.43, 270, -49.9, 0.15, 155.616, 90, -49.9, 0.15, 179.639, 90, -6.82856, 0.15, 148.1, 0, -58.1, 0.15, 214.69, 270, -58.1, 0.15, 240.992, 270, -16.1413, 0.15, 208.1, 0, -5.7619, 0.15, 208.1, 0, -58.1, 0.15, 292.533, 270, -58.1, 0.15, 311.08, 270, -42.8771, 0.15, 259.9, 180, -22.7247, 0.15, 259.9, 180, -32.0453, 0.15, 328.1, 0, 1.9, 0.15, 162.983, 270, 1.9, 0.15, 171.299, 270, 10.1, 0.15, 172.891, 90, 36.7337, 0.15, 139.9, 180, 39.8666, 0.15, 208.1, 0, 55.0813, 0.15, 208.1, 0, 10.1, 0.15, 290.513, 90, 41.4665, 0.15, 259.9, 180, 23.9415, 0.15, 268.1, 0, 16.3912, 0.15, 319.9, 180, 26.8703, 0.15, 319.9, 180, 36.5935, 0.15, 319.9, 180, 17.1034, 0.15, 328.1, 0, 45.4708, 0.15, 328.1, 0, 61.9, 0.15, 193.205, 270, 61.9, 0.15, 230.748, 270, 61.9, 0.15, 241.189, 270, 70.1, 0.15, 224.611, 90, 70.1, 0.15, 234.772, 90, 61.9, 0.15, 290.757, 270, 61.9, 0.15, 308.34, 270, 75.8216, 0.15, 319.9, 180, 75.8674, 0.15, 328.1, 0, 106.1, 0.15, 182.865, 90, 97.9, 0.15, 282.107, 270, 97.9, 0.15, 307.494, 270)
+range_end = 90
+collide = true
+
+[node name="StreetFlowerPlanter" type="Node3D" parent="City"]
+script = ExtResource("80_r")
+prefab_path = "res://prefabs/props/flower_planter.tscn"
+spots = PackedFloat32Array(-49.9, 0.15, 164.573, 90, -49.9, 0.15, 189.405, 90, -15.6733, 0.15, 139.9, 180, -42.8748, 0.15, 148.1, 0, -35.7091, 0.15, 148.1, 0, -28.1845, 0.15, 148.1, 0, -58.1, 0.15, 224.525, 270, -49.9, 0.15, 215.667, 90, -49.9, 0.15, 232.746, 90, -44.733, 0.15, 199.9, 180, -9.54602, 0.15, 199.9, 180, -58.1, 0.15, 283.448, 270, -32.4337, 0.15, 259.9, 180, -13.2653, 0.15, 259.9, 180, -23.6225, 0.15, 328.1, 0, 1.9, 0.15, 188.784, 270, 10.1, 0.15, 165.497, 90, 10.1, 0.15, 183.369, 90, 10.1, 0.15, 193.048, 90, 43.7926, 0.15, 139.9, 180, 16.2771, 0.15, 148.1, 0, 24.6905, 0.15, 148.1, 0, 1.9, 0.15, 213.809, 270, 1.9, 0.15, 221.598, 270, 1.9, 0.15, 238.093, 270, 10.1, 0.15, 213.252, 90, 10.1, 0.15, 229.8, 90, 10.1, 0.15, 238.585, 90, 10.1, 0.15, 247.998, 90, 17.1514, 0.15, 208.1, 0, 10.1, 0.15, 300.926, 90, 16.7795, 0.15, 259.9, 180, 33.8501, 0.15, 259.9, 180, 51.3198, 0.15, 259.9, 180, 16.5736, 0.15, 268.1, 0, 54.6342, 0.15, 328.1, 0, 61.9, 0.15, 174.779, 270, 61.9, 0.15, 183.823, 270, 75.4426, 0.15, 139.9, 180, 61.9, 0.15, 221.842, 270, 77.1695, 0.15, 208.1, 0, 70.1, 0.15, 273.492, 90, 70.1, 0.15, 303.954, 90, 85.6469, 0.15, 259.9, 180, 91.8707, 0.15, 268.1, 0, 106.1, 0.15, 163.814, 90, 106.1, 0.15, 191.892, 90, 106.1, 0.15, 222.694, 90, 106.1, 0.15, 253.145, 90, 97.9, 0.15, 273.277, 270, 97.9, 0.15, 290.906, 270, 106.1, 0.15, 275.418, 90)
+range_end = 90
+collide = true
+
+[node name="StreetBollard" type="Node3D" parent="City"]
+script = ExtResource("80_r")
+prefab_path = "res://prefabs/props/bollard.tscn"
+spots = PackedFloat32Array(-58.1, 0.15, 165.874, 270, -58.1, 0.15, 166.674, 270, -58.1, 0.15, 167.474, 270, -43.4416, 0.15, 139.9, 180, -42.6416, 0.15, 139.9, 180, -41.8416, 0.15, 139.9, 180, -36.0973, 0.15, 139.9, 180, -35.2973, 0.15, 139.9, 180, -34.4973, 0.15, 139.9, 180, -49.9, 0.15, 242.436, 90, -49.9, 0.15, 243.236, 90, -49.9, 0.15, 244.036, 90, -49.9, 0.15, 251.698, 90, -49.9, 0.15, 252.498, 90, -49.9, 0.15, 253.298, 90, -27.7298, 0.15, 199.9, 180, -26.9298, 0.15, 199.9, 180, -26.1298, 0.15, 199.9, 180, -43.6197, 0.15, 328.1, 0, -42.8197, 0.15, 328.1, 0, -42.0197, 0.15, 328.1, 0, 54.3365, 0.15, 148.1, 0, 55.1365, 0.15, 148.1, 0, 55.9365, 0.15, 148.1, 0, 1.9, 0.15, 229.439, 270, 1.9, 0.15, 230.239, 270, 1.9, 0.15, 231.039, 270, 10.1, 0.15, 220.65, 90, 10.1, 0.15, 221.45, 90, 10.1, 0.15, 222.25, 90, 50.8122, 0.15, 199.9, 180, 51.6122, 0.15, 199.9, 180, 52.4122, 0.15, 199.9, 180, 31.7437, 0.15, 208.1, 0, 32.5437, 0.15, 208.1, 0, 33.3437, 0.15, 208.1, 0, 46.8655, 0.15, 208.1, 0, 47.6655, 0.15, 208.1, 0, 48.4655, 0.15, 208.1, 0, 33.3505, 0.15, 268.1, 0, 34.1505, 0.15, 268.1, 0, 34.9505, 0.15, 268.1, 0, 26.9052, 0.15, 328.1, 0, 27.7052, 0.15, 328.1, 0, 28.5052, 0.15, 328.1, 0, 70.1, 0.15, 292.305, 90, 70.1, 0.15, 293.105, 90, 70.1, 0.15, 293.905, 90, 82.8962, 0.15, 319.9, 180, 83.6962, 0.15, 319.9, 180, 84.4962, 0.15, 319.9, 180, 90.4747, 0.15, 319.9, 180, 91.2747, 0.15, 319.9, 180, 92.0747, 0.15, 319.9, 180, 84.5597, 0.15, 328.1, 0, 85.3597, 0.15, 328.1, 0, 86.1597, 0.15, 328.1, 0, 106.1, 0.15, 172.031, 90, 106.1, 0.15, 172.831, 90, 106.1, 0.15, 173.631, 90, 97.9, 0.15, 240.864, 270, 97.9, 0.15, 241.664, 270, 97.9, 0.15, 242.464, 270, 106.1, 0.15, 212.619, 90, 106.1, 0.15, 213.419, 90, 106.1, 0.15, 214.219, 90, 97.9, 0.15, 298.333, 270, 97.9, 0.15, 299.133, 270, 97.9, 0.15, 299.933, 270, 106.1, 0.15, 312.15, 90, 106.1, 0.15, 312.95, 90, 106.1, 0.15, 313.75, 90)
+range_end = 90
+collide = true
+
+[node name="StreetPostBox" type="Node3D" parent="City"]
+script = ExtResource("80_r")
+prefab_path = "res://prefabs/props/post_box.tscn"
+spots = PackedFloat32Array(-58.1, 0.15, 155.937, 270, -58.1, 0.15, 186.048, 270, -25.976, 0.15, 139.9, 180, -5.04627, 0.15, 139.9, 180, -17.5063, 0.15, 148.1, 0, -58.1, 0.15, 231.605, 270, -58.1, 0.15, 249.518, 270, -17.784, 0.15, 199.9, 180, -34.1127, 0.15, 208.1, 0, -58.1, 0.15, 302.768, 270, -16.2829, 0.15, 328.1, 0, 26.73, 0.15, 139.9, 180, 44.1458, 0.15, 148.1, 0, 1.9, 0.15, 247.426, 270, 16.8775, 0.15, 199.9, 180, 25.4988, 0.15, 208.1, 0, 10.1, 0.15, 274.209, 90, 42.5371, 0.15, 268.1, 0, 44.2306, 0.15, 319.9, 180, 36.0392, 0.15, 328.1, 0, 61.9, 0.15, 249.29, 270, 70.1, 0.15, 245.638, 90, 61.9, 0.15, 299.894, 270, 70.1, 0.15, 284.069, 90, 76.5451, 0.15, 268.1, 0, 97.9, 0.15, 232.187, 270, 106.1, 0.15, 242.843, 90)
+range_end = 90
+collide = true
+
+[node name="StreetManholes" type="Node3D" parent="City"]
+script = ExtResource("80_r")
+prefab_path = "res://prefabs/props/manhole.tscn"
+spots = PackedFloat32Array(-16, 0, 142.25, 0, -55.75, 0, 218, 0, -52.25, 0, 242, 0, -40, 0, 205.75, 0, -55.75, 0, 290, 0, -52.25, 0, 314, 0, -40, 0, 262.25, 0, -28, 0, 262.25, 0, -28, 0, 322.25, 0, 7.75, 0, 170, 0, 20, 0, 145.75, 0, 32, 0, 145.75, 0, 7.75, 0, 242, 0, 4.25, 0, 254, 0, 32, 0, 202.25, 0, 56, 0, 205.75, 0, 7.75, 0, 302, 0, 7.75, 0, 314, 0, 20, 0, 325.75, 0, 32, 0, 325.75, 0, 64.25, 0, 158, 0, 67.75, 0, 170, 0, 67.75, 0, 194, 0, 80, 0, 205.75, 0, 92, 0, 202.25, 0, 92, 0, 265.75, 0, 80, 0, 322.25, 0, 92, 0, 325.75, 0, 100.25, 0, 170, 0, 103.75, 0, 194, 0, 103.75, 0, 218, 0, 100.25, 0, 230, 0)
+range_end = 60
+collide = false
+
 [node name="TreeMedium71" parent="City" instance=ExtResource("20_r")]
 transform = Transform3D(-0.502814, 0, 0.864394, 0, 1, 0, -0.864394, 0, -0.502814, -66, 0, 150)
 tree_seed = 7350
@@ -5162,102 +5205,102 @@ surface = "soil"
 height = 0.04
 edge = false
 
-[node name="Shack1" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack1" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.999771, 0, -0.0214186, 0, 1, 0, 0.0214186, 0, -0.999771, -68.1952, 0.04, -70.0935)
 size = Vector3(3.61, 2.21, 3.17)
 shack_seed = 5578
 
-[node name="Shack2" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack2" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.998975, 0, 0.0452689, 0, 1, 0, -0.0452689, 0, -0.998975, -62.3627, 0.04, -70.8251)
 size = Vector3(4.02, 2.36, 2.85)
 shack_seed = 137
 
-[node name="Shack3" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack3" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.996023, 0, 0.0890915, 0, 1, 0, -0.0890915, 0, -0.996023, -56.8597, 0.04, -70.7895)
 size = Vector3(4.32, 2.65, 3.16)
 shack_seed = 4359
 
-[node name="Shack4" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack4" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.99985, 0, 0.0173419, 0, 1, 0, -0.0173419, 0, -0.99985, -51.3711, 0.04, -71.2037)
 size = Vector3(4.53, 2.53, 3.34)
 shack_seed = 5551
 
-[node name="Shack5" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack5" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.999999, 0, 0.00142176, 0, 1, 0, -0.00142176, 0, -0.999999, -28.2241, 0.04, -69.7466)
 size = Vector3(3.55, 2.5, 2.93)
 shack_seed = 709
 
-[node name="Shack6" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack6" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.995518, 0, -0.0945735, 0, 1, 0, 0.0945735, 0, -0.995518, -23.011, 0.04, -71.2093)
 size = Vector3(4.74, 2.42, 2.92)
 shack_seed = 2594
 
-[node name="Shack7" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack7" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.999344, 0, 0.0362289, 0, 1, 0, -0.0362289, 0, -0.999344, -17.3921, 0.04, -70.813)
 size = Vector3(4.71, 2.41, 3.4)
 shack_seed = 3667
 
-[node name="Shack8" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack8" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(-0.998344, 0, -0.0575201, 0, 1, 0, 0.0575201, 0, -0.998344, -11.4155, 0.04, -70.0707)
 size = Vector3(4.93, 2.41, 3.02)
 shack_seed = 8516
 
-[node name="Shack9" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack9" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.999267, 0, -0.0382841, 0, 1, 0, 0.0382841, 0, 0.999267, -67.7507, 0.04, -85.1764)
 size = Vector3(4.5, 2.23, 3.6)
 shack_seed = 537
 
-[node name="Shack10" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack10" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.999632, 0, 0.0271358, 0, 1, 0, -0.0271358, 0, 0.999632, -62.2743, 0.04, -84.9697)
 size = Vector3(4.72, 2.67, 3.09)
 shack_seed = 9419
 
-[node name="Shack11" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack11" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.999761, 0, -0.0218457, 0, 1, 0, 0.0218457, 0, 0.999761, -56.0945, 0.04, -85.4023)
 size = Vector3(4.35, 2.21, 3.13)
 shack_seed = 4559
 
-[node name="Shack12" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack12" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.998386, 0, -0.0567972, 0, 1, 0, 0.0567972, 0, 0.998386, -50.2408, 0.04, -84.8099)
 size = Vector3(3.68, 2.62, 3.31)
 shack_seed = 802
 
-[node name="Shack13" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack13" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.998067, 0, -0.0621477, 0, 1, 0, 0.0621477, 0, 0.998067, -27.5565, 0.04, -85.9102)
 size = Vector3(4.89, 2.61, 3.43)
 shack_seed = 2996
 
-[node name="Shack14" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack14" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.998809, 0, 0.048796, 0, 1, 0, -0.048796, 0, 0.998809, -21.5794, 0.04, -85.7637)
 size = Vector3(4.83, 2.52, 2.86)
 shack_seed = 6788
 
-[node name="Shack15" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack15" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.999816, 0, -0.0192031, 0, 1, 0, 0.0192031, 0, 0.999816, -15.3462, 0.04, -84.8177)
 size = Vector3(3.54, 2.47, 3.1)
 shack_seed = 3054
 
-[node name="Shack16" parent="NavRegion" instance=ExtResource("80_r")]
+[node name="Shack16" parent="NavRegion" instance=ExtResource("81_r")]
 transform = Transform3D(0.999972, 0, -0.00749547, 0, 1, 0, 0.00749547, 0, 0.999972, -10.3505, 0.04, -85.452)
 size = Vector3(4.76, 2.44, 2.95)
 shack_seed = 5267
 
-[node name="FireBarrel1" parent="NavRegion" instance=ExtResource("81_r")]
+[node name="FireBarrel1" parent="NavRegion" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -44, 0.04, -75)
 
-[node name="FireBarrel2" parent="NavRegion" instance=ExtResource("81_r")]
+[node name="FireBarrel2" parent="NavRegion" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -25, 0.04, -78)
 
-[node name="FireBarrel3" parent="NavRegion" instance=ExtResource("81_r")]
+[node name="FireBarrel3" parent="NavRegion" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -35, 0.04, -83)
 
-[node name="FireBarrel4" parent="NavRegion" instance=ExtResource("81_r")]
+[node name="FireBarrel4" parent="NavRegion" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -12, 0.04, -91)
 
-[node name="FireBarrel5" parent="NavRegion" instance=ExtResource("81_r")]
+[node name="FireBarrel5" parent="NavRegion" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -40, 0.04, -109)
 
-[node name="FireBarrel6" parent="NavRegion" instance=ExtResource("81_r")]
+[node name="FireBarrel6" parent="NavRegion" instance=ExtResource("82_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -80, 0.04, -116)
 
 [node name="SlumJunk1" parent="NavRegion" instance=ExtResource("62_r")]
@@ -5332,7 +5375,7 @@ transform = Transform3D(-0.265382, 0, 0.964143, 0, 1, 0, -0.964143, 0, -0.265382
 [node name="SlumJunk24" parent="NavRegion" instance=ExtResource("61_r")]
 transform = Transform3D(-0.93888, 0, -0.344244, 0, 1, 0, 0.344244, 0, -0.93888, -72.08, 0.04, -64.52)
 
-[node name="Caravan1" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan1" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999935, 0, -0.0113644, 0, 1, 0, 0.0113644, 0, -0.999935, -92.527, 0.04, -106)
 length = 6.95
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5341,7 +5384,7 @@ awning = true
 rust = 0.77
 caravan_seed = 7882
 
-[node name="Caravan2" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan2" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999292, 0, 0.0376175, 0, 1, 0, -0.0376175, 0, -0.999292, -81.5433, 0.04, -106)
 length = 8.04
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5350,7 +5393,7 @@ awning = true
 rust = 0.11
 caravan_seed = 8259
 
-[node name="Caravan3" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan3" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999308, 0, 0.0371996, 0, 1, 0, -0.0371996, 0, -0.999308, -69.3509, 0.04, -106)
 length = 7.60
 body_color = Color(0.92, 0.9, 0.82, 1)
@@ -5359,7 +5402,7 @@ awning = false
 rust = 0.19
 caravan_seed = 4755
 
-[node name="Caravan4" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan4" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.998975, 0, 0.0452564, 0, 1, 0, -0.0452564, 0, -0.998975, -57.4197, 0.04, -106)
 length = 6.79
 body_color = Color(0.9, 0.84, 0.7, 1)
@@ -5368,7 +5411,7 @@ awning = true
 rust = 0.71
 caravan_seed = 1362
 
-[node name="Caravan5" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan5" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.99999, 0, 0.00451654, 0, 1, 0, -0.00451654, 0, -0.99999, -45.4364, 0.04, -106)
 length = 8.42
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5377,7 +5420,7 @@ awning = false
 rust = 0.74
 caravan_seed = 1341
 
-[node name="Caravan6" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan6" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999278, 0, -0.0380019, 0, 1, 0, 0.0380019, 0, -0.999278, -33.5541, 0.04, -106)
 length = 8.23
 body_color = Color(0.9, 0.84, 0.7, 1)
@@ -5386,7 +5429,7 @@ awning = false
 rust = 0.17
 caravan_seed = 1976
 
-[node name="Caravan7" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan7" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.997803, 0, -0.0662513, 0, 1, 0, 0.0662513, 0, -0.997803, -21.4524, 0.04, -106)
 length = 6.00
 body_color = Color(0.92, 0.9, 0.82, 1)
@@ -5395,7 +5438,7 @@ awning = false
 rust = 0.65
 caravan_seed = 57
 
-[node name="Caravan8" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan8" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999914, 0, -0.0130772, 0, 1, 0, 0.0130772, 0, -0.999914, -11.6063, 0.04, -106)
 length = 7.64
 body_color = Color(0.9, 0.84, 0.7, 1)
@@ -5404,7 +5447,7 @@ awning = false
 rust = 0.36
 caravan_seed = 9828
 
-[node name="Caravan9" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan9" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.99893, 0, 0.0462395, 0, 1, 0, -0.0462395, 0, 0.99893, -92.4564, 0.04, -114)
 length = 7.09
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5413,7 +5456,7 @@ awning = true
 rust = 0.36
 caravan_seed = 5322
 
-[node name="Caravan10" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan10" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.99985, 0, -0.017332, 0, 1, 0, 0.017332, 0, 0.99985, -80.8547, 0.04, -114)
 length = 7.96
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5422,7 +5465,7 @@ awning = false
 rust = 0.36
 caravan_seed = 9650
 
-[node name="Caravan11" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan11" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.999532, 0, 0.030575, 0, 1, 0, -0.030575, 0, 0.999532, -68.1339, 0.04, -114)
 length = 7.69
 body_color = Color(0.9, 0.84, 0.7, 1)
@@ -5431,7 +5474,7 @@ awning = false
 rust = 0.10
 caravan_seed = 2706
 
-[node name="Caravan12" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan12" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.998724, 0, -0.0504994, 0, 1, 0, 0.0504994, 0, 0.998724, -55.6092, 0.04, -114)
 length = 8.07
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5440,7 +5483,7 @@ awning = true
 rust = 0.73
 caravan_seed = 57
 
-[node name="Caravan13" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan13" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.999157, 0, 0.0410518, 0, 1, 0, -0.0410518, 0, 0.999157, -45.3512, 0.04, -114)
 length = 6.26
 body_color = Color(0.9, 0.84, 0.7, 1)
@@ -5449,7 +5492,7 @@ awning = true
 rust = 0.75
 caravan_seed = 5842
 
-[node name="Caravan14" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan14" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.999994, 0, -0.00339363, 0, 1, 0, 0.00339363, 0, 0.999994, -35.4554, 0.04, -114)
 length = 7.51
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5458,7 +5501,7 @@ awning = true
 rust = 0.78
 caravan_seed = 9547
 
-[node name="Caravan15" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan15" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.999444, 0, 0.0333491, 0, 1, 0, -0.0333491, 0, 0.999444, -25.1002, 0.04, -114)
 length = 6.72
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5467,7 +5510,7 @@ awning = true
 rust = 0.45
 caravan_seed = 8181
 
-[node name="Caravan16" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan16" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(0.999616, 0, 0.0277106, 0, 1, 0, -0.0277106, 0, 0.999616, -14.2635, 0.04, -114)
 length = 6.40
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5476,7 +5519,7 @@ awning = true
 rust = 0.36
 caravan_seed = 5177
 
-[node name="Caravan17" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan17" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999963, 0, -0.00856488, 0, 1, 0, 0.00856488, 0, -0.999963, -92.1515, 0.04, -126)
 length = 7.70
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5485,7 +5528,7 @@ awning = false
 rust = 0.27
 caravan_seed = 2868
 
-[node name="Caravan18" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan18" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999986, 0, -0.00520001, 0, 1, 0, 0.00520001, 0, -0.999986, -81.2963, 0.04, -126)
 length = 7.62
 body_color = Color(0.92, 0.9, 0.82, 1)
@@ -5494,7 +5537,7 @@ awning = false
 rust = 0.46
 caravan_seed = 1180
 
-[node name="Caravan19" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan19" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.997775, 0, 0.066666, 0, 1, 0, -0.066666, 0, -0.997775, -70.5788, 0.04, -126)
 length = 6.19
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5503,7 +5546,7 @@ awning = false
 rust = 0.26
 caravan_seed = 1400
 
-[node name="Caravan20" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan20" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.998613, 0, 0.052654, 0, 1, 0, -0.052654, 0, -0.998613, -59.9244, 0.04, -126)
 length = 6.64
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5512,7 +5555,7 @@ awning = false
 rust = 0.39
 caravan_seed = 5046
 
-[node name="Caravan21" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan21" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999697, 0, -0.0246228, 0, 1, 0, 0.0246228, 0, -0.999697, -49.4954, 0.04, -126)
 length = 7.75
 body_color = Color(0.85, 0.86, 0.8, 1)
@@ -5521,7 +5564,7 @@ awning = false
 rust = 0.32
 caravan_seed = 6196
 
-[node name="Caravan22" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan22" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999922, 0, 0.0125201, 0, 1, 0, -0.0125201, 0, -0.999922, -38.4497, 0.04, -126)
 length = 6.63
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5530,7 +5573,7 @@ awning = true
 rust = 0.25
 caravan_seed = 7607
 
-[node name="Caravan23" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan23" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999808, 0, -0.0195926, 0, 1, 0, 0.0195926, 0, -0.999808, -27.9311, 0.04, -126)
 length = 6.99
 body_color = Color(0.8, 0.82, 0.85, 1)
@@ -5539,7 +5582,7 @@ awning = false
 rust = 0.25
 caravan_seed = 8350
 
-[node name="Caravan24" parent="NavRegion" instance=ExtResource("82_r")]
+[node name="Caravan24" parent="NavRegion" instance=ExtResource("83_r")]
 transform = Transform3D(-0.999853, 0, -0.0171178, 0, 1, 0, 0.0171178, 0, -0.999853, -17.8404, 0.04, -126)
 length = 6.82
 body_color = Color(0.92, 0.9, 0.82, 1)
@@ -6864,134 +6907,134 @@ transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0,
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 0, -362)
 
 [node name="WireN0" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 2.35, -442)
 length = 40
 
 [node name="WireN1" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 2.35, -442)
 length = 40
 
 [node name="WireN2" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 2.35, -442)
 length = 40
 
 [node name="WireN3" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 2.35, -442)
 length = 40
 
 [node name="WireN4" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 2.35, -442)
 length = 40
 
 [node name="WireN5" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 96, 2.35, -442)
 length = 40
 
 [node name="WireN6" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 136, 2.35, -442)
 length = 40
 
 [node name="WireN7" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 176, 2.35, -442)
 length = 40
 
 [node name="WireN8" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 216, 2.35, -442)
 length = 20
 
 [node name="WireS0" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -104, 2.35, -350)
 length = 40
 
 [node name="WireS1" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -64, 2.35, -350)
 length = 40
 
 [node name="WireS2" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -24, 2.35, -350)
 length = 40
 
 [node name="WireS3" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 16, 2.35, -350)
 length = 40
 
 [node name="WireS4" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 56, 2.35, -350)
 length = 40
 
 [node name="WireS5" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 96, 2.35, -350)
 length = 40
 
 [node name="WireS6" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 136, 2.35, -350)
 length = 40
 
 [node name="WireS7" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 176, 2.35, -350)
 length = 40
 
 [node name="WireS8" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 216, 2.35, -350)
 length = 20
 
 [node name="WireE0" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 2.35, -442)
 length = 40
 
 [node name="WireE1" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 2.35, -402)
 length = 40
 
 [node name="WireE2" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, 236, 2.35, -362)
 length = 12
 
 [node name="WireW0" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 2.35, -442)
 length = 40
 
 [node name="WireW1" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 2.35, -402)
 length = 40
 
 [node name="WireW2" type="Node3D" parent="ArmyBase"]
-script = ExtResource("83_r")
+script = ExtResource("84_r")
 transform = Transform3D(6.12323e-17, 0, -1, 0, 1, 0, 1, 0, 6.12323e-17, -104, 2.35, -362)
 length = 2
 
 [node name="BaseGate" type="Node3D" parent="ArmyBase"]
-script = ExtResource("84_r")
+script = ExtResource("85_r")
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -103.7, 0, -355)
 width = 10.0
 height = 3.0
 needs_army_pass = true
 
 [node name="BaseBoom" type="Node3D" parent="ArmyBase"]
-script = ExtResource("85_r")
+script = ExtResource("86_r")
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -106.5, 0, -359.6)
 length = 7.0
 follow_gate = NodePath("../BaseGate")
@@ -7070,43 +7113,43 @@ material_key = "road_marking"
 tint = Color(1, 1, 1, 1)
 collision = false
 
-[node name="Watchtower1" parent="ArmyBase" instance=ExtResource("86_r")]
+[node name="Watchtower1" parent="ArmyBase" instance=ExtResource("87_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -101, 0, -439)
 
-[node name="Watchtower2" parent="ArmyBase" instance=ExtResource("86_r")]
+[node name="Watchtower2" parent="ArmyBase" instance=ExtResource("87_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 233, 0, -439)
 
-[node name="Watchtower3" parent="ArmyBase" instance=ExtResource("86_r")]
+[node name="Watchtower3" parent="ArmyBase" instance=ExtResource("87_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 233, 0, -353)
 
-[node name="Watchtower4" parent="ArmyBase" instance=ExtResource("86_r")]
+[node name="Watchtower4" parent="ArmyBase" instance=ExtResource("87_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -101, 0, -364)
 
-[node name="Watchtower5" parent="ArmyBase" instance=ExtResource("86_r")]
+[node name="Watchtower5" parent="ArmyBase" instance=ExtResource("87_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 80, 0, -439)
 
-[node name="Watchtower6" parent="ArmyBase" instance=ExtResource("86_r")]
+[node name="Watchtower6" parent="ArmyBase" instance=ExtResource("87_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -34, 0, -353)
 
-[node name="Barracks1" parent="ArmyBase" instance=ExtResource("87_r")]
+[node name="Barracks1" parent="ArmyBase" instance=ExtResource("88_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -90, 0.04, -412)
 
-[node name="Barracks2" parent="ArmyBase" instance=ExtResource("87_r")]
+[node name="Barracks2" parent="ArmyBase" instance=ExtResource("88_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -70, 0.04, -412)
 
-[node name="Barracks3" parent="ArmyBase" instance=ExtResource("87_r")]
+[node name="Barracks3" parent="ArmyBase" instance=ExtResource("88_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -50, 0.04, -412)
 
-[node name="Hangar1" parent="ArmyBase" instance=ExtResource("88_r")]
+[node name="Hangar1" parent="ArmyBase" instance=ExtResource("89_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -92, 0.04, -391)
 
-[node name="Hangar2" parent="ArmyBase" instance=ExtResource("88_r")]
+[node name="Hangar2" parent="ArmyBase" instance=ExtResource("89_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -69, 0.04, -391)
 
-[node name="Armoury" parent="ArmyBase" instance=ExtResource("89_r")]
+[node name="Armoury" parent="ArmyBase" instance=ExtResource("90_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -72, 0.04, -428)
 
-[node name="CommandPost" parent="ArmyBase" instance=ExtResource("90_r")]
+[node name="CommandPost" parent="ArmyBase" instance=ExtResource("91_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -53, 0.04, -428)
 
 [node name="ArmyBackRoad" type="StaticBody3D" parent="ArmyBase"]
@@ -7117,60 +7160,60 @@ surface = "concrete"
 height = 0.04
 edge = false
 
-[node name="Sandbags1" parent="ArmyBase" instance=ExtResource("91_r")]
+[node name="Sandbags1" parent="ArmyBase" instance=ExtResource("92_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -102, 0.04, -362)
 length = 3
 rows = 4
 
-[node name="Sandbags2" parent="ArmyBase" instance=ExtResource("91_r")]
+[node name="Sandbags2" parent="ArmyBase" instance=ExtResource("92_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -108.5, 0.04, -349.6)
 length = 3
 rows = 4
 
-[node name="Sandbags3" parent="ArmyBase" instance=ExtResource("91_r")]
+[node name="Sandbags3" parent="ArmyBase" instance=ExtResource("92_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -36, 0.04, -368.4)
 length = 3.6
 rows = 4
 
-[node name="Sandbags4" parent="ArmyBase" instance=ExtResource("91_r")]
+[node name="Sandbags4" parent="ArmyBase" instance=ExtResource("92_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -37.8, 0.04, -370)
 length = 3
 rows = 4
 
-[node name="Sandbags5" parent="ArmyBase" instance=ExtResource("91_r")]
+[node name="Sandbags5" parent="ArmyBase" instance=ExtResource("92_r")]
 transform = Transform3D(6.12323e-17, 0, 1, 0, 1, 0, -1, 0, 6.12323e-17, -34.2, 0.04, -370)
 length = 3
 rows = 4
 
-[node name="ArmyTruck1" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck1" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.999921, 0, 0.0125314, 0, 1, 0, -0.0125314, 0, 0.999921, -92, 0.04, -370)
 kind = "truck"
 
-[node name="ArmyTruck2" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck2" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.999419, 0, -0.0340772, 0, 1, 0, 0.0340772, 0, 0.999419, -86, 0.04, -370)
 kind = "truck"
 
-[node name="ArmyTruck3" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck3" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.999605, 0, 0.0281112, 0, 1, 0, -0.0281112, 0, 0.999605, -80, 0.04, -370)
 kind = "truck"
 
-[node name="ArmyTruck4" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck4" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.998911, 0, 0.046656, 0, 1, 0, -0.046656, 0, 0.998911, -72, 0.04, -368)
 kind = "jeep"
 
-[node name="ArmyTruck5" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck5" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.999996, 0, -0.00270586, 0, 1, 0, 0.00270586, 0, 0.999996, -67, 0.04, -368)
 kind = "jeep"
 
-[node name="ArmyTruck6" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck6" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(-0.0453951, 0, 0.998969, 0, 1, 0, -0.998969, 0, -0.0453951, -52, 0.04, -380)
 kind = "truck"
 
-[node name="ArmyTruck7" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck7" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.99999, 0, 0.00450142, 0, 1, 0, -0.00450142, 0, 0.99999, -48, 0.04, -368)
 kind = "jeep"
 
-[node name="ArmyTruck8" parent="ArmyBase" instance=ExtResource("92_r")]
+[node name="ArmyTruck8" parent="ArmyBase" instance=ExtResource("93_r")]
 transform = Transform3D(0.935415, 0, 0.353553, 0, 1, 0, -0.353553, 0, 0.935415, -44, 0.04, -372)
 kind = "jeep"
 
@@ -8002,25 +8045,25 @@ tint = Color(1, 0.95, 0.7, 1)
 collision = false
 
 [node name="JetHangar1" type="StaticBody3D" parent="ArmyBase"]
-script = ExtResource("93_r")
+script = ExtResource("94_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 60, 0, -384)
 number = "1"
 tint = Color(0.36, 0.4, 0.27, 1)
 
 [node name="JetHangar2" type="StaticBody3D" parent="ArmyBase"]
-script = ExtResource("93_r")
+script = ExtResource("94_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 100, 0, -384)
 number = "2"
 tint = Color(0.36, 0.4, 0.27, 1)
 
 [node name="JetHangar3" type="StaticBody3D" parent="ArmyBase"]
-script = ExtResource("93_r")
+script = ExtResource("94_r")
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, 140, 0, -384)
 number = "3"
 tint = Color(0.36, 0.4, 0.27, 1)
 
 [node name="Airfield" type="Node3D" parent="ArmyBase"]
-script = ExtResource("94_r")
+script = ExtResource("95_r")
 runway_x0 = -20
 runway_x1 = 230
 runway_z = -425
@@ -10748,7 +10791,7 @@ outline_size = 12
 modulate = Color(1, 0.95, 0.75, 1)
 no_depth_test = true
 
-[node name="Prison" parent="." instance=ExtResource("95_r")]
+[node name="Prison" parent="." instance=ExtResource("96_r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, -0, 0, 1, -150, 0, -385)
 
 [node name="GasStationPrison" type="Node3D" parent="."]
@@ -10908,7 +10951,7 @@ _spawnable_scenes = PackedStringArray("res://prefabs/npc/pedestrian.tscn", "res:
 spawn_path = NodePath("../NPCs")
 
 [node name="Traffic" type="Node3D" parent="."]
-script = ExtResource("96_r")
+script = ExtResource("97_r")
 
 [node name="CarSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://prefabs/vehicles/car.tscn")

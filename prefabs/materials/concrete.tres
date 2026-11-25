@@ -13,3 +13,4 @@ shader_parameter/line_width = 0.012
 shader_parameter/line_amount = 0.25
 shader_parameter/odd_amount = 0.04
 shader_parameter/tint_channel = 1
+shader_parameter/wet_receiver = 0.6

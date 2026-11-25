@@ -356,11 +356,21 @@ Godot console exe:
   barracks|armoury|command_post|hangar|sandbags (gen_prefabs `army_*`, `aprop(...)` = `ArmyProp` kinds), `hall()` takes
   (side, centre, width[, top[, sill]]) (sill > 0 = window), ArmyBase/BaseGate (SlidingGate) + BaseBoom (`follow_gate`),
   Armoury / CommandPost nodes; scenario army_inside, shots E3-E7. Shops 101: `ShopFront` (scripts/procgen/shop_front.gd,
-  KINDS/INFO, `units`, `room_rect`), `Tower.shop_faces` / `open_shop` / `has_open_shop()`, markers ShopCounterSpot (meta
+  KINDS/INFO, `units`, `room_rect`), `Tower.shop_faces` / `open_shop` / `has_open_shop()`, markers ShopkeeperSpot (meta
   shop_kind/shop_name) + TerraceSeat, gen_world BlockPave; scenario city_shops, check city_shops, shots S0-S3. Sites 102:
   `BuildingSite` (scripts/procgen/building_site.gd, group building_sites, `flight(k)`, `slab_top(k)`, `skeleton_rect()`),
   gen_world `block_towers(..., site=True)`, nodes City/BuildingSite1-3, markers BuilderSpot1-6 / SiteGate / SiteDealSpot;
   scenario building_site, check building_sites, shots T0-T2.
+- Graphics (point 103): `Weather` (scripts/world/weather.gd, World/Weather, `current`, `host_set`, `debug_set(on, wet)`,
+  `drops_scale`, net_state; `--weather=rain|dry`), global shader param `wetness` + stylized `wet_receiver` (gen_materials),
+  `DayNight.overcast` / `DayNight.volumetric` (High+ only) / height-fog mist / sky `overcast` + `cloud_offset`. Street detail:
+  `PropScatter` (scripts/procgen/prop_scatter.gd, `prefab_path`, `spots` x,y,z,yaw; MultiMesh + collision), gen_world nodes
+  City/Street* (drng), StreetProp `bikes` / `flowers` (prefabs bike_rack_bikes / flower_planter). Scenarios rain,
+  dawn_mist, street_detail; checks weather, street_detail.
+- Quality (B part 32): `QualityProfile` (scripts/perf/quality_profile.gd, `apply`, `auto_level()`), `--quality=low|medium|
+  high|ultra`, `--render-scale=X`, scenario fps_busy, `--fps-measure` (FpsMeter -> screenshots/fps_log.txt), check
+  quality_levels. Shop sellers (B part 33): `ShopStaff.populate` (till = cash_register or Marker3D `ShopkeeperSpot*` +
+  meta shop_type), `ShopTypes` (TYPES, WORDS, MEAL_HEAL), `ShopSeller`; scenario shop_sellers, check shop_sellers.
 - Mountains one style (point 73): `BorderRange.terrain_color` (both terrains), snow line 48; gen_border.py reads
   data/mountain (run it AFTER gen_mountain.py) and extrudes/pins the pass mountain's edges into the range.
 - Border mountains (map zone 9): `BorderRange` (`scripts/procgen/border_range.gd`, node BorderRange) from

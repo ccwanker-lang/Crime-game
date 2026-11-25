@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"leather_jacket"
+display_name = "Leather Jacket"
+max_stack = 1
+is_legal = true
+base_price = 180
+description = "Black leather. Clothes go on your character in a later update."
+category = "clothing"

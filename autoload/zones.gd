@@ -165,6 +165,7 @@ func _on_world() -> void:
 	_posts = []
 	bunker = null
 	_setup_bunker.call_deferred()
+	ShopStaff.populate(_world)  # (city life point 1: sellers behind every shop till, the same on every peer)
 
 
 ## Every peer (the same on all of them): A's bunker property becomes a buyable one.
@@ -545,8 +546,9 @@ func _more_city_traffic() -> void:
 	_city_traffic = true
 	var traffic: Node = _world.get_node_or_null("Traffic") if _world else null
 	if traffic and traffic.has_method("spawn_cars") and Traffic.city_first_route >= 0:
-		traffic.call("spawn_cars", CityLife.EXTRA_CARS, true)
-		print("[Zones] +%d cars in the city" % CityLife.EXTRA_CARS)
+		var extra: int = roundi(CityLife.EXTRA_CARS * Traffic.count_scale)  # (quality level)
+		traffic.call("spawn_cars", extra, true)
+		print("[Zones] +%d cars in the city" % extra)
 
 
 ## Host: one resident / office worker (a non-wandering, networked pedestrian).

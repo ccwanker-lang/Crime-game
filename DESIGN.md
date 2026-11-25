@@ -569,10 +569,10 @@ fps_army / fps_busy) with the numbers in CHANGELOG; below the performance target
   98. Performance rules + quality levels (comes first, the other points build on it): Low / Medium / High / Ultra
       scale shadows, SSAO/SSIL, fog, reflections, grass density, NPC + traffic count, view distance, interior detail;
       chosen automatically from the hardware on first start; new fps_busy scenario (many NPCs + traffic at once);
-      weak-PC simulation (Low + render scale 0.5 / compatibility driver); load time + RAM watched - IN PROGRESS:
-      split with session B (B: QualityProfile table, Settings auto-level on first start, fps_busy, measuring suite,
-      weak-PC run); A: the world hooks DONE (WorldLod.max_shadows / set_range_scale, GrassCover.density_scale /
-      radius_scale / rebuild, Traffic.count_scale; check streaming)
+      weak-PC simulation (Low + render scale 0.5 / compatibility driver); load time + RAM watched - DONE (B part 32:
+      `QualityProfile` (scripts/perf/) per level: NPC cap, traffic + crowd share, grass, draw distance, shadowed lights,
+      sun shadow distance; `auto_level()` on first start; `--quality=` / `--render-scale=`; scenario fps_busy +
+      `--fps-measure` (FpsMeter); check quality_levels. A: the world hooks + staggered car ticks)
   99. Prison: more detail and enterable - an automatic gate (slides open when you come, or a guard opens it), yard,
       cell blocks with cells on several floors, canteen, visiting room, guard post, fences with barbed wire,
       watchtowers with searchlights, prison guards - DONE (A: SlidingGate at the gate, Block B two tiers with
@@ -589,7 +589,7 @@ fps_army / fps_busy) with the numbers in CHANGELOG; below the performance target
       shop); some enterable with an interior (counter, racks, tables) and an NPC behind the counter (B: shop NPCs +
       life) - DONE for A (ShopFront: shop units drawn into every city Tower's own mesh on its street faces, 10 kinds,
       signs, awnings, terraces with TerraceSeat markers; one walk-in shop per block (Tower.open_shop, 7 in all) with
-      a ShopCounterSpot marker for B's shopkeeper; blocks paved; scenario city_shops; check city_shops; shots S0-S3).
+      a ShopkeeperSpot marker for B's shopkeeper; blocks paved; scenario city_shops; check city_shops; shots S0-S3).
       B: the shopkeepers + shop life (asked in A.md)
   102. Building sites: a few buildings become sites - half-built concrete skeleton, scaffolding, tower crane, site
       fences with mesh, containers, materials, concrete mixer; builders by day (B), empty at night; climbable, a
@@ -601,7 +601,13 @@ fps_army / fps_busy) with the numbers in CHANGELOG; below the performance target
   103. Better graphics within the stylized low-poly style: light + shadows, soft AO, volumetric fog at dawn/dusk,
       wet road after rain, reflections on windows + water, better sky + clouds, more street detail (signs, flower
       boxes, bikes, bins, lanterns, kerbs, manholes); a quality setting Low/Medium/High/Ultra in B's settings menu
-      (with 98) - todo
+      (with 98) - DONE (A: `Weather` (World/Weather: host rolls showers, synced; rain streaks round the camera,
+      none indoors; global shader parameter `wetness` -> stylized shader darkens + shines roads / paving / roofs
+      with puddles = SSR reflections on High), `DayNight.overcast` (dimmer sun, grey haze + clouds), dawn / dusk
+      mist (height fog on every level, volumetric fog on High / Ultra), drifting clouds lit from the sun's side,
+      `PropScatter` street detail (flower planters, bike racks with bikes, bins, bollards, post boxes, manholes:
+      262 props in 8 MultiMeshes); scenarios rain, dawn_mist, street_detail; checks weather, street_detail.
+      B: the quality setting in the Settings menu (part 32))
 Session B, merged 2026-11-24 (parts 25-31, NOTES_feature-b.md) - DONE: 88 day rhythm, 89 npc_bench, settings
 menu (graphics/audio/controls, user://settings.cfg), sound + atmosphere (zone ambience, music, footsteps), title
 page + save slots + loading screen + pause menu, Steam co-op (GodotSteam, app 480; IP stays), controller support.
@@ -619,6 +625,30 @@ Session B, merged 2026-11-15 (parts 18-22, NOTES_feature-b.md) - DONE:
 Polish, later: animations for planting, watering, harvesting and packaging.
 
 ## Decisions
+- Point 103 (graphics): everything new is cheap or gated by quality. Rain = one GPUParticles3D that follows the
+  camera (amount by QualityProfile level: 35/60/100/130 %), hidden while a ray up from the camera hits a roof (no
+  rain indoors without particle collision). Wet streets are a shader change only (`wet_receiver` per material in
+  gen_materials.py, one global `wetness`), so no extra draw calls; the reflections come from SSR / the sky on the
+  levels that have it. Weather is host-rolled real time (dry 10-25 min, rain 3-6 min), off in tests and
+  measurements (`--weather=rain|dry` forces it). Mist: plain height fog on every level (cheap); real volumetric fog
+  only on High / Ultra (`DayNight.volumetric`, reads `QualityProfile.active`), switched on only around dawn / dusk
+  and in rain (its froxel buffer is set up twice a day). Clouds drift by a uniform updated with the other sky
+  uniforms (no TIME in the sky shader: that would re-render the radiance every frame). Street detail uses
+  `PropScatter` (a prop prefab harvested once -> MultiMesh per mesh + collision shapes per copy) instead of ~260
+  prefab instances: the city's draw calls did not go up. "Lanterns" = the existing lamps; no new lights (each light
+  costs). The quality setting itself is B's (Settings > Graphics, part 32).
+- B part 32 (quality levels): one table (`QualityProfile`) drives A's systems through one static scale each
+  (GrassCover, WorldLod, Traffic; defaults = old behaviour). NPC / traffic counts follow the HOST's level (host
+  spawned), the NPC cap is per peer. The auto pick never picks Ultra and errs low (Medium for GTX / RX 66xx). Both
+  sessions had written the same hooks; at the merge B's versions were kept (meta `lod_end` instead of A's list) plus
+  A's walk-in-shop occluder skip. Car `_far_tick` / `_sense_tick` now start staggered (B measured all far cars
+  thinking on the same tick -> spikes).
+- B part 33 (shop sellers): `ShopStaff.populate` finds every till (a cash register or a `ShopkeeperSpot` marker,
+  meta shop_type) and puts a `ShopSeller` there on every peer; meals heal at the counter, flowers / clothes are
+  items. A's walk-in city shops therefore name their marker `ShopkeeperSpot` (was ShopCounterSpot) with
+  `ShopFront.SELLER_TYPE` mapping (boutique -> clothing, chips -> snack_bar, supermarket / phone / pharmacy -> kiosk,
+  barber -> none), and the walk-in cafés / restaurants have `DinerSeat` markers at their chairs (terraces keep
+  TerraceSeat, both with -Z looking at the table).
 - Point 98 split (2026-11-25): session B had already started `QualityProfile` (scripts/perf/) with the Settings
   quality levels, so B owns the table, the auto-level on first start, fps_busy and the measuring suite; A only adds
   the world hooks in A's files with B's names (WorldLod.max_shadows / set_range_scale, GrassCover.density_scale /
@@ -656,7 +686,7 @@ Polish, later: animations for planting, watering, harvesting and packaging.
   on its north street (`open_shop`, not apartment blocks - their core is built differently) gets the middle unit as
   a real room: the core + collision are cut round it, the glass front has a door gap, the room has a counter, the
   kind's furniture (interior prefabs: WorldLod gives them the 80 m prop range), an emissive ceiling panel + one
-  small light WITHOUT shadows, and a `ShopCounterSpot` marker (meta shop_kind / shop_name) where B's shopkeeper
+  small light WITHOUT shadows, and a `ShopkeeperSpot` marker (meta shop_kind / shop_name) where B's shopkeeper
   stands; WorldLod gives such a tower no occluder (it would hide the room). The city blocks are now paved at
   pavement height (no grass in front of / inside shops); shop floors, terraces and their markers sit on it.
   The "centre" = the city centre blocks (the village's own shops were already shops).

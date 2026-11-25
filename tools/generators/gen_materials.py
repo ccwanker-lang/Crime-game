@@ -102,17 +102,21 @@ for n, sw in [("brick_old", "brick_brown"), ("brick_mixed", "brick_red"), ("bric
          swatch2="brick_white", tint_channel=1, ground_shade=0.1)
 styl("plaster", "plaster_cream", 0, tint_channel=1, ground_shade=0.1)
 styl("bluestone", "roof_slate", 3, cell=(0.6, 0.3), line_width=0.01, line_amount=0.4, odd_amount=0.05)
-styl("concrete", "concrete", 3, cell=(1.5, 1.5), line_width=0.012, line_amount=0.25, odd_amount=0.04, tint_channel=1)
-styl("curb", "curb", 3, cell=(1.0, 4.0), line_width=0.015, line_amount=0.5, odd_amount=0.04)
+# Point 103: wet_receiver = how much rain wets the surface (Weather -> global shader parameter "wetness").
+styl("concrete", "concrete", 3, cell=(1.5, 1.5), line_width=0.012, line_amount=0.25, odd_amount=0.04, tint_channel=1,
+     wet_receiver=0.6)
+styl("curb", "curb", 3, cell=(1.0, 4.0), line_width=0.015, line_amount=0.5, odd_amount=0.04, wet_receiver=0.8)
 # Roofs (tint_channel 2): rows of tiles.
 for n, sw in [("roof_dark", "roof_dark"), ("roof_red", "roof_red")]:
-    styl(n, sw, 2, cell=(0.3, 0.32), line_width=0.02, line_amount=0.5, odd_share=0.06, odd_amount=0.08, tint_channel=2)
+    styl(n, sw, 2, cell=(0.3, 0.32), line_width=0.02, line_amount=0.5, odd_share=0.06, odd_amount=0.08, tint_channel=2,
+         wet_receiver=0.5)
 # Ground: flat asphalt, paving with clear joints.
-styl("asphalt", "asphalt", 7, swatch2="asphalt_light", odd_amount=0.04, patch_scale=0.05, roughness_v=0.95, specular_v=0.2)
+styl("asphalt", "asphalt", 7, swatch2="asphalt_light", odd_amount=0.04, patch_scale=0.05, roughness_v=0.95, specular_v=0.2,
+     wet_receiver=1.0)
 styl("sidewalk", "pavement", 3, cell=(0.6, 0.6), line_width=0.02, line_amount=0.6, odd_share=0.08, odd_amount=0.06,
-     swatch2="pavement_dark")
+     swatch2="pavement_dark", wet_receiver=0.85)
 styl("cobbles", "pavement_dark", 5, cell=(0.22, 0.16), line_width=0.02, line_amount=0.5, odd_share=0.12, odd_amount=0.07,
-     swatch2="concrete")
+     swatch2="concrete", wet_receiver=0.9)
 styl("soil", "soil", 7, swatch2="wood_dark", odd_amount=0.05, patch_scale=0.5)
 # Interior.
 styl("wood_floor", "wood", 4, cell=(0.16, 1.0), line_width=0.008, line_amount=0.5, odd_amount=0.08, swatch2="wood_dark")

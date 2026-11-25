@@ -27,6 +27,9 @@ uniform vec4 day_zenith : source_color = vec4(0.36, 0.6, 0.9, 1.0);
 uniform vec4 day_horizon : source_color = vec4(0.78, 0.88, 0.96, 1.0);
 uniform vec4 cloud_color : source_color = vec4(1.0, 0.99, 0.96, 1.0);
 uniform vec4 cloud_shade : source_color = vec4(0.82, 0.86, 0.93, 1.0);
+// Point 103: rain cover (0..1, more and greyer clouds) and the slow drift of the cloud plane (set by DayNight).
+uniform float overcast = 0.0;
+uniform vec2 cloud_offset = vec2(0.0);
 
 float hash3(vec3 p) {
 	p = fract(p * 0.3183099 + 0.1);
@@ -69,11 +72,17 @@ void sky() {
 	if (stylized) {
 		vec3 sky_c = mix(day_horizon.rgb, day_zenith.rgb, pow(clamp(d.y, 0.0, 1.0), 0.55));
 		// Soft procedural clouds on a virtual cloud plane (no TIME: the radiance stays still).
-		vec2 cp = d.xz / (max(d.y, 0.0) + 0.12) * 0.55;
+		vec2 cp = d.xz / (max(d.y, 0.0) + 0.12) * 0.55 + cloud_offset;
 		float l = cloud_fbm(cp);
 		float hz = cloud_fbm(cp + vec2(0.0, 0.08));
-		float cl = smoothstep(0.55, 0.66, l) * smoothstep(0.0, 0.12, d.y);
-		vec3 cc = mix(cloud_shade.rgb, cloud_color.rgb, smoothstep(-0.03, 0.05, l - hz + 0.02));
+		float cover = mix(0.55, 0.32, overcast);
+		float cl = smoothstep(cover, cover + 0.11, l) * smoothstep(0.0, 0.12, d.y);
+		// Lit side towards the sun: the clouds catch more light where they face it.
+		float lit = smoothstep(-0.03, 0.05, l - hz + 0.02) * (0.75 + 0.25 * pow(max(dot(d, sun_dir), 0.0), 4.0));
+		vec3 cc = mix(cloud_shade.rgb, cloud_color.rgb, lit);
+		vec3 rain_grey = vec3(0.56, 0.6, 0.66);
+		sky_c = mix(sky_c, rain_grey, overcast * 0.75);
+		cc = mix(cc, rain_grey * 0.85, overcast * 0.8);
 		day_col = mix(sky_c, cc, cl) * mix(vec3(1.0), vec3(1.0, 0.7, 0.55), twilight * 0.75);
 		hd = vec3(l);
 	}

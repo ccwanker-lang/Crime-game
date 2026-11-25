@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-Parts 25-31 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG/CLAUDE.md.
+Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md.
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1375,3 +1375,103 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - Controller (B part 31): pad events in project.godot next to every key, `Gamepad` autoload (right stick = synthetic
   mouse motion, L3 sprint toggle, pointer + A click / B back in menus, `rumble`, `pad_kind`, `layout`), Settings
   `stick_sensitivity` / `vibration` + tab Controller. Scenario controller, self-test check gamepad.
+
+
+# Part 32: quality levels scale the world + FPS measuring (user performance rules 2026-11-24)
+
+## How it works
+- `QualityProfile` (scripts/perf/quality_profile.gd): per level Low/Medium/High/Ultra the NPC cap (NpcStreamer
+  `cap_override` 28/42/60/80), traffic share (`Traffic.count_scale` 0.5/0.75/1/1, also Zones' extra city cars),
+  crowd share (DayRhythm `outside_busiest`, CityLife walkers 0.55/0.8/1/1.2), grass density + radius
+  (`GrassCover.density_scale` / `radius_scale`, `rebuild()`), draw distances (`WorldLod.range_scale` via
+  `set_range_scale`, meta `lod_end`), shadowed lights (`WorldLod.max_shadows` 4/8/16/24) and the sun's shadow distance
+  + splits (45/70/90/140 m, orthogonal on Low). Settings.apply_quality keeps the viewport part (render scale, AA,
+  SSAO/SSIL/glow, shadow atlas) and calls `QualityProfile.apply`.
+- First start (no quality in settings.cfg): `QualityProfile.auto_level()` from the graphics card name/type, RAM and
+  threads (integrated / < 8 GB -> Low, GTX / RX 5xx-66xx / RTX 2060 / 3050 -> Medium, else High; never Ultra). The
+  Settings window shows "Picked for your PC: ..." + a tooltip per level.
+- `--quality=low|medium|high|ultra` forces a level also in test runs; `--render-scale=X` overrides the render scale
+  (> 1 = more GPU work, to stand in for a slower card).
+- `fps_busy` scenario: the city at 13:00 + 40 extra walkers + 12 extra cars. `--fps-measure` (any scenario, window):
+  FpsMeter (scripts/debug/fps_meter.gd) settles 10 s, then turns the player round twice (10 s each): avg FPS, 1% low,
+  worst frame, spikes (> 2.5x median) for round 2 (steady) and round 1 (first look), draws, tris, NPCs awake, cars ->
+  [FpsCheck] line + screenshots/fps_log.txt.
+- Self-test check `quality_levels` (scripts/debug/quality_levels_test.gd).
+
+## Measurements 2026-11-25 (RTX 5060 Ti, 1920x1080, vsync off; A's tests ran at the same time)
+| spot | quality | avg FPS | 1% low | draws | NPCs awake | cars |
+|---|---|---|---|---|---|---|
+| fps_docks | High | 155 | 61 | 1292 | 62 | 24 |
+| fps_city | High | 136 | 55 | 1019 | 62 | 24 |
+| fps_army | High | 116 | 38 | 1258 | 34 | 24 |
+| fps_busy | High | 111 | 47 | 1097 | 62 | 34 |
+| fps_busy | Medium | 131 | 53 | 918 | 44 | 29 |
+| fps_busy | Low | 168 | 60 | 657 | 30 | 23 |
+| fps_city | Medium + render scale 1.5 (~GTX 1660 GPU load) | 176 | 65 | 848 | 44 | 19 |
+| fps_busy | Medium + render scale 1.5 | 147 | 56 | 868 | 44 | 29 |
+| fps_busy | Low + render scale 2.0 (~iGPU) | 176 | 63 | 648 | 30 | 23 |
+| fps_docks | Low + render scale 2.0 | 200 | 71 | 819 | 30 | - |
+- Target "never below 90 FPS on High on the user's PC": met on average everywhere (111-155). The 1% lows (38-61)
+  are below it: spikes of 17-28 ms while turning, on every level.
+- The game is CPU-bound here: 2.25x or 4x the pixels does not lower the FPS, so the GPU has plenty of headroom (a GTX
+  1660, ~2.3x slower, should hold Medium at 60+ with a comparable CPU). The cost is NPCs and traffic:
+  fps_city High 136 FPS; `--npc-cap=0` 208; `--cars=0` 165 with 4 instead of 14-20 spikes. A static spike hunt
+  (`--perf-spikes`, city) finds no single culprit node (0-4 spikes per 8 s each); Traffic off = +35% frames.
+- For A (traffic is A's code): every Car's `_far_tick` / `_sense_tick` starts at 0, so all far cars think on the same
+  physics tick; staggering them (`_far_tick = randi() % FAR_TICK_EVERY` in _ready) should flatten spikes. Cheaper
+  traffic is the biggest win left.
+- Not simulated: a weak CPU (no tool for it here); Low halves traffic and the crowd and caps NPCs at 28 for that.
+
+## Decisions (what + why)
+- One table (QualityProfile) instead of quality code spread over A's systems: A's files only got a static scale var
+  each (GrassCover, WorldLod, Traffic), defaults = the old behaviour, so tests and A's numbers are unchanged.
+- NPC / traffic counts follow the HOST's level (they are host-spawned); the NPC cap (awake + drawn) is per peer.
+- The auto pick never chooses Ultra and errs on the low side (Medium for GTX / RX 66xx): rather smooth than pretty.
+- Measuring turns the camera (two rounds): a fixed view hides streaming / culling costs.
+
+## Existing files changed (part 32)
+- A's: scripts/procgen/grass_cover.gd (density_scale, radius_scale, group grass_cover, rebuild),
+  scripts/world/world_lod.gd (range_scale, max_shadows, set_range_scale, meta lod_end), scripts/traffic/traffic.gd
+  (count_scale on the ambient cars; --cars=N unchanged). Mine: settings.gd, settings_menu.gd, city_life.gd,
+  zones.gd, day_rhythm.gd, scenarios.gd (fps_busy, --fps-measure), self_test.gd (check quality_levels).
+
+# Part 33: shop sellers (city life list 2026-11-25, item 1)
+
+## How it works
+- `ShopStaff.populate(world)` (scripts/shops/shop_staff.gd), called by Zones._on_world on EVERY peer (same order,
+  same names: the sellers sit at the same node path everywhere, like prefab shopkeepers). It finds every till: a
+  Marker3D `ShopkeeperSpot*` (A can put one in a prefab; seller stands on it looking along -Z; meta `shop_type`
+  optional) or a cash register (Building's shop furniture `cash_register.tscn`, the bakery's Register): the seller
+  stands 0.75 m behind it, up to 0.6 m towards the middle of the shop, on the floor (ray), facing the front.
+  Buildings with a Shopkeeper already (store, gun shop, garage, car dealer...) are skipped.
+- `ShopTypes` (scripts/shops/shop_types.gd): types bakery, snack_bar, restaurant, cafe, bar, florist, clothing,
+  kiosk with stock, names, greeting, look; `type_for(building, marker)` from meta / shop sign / node name (barber,
+  laundromat, gun shop, estate, dealer, police = "-" = nobody).
+- `ShopSeller` (Shopkeeper subclass, prefabs/npc/shop_seller.tscn): meals (`ShopTypes.MEAL_HEAL`, item category
+  "meal") are eaten on the spot: health up (max 100), clean money first, max 3 at once, nothing in your pockets.
+  Flowers (category "gift") and clothes (category "clothing", "worn in a later update") are normal items.
+- 23 new items (tools/generators/gen_shop_goods.py -> data/items + prefabs/items with `ProcGoods`
+  scripts/shops/proc_goods.gd, icons rendered): coffee, tea, soda, beer, wine, cocktail, croissant, sandwich,
+  apple_pie, cake, fries, burger, soup, pasta, steak, rose_bouquet, tulips, sunflowers, cap, sunglasses,
+  leather_jacket, hoodie, sneakers.
+- Now on the map: Piet in the Bakery, Fatima in the Snack Bar (name picked per building path). Every enterable shop
+  A adds later gets one by itself.
+- Scenario shop_sellers, self-test check shop_sellers.
+
+## Decisions (what + why)
+- Sellers found from the till, not from a list of buildings: new shops of A need no code from B.
+- Meals heal at the counter instead of an inventory "use" action: no new controls, and restaurants get a reason to
+  walk in. Take-away food can come later with an eat action.
+- Clothes are sold now as items (the user asked "kleding later voor je personage"): wearing them is a later step.
+
+## Requests to A (B.md)
+- Enterable restaurants / cafes / bars / florist / clothing shop in the city: each with a till (Building shop
+  furniture already has one) or a Marker3D `ShopkeeperSpot` (+ meta shop_type), and a shop sign with the type word.
+- For point 2 (restaurants + terraces): Marker3D `DinerSeat*` (a chair, -Z = the table) inside and on terraces,
+  under the restaurant.
+
+## Te testen door Curry
+- `shop_sellers` (F9): je staat gewond (35 health) met 300 euro in de snackbar bij Fatima. E = winkelvenster; een
+  burger geeft +28 health, je ziet de balk stijgen. In de bakkerij ernaast staat ook iemand.
+- `fps_busy` (F9): de drukste plek (stad, middag, extra mensen en auto's) met het F3-overzicht. Settings > Graphics >
+  Quality: zet hem op Low/Medium/High en kijk naar de FPS (mensen/verkeer pas na herladen).

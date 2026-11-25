@@ -146,6 +146,9 @@ var _flash_t: float = 0.0
 
 func _ready() -> void:
 	add_to_group(&"cars")
+	# Stagger the far-car / sensing ticks (B's measurement: all far cars thought on the same physics tick -> spikes).
+	_far_tick = randi() % FAR_TICK_EVERY
+	_sense_tick = randi() % FAR_SENSE_EVERY
 	collision_layer = 2
 	collision_mask = 0
 	sync_to_physics = false  # we set the transform directly each physics frame

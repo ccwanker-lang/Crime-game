@@ -135,7 +135,7 @@ static func spots(world: Node3D) -> Array:
 				"zone": &"city", "kind": "sit", "seat": m.get_path(), "hours": Vector2(8.0, 22.0)})
 	# Walkers on the sidewalk graph (the first WALKERS_NIGHT also walk at night).
 	var nodes: Array[Vector3] = graph()
-	for i: int in WALKERS_DAY:
+	for i: int in roundi(WALKERS_DAY * float(QualityProfile.value("crowd"))):  # (quality level)
 		var n: int = (i * 7919) % nodes.size()
 		out.append({"key": "Walker_%d" % i, "pos": nodes[n], "yaw": 0.0, "zone": &"city", "kind": "walk", "node": n,
 				"hours": Vector2(0.0, 24.0) if i < WALKERS_NIGHT else Vector2(6.5, 22.0)})

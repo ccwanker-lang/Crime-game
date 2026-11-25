@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "prison", "pass", "city", "city_shops", "building_sites", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads", "day_rhythm", "settings", "soundscape", "menus", "steam", "gamepad"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "prison", "pass", "city", "city_shops", "building_sites", "street_detail", "weather", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads", "day_rhythm", "settings", "soundscape", "menus", "steam", "gamepad", "quality_levels", "shop_sellers"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -80,8 +80,8 @@ func _count_q(who: String, id: String) -> int:
 
 
 ## Milestone 3 product quality (scripts/debug/quality_test.gd).
-func _check_quality(world: Node3D) -> void:
-	await QualityTest.run(self, world)
+func _check_quality_levels(world: Node3D) -> void:
+	await QualityLevelsTest.run(self, world)
 
 
 ## NOTES part 19 missions (scripts/debug/missions_test.gd).
@@ -117,6 +117,16 @@ func _check_menus(world: Node3D) -> void:
 ## Session B user list item 4: Steam co-op without starting Steam (scripts/debug/steam_test.gd).
 func _check_steam(world: Node3D) -> void:
 	await SteamTest.run(self, world)
+
+
+## City life point 1: sellers behind every shop till (scripts/debug/shop_sellers_test.gd).
+func _check_shop_sellers(world: Node3D) -> void:
+	await ShopSellersTest.run(self, world)
+
+
+## Performance rules (2026-11-24): quality levels scale the world (scripts/debug/quality_test.gd).
+func _check_quality(world: Node3D) -> void:
+	await QualityTest.run(self, world)
 
 
 ## Session B user list item 5: controller support (scripts/debug/gamepad_test.gd).
@@ -3725,6 +3735,63 @@ func _other_district(all: Dictionary, not_id: String) -> String:
 	return not_id
 
 
+## Point 103: street detail = PropScatter MultiMeshes (one draw per mesh, however many copies) with real collision.
+func _check_street_detail(world: Node3D) -> void:
+	var scatters: Array[Node] = get_tree().get_nodes_in_group(&"prop_scatter")
+	for i: int in 30:
+		var ready_all: bool = true
+		for n: Node in scatters:
+			if n.find_children("*", "MultiMeshInstance3D", false, false).is_empty():
+				ready_all = false
+		if ready_all:
+			break
+		await get_tree().process_frame
+	var copies: int = 0
+	var meshes: int = 0
+	var bad: PackedStringArray = []
+	for n: Node in scatters:
+		var ps := n as PropScatter
+		copies += ps.count()
+		for m: Node in ps.find_children("*", "MultiMeshInstance3D", false, false):
+			meshes += 1
+			if (m as MultiMeshInstance3D).multimesh.instance_count != ps.count():
+				bad.append(ps.name)
+	_report(scatters.size() >= 6 and copies >= 200 and meshes >= 6 and meshes < 40 and bad.is_empty(),
+			"street detail: %d PropScatters, %d props drawn with %d MultiMeshes%s" % [scatters.size(), copies, meshes,
+			"" if bad.is_empty() else " (wrong counts: %s)" % ", ".join(bad)])
+	var bol := world.find_child("StreetBollard", true, false) as PropScatter
+	var hit: bool = false
+	if bol and bol.count() > 0:
+		var at: Vector3 = bol.to_global(Vector3(bol.spots[0], bol.spots[1], bol.spots[2]))
+		await get_tree().physics_frame
+		var q := PhysicsRayQueryParameters3D.create(at + Vector3(0, 3.0, 0), at + Vector3(0, 0.5, 0))
+		hit = not world.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	_report(hit, "a scattered bollard has collision (ray from above hits it)")
+
+
+## Point 103: weather - the host's rain reaches the shader (wetness), the sky (overcast) and late joiners (net state).
+func _check_weather(world: Node3D) -> void:
+	var w := world.get_node_or_null("Weather") as Weather
+	_report(w != null and Weather.current == w and not w.raining and is_zero_approx(w.wetness),
+			"weather: World/Weather exists, dry at the start of a test")
+	if w == null:
+		return
+	w.debug_set(true)
+	await get_tree().process_frame
+	var wet: float = w.wetness  # (global_shader_parameter_get is editor-only; _publish sets the parameter from it)
+	var state: Dictionary = w.get_net_state()
+	w.debug_set(false, 0.0)
+	w.apply_net_state(state)
+	var restored: bool = w.raining and is_equal_approx(w.wetness, 1.0)
+	w.debug_set(false, 0.6)
+	await get_tree().create_timer(0.5).timeout
+	var drying: bool = w.wetness < 0.6 and w.wetness > 0.5 and DayNight.overcast < 1.0
+	w.debug_set(false, 0.0)
+	await get_tree().process_frame
+	_report(is_equal_approx(wet, 1.0) and restored and drying and is_zero_approx(DayNight.overcast),
+			"rain: wetness %.2f (shader parameter), net state restores it, the streets dry slowly after (%s), clear sky after" % [wet, drying])
+
+
 ## Point 102: building sites - each has its skeleton, crane, fence and builder markers; a walker comes in through the
 ## gate and climbs every flight of the switchback stair to the top slab (the deal spot).
 func _check_building_sites(world: Node3D) -> void:
@@ -3789,7 +3856,7 @@ func _check_city_shops(world: Node3D) -> void:
 				signs += 1
 		if t.has_open_shop():
 			open.append(t)
-	var spots: int = city.find_children("ShopCounterSpot*", "Marker3D", true, false).size()
+	var spots: int = city.find_children("ShopkeeperSpot*", "Marker3D", true, false).size()
 	var seats: int = city.find_children("TerraceSeat*", "Marker3D", true, false).size()
 	_report(signs >= 100 and open.size() >= 5 and spots == open.size() and seats >= 8,
 			"city shops: %d shop signs, %d walk-in shops (%d counter spots), %d terrace seats" % [signs, open.size(), spots, seats])

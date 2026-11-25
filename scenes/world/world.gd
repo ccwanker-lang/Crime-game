@@ -90,6 +90,9 @@ func _ready() -> void:
 	territory.name = "Territory"
 	add_child(territory)
 	add_child(Wanted.new())  # point 28 (host logic, stars synced per player)
+	var weather := Weather.new()  # point 103: rain + wet streets (host rolls, every peer draws)
+	weather.name = "Weather"
+	add_child(weather)
 	var vehicles := Vehicles.new()  # point 45: the crew's own cars (own spawner)
 	vehicles.name = "Vehicles"
 	add_child(vehicles)

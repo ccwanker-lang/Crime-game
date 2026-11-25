@@ -14,3 +14,4 @@ shader_parameter/line_amount = 0.6
 shader_parameter/odd_share = 0.08
 shader_parameter/odd_amount = 0.06
 shader_parameter/swatch2 = 20
+shader_parameter/wet_receiver = 0.85

@@ -11,6 +11,8 @@ extends Node3D
 const CAR := preload("res://prefabs/vehicles/car.tscn")
 ## Point 63: fewer cars (was 8): calmer streets, no queues. Point 49b: 6 = one per route, the 6th on the pass.
 const CAR_COUNT: int = 6
+## Quality level of the host (session B, QualityProfile): share of the ambient cars (--cars=N is taken as given).
+static var count_scale: float = 1.0
 
 ## Junction squares (centre x, z; half size JUNCTION_HALF): one car at a time. The village + pass ones here; the
 ## city's (map zone 7) come from data/city/city.json: `JUNCTIONS` = both, rebuilt by `load_city()`.
@@ -55,9 +57,6 @@ const LIGHT_CORNER: float = 4.8
 var light_clock: float = 0.0
 var _light_sync_t: float = 0.0
 
-## Point 98: share of the ambient village + city cars the host spawns (QualityProfile "traffic"; read once at load,
-## `--cars=N` wins). Police cars are not scaled (gameplay).
-static var count_scale: float = 1.0
 var routes: Array[TrafficRoute] = []
 var _junction_owner: Dictionary = {}  # junction index -> Car (host)
 

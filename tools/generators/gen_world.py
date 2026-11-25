@@ -1087,6 +1087,57 @@ for i, x in enumerate(range(-40, 96, 16)):
         continue  # point 96: the city gas station stands here
     put("nature/tree_medium.tscn", (tx, 0, tz), tr, parent="City", props={"tree_seed": str(7100 + i)})
 gas_station("City", 36.0, 134.0, 0, "City", title="CITYFUEL")
+
+# Point 103: street detail along the city's straight roads - bins, bike racks, planters, bollards, post boxes on the
+# pavement near the kerb, manholes in the lanes. Each kind is ONE PropScatter (MultiMesh: one draw call per mesh).
+drng = random.Random(103)
+SCATTER = "res://scripts/procgen/prop_scatter.gd"
+GARAGE_RECTS = [(XB[bx][0] - 3, XB[bx][1] + 3, ZB[bz][0] - 3, ZB[bz][1] + 3) for (bx, bz), pl in PLAN.items()
+                if pl == "garage"]
+street = {k: [] for k in ["trash_can", "bike_rack_bikes", "flower_planter", "bollard", "post_box"]}
+holes = []
+KIND_CYCLE = ["trash_can", "bike_rack_bikes", "flower_planter", "bollard", "flower_planter", "trash_can",
+              "bike_rack_bikes", "post_box"]
+
+
+def _free_spot(x, z):
+    return not any(x0 <= x <= x1 and z0 <= z <= z1 for x0, x1, z0, z1 in GARAGE_RECTS)
+
+
+for a_, b_ in sorted(links):
+    horiz = a_[1] == b_[1]
+    lo, hi = (a_[0], b_[0]) if horiz else (a_[1], b_[1])
+    for side in (-1, 1):
+        t = lo + 9.0 + drng.uniform(0, 3)
+        while t < hi - 9.0:
+            x, z = (t, a_[1] + side * 4.1) if horiz else (a_[0] + side * 4.1, t)
+            if _free_spot(x, z):
+                kind = drng.choice(KIND_CYCLE)
+                yaw = (0 if side > 0 else 180) if horiz else (90 if side > 0 else 270)
+                if kind == "bollard":
+                    for k in (-0.8, 0.0, 0.8):
+                        street[kind].append((x + (k if horiz else 0), 0.15, z + (0 if horiz else k), yaw))
+                else:
+                    street[kind].append((x, 0.15, z, yaw))
+            t += drng.uniform(7.0, 11.0)
+    for t in range(lo + 12, hi, 12):
+        if drng.random() < 0.4:
+            off = drng.choice((-1.75, 1.75))
+            holes.append((t + 2.0, 0.0, a_[1] + off, 0) if horiz else (a_[0] + off, 0.0, t + 2.0, 0))
+
+
+def scatter(name, prefab, pts, collide=True, rng_end=90):
+    if not pts:
+        return
+    flat = ", ".join(f"{v:g}" for pt in pts for v in pt)
+    sc.node(name, "Node3D", "City", props={"script": sc.script(SCATTER), "prefab_path": q(prefab),
+            "spots": f"PackedFloat32Array({flat})", "range_end": f"{rng_end:g}",
+            "collide": "true" if collide else "false"})
+
+
+for kind, pts in street.items():
+    scatter("Street" + "".join(w.capitalize() for w in kind.split("_")), f"res://prefabs/props/{kind}.tscn", pts)
+scatter("StreetManholes", "res://prefabs/props/manhole.tscn", holes, collide=False, rng_end=60)
 for z in range(150, 330, 18):
     put("nature/tree_medium.tscn", (-66, 0, z), crng.uniform(0, 360), parent="City", props={"tree_seed": str(7200 + z)})
     put("props/bench.tscn", (-64.5, 0.0, z + 9), 270, parent="City", name=uname("CityBench"))

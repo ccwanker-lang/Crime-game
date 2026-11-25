@@ -14,11 +14,10 @@ const FADE_END: float = 45.0
 const DENSITY: float = 4.2
 ## Chunks built per frame (each = up to ~420 rays).
 const BUILD_PER_FRAME: int = 2
-
-## Point 98: quality hooks (QualityProfile "grass" / "grass_radius"; 1.0 = the numbers above). Density 0 = no
-## cover grass at all. Call `rebuild()` on the node (group "grass_cover") after a change.
+## Quality level (session B, QualityProfile): tufts per m2 and the radius as a share of DENSITY / RADIUS.
 static var density_scale: float = 1.0
 static var radius_scale: float = 1.0
+
 var _chunks: Dictionary = {}  # Vector2i -> MultiMeshInstance3D (or null = no grass in it)
 var _skip: Array[Rect2] = []  # world-space rects of GrassFields
 var _material: Material
@@ -66,40 +65,40 @@ static func field_rects(tree: SceneTree, world: Node = null) -> Array[Rect2]:
 	return out
 
 
-## Point 98: drops every chunk; they grow back with the current density/radius scale.
+## Bare strip round roads and paved areas (a tuft is ~0.25 m wide).
+const PAVE_MARGIN: float = 0.25
+
+
+## Drops every chunk (QualityProfile.apply after a quality change): they are built again with the new numbers.
 func rebuild() -> void:
-	for key: Vector2i in _chunks:
+	for key: Vector2i in _chunks.keys():
 		var mmi: Node = _chunks[key]
 		if mmi:
 			mmi.queue_free()
 	_chunks.clear()
 
 
-static func radius() -> float:
-	return RADIUS * radius_scale
-const PAVE_MARGIN: float = 0.25
-
-
 func _process(_delta: float) -> void:
 	if not _ready_done:
 		return
+	var radius: float = RADIUS * radius_scale
 	var cam: Camera3D = get_viewport().get_camera_3d()
 	if cam == null:
 		return
 	var at := Vector2(cam.global_position.x, cam.global_position.z)
-	if cam.global_position.y > 60.0 or density_scale <= 0.01:
+	if cam.global_position.y > 60.0:
 		at = Vector2(INF, INF)  # far above (screenshot top views): no grass
 	# Drop chunks that are out of range.
 	for key: Vector2i in _chunks.keys():
-		if _chunk_centre(key).distance_to(at) > radius() + CHUNK:
+		if _chunk_centre(key).distance_to(at) > radius + CHUNK:
 			var mmi: Node = _chunks[key]
 			if mmi:
 				mmi.queue_free()
 			_chunks.erase(key)
-	if at.x == INF:
+	if at.x == INF or density_scale <= 0.0:
 		return
 	# Build the nearest missing chunks first.
-	var r: int = ceili(radius() / CHUNK)
+	var r: int = ceili(radius / CHUNK)
 	var c0 := Vector2i(floori(at.x / CHUNK), floori(at.y / CHUNK))
 	var todo: Array = []
 	for ix: int in range(-r, r + 1):
@@ -108,7 +107,7 @@ func _process(_delta: float) -> void:
 			if _chunks.has(key):
 				continue
 			var d: float = _chunk_centre(key).distance_to(at)
-			if d <= radius():
+			if d <= radius:
 				todo.append([d, key])
 	todo.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for i: int in mini(BUILD_PER_FRAME, todo.size()):
