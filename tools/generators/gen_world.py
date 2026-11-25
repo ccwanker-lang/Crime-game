@@ -1093,7 +1093,7 @@ gas_station("City", 36.0, 134.0, 0, "City", title="CITYFUEL")
 drng = random.Random(103)
 SCATTER = "res://scripts/procgen/prop_scatter.gd"
 GARAGE_RECTS = [(XB[bx][0] - 3, XB[bx][1] + 3, ZB[bz][0] - 3, ZB[bz][1] + 3) for (bx, bz), pl in PLAN.items()
-                if pl == "garage"]
+                if pl == "garage"] + [(36 - 16, 36 + 16, 134 - 16, 134 + 16)]  # (+ the city gas station's drive-ins)
 street = {k: [] for k in ["trash_can", "bike_rack_bikes", "flower_planter", "bollard", "post_box"]}
 holes = []
 KIND_CYCLE = ["trash_can", "bike_rack_bikes", "flower_planter", "bollard", "flower_planter", "trash_can",

@@ -1803,7 +1803,7 @@ func _check_pedestrians(world: Node3D) -> void:
 					break
 	# A visit picks a public door anywhere on the (big) map, so in 90 s nobody may have finished one yet: wait up to
 	# 90 game-seconds more for the first sit / visit (it is the behaviour that is checked, not the dice).
-	for extra: int in 150:
+	for extra: int in 450:  # (up to 90 s: a full run loads the CPU)
 		var done_any: int = 0
 		for n: Node in npcs:
 			if is_instance_valid(n):
