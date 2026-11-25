@@ -123,6 +123,7 @@ const LIST: Array = [
 	["fps_city", "Points 86-90: frame rate in the city centre (F3 overlay on)", "You stand on a city street between the towers, F3 overlay on. Before: ~21-32 FPS; now ~75-125. Look around and walk a block: the overlay shows FPS, NPCs active/asleep and draw calls."],
 	["fps_busy", "Performance: the busiest spot - the city centre at 13:00 with 40 extra walkers and 12 extra cars (F3 overlay on)", "You stand on a city street at lunchtime, with far more people and traffic than normal on top of the usual crowd. The F3 overlay shows FPS, NPCs awake / asleep and draw calls. Target: 90+ FPS on High on your PC; Settings > Graphics > Quality changes it live (people / traffic counts after a reload)."],
 	["shop_sellers", "City life 1: a seller behind every shop till - you stand hurt (35 health) with €300 at the snack bar", "Fatima stands behind the till of the Snack Bar (every enterable shop of the map gets a seller; the Bakery next door has one too). Press E: the shop window. Food and drinks are eaten on the spot and heal you (a burger +28, fries +16); watch the health bar go up. Florists sell flowers and clothing shops clothes (worn by your character in a later update) - those go in your pockets."],
+	["diners", "City life 2: guests in the Bakery at lunchtime (12:30), everything 4x faster", "You stand inside the Bakery. Guests come in from the street through the door, sit at the table, get coffee and a croissant or pie in front of them, stay a while and leave again (here 4x faster than normal). Restaurants, cafes and bars work the same (busiest at lunch and dinner, bars in the evening); in bars and snack bars a few guests stand at the counter and chat. Fire a shot: they run."],
 	["fps_army", "Points 86-90: frame rate at the army base (F3 overlay on)", "You stand west of Fort Halden's apron with an army pass, F3 overlay on. Before: ~70 FPS; now ~120-140."],
 	["bunker_rooms", "Point 92: the bunker's lower level - free way from the stairs, every room furnished", "You stand at the foot of the bunker stairs (lower level, -14 m). Turn right: the lift moved 1 m west, so a 2 m lane runs past the shaft into the garage (the lift pit is only a 0.3 m step now). Walk on: the corridor leads to the workshop (lab hall: 6 workbenches with stools along the east wall, the 6 yellow machine spots in the middle), storage (shelves + cabinets on every wall), the bunk room (6 beds, lockers, a table) and the generator room at the end."],
 	["grass_roads", "Point 95: no grass through roads or pavements (the slums)", "You stand on the pavement of the slum loop road (Rosehill Park), right after loading. Look round: the road, the pavements and the paved yards are bare; grass only grows on the green verges and fields. Before, the first grass patches round where you spawned were made before the paving existed and grew straight through the concrete. The same holds on the whole map (self-test check grass_roads)."],
@@ -529,6 +530,14 @@ static func run(world: Node, id: String) -> bool:
 				var fwd: Vector3 = -sel.global_basis.z
 				_place(me, sel.global_position + fwd * 2.7 + Vector3.UP * 0.1, sel.global_position + Vector3.UP * 1.5, dn, 13.0)
 			me.health = 35
+		"diners":
+			_kit(me, 200, [])
+			DinerLife.speed = 4.0
+			DinerLife.always_open = true
+			DinerLife.debug = "--diner-debug" in OS.get_cmdline_user_args()
+			var bak := world.find_child("Bakery", true, false) as Node3D
+			if bak:
+				_place(me, bak.to_global(Vector3(-1.8, 0.3, -0.9)), bak.to_global(Vector3(2.0, 0.8, -2.6)), dn, 12.5)
 		"fps_busy":
 			_kit(me, 200, [])
 			_place(me, Vector3(60.5, 0.3, 270), Vector3(36, 6, 210), dn, 13.0)
@@ -1182,7 +1191,7 @@ static func run(world: Node, id: String) -> bool:
 		return true
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "army_life"] else 4.0).timeout
+		await world.get_tree().create_timer(26.0 if id == "diners" else 14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "army_life"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):
