@@ -12,6 +12,7 @@ extends Node
 ## Watchtower*, Barracks*, FireBarrel*, Tower*), with fixed fallbacks.
 
 const SOLDIER_SCENE: String = "res://prefabs/npc/soldier.tscn"
+const CITY_WALKER_SCENE: String = "res://prefabs/npc/city_walker.tscn"
 const PEDESTRIAN_SCENE: String = "res://prefabs/npc/pedestrian.tscn"
 ## World rectangles (x0, z0, w, d) from DESIGN "Map layout".
 const ARMY_RECT: Rect2 = Rect2(-104.0, -442.0, 340.0, 92.0)  # (A's point 85: the fence now takes in the airfield east of the old base)
@@ -85,6 +86,7 @@ func _on_node_added(n: Node) -> void:
 	# Every peer: the soldier scene may be spawned by the host's NPCSpawner.
 	if n is MultiplayerSpawner and n.name == &"NPCSpawner":
 		(n as MultiplayerSpawner).add_spawnable_scene(SOLDIER_SCENE)
+		(n as MultiplayerSpawner).add_spawnable_scene(CITY_WALKER_SCENE)
 
 
 func _now() -> float:
@@ -517,7 +519,7 @@ func _residents_tick() -> void:
 				if npc == null and _now() >= float(r.get("back", 0.0)):
 					var nr: Dictionary = sp.duplicate()
 					var variant: int = CityLife.office_variant(hash(sp["key"])) if zone == &"city" else -1
-					nr["npc"] = add_resident(sp["pos"], sp["yaw"], zone, variant)
+					nr["npc"] = add_resident(sp["pos"], sp["yaw"], zone, variant, int(sp.get("role", -1)))
 					_residents[sp["key"]] = nr
 	for key: String in _residents.keys():
 		var r: Dictionary = _residents[key]
@@ -528,7 +530,7 @@ func _residents_tick() -> void:
 			_residents[key] = {"back": _now() + 120.0}
 			continue
 		var gone: bool = not keep[r["zone"]] or not CityLife.in_hours(r.get("hours", Vector2(0, 24)), h)
-		if gone and npc.wants <= 0:
+		if gone and npc.wants <= 0 and not (npc is CityWalker and (npc as CityWalker).shopping):
 			npc.queue_free()
 			_residents.erase(key)
 			continue
@@ -560,11 +562,14 @@ func _more_city_traffic() -> void:
 
 
 ## Host: one resident / office worker (a non-wandering, networked pedestrian).
-func add_resident(pos: Vector3, yaw: float, zone: StringName, variant: int = -1) -> Pedestrian:
+## `role` >= 0: a CityWalker with that role (shopper, jogger, pram, dog; city life point 3).
+func add_resident(pos: Vector3, yaw: float, zone: StringName, variant: int = -1, role: int = -1) -> Pedestrian:
 	var npcs: Node = _npcs()
 	if npcs == null:
 		return null
-	var npc: Pedestrian = (load(PEDESTRIAN_SCENE) as PackedScene).instantiate()
+	var npc: Pedestrian = (load(CITY_WALKER_SCENE if role >= 0 else PEDESTRIAN_SCENE) as PackedScene).instantiate()
+	if role >= 0:
+		(npc as CityWalker).role = role
 	npc.variant = variant if variant >= 0 else randi() % Pedestrian.VARIANTS.size()
 	npc.color_seed = randi()
 	npc.ambient = false
@@ -580,7 +585,10 @@ func add_resident(pos: Vector3, yaw: float, zone: StringName, variant: int = -1)
 func _resident_step(npc: Pedestrian, r: Dictionary) -> void:
 	var kind: String = str(r.get("kind", "stand"))
 	if kind == "walk":
-		CityLife.walk_step(npc, r)
+		if npc is CityWalker:
+			(npc as CityWalker).city_step(r)
+		else:
+			CityLife.walk_step(npc, r)
 		return
 	if npc.is_fleeing() or npc.wants > 0 or npc._moving or npc._sitting:
 		return

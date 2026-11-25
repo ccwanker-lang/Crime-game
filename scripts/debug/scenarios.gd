@@ -124,6 +124,7 @@ const LIST: Array = [
 	["fps_busy", "Performance: the busiest spot - the city centre at 13:00 with 40 extra walkers and 12 extra cars (F3 overlay on)", "You stand on a city street at lunchtime, with far more people and traffic than normal on top of the usual crowd. The F3 overlay shows FPS, NPCs awake / asleep and draw calls. Target: 90+ FPS on High on your PC; Settings > Graphics > Quality changes it live (people / traffic counts after a reload)."],
 	["shop_sellers", "City life 1: a seller behind every shop till - you stand hurt (35 health) with €300 at the snack bar", "Fatima stands behind the till of the Snack Bar (every enterable shop of the map gets a seller; the Bakery next door has one too). Press E: the shop window. Food and drinks are eaten on the spot and heal you (a burger +28, fries +16); watch the health bar go up. Florists sell flowers and clothing shops clothes (worn by your character in a later update) - those go in your pockets."],
 	["diners", "City life 2: guests in the Bakery at lunchtime (12:30), everything 4x faster", "You stand inside the Bakery. Guests come in from the street through the door, sit at the table, get coffee and a croissant or pie in front of them, stay a while and leave again (here 4x faster than normal). Restaurants, cafes and bars work the same (busiest at lunch and dinner, bars in the evening); in bars and snack bars a few guests stand at the counter and chat. Fire a shot: they run."],
+	["city_crowd", "City life 3: a busy city morning (10:00) on a street corner - shoppers, prams, dog walkers, joggers", "More people in the city by day: shoppers walk into the shops and come out with one or two coloured bags, parents push prams, dog walkers with a real dog, people wait at the bus stops. Joggers run early (till ~09:30) and after work (17:30-21:30). F7 speeds up time: in the evening it gets quieter on the streets, but night owls walk till ~01:30 and the bars fill up. Three of them (bags, pram, dog) walk right past you."],
 	["fps_army", "Points 86-90: frame rate at the army base (F3 overlay on)", "You stand west of Fort Halden's apron with an army pass, F3 overlay on. Before: ~70 FPS; now ~120-140."],
 	["bunker_rooms", "Point 92: the bunker's lower level - free way from the stairs, every room furnished", "You stand at the foot of the bunker stairs (lower level, -14 m). Turn right: the lift moved 1 m west, so a 2 m lane runs past the shaft into the garage (the lift pit is only a 0.3 m step now). Walk on: the corridor leads to the workshop (lab hall: 6 workbenches with stools along the east wall, the 6 yellow machine spots in the middle), storage (shelves + cabinets on every wall), the bunk room (6 beds, lockers, a table) and the generator room at the end."],
 	["grass_roads", "Point 95: no grass through roads or pavements (the slums)", "You stand on the pavement of the slum loop road (Rosehill Park), right after loading. Look round: the road, the pavements and the paved yards are bare; grass only grows on the green verges and fields. Before, the first grass patches round where you spawned were made before the paving existed and grew straight through the concrete. The same holds on the whole map (self-test check grass_roads)."],
@@ -1039,6 +1040,21 @@ static func run(world: Node, id: String) -> bool:
 			_kit(me, 200, [])
 			var corner := Vector3(CityLife.CX[1] + CityLife.SIDE, 0.3, CityLife.CZ[1] + CityLife.SIDE)
 			_place(me, corner, corner + Vector3(30, 1.0, 0), dn, 12.0)  # (looking along the sidewalk)
+		"city_crowd":
+			_kit(me, 200, [])
+			var corner := Vector3(CityLife.CX[1] + CityLife.SIDE, 0.3, CityLife.CZ[1] + CityLife.SIDE)
+			_place(me, corner, corner + Vector3(30, 1.0, 0), dn, 10.0)
+			for k: int in 3:
+				var role: int = [CityWalker.Role.SHOPPER, CityWalker.Role.PRAM, CityWalker.Role.DOG][k]
+				var w := Zones.add_resident(corner + Vector3(26.0 + k * 2.0, 0.0, 0.6 * k - 0.4), PI * 0.5, &"city", -1, role) as CityWalker
+				if w:
+					if role == CityWalker.Role.SHOPPER:
+						w.carry = 2
+					if "--crowd-close" in OS.get_cmdline_user_args():  # (screenshot of the bags up close)
+						w.position = corner + Vector3(2.6, 0.0, 0.9 * k - 0.9)
+						w.rotation.y = PI * 0.5 + 0.6
+					else:
+						w._go_direct.call_deferred(corner + Vector3(-25.0, 0.0, 0.3 * k), Pedestrian.Anim.WALK)
 		"army_airfield":
 			_kit(me, 500, [["pistol", 1], ["ammo_9mm", 48]])
 			me.admin_god = true
@@ -1191,7 +1207,7 @@ static func run(world: Node, id: String) -> bool:
 		return true
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(26.0 if id == "diners" else 14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "army_life"] else 4.0).timeout
+		await world.get_tree().create_timer(26.0 if id == "diners" else 14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "city_crowd", "army_life"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):

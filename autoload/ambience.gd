@@ -21,13 +21,16 @@ func _ready() -> void:
 
 
 func _on_node_added(n: Node) -> void:
-	if n is ParkGoer:
+	if n is ParkGoer or n is CityWalker:
 		_make_dog.call_deferred(n)
 
 
 ## Every peer: the dog of a DOG ParkGoer (once).
-func _make_dog(npc: ParkGoer) -> Dog:
-	if not is_instance_valid(npc) or not npc.is_inside_tree() or npc.role != ParkGoer.Role.DOG or npc.dead:
+func _make_dog(npc: Pedestrian) -> Dog:
+	if not is_instance_valid(npc) or not npc.is_inside_tree() or npc.dead:
+		return null
+	if not ((npc is ParkGoer and (npc as ParkGoer).role == ParkGoer.Role.DOG)
+			or (npc is CityWalker and (npc as CityWalker).role == CityWalker.Role.DOG)):
 		return null
 	var scene: Node = get_tree().current_scene
 	if scene == null:

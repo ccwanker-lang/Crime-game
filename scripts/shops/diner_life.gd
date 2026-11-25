@@ -58,8 +58,8 @@ var _t: float = 0.0
 
 
 static func attach(world: Node) -> void:
-	if world == null or world.get_node_or_null(^"DinerLife"):
-		return
+	if world == null or world.get_node_or_null(^"DinerLife") or "--no-diners" in OS.get_cmdline_user_args():
+		return  # (--no-diners: A-B performance measurements)
 	var d := DinerLife.new()
 	d.name = "DinerLife"
 	world.add_child(d)

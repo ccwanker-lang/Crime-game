@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op), part 31 (controller support), part 32 (quality levels + FPS measuring), part 33 (shop sellers).
+## Open for the next merge: part 25 (Roadmap 88: NPC day rhythm), part 26 (Roadmap 89: npc_bench), part 27 (settings menu), part 28 (sound + atmosphere), part 29 (title page, save slots, loading screen, pause menu), part 30 (Steam co-op), part 31 (controller support), part 32 (quality levels + FPS measuring), part 33 (shop sellers), part 34 (diners), part 35 (city crowd).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1475,3 +1475,76 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   burger geeft +28 health, je ziet de balk stijgen. In de bakkerij ernaast staat ook iemand.
 - `fps_busy` (F9): de drukste plek (stad, middag, extra mensen en auto's) met het F3-overzicht. Settings > Graphics >
   Quality: zet hem op Low/Medium/High en kijk naar de FPS (mensen/verkeer pas na herladen).
+
+
+# Part 34: guests in restaurants, cafes and bars (city life list 2026-11-25, item 2)
+
+## How it works
+- `DinerLife` (scripts/shops/diner_life.gd, node World/DinerLife, made by Zones._on_world on every peer, group
+  net_state). Places = buildings of a food type (ShopTypes: bakery, snack_bar, restaurant, cafe, bar) with a seller.
+  Seats: Marker3D `DinerSeat*` (A's, -Z = table) or else the chairs (dining/plastic chair, stool, armchair...) on the
+  ground floor with a table within 1.7 m. Bars / snack bars also get standing spots at the counter.
+- Host, every second: per place the wanted guests = seats x `busy(type, hour)` x crowd (quality level), only when a
+  player is within 150 m. Bakery 7-18 h, cafes busiest at lunch, restaurants at lunch + dinner, bars 17-02 h
+  (fullest 20-01 h). A guest comes from the street, through the door, sits, gets food + a drink on the table (ProcGoods
+  on the table top, `_dish_rpc` to every peer, late joiners via get_net_state), stays 70-160 s and leaves; standers
+  chat (TALK). When nobody looks (player just arrived, or outside) a guest simply is already sitting there.
+- A gunshot: the guests jump up and run, the table is cleared. Leaving guests disappear out of sight (8 s of walking
+  at the latest).
+- Today on the map: Bakery (2 chairs at its table) and Snack Bar (4 counter spots). A's walk-in cafes / restaurants with
+  DinerSeat markers join by themselves after the merge.
+- Scenario diners (Bakery, 12:30, 4x faster), self-test check diners, flags `--diner-debug`, `--no-diners` (A-B).
+
+## Decisions (what + why)
+- Guests are normal host NPCs (Zones.add_resident): synced like every resident, counted by the NPC streamer's cap,
+  no new network code. Food on the table is the only new sync (small RPC + net_state).
+- No navmesh in the city: guests walk straight lines there and use the navmesh where one exists.
+- Only the ground floor: upstairs chairs are behind stairwells the guests can't reach reliably.
+
+## Measurements (RTX 5060 Ti, 1080p, High)
+- diners (inside the Bakery, 4x speed): 69 FPS with guests, 77 without (`--no-diners`), A-B-A. About 1.5 ms for ~6
+  extra awake NPCs churning at 4x speed. The spot itself is heavy: ~4300 draws through the Bakery windows (village
+  interiors?) - for A: below 90 FPS here even without guests.
+
+# Part 35: a busier city (city life list 2026-11-25, item 3)
+
+## How it works
+- `CityWalker` (scripts/npc/city_walker.gd, prefabs/npc/city_walker.tscn, Pedestrian subclass, spawnable added to
+  NPCSpawner by Zones on every peer). `role` synced at spawn: WALK, SHOPPER, JOGGER, PRAM, DOG; synced `carry`
+  (shopping bags 0-2, hang from the palms) and `inside` (hidden in a shop).
+  - SHOPPER: walks the CityLife sidewalk graph; without bags it now and then (25% per step) goes to a shop within 45 m
+    (`CityWalker.shops()` = every ShopSeller's building + its door), in through the door, 20-60 s inside, out with 1-2
+    coloured bags.
+  - JOGGER: runs (RUN anim, 2.7 m/s). PRAM: pushes a procedural pram, 1.0 m/s. DOG: walks a real `Dog` (Ambience
+    makes it like for the park's dog walkers; Dog.owner_npc is a Pedestrian now).
+  - Joggers, prams, dog walkers and shoppers in a shop don't become customers.
+- `CityLife.role_groups()`: the hours come from the day rhythm config (data/npc/day_rhythm.tres, point 88): shoppers
+  from the morning block till 3 h into the evening (9-19), joggers 06:30-09:30 + 17:30-21:30, prams 09:30-17:30, dog
+  walkers 07-21, night owls 19-01:30. Counts x crowd (quality). Plain walkers 26 -> 18 (8 still at night): by day
+  34 walkers (was 26) + bus stops + benches + offices; at night 14 (8 + 6 night owls) and the bars fill up (part 34).
+- Scenario city_crowd (`--crowd-close` = bags/pram up close for a screenshot), self-test check city_crowd; check zones
+  now counts the expected walkers per hour (`_walkers_at`).
+
+## Decisions (what + why)
+- Roles on one subclass instead of a new system: the residents tick (Zones) keeps spawning, despawning, streaming and
+  customers; a role only changes the step.
+- Bags are visuals from a synced int, not items: no inventory work for NPCs.
+- Shoppers go to the shops ShopStaff knows: A's city shops count as soon as they have a seller.
+
+## Measurements 2026-11-25 (RTX 5060 Ti, 1920x1080, High, vsync off)
+| spot | quality | avg FPS | 1% low | draws |
+|---|---|---|---|---|
+| fps_docks | High | 154 | 60 | 1286 |
+| fps_city | High | 140 | 58 | 1035 |
+| fps_army | High | 156 | 65 | 1208 |
+| fps_busy | High | 126 | 53 | 1081 |
+| city_crowd | High | 126 | 51 | 1347 |
+| fps_busy | Low | 179 | 63 | 644 |
+- Same or better than part 32 (A's traffic stagger may help). 1% lows still below 90 on High (spikes while turning).
+
+## Te testen door Curry
+- `diners` (F9): je staat in de bakkerij om 12:30, alles 4x sneller. Gasten komen binnen, gaan aan tafel zitten, krijgen
+  koffie en gebak, en gaan weer weg. Schiet een keer: ze rennen weg. In de snackbar staan mensen aan de toonbank te
+  praten.
+- `city_crowd` (F9): een stadshoek om 10:00. Drie mensen lopen recht op je af: een met twee tasjes, een met een
+  kinderwagen en een met een hond. Druk F7 om de tijd te versnellen: 's avonds is het rustiger op straat.

@@ -30,7 +30,7 @@ const NET_RATE: float = 0.1
 ## Host: dog walkers start a game of fetch on their own at a sniff stop (tests turn it off).
 static var auto_fetch: bool = true
 
-var owner_npc: ParkGoer = null
+var owner_npc: Pedestrian = null  # (a DOG ParkGoer or a DOG CityWalker)
 var state: int = State.FOLLOW
 var health: int = HEALTH
 ## Host: a fetch is going on (ParkGoer waits for it).

@@ -154,7 +154,7 @@ static func run(t: Node, world: Node3D) -> void:
 			walking += 1
 	var sitting: int = Zones.residents(&"city").filter(func(n: Pedestrian) -> bool: return n._sitting).size()
 	var cars1: int = world.get_node("Traffic").get_children().filter(func(n: Node) -> bool: return n is Car).size()
-	report.call(int(kinds.get("walk", 0)) == CityLife.WALKERS_DAY and walking >= walkers.size() * 0.7 and sitting >= 4
+	report.call(int(kinds.get("walk", 0)) == _walkers_at(Zones._hours()) and walking >= walkers.size() * 0.7 and sitting >= 4
 			and int(kinds.get("stand", 0)) >= 20 and cars1 >= cars0 + CityLife.EXTRA_CARS,
 			"city life: %s, %d of %d walkers on their way, %d sitting, +%d cars" % [kinds, walking, walkers.size(), sitting, cars1 - cars0])
 	var ccust: Pedestrian = _customer(&"city")
@@ -189,8 +189,8 @@ static func run(t: Node, world: Node3D) -> void:
 					and (r["npc"] as Pedestrian).wants <= 0:
 				var kind: String = "office" if str(r.get("key", "")).begins_with("Tower") else str(r.get("kind", "stand"))
 				night_kinds[kind] = int(night_kinds.get(kind, 0)) + 1
-		report.call(not night_kinds.has("office") and int(night_kinds.get("walk", 0)) == CityLife.WALKERS_NIGHT and not night_kinds.has("sit"),
-				"at night the offices + benches empty, %d walkers stay (%s)" % [CityLife.WALKERS_NIGHT, night_kinds])
+		report.call(not night_kinds.has("office") and int(night_kinds.get("walk", 0)) == _walkers_at(Zones._hours()) and not night_kinds.has("sit"),
+				"at night the offices + benches empty, %d walkers stay (%s)" % [_walkers_at(Zones._hours()), night_kinds])
 		dn.set_hours(12.0)
 	p.teleport(Vector3(20, 0.3, 330))
 	await tree.create_timer(1.0).timeout
@@ -252,3 +252,12 @@ static func _customer(zone: StringName) -> Pedestrian:
 		if n.wants > 0:
 			return n
 	return Zones.make_zone_customer(zone)
+
+
+## City walkers (plain + CityWalker roles, point 3) whose hours cover `h`.
+static func _walkers_at(h: float) -> int:
+	var n: int = 0
+	for sp: Dictionary in Zones.city_spots():
+		if sp.get("kind") == "walk" and CityLife.in_hours(sp.get("hours", Vector2(0, 24)), h):
+			n += 1
+	return n

@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/npc/city_walker.gd" id="1_ped"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule"]
+radius = 0.18
+height = 1.75
+
+[sub_resource type="SceneReplicationConfig" id="Replication"]
+properties/0/path = NodePath(".:variant")
+properties/0/spawn = true
+properties/0/replication_mode = 0
+properties/1/path = NodePath(".:color_seed")
+properties/1/spawn = true
+properties/1/replication_mode = 0
+properties/2/path = NodePath(".:net_pos")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:net_yaw")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:anim_state")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+properties/5/path = NodePath(".:wants")
+properties/5/spawn = true
+properties/5/replication_mode = 2
+properties/6/path = NodePath(".:offer")
+properties/6/spawn = true
+properties/6/replication_mode = 2
+properties/7/path = NodePath(".:deal_ok")
+properties/7/spawn = true
+properties/7/replication_mode = 2
+properties/8/path = NodePath(".:customer_name")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath(".:role")
+properties/9/spawn = true
+properties/9/replication_mode = 0
+properties/10/path = NodePath(".:carry")
+properties/10/spawn = true
+properties/10/replication_mode = 2
+properties/11/path = NodePath(".:product")
+properties/11/spawn = true
+properties/11/replication_mode = 2
+properties/12/path = NodePath(".:inside")
+properties/12/spawn = true
+properties/12/replication_mode = 2
+
+[node name="CityWalker" type="CharacterBody3D"]
+collision_layer = 4
+collision_mask = 1
+floor_snap_length = 0.4
+script = ExtResource("1_ped")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.875, 0)
+shape = SubResource("Capsule")
+
+[node name="NavAgent" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.4
+path_height_offset = 0.15
+target_desired_distance = 0.5
+path_max_distance = 3.0
+avoidance_enabled = false
+height = 1.75
+radius = 0.35
+neighbor_distance = 6.0
+max_neighbors = 6
+time_horizon_agents = 1.5
+max_speed = 1.6
+
+[node name="Sync" type="MultiplayerSynchronizer" parent="."]
+root_path = NodePath("..")
+public_visibility = false
+replication_interval = 0.1
+replication_config = SubResource("Replication")

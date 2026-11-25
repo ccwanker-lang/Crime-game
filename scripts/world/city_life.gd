@@ -15,8 +15,14 @@ const Y: float = 0.15
 ## Suits, dresses, smart-casual (Pedestrian.VARIANTS indices): office people + business people.
 const OFFICE_VARIANTS: Array[int] = [2, 8, 8, 2, 6, 12, 13, 5, 1, 9]
 ## Walkers by day / at night (22:00-06:00).
-const WALKERS_DAY: int = 26
+const WALKERS_DAY: int = 18
 const WALKERS_NIGHT: int = 8
+## City life point 3: walkers with a role (CityWalker) on top of the plain walkers.
+const SHOPPERS: int = 10
+const JOGGERS: int = 3
+const PRAMS: int = 3
+const DOG_WALKERS: int = 3
+const NIGHT_OWLS: int = 6
 ## Extra city cars (host, once a player comes near the city).
 const EXTRA_CARS: int = 8
 
@@ -135,11 +141,38 @@ static func spots(world: Node3D) -> Array:
 				"zone": &"city", "kind": "sit", "seat": m.get_path(), "hours": Vector2(8.0, 22.0)})
 	# Walkers on the sidewalk graph (the first WALKERS_NIGHT also walk at night).
 	var nodes: Array[Vector3] = graph()
-	for i: int in roundi(WALKERS_DAY * float(QualityProfile.value("crowd"))):  # (quality level)
+	var crowd: float = float(QualityProfile.value("crowd"))  # (quality level)
+	for i: int in roundi(WALKERS_DAY * crowd):
 		var n: int = (i * 7919) % nodes.size()
 		out.append({"key": "Walker_%d" % i, "pos": nodes[n], "yaw": 0.0, "zone": &"city", "kind": "walk", "node": n,
 				"hours": Vector2(0.0, 24.0) if i < WALKERS_NIGHT else Vector2(6.5, 22.0)})
+	# City life point 3: walkers with a role (CityWalker), in the hours of the village's day rhythm (point 88).
+	var k: int = 0
+	for g: Array in role_groups():
+		for i: int in roundi(int(g[1]) * crowd):
+			k += 1
+			var n: int = (k * 104729 + 31) % nodes.size()
+			out.append({"key": "%s_%d" % [g[0], i], "pos": nodes[n], "yaw": 0.0, "zone": &"city", "kind": "walk",
+					"node": n, "role": g[2], "hours": g[3]})
 	return out
+
+
+## [key, count, CityWalker.Role, hours]: shoppers while the shops are open (the rhythm's morning..evening blocks),
+## joggers early and after work, prams in the day, dog walkers morning to evening, night owls to the bars.
+static func role_groups() -> Array:
+	var cfg := load("res://data/npc/day_rhythm.tres") as DayRhythmConfig
+	var starts: PackedFloat32Array = cfg.block_start if cfg else PackedFloat32Array([9.0, 12.0, 16.0, 22.0])
+	var open: float = starts[0]           # (morning block: shops open)
+	var evening: float = starts[2]        # (evening block)
+	var night: float = starts[3]          # (night block: the streets empty)
+	return [
+		["Shopper", SHOPPERS, CityWalker.Role.SHOPPER, Vector2(open, evening + 3.0)],
+		["JoggerAm", JOGGERS, CityWalker.Role.JOGGER, Vector2(6.5, open + 0.5)],
+		["JoggerPm", JOGGERS, CityWalker.Role.JOGGER, Vector2(evening + 1.5, night - 0.5)],
+		["Pram", PRAMS, CityWalker.Role.PRAM, Vector2(open + 0.5, evening + 1.5)],
+		["DogWalker", DOG_WALKERS, CityWalker.Role.DOG, Vector2(7.0, night - 1.0)],
+		["NightOwl", NIGHT_OWLS, CityWalker.Role.WALK, Vector2(evening + 3.0, 1.5)],
+	]
 
 
 static func _ring(out: Array, key: String, centre: Vector3, n: int, radius: float, hours: Vector2, talk: bool) -> void:
