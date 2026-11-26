@@ -11,7 +11,13 @@ extends Pedestrian
 ## - BUILDER (city life point 4): hard hat + hi-vis vest; SiteCrew drives it. `carry` CARRY_HAMMER = hammering (the
 ##   hammer swings in the hand while standing), CARRY_BRICKS = a stack of bricks in front.
 
-enum Role { WALK, SHOPPER, JOGGER, PRAM, DOG, BUILDER }
+## - INMATE / GUARD (city life point 5): prison people for PrisonLife - orange overalls / a grey uniform with a cap.
+
+enum Role { WALK, SHOPPER, JOGGER, PRAM, DOG, BUILDER, INMATE, GUARD }
+
+const INMATE_ORANGE := Color(0.95, 0.45, 0.08)
+const GUARD_SHIRT := Color(0.45, 0.5, 0.55)
+const GUARD_DARK := Color(0.1, 0.11, 0.13)
 
 const CARRY_HAMMER: int = 10
 const CARRY_BRICKS: int = 11
@@ -57,15 +63,29 @@ func _ready() -> void:
 	add_to_group(&"city_walkers")
 	if role == Role.PRAM:
 		_build_pram()
-	if role == Role.BUILDER:
+	if role == Role.BUILDER and variant != 9:  # (the "worker" model wears its own hard hat + vest)
 		_build_site_gear()
+	if role == Role.GUARD:
+		_build_guard_cap()
 	_build_bags()
 	_apply_inside()
 
 
 ## Customers stand still; walkers with a pram or a dog, joggers and someone inside a shop don't deal.
 func can_be_customer() -> bool:
-	return role in [Role.WALK, Role.SHOPPER] and not inside and not shopping  # (builders are at work)
+	return role in [Role.WALK, Role.SHOPPER] and not inside and not shopping  # (builders, inmates, guards: never)
+
+
+## Uniforms by material name (see Pedestrian._build_model; the names differ per model).
+func uniform_colors() -> Dictionary:
+	match role:
+		Role.INMATE:
+			return {"Shirt": INMATE_ORANGE, "Shirt2": INMATE_ORANGE, "Pants": INMATE_ORANGE, "White": INMATE_ORANGE,
+					"Red_Dark": INMATE_ORANGE, "LightBrown": INMATE_ORANGE}
+		Role.GUARD:
+			return {"Shirt": GUARD_SHIRT, "Shirt2": GUARD_SHIRT, "Pants": GUARD_DARK, "White": GUARD_SHIRT,
+					"Red_Dark": GUARD_DARK, "LightBrown": GUARD_DARK}
+	return {}
 
 
 func _move_speed() -> float:
@@ -309,6 +329,26 @@ func _build_tool(sk: Skeleton3D) -> void:
 			brick.position = Vector3(0, -0.12 + k * 0.075, -0.3)
 			holder.add_child(_gear(brick))
 	set_process(true)
+
+
+## A guard's cap (the police cap mesh) on the head bone.
+func _build_guard_cap() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var sk: Skeleton3D = _skeleton_of()
+	if sk == null:
+		return
+	var head: int = sk.find_bone("Head")
+	if head < 0:
+		return
+	var s: float = maxf(0.001, sk.global_basis.get_scale().x / global_basis.get_scale().x)
+	var att := BoneAttachment3D.new()
+	att.bone_idx = head
+	sk.add_child(att)
+	var cap := MeshInstance3D.new()
+	cap.mesh = PoliceOfficer._cap_mesh()
+	cap.scale = Vector3.ONE / s
+	att.add_child(_gear(cap))
 
 
 ## Hard hat on the head (follows the head) and a hi-vis vest on the chest.

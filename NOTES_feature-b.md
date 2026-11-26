@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd), part 36 (builders).
+Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd), part 36 (builders), part 37 (prison life).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1609,3 +1609,37 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - `builders` (F9): je staat bij het hek van een bouwwerf om 10:00. Bouwvakkers met helm en hesje lopen naar binnen,
   hameren bij de betonmolen, op de steiger en boven op de vloer, een sjouwt stenen, een staat bij de keet te praten.
   F7 versnelt de tijd: om 17:00 gaan ze naar huis.
+
+
+# Part 37: life in the prison (city life list 2026-11-25, item 5a)
+
+## How it works
+- `PrisonLife` (scripts/world/prison_life.gd, node World/PrisonLife, made by Zones._on_world on every peer, host
+  logic), active when a player is within 160 m of the Prison and the intro is NOT running (it has its own people).
+- Inmates: CityWalker role INMATE (orange overalls via `uniform_colors`, models t-shirt / casual / longsleeve), 14 x
+  crowd (quality). Day (`SCHEDULE`): 07-08 breakfast, 08-12 yard, 12-13 lunch, 13-17:30 yard, 17:30-18:30 dinner,
+  18:30-20 yard, 20-07 locked up. Meals: from the yard to the canteen's west door and onto the benches (3 per bench
+  side, 36 seats). Yard (`YARD`, one activity per inmate): weight bench + spotter, pull-up bar, basketball court
+  (walk / run about), the yard benches (bench_seat markers), picnic tables and groups that chat. Seen: they walk out
+  of Block A's yard door; not seen: already there. Lock-up: back through Block A's door, gone out of sight.
+- Guards: role GUARD (grey shirt, dark trousers, the police cap mesh), on A's PrisonGuardPost1-4 (3 = Block B gallery,
+  reached by appearing there once nobody looks) + one walking PrisonPatrol1-4. Shift change at 07:00 / 15:00 /
+  23:00: a relief walks in from the gatehouse (Post1) to the post, then the old guard walks out and goes. The patrol
+  guard eats in the canteen 13:00-13:45 (after the inmates).
+- Spawning is spread over ticks (3 per second): a burst of 19 models in one frame gave a 65 ms frame.
+- Scenario prison_life (yard 11:30, god mode), self-test check prison_life, flag `--no-prison-life` (A-B).
+
+## Decisions (what + why)
+- No new NPC class: CityWalker roles + `uniform_colors` (the Pedestrian model tint hook) give the overalls and
+  uniforms; the cap is the police cap mesh. Guards are unarmed townsfolk-NPCs, not combat AI: the prison is a place to
+  look at, the army is the armed side.
+- Off during the intro so its scripted scenes (Marco, the desk, the bus) stay as they are.
+
+## Measurements 2026-11-26 (High, 1080p; two other Godot processes running, see part 36)
+- prison_life (in the yard): 107 FPS with inmates + guards, 125 without (`--no-prison-life`): ~1.4 ms for 19 NPCs.
+- fps_army (82 m from the prison): 116 with, 115 without (streaming keeps them cheap from there).
+
+## Te testen door Curry
+- `prison_life` (F9): je staat op de binnenplaats van de gevangenis om 11:30 (god mode). Gevangenen in oranje sporten,
+  basketballen, zitten op bankjes en kletsen; cipiers in grijs met pet staan op hun post en een loopt rondjes. F7: om
+  12:00 lopen ze naar de kantine en gaan aan tafel, om 15:00 wordt de wacht afgelost, om 20:00 is de binnenplaats leeg.
