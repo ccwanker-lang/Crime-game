@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd).
+Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd), part 36 (builders).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1558,3 +1558,54 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
   de pui binnen, zitten aan de twee tafels met koffie en eten.
 - `city_crowd` (F9): een stadshoek om 10:00. Drie mensen lopen recht op je af: een met twee tasjes, een met een
   kinderwagen en een met een hond. Druk F7 om de tijd te versnellen: 's avonds is het rustiger op straat.
+
+
+# Part 36: builders on the building sites (city life list 2026-11-25, item 4)
+
+## How it works
+- `SiteCrew` (scripts/world/site_crew.gd, node World/SiteCrew, made by Zones._on_world on every peer, host logic):
+  for every `BuildingSite` (A's group building_sites) within 110 m of a player, 07:00-17:00, one builder per
+  `BuilderSpot` (meta task). Builders = CityWalker role BUILDER (zone &"site", never customers), model variants
+  worker / longsleeve / casual / t-shirt / hoodie, local gear: hard hat (yellow / white / orange) on the head bone and
+  a hi-vis vest with reflective stripes on the torso.
+- Arrival: seen -> they walk in through SiteGate; nobody looking -> already at work. Spots on the floors ("upper",
+  "scaffold", "floor"): walk to the stair foot (`BuildingSite.flight(0)`), appear up there once nobody looks (A's
+  advice: no navmesh in the city).
+- Tasks: mixer / scaffold / upper / floor = hammering (`carry` CARRY_HAMMER: a hammer in the right hand that swings,
+  local, only within 35 m of the camera), now and then a break + a chat; bricks = carries a stack of bricks
+  (CARRY_BRICKS) from the pallet to the mixer and back; office = stands at the site office and talks.
+- 17:00: tools down, down from the floors, out through the gate, gone where nobody looks. Night: empty. A gunshot: they
+  run (Pedestrian flee), a new one comes after 90 s.
+- Quality: the number of staffed spots per site scales with QualityProfile crowd (TASK_ORDER keeps mixer, scaffold,
+  bricks first; at least 2 per site).
+- Scenario builders (site gate, 10:00), self-test check builders, flag `--no-builders` (A-B).
+
+## Decisions (what + why)
+- Builders reuse CityWalker (role + carry already synced): no new network code, the gear and tools follow from two ints.
+- Hammering is a procedural tool swing instead of a new animation: the Quaternius models have no hammer animation.
+- Every move ends (`_go`: straight line, else put there when nobody looks / after 20 s; asleep NPCs are put there).
+
+## Performance
+- First version cost ~8 FPS in fps_city (A-B-A with `--no-builders`): 7 gear meshes per builder, each its own mesh
+  resource, all casting shadows. Fix: shared meshes (`CityWalker._mesh`), no shadows and a 70 m visibility range on
+  the gear (`_gear`), bags / tools only re-posed within 35 m, sim range 160 -> 110 m. Now ~2 FPS (noise level).
+- Diners cost ~0 in fps_city (`--no-diners`).
+
+## Measurements 2026-11-26 (RTX 5060 Ti, 1080p, High; NOTE: two other Godot processes ran during these - A's tests
+## or the user's game - so all numbers are ~20% lower than on 2026-11-25; compare A-B-A pairs, not across days)
+| spot | quality | avg FPS | 1% low |
+|---|---|---|---|
+| fps_docks | High | 115 | 45 |
+| fps_city | High | 104-107 | 44-47 |
+| fps_army | High | 124 | 52 |
+| fps_busy | High | 87 | 41 |
+| builders | High | 98 | 40 |
+| city_cafe | High | 125 | 49 |
+| fps_busy | Low | 129 | 51 |
+- fps_city with / without my new NPCs (diners + builders): 104-106 vs 107-111 FPS.
+- Below the 90 FPS rule: fps_busy (87, extra-busy stress test) with the parallel load; to recheck on a quiet PC.
+
+## Te testen door Curry
+- `builders` (F9): je staat bij het hek van een bouwwerf om 10:00. Bouwvakkers met helm en hesje lopen naar binnen,
+  hameren bij de betonmolen, op de steiger en boven op de vloer, een sjouwt stenen, een staat bij de keet te praten.
+  F7 versnelt de tijd: om 17:00 gaan ze naar huis.

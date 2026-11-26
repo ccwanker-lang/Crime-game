@@ -134,6 +134,7 @@ const LIST: Array = [
 	["diners", "City life 2: guests in the Bakery at lunchtime (12:30), everything 4x faster", "You stand inside the Bakery. Guests come in from the street through the door, sit at the table, get coffee and a croissant or pie in front of them, stay a while and leave again (here 4x faster than normal). Restaurants, cafes and bars work the same (busiest at lunch and dinner, bars in the evening); in bars and snack bars a few guests stand at the counter and chat. Fire a shot: they run."],
 	["city_crowd", "City life 3: a busy city morning (10:00) on a street corner - shoppers, prams, dog walkers, joggers", "More people in the city by day: shoppers walk into the shops and come out with one or two coloured bags, parents push prams, dog walkers with a real dog, people wait at the bus stops. Joggers run early (till ~09:30) and after work (17:30-21:30). F7 speeds up time: in the evening it gets quieter on the streets, but night owls walk till ~01:30 and the bars fill up. Three of them (bags, pram, dog) walk right past you."],
 	["city_cafe", "City life 2: a walk-in cafe in the city at lunchtime (12:30), everything 4x faster", "You stand just inside one of the city's walk-in cafes (A's shop towers). Guests come in from the pavement through the gap in the glass front, sit at the two tables, get a coffee and something to eat, stay a while and leave again. The seller stands behind the counter (E = order: food heals)."],
+	["builders", "City life 4: a building site at 10:00, at its gate", "Builders in hard hats and hi-vis vests come in through the gate and go to work: hammering at the mixer, on the scaffold and on the floors (the one up top appears there once you don't look), one carries bricks from the pallet to the mixer, one stands at the site office. F7 speeds up time: at 17:00 they put down their tools and leave through the gate; at night the site is empty. Fire a shot: they run."],
 	["fps_army", "Points 86-90: frame rate at the army base (F3 overlay on)", "You stand west of Fort Halden's apron with an army pass, F3 overlay on. Before: ~70 FPS; now ~120-140."],
 	["bunker_rooms", "Point 92: the bunker's lower level - free way from the stairs, every room furnished", "You stand at the foot of the bunker stairs (lower level, -14 m). Turn right: the lift moved 1 m west, so a 2 m lane runs past the shaft into the garage (the lift pit is only a 0.3 m step now). Walk on: the corridor leads to the workshop (lab hall: 6 workbenches with stools along the east wall, the 6 yellow machine spots in the middle), storage (shelves + cabinets on every wall), the bunk room (6 beds, lockers, a table) and the generator room at the end."],
 	["grass_roads", "Point 95: no grass through roads or pavements (the slums)", "You stand on the pavement of the slum loop road (Rosehill Park), right after loading. Look round: the road, the pavements and the paved yards are bare; grass only grows on the green verges and fields. Before, the first grass patches round where you spawned were made before the paving existed and grew straight through the concrete. The same holds on the whole map (self-test check grass_roads)."],
@@ -548,6 +549,13 @@ static func run(world: Node, id: String) -> bool:
 			var bak := world.find_child("Bakery", true, false) as Node3D
 			if bak:
 				_place(me, bak.to_global(Vector3(-1.8, 0.3, -0.9)), bak.to_global(Vector3(2.0, 0.8, -2.6)), dn, 12.5)
+		"builders":
+			_kit(me, 200, [])
+			var bsites: Array[Node] = world.get_tree().get_nodes_in_group(&"building_sites")
+			if not bsites.is_empty():
+				var bsite := bsites[0] as BuildingSite
+				var bg: Vector3 = (bsite.find_child("SiteGate", false, false) as Node3D).position
+				_place(me, bsite.to_global(bg + Vector3(-4.0, 0.3, -5.0)), bsite.to_global(Vector3(0, 3.0, 0)), dn, 10.0)
 		"city_cafe":
 			_kit(me, 200, [])
 			DinerLife.speed = 4.0
@@ -1283,7 +1291,7 @@ static func run(world: Node, id: String) -> bool:
 		return true
 	if "--scenario-quit" in OS.get_cmdline_user_args():
 		# Check run: report what the scenario set up a few seconds later, then quit.
-		await world.get_tree().create_timer(26.0 if id in ["diners", "city_cafe"] else 14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "city_crowd", "army_life"] else 4.0).timeout
+		await world.get_tree().create_timer(26.0 if id in ["diners", "city_cafe"] else 14.0 if id in ["road_crossing", "police_life", "trash", "agora", "city_life", "city_crowd", "builders", "army_life"] else 4.0).timeout
 		var data: Dictionary = GameState.get_or_create_player_data(me.player_name)
 		var near: PackedStringArray = []
 		for n: Node in world.get_tree().get_nodes_in_group(&"npc"):

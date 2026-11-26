@@ -171,6 +171,7 @@ func _on_world() -> void:
 	_setup_bunker.call_deferred()
 	ShopStaff.populate(_world)  # (city life point 1: sellers behind every shop till, the same on every peer)
 	DinerLife.attach(_world)  # (city life point 2: guests in restaurants, cafes, bars)
+	SiteCrew.attach(_world)  # (city life point 4: builders on the building sites)
 
 
 ## Every peer (the same on all of them): A's bunker property becomes a buyable one.

@@ -8,8 +8,13 @@ extends Pedestrian
 ## - JOGGER: runs (RUN anim, JOG_SPEED), mornings and evenings.
 ## - PRAM: pushes a pram (local visual), slowly.
 ## - DOG: walks a dog (a real `Dog`, made by the Ambience autoload on every peer like for the park's dog walkers).
+## - BUILDER (city life point 4): hard hat + hi-vis vest; SiteCrew drives it. `carry` CARRY_HAMMER = hammering (the
+##   hammer swings in the hand while standing), CARRY_BRICKS = a stack of bricks in front.
 
-enum Role { WALK, SHOPPER, JOGGER, PRAM, DOG }
+enum Role { WALK, SHOPPER, JOGGER, PRAM, DOG, BUILDER }
+
+const CARRY_HAMMER: int = 10
+const CARRY_BRICKS: int = 11
 
 const JOG_SPEED: float = 2.7
 const PRAM_SPEED: float = 1.0
@@ -41,7 +46,8 @@ var shopping: bool = false
 var shops_visited: int = 0
 
 var _bags: Array[Node3D] = []      # (BoneAttachments)
-var _bag_holders: Array[Node3D] = []  # (kept hanging straight down, see _process)
+var _bag_holders: Array[Node3D] = []
+var _bags_set: bool = false  # (kept hanging straight down, see _process)
 var _pram: Node3D = null
 
 
@@ -51,13 +57,15 @@ func _ready() -> void:
 	add_to_group(&"city_walkers")
 	if role == Role.PRAM:
 		_build_pram()
+	if role == Role.BUILDER:
+		_build_site_gear()
 	_build_bags()
 	_apply_inside()
 
 
 ## Customers stand still; walkers with a pram or a dog, joggers and someone inside a shop don't deal.
 func can_be_customer() -> bool:
-	return role in [Role.WALK, Role.SHOPPER] and not inside and not shopping
+	return role in [Role.WALK, Role.SHOPPER] and not inside and not shopping  # (builders are at work)
 
 
 func _move_speed() -> float:
@@ -203,11 +211,15 @@ func _build_bags() -> void:
 			b.queue_free()
 	_bags.clear()
 	_bag_holders.clear()
+	_bags_set = false
 	set_process(false)
 	if carry <= 0 or DisplayServer.get_name() == "headless":
 		return
 	var sk: Skeleton3D = _skeleton_of()
 	if sk == null:
+		return
+	if carry >= CARRY_HAMMER:
+		_build_tool(sk)
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = color_seed + shops_visited
@@ -226,27 +238,152 @@ func _build_bags() -> void:
 		_bag_holders.append(bag)
 		var col: Color = BAG_COLORS[rng.randi() % BAG_COLORS.size()]
 		var body := MeshInstance3D.new()
-		body.mesh = ProcGoods.box(Vector3(0.28, 0.32, 0.12))
+		body.mesh = _mesh("box", Vector3(0.28, 0.32, 0.12))
 		body.material_override = ProcGoods.mat(col)
 		body.position = Vector3(0, -0.2, 0.0)  # (below the hand)
-		bag.add_child(body)
+		bag.add_child(_gear(body))
 		var handle := MeshInstance3D.new()
-		handle.mesh = ProcGoods.box(Vector3(0.12, 0.08, 0.015))
+		handle.mesh = _mesh("box", Vector3(0.12, 0.08, 0.015))
 		handle.material_override = ProcGoods.mat(col.darkened(0.3))
 		handle.position = Vector3(0, -0.04, 0)
-		bag.add_child(handle)
+		bag.add_child(_gear(handle))
 		_bags.append(att)
 	set_process(not _bags.is_empty())
 
 
-## Bags hang straight down from the hand whatever the arm does (metres, upright, facing the walk direction).
+## Bags hang straight down from the hand whatever the arm does (metres, upright, facing the walk direction); a
+## builder's hammer swings while it stands (hammering), the bricks are held in front.
 func _process(_delta: float) -> void:
 	if not visible:
 		return
 	var b := Basis(Vector3.UP, global_rotation.y)
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	var close: bool = cam != null and cam.global_position.distance_squared_to(global_position) < 35.0 * 35.0
+	if not close and _bags_set:
+		return  # (far away: bags / tools keep their last pose)
+	_bags_set = true
+	if carry == CARRY_HAMMER and anim_state == Anim.IDLE and close:
+		var t: float = Time.get_ticks_msec() / 1000.0 * 2.6 + float(color_seed % 100)
+		var swing: float = pow(absf(sin(t)), 3.0) * 1.4  # (a quick blow, a slow lift)
+		b = b * Basis(Vector3.RIGHT, -0.4 + swing)
 	for h: Node3D in _bag_holders:
 		if is_instance_valid(h):
 			h.global_basis = b
+
+
+## Hammer (right hand) or a stack of bricks (between the hands, in front of the belly).
+func _build_tool(sk: Skeleton3D) -> void:
+	var bone: int = sk.find_bone("Palm.R")
+	if bone < 0:
+		bone = sk.find_bone("Wrist.R")
+	if carry == CARRY_BRICKS:
+		bone = sk.find_bone("Torso")
+	if bone < 0:
+		return
+	var att := BoneAttachment3D.new()
+	att.bone_idx = bone
+	sk.add_child(att)
+	var holder := Node3D.new()
+	att.add_child(holder)
+	_bag_holders.append(holder)
+	_bags.append(att)
+	if carry == CARRY_HAMMER:
+		var grip := MeshInstance3D.new()
+		grip.mesh = _mesh("box", Vector3(0.03, 0.03, 0.3))
+		grip.material_override = ProcGoods.mat(Color(0.55, 0.35, 0.18))
+		grip.position = Vector3(0, 0, -0.1)
+		holder.add_child(_gear(grip))
+		var head := MeshInstance3D.new()
+		head.mesh = _mesh("box", Vector3(0.05, 0.05, 0.13))
+		head.material_override = ProcGoods.mat(Color(0.3, 0.3, 0.32))
+		head.position = Vector3(0, 0, -0.25)
+		head.rotation.x = PI / 2.0
+		holder.add_child(_gear(head))
+	else:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = color_seed
+		for k: int in 3:
+			var brick := MeshInstance3D.new()
+			brick.mesh = _mesh("box", Vector3(0.24, 0.07, 0.11))
+			brick.material_override = ProcGoods.mat(Color(0.66, 0.28, 0.18).darkened(rng.randf() * 0.15))
+			brick.position = Vector3(0, -0.12 + k * 0.075, -0.3)
+			holder.add_child(_gear(brick))
+	set_process(true)
+
+
+## Hard hat on the head (follows the head) and a hi-vis vest on the chest.
+func _build_site_gear() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	var sk: Skeleton3D = _skeleton_of()
+	if sk == null:
+		return
+	var s: float = maxf(0.001, sk.global_basis.get_scale().x / global_basis.get_scale().x)
+	var head: int = sk.find_bone("Head")
+	if head >= 0:
+		var att := BoneAttachment3D.new()
+		att.bone_idx = head
+		sk.add_child(att)
+		var hat := Node3D.new()
+		hat.scale = Vector3.ONE / s
+		att.add_child(hat)
+		var col: Color = [Color(0.95, 0.78, 0.1), Color(0.95, 0.95, 0.92), Color(0.95, 0.45, 0.1)][color_seed % 3]
+		var dome := MeshInstance3D.new()
+		dome.mesh = _mesh("ball", 0.13, 0.16)
+		dome.material_override = ProcGoods.mat(col)
+		dome.position = Vector3(0, 0.2, 0.0)
+		hat.add_child(_gear(dome))
+		var brim := MeshInstance3D.new()
+		brim.mesh = _mesh("cyl", 0.155, 0.155, 0.015, 14)
+		brim.material_override = ProcGoods.mat(col.darkened(0.1))
+		brim.position = Vector3(0, 0.17, 0.02)
+		hat.add_child(_gear(brim))
+	var torso: int = sk.find_bone("Torso")
+	if torso >= 0:
+		var att2 := BoneAttachment3D.new()
+		att2.bone_idx = torso
+		sk.add_child(att2)
+		var vest := Node3D.new()
+		vest.scale = Vector3.ONE / s
+		att2.add_child(vest)
+		var body := MeshInstance3D.new()
+		body.mesh = _mesh("box", Vector3(0.36, 0.34, 0.24))
+		body.material_override = ProcGoods.mat(Color(0.98, 0.5, 0.08))
+		body.position = Vector3(0, 0.08, 0)
+		vest.add_child(_gear(body))
+		for y: float in [0.0, 0.12]:
+			var stripe := MeshInstance3D.new()
+			stripe.mesh = _mesh("box", Vector3(0.37, 0.035, 0.245))
+			stripe.material_override = ProcGoods.mat(Color(0.85, 0.88, 0.85))
+			stripe.position = Vector3(0, y, 0)
+			vest.add_child(_gear(stripe))
+
+
+## Shared meshes for the gear (one resource per shape + size, every walker uses it).
+static var _meshes: Dictionary = {}
+
+
+static func _mesh(kind: String, a: Variant, b: Variant = null, c: Variant = null, d: Variant = null) -> Mesh:
+	var key: String = "%s|%s|%s|%s|%s" % [kind, a, b, c, d]
+	if not _meshes.has(key):
+		match kind:
+			"box":
+				_meshes[key] = ProcGoods.box(a)
+			"ball":
+				_meshes[key] = ProcGoods.ball(a, -1.0 if b == null else b)
+			_:
+				_meshes[key] = ProcGoods.cyl(a, b, c, 10 if d == null else d)
+	return _meshes[key]
+
+
+## Small gear: no shadow, not drawn beyond GEAR_RANGE (performance rules).
+const GEAR_RANGE: float = 70.0
+
+
+static func _gear(mi: MeshInstance3D) -> MeshInstance3D:
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visibility_range_end = GEAR_RANGE
+	return mi
 
 
 func _build_pram() -> void:
@@ -260,31 +397,31 @@ func _build_pram() -> void:
 	rng.seed = color_seed
 	var col: Color = [Color(0.15, 0.2, 0.35), Color(0.45, 0.15, 0.2), Color(0.2, 0.2, 0.22), Color(0.3, 0.45, 0.35)][rng.randi() % 4]
 	var body := MeshInstance3D.new()
-	body.mesh = ProcGoods.box(Vector3(0.45, 0.3, 0.75))
+	body.mesh = _mesh("box", Vector3(0.45, 0.3, 0.75))
 	body.material_override = ProcGoods.mat(col)
 	body.position = Vector3(0, 0.62, 0)
-	_pram.add_child(body)
+	_pram.add_child(_gear(body))
 	var hood := MeshInstance3D.new()
-	hood.mesh = ProcGoods.ball(0.24, 0.3)
+	hood.mesh = _mesh("ball", 0.24, 0.3)
 	hood.material_override = ProcGoods.mat(col.darkened(0.2))
 	hood.position = Vector3(0, 0.78, -0.22)
-	_pram.add_child(hood)
+	_pram.add_child(_gear(hood))
 	var bar := MeshInstance3D.new()
-	bar.mesh = ProcGoods.box(Vector3(0.45, 0.03, 0.03))
+	bar.mesh = _mesh("box", Vector3(0.45, 0.03, 0.03))
 	bar.material_override = ProcGoods.mat(Color(0.1, 0.1, 0.1))
 	bar.position = Vector3(0, 0.98, 0.5)
-	_pram.add_child(bar)
+	_pram.add_child(_gear(bar))
 	for sx: float in [-0.2, 0.2]:
 		var pole := MeshInstance3D.new()
-		pole.mesh = ProcGoods.box(Vector3(0.025, 0.45, 0.025))
+		pole.mesh = _mesh("box", Vector3(0.025, 0.45, 0.025))
 		pole.material_override = ProcGoods.mat(Color(0.1, 0.1, 0.1))
 		pole.position = Vector3(sx, 0.8, 0.43)
 		pole.rotation.x = -0.35
-		_pram.add_child(pole)
+		_pram.add_child(_gear(pole))
 		for sz: float in [-0.28, 0.28]:
 			var wheel := MeshInstance3D.new()
-			wheel.mesh = ProcGoods.cyl(0.13, 0.13, 0.04, 12)
+			wheel.mesh = _mesh("cyl", 0.13, 0.13, 0.04, 12)
 			wheel.material_override = ProcGoods.mat(Color(0.08, 0.08, 0.08))
 			wheel.position = Vector3(sx * 1.15, 0.13, sz)
 			wheel.rotation.z = PI / 2.0
-			_pram.add_child(wheel)
+			_pram.add_child(_gear(wheel))
