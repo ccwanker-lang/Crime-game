@@ -25,7 +25,7 @@ extends Node
 const WALKER: PackedScene = preload("res://scenes/player/player.tscn")
 const LAMP_PREFABS: Array[String] = ["street_lamp.tscn", "floodlight_pole.tscn"]
 
-const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "prison", "pass", "city", "city_shops", "building_sites", "street_detail", "weather", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads", "day_rhythm", "settings", "soundscape", "menus", "steam", "gamepad", "quality_levels", "shop_sellers", "diners", "city_crowd", "builders", "prison_life"]
+const CHECKS: Array[String] = ["items", "ground", "grass", "lamps", "debug_labels", "doors", "player", "kerb", "admin", "held", "stairs", "furniture", "balconies", "combat", "shops", "gun_shop", "black_market", "placement", "build_mode", "sleep", "storage", "bookshelf", "trash", "real_estate", "laundering", "growing", "pedestrians", "npc_combat", "police", "wanted", "police_life", "rivals", "harbour", "police_vs_crows", "park", "vehicles", "garage", "territory", "intro", "prison", "pass", "city", "city_shops", "building_sites", "street_detail", "weather", "apartments", "roads", "slums", "army", "airfield", "bunker", "bunker_inside", "bunker_rooms", "fuel", "regen", "selling", "phone", "traffic", "lights", "save", "ranks", "staff", "meth", "cocaine", "services", "raids", "roadside", "bulk", "quality", "range", "engine_sound", "run_over", "car_roof", "dogs", "animals", "staff_assign", "zones", "missions", "streaming", "grass_roads", "day_rhythm", "settings", "soundscape", "menus", "steam", "gamepad", "quality_levels", "shop_sellers", "diners", "city_crowd", "builders", "prison_life", "army_day"]
 
 var _fails: int = 0
 var _corner: Dictionary = {}  # the test weed corner (World.debug_weed_corner), placed once
@@ -117,6 +117,11 @@ func _check_menus(world: Node3D) -> void:
 ## Session B user list item 4: Steam co-op without starting Steam (scripts/debug/steam_test.gd).
 func _check_steam(world: Node3D) -> void:
 	await SteamTest.run(self, world)
+
+
+## City life point 5b: Fort Halden's day rhythm (scripts/debug/army_day_test.gd).
+func _check_army_day(world: Node3D) -> void:
+	await ArmyDayTest.run(self, world)
 
 
 ## City life point 5a: inmates + guards in the prison (scripts/debug/prison_life_test.gd).

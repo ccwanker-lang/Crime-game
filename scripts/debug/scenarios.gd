@@ -136,6 +136,7 @@ const LIST: Array = [
 	["city_cafe", "City life 2: a walk-in cafe in the city at lunchtime (12:30), everything 4x faster", "You stand just inside one of the city's walk-in cafes (A's shop towers). Guests come in from the pavement through the gap in the glass front, sit at the two tables, get a coffee and something to eat, stay a while and leave again. The seller stands behind the counter (E = order: food heals)."],
 	["builders", "City life 4: a building site at 10:00, at its gate", "Builders in hard hats and hi-vis vests come in through the gate and go to work: hammering at the mixer, on the scaffold and on the floors (the one up top appears there once you don't look), one carries bricks from the pallet to the mixer, one stands at the site office. F7 speeds up time: at 17:00 they put down their tools and leave through the gate; at night the site is empty. Fire a shot: they run."],
 	["prison_life", "City life 5: the prison yard at 11:30 (god mode), on the wall walk by the gatehouse", "Inmates in orange overalls are out in the yard: lifting weights, at the pull-up bar, playing on the basketball court, sitting on the benches, chatting at the picnic tables. Guards in grey with caps stand at their posts (gatehouse, yard, Block B gallery, canteen) and one walks the yard loop. F7 speeds up time: 12:00 lunch in the canteen (they walk over and sit at the tables), the patrol guard eats after them at 13:00, 15:00 the guards are relieved (a new one walks in from the gatehouse, the old one leaves), 20:00 lock-up: the yard empties."],
+	["army_day", "City life 5b: Fort Halden at 11:58 with an army pass, at the door of Barracks1 (god mode)", "You stand in the lane between the hangars and the barracks, at the door of Barracks1, with a pass (nobody shoots). At 12:00 the hangar and helipad crews walk to Barracks1 for lunch: two sit on the stools at the table, the others stand round it and talk; at 13:00 they go back. F7 speeds up time: at 14:00 the gate, flag and tower guards are relieved (a fresh soldier walks out of Barracks3 to every post, the old one walks in and is gone); at 22:00 the hangar crews turn in (they walk into Barracks2) and come back out at 06:00. The patrols walk all day."],
 	["fps_army", "Points 86-90: frame rate at the army base (F3 overlay on)", "You stand west of Fort Halden's apron with an army pass, F3 overlay on. Before: ~70 FPS; now ~120-140."],
 	["bunker_rooms", "Point 92: the bunker's lower level - free way from the stairs, every room furnished", "You stand at the foot of the bunker stairs (lower level, -14 m). Turn right: the lift moved 1 m west, so a 2 m lane runs past the shaft into the garage (the lift pit is only a 0.3 m step now). Walk on: the corridor leads to the workshop (lab hall: 6 workbenches with stools along the east wall, the 6 yellow machine spots in the middle), storage (shelves + cabinets on every wall), the bunk room (6 beds, lockers, a table) and the generator room at the end."],
 	["grass_roads", "Point 95: no grass through roads or pavements (the slums)", "You stand on the pavement of the slum loop road (Rosehill Park), right after loading. Look round: the road, the pavements and the paved yards are bare; grass only grows on the green verges and fields. Before, the first grass patches round where you spawned were made before the paving existed and grew straight through the concrete. The same holds on the whole map (self-test check grass_roads)."],
@@ -563,6 +564,11 @@ static func run(world: Node, id: String) -> bool:
 			var prison_l: Node3D = world.find_child("Prison", true, false) as Node3D
 			if prison_l:
 				_place(me, prison_l.to_global(Vector3(-2.0, 0.3, 14.0)), prison_l.to_global(Vector3(-12.0, 1.0, 0.0)), dn, 11.5)
+		"army_day":
+			_kit(me, 200, [])
+			me.admin_god = true
+			Zones.allow_army(me, 7200.0)
+			_place(me, Vector3(-88.5, 0.3, -406.8), Vector3(-90.0, 1.0, -415.5), dn, 11.97)
 		"city_cafe":
 			_kit(me, 200, [])
 			DinerLife.speed = 4.0

@@ -34,6 +34,13 @@ var route: Array[Vector3] = []
 var _route_i: int = 0
 ## Host: a post where two soldiers chat (TALK now and then).
 var chatty: bool = false
+## Host (city life point 5b, ArmyLife): an errand off the post - walk `errand_path` (straight lines), then stay
+## there: sit at `errand_sit_yaw` (not NAN) or stand and chat; "dismiss" = gone at the end (off duty / relieved).
+## Any alarm or intruder ends it (the soldier is a soldier again at once).
+var errand: String = ""
+var errand_path: Array[Vector3] = []
+var errand_sit_yaw: float = NAN
+var errand_done: bool = false
 
 
 func _ready() -> void:
@@ -93,6 +100,12 @@ func host_damage(amount: int, attacker: Node = null, from: Vector3 = Vector3.INF
 
 
 ## Host: someone to shoot at - an intruder inside the fence or a known attacker, in sight.
+## Shot at / an intruder: off the stool and back to being a soldier first.
+func _alert(culprit: Player, at: Vector3) -> void:
+	end_errand()
+	super._alert(culprit, at)
+
+
 func spot_intruder() -> Player:
 	var best: Player = null
 	var best_d: float = WATCH_RANGE
@@ -115,12 +128,18 @@ func spot_intruder() -> Player:
 func _patrol() -> void:
 	var p: Player = spot_intruder()
 	if p:
+		end_errand()
 		Zones.army_hostile(p, "inside the base")
 		_alert(p, p.global_position)
 		return
+	if errand != "" and Zones.alarm_on():
+		end_errand()
 	if anim_state in [Anim.AIM, Anim.RUN_GUN] and not _moving:
 		anim_state = Anim.IDLE
 	if _moving:
+		return
+	if errand != "":
+		_errand_step()
 		return
 	if not route.is_empty() and not (reinforcement and not Zones.alarm_on()):
 		_walk_route()
@@ -139,6 +158,64 @@ func _patrol() -> void:
 		rotation.y = post_yaw
 		net_yaw = post_yaw
 	if chatty and randf() < 0.06:
+		anim_state = Anim.TALK if anim_state != Anim.TALK else Anim.IDLE
+
+
+## Host: start an errand (ArmyLife): walk `path`, then sit (sit_yaw) / stand and chat, or be dismissed.
+func start_errand(kind: String, path: Array[Vector3], sit_yaw: float = NAN) -> void:
+	if target != null or dead:
+		return
+	if _sitting:
+		_stand_up()
+	errand = kind
+	errand_path = path.duplicate()
+	errand_sit_yaw = sit_yaw
+	errand_done = false
+	if _moving:
+		_finish_move(false)
+
+
+## Host: back to normal duty (stands up; `_patrol` walks back to the post / route by itself).
+func end_errand() -> void:
+	if errand == "":
+		return
+	errand = ""
+	errand_path.clear()
+	errand_done = false
+	if _sitting:
+		_stand_up()
+	anim_state = Anim.IDLE
+
+
+func _errand_step() -> void:
+	if not errand_path.is_empty():
+		var to: Vector3 = errand_path[0]
+		if Vector2(global_position.x - to.x, global_position.z - to.z).length() < 0.6:
+			errand_path.pop_front()
+			return
+		if straight_way_clear(to, 150.0):
+			_go_direct(to, Anim.WALK)
+		else:
+			global_position = to  # (no navmesh at the base: a blocked leg = put there, like the posts)
+			net_pos = to
+			errand_path.pop_front()
+		return
+	if not errand_done:
+		errand_done = true
+		if errand == "dismiss":
+			Zones.dismiss(self)
+			return
+		if not is_nan(errand_sit_yaw):
+			_sitting = true
+			_sit_front = global_position + Vector3(sin(errand_sit_yaw), 0, cos(errand_sit_yaw)) * 0.6
+			collision.disabled = true
+			global_position += Vector3.UP * SIT_HEIGHT
+			rotation.y = errand_sit_yaw
+			net_pos = global_position
+			net_yaw = errand_sit_yaw
+			anim_state = Anim.SIT
+		return
+	if not _sitting and randf() < 0.08:
 		anim_state = Anim.TALK if anim_state != Anim.TALK else Anim.IDLE
 
 

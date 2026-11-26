@@ -173,6 +173,7 @@ func _on_world() -> void:
 	DinerLife.attach(_world)  # (city life point 2: guests in restaurants, cafes, bars)
 	SiteCrew.attach(_world)  # (city life point 4: builders on the building sites)
 	PrisonLife.attach(_world)  # (city life point 5: inmates + guards in the prison)
+	ArmyLife.attach(_world)  # (city life point 5b: lunch, nights off, shift changes at the army base)
 
 
 ## Every peer (the same on all of them): A's bunker property becomes a buyable one.
@@ -326,8 +327,12 @@ func _army_tick() -> void:
 		if g is float and t < float(g):
 			continue
 		var post: Dictionary = posts[i]
-		var s: Soldier = spawn_soldier(post["pos"], post["yaw"], false, post.get("gun", &"ak47"))
+		if ArmyLife.off_duty(post, _hours()):
+			continue  # (city life point 5b: the hangar / helipad crews sleep in the barracks)
+		var from: Vector3 = ArmyLife.current.spawn_pos(post, _hours()) if ArmyLife.current else post["pos"]
+		var s: Soldier = spawn_soldier(from, post["yaw"], false, post.get("gun", &"ak47"))
 		if s:
+			s.home = post["pos"]
 			s.chatty = post.get("chatty", false)
 			s.route.assign(post.get("route", []))
 		_guards[i] = s

@@ -7,7 +7,7 @@ session A when merging (B may not edit those files).
 part 8 (bulk deals) + "Roadside + fuel" (A, merge of d2d7b72, 2026-11-14), parts 9-17 + 12 (A, merge 0f632ef,
 2026-11-15): all already in DESIGN/CHANGELOG/CLAUDE.md. New parts go below a new "Open for the next merge" line.
 
-Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd), part 36 (builders), part 37 (prison life).
+Parts 25-33 MERGED (A, 2026-11-25): in DESIGN/CHANGELOG/CLAUDE.md. Open for the next merge: part 34 (diners), part 35 (city crowd), part 36 (builders), part 37 (prison life), part 38 (army day).
 
 Part 24 MERGED (A, 2026-11-24): in DESIGN/CHANGELOG.
 
@@ -1643,3 +1643,37 @@ Done: self-test check `staff_assign`, scenario `staff_assign` (screenshot flags 
 - `prison_life` (F9): je staat op de binnenplaats van de gevangenis om 11:30 (god mode). Gevangenen in oranje sporten,
   basketballen, zitten op bankjes en kletsen; cipiers in grijs met pet staan op hun post en een loopt rondjes. F7: om
   12:00 lopen ze naar de kantine en gaan aan tafel, om 15:00 wordt de wacht afgelost, om 20:00 is de binnenplaats leeg.
+
+
+# Part 38: Fort Halden's day rhythm (city life list 2026-11-25, item 5b)
+
+## How it works
+- `ArmyLife` (scripts/world/army_life.gd, node World/ArmyLife, made by Zones._on_world, host logic) on top of Zones'
+  guard posts. Kinds (`kind_of(post)`): "chat" (hangar / helipad posts), "watch" (gate, flag, towers, single posts),
+  "patrol" (the two patrol routes, walk all day as before).
+- `Soldier.start_errand(kind, path, sit_yaw)` / `end_errand()` / `_errand_step()`: walk straight legs (blocked leg =
+  put there, like the posts), then sit (stools) / stand and chat, or "dismiss" = Zones.dismiss at the end. An intruder,
+  being shot at (`_alert`) or the alarm ends the errand at once: the soldier fights from where it is.
+- Lunch 12:00-13:00: the chat posts walk into Barracks1 (door gap S wall), two sit on the stools at the table, the rest
+  stand round it and talk; at 13:00 back out to their posts.
+- Night 22:00-06:00: the chat posts walk into Barracks2 and are gone; Zones skips them (`ArmyLife.off_duty`) and in
+  the first hour after 06:00 spawns them at Barracks2's door (`spawn_pos`) so they walk out to their posts.
+- Shift change 06:00 / 14:00 / 22:00: every watch post gets a relief out of Barracks3 who walks to the post (tower
+  posts: put up there by Soldier._patrol's blocked-line rule); the old guard (down from the tower) walks into
+  Barracks3 and is gone.
+- Scenario army_day (11:58, army pass, at Barracks1's door), self-test check army_day, flag `--no-army-life`.
+
+## Decisions (what + why)
+- On Soldier itself (errands), not a separate NPC: the people eating are the same armed guards, so an attack during
+  lunch is answered by the same soldiers (no second set of NPCs = no extra cost).
+- The barracks prefab's table + stools are the canteen (A's base has no mess hall); no marker needed: the places are
+  barracks-local consts in army_life.gd (gen_prefabs army_barracks). If A moves the table, tell me.
+
+## Measurements 2026-11-26 (High, 1080p; other Godot processes running)
+- fps_army: 116 with, 114 without (`--no-army-life`) = noise; army_day (at the barracks): 99 with, 100 without.
+
+## Te testen door Curry
+- `army_day` (F9): je staat met een legerpas bij de deur van Barracks1 om 11:58. Om 12:00 komen de soldaten van de
+  hangars en helipads lunchen (twee op de krukken, de rest staat te praten), om 13:00 gaan ze terug. F7: om 14:00
+  aflossing (verse soldaat uit Barracks3 naar elke post, de oude gaat naar binnen), om 22:00 gaan de hangarploegen
+  slapen in Barracks2, om 06:00 komen ze weer naar buiten.
